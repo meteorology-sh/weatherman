@@ -2,15 +2,14 @@ import { configureStore } from "@reduxjs/toolkit";
 import weatherReducer from "./features/weather";
 import interactionsReducer from "./features/interactions";
 
+// ArcGIS layer instances used to live in the store, which forced
+// serializableCheck off. They are module-scope singletons in lib/arcgis/ now
+// and the store holds only plain data, so the check is back on.
 export const store = configureStore({
   reducer: {
     weather: weatherReducer,
     interactions: interactionsReducer,
   },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: false,
-    }),
 });
 
 // Get the type of our store variable

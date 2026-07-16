@@ -1,5 +1,6 @@
 // Components
 import { ArcGIS } from "./Map";
+import { CloudLayers } from "./CloudLayers";
 import { Clouds } from "./Clouds";
 
 export const Interface = () => {
@@ -8,7 +9,7 @@ export const Interface = () => {
       <div className="col-span-1 p-4 h-[calc(90vh)] overflow-y-auto">
         <div className="prose">
           <h2>National Cloud Cover</h2>
-          <p>Current cloud cover across the continental U.S.</p>
+          <p>Live GOES-East imagery over the continental U.S.</p>
         </div>
         <div className="py-2">
           <div className="collapse bg-base-200 border-base-300 border">
@@ -17,14 +18,19 @@ export const Interface = () => {
             <div className="collapse-content text-sm">
               <div className="prose">
                 <p>
-                  Each circle is a sample point on a national grid: larger and
-                  brighter means more cloud cover. Click a point on the map for
-                  details, or click a location in the list to fly there.
+                  The map shows GOES-East satellite imagery, refreshed every 10
+                  minutes at roughly 2 km resolution — the cloud shapes are
+                  observed, not modelled. Switch between the two renderings
+                  below. The figures underneath come from a separate 3° model
+                  grid, so they summarise the nation rather than the picture;
+                  click a location to fly there.
                 </p>
               </div>
             </div>
           </div>
         </div>
+        <CloudLayers />
+        <div className="divider my-1" />
         <Clouds />
       </div>
       <div className="col-span-2">

@@ -14,15 +14,31 @@ system design lives outside this repo at `/home/nathan/code/rainmaker/weatherman
 (see its `README.md` and `docs/`). This web app will become the operator
 dashboard for that station.
 
-**Current example feature:** national cloud cover — the server samples a
-~180-point grid across the continental U.S. from the Open-Meteo API (cached
-in-memory) and serves it at `/weather/cloud-cover`; the app renders it as an
-ArcGIS layer over a dark national map, with a stats/legend sidebar that can
-fly the map to any grid point. It is wired end-to-end (upstream API → service
-→ router → proxy → client → Redux → map) and is the reference implementation
-of the full-stack data pattern all future features should follow. (An earlier
-"supply chain explorer" example was removed as dead code — its on-disk data
-was never committed; see git history if you need it.)
+**Current example feature:** national cloud cover, which comes from two
+sources with different jobs:
+
+- **Cloud *shape*: GOES-East imagery.** The map shows NASA GIBS WMTS tiles of
+  GOES-East ABI — `GeoColor` (true colour by day) and `Band13` clean infrared
+  (cloud-top brightness temperature) — switchable from the sidebar. ~2 km
+  native, new scene every 10 minutes, no API key. Tiles go browser → GIBS
+  directly, like the basemap; they do not pass through our server.
+- **Cloud *quantities*: the Open-Meteo grid.** The server samples a ~180-point
+  grid across the continental U.S. (cached in-memory) and serves it at
+  `/weather/cloud-cover`. It feeds the sidebar stats and the fly-to list —
+  **not** the map graphics. It is wired end-to-end (upstream API → service →
+  router → proxy → client → Redux → component) and remains the reference
+  implementation of the full-stack data pattern all future features should
+  follow.
+
+**Why the split:** the grid is 3° spacing — ~300 km between samples, ~85,000
+km² per point. Cloud structure lives at 1–50 km, so interpolating that grid
+into a surface would draw shapes the data never measured. On a tool that
+decides whether to launch a drone, that is not an acceptable picture. Sampled
+model values answer "how much, on average"; only imagery answers "what shape,
+where". Do not render the grid as a continuous field. (An earlier version drew
+it as scaled/coloured point markers; that was replaced by the imagery, and an
+earlier "supply chain explorer" example was removed as dead code — see git
+history.)
 
 ## Guiding Principles
 
@@ -99,8 +115,8 @@ app/src/
     client.ts              # Plain async fetch functions (PascalCase names)
     types.ts               # Shared data shapes — mirror server responses
     arcgis/                # Module-scope ArcGIS config objects
-      renderers.ts         #   Renderer instances (symbols, visual variables)
-      templates.ts         #   PopupTemplate instances
+      layers.ts            #   GOES WebTileLayer instances + GoesLayers map
+      legends.ts           #   Legend data per layer (ramp, ticks, caveat)
     context/
       StoreProvider.tsx    # Wraps children with the Redux <Provider>
       WeatherProvider.tsx  # Data provider: fetches → dispatches to Redux
@@ -201,8 +217,6 @@ never written by hand**:
 // lib/store/store.ts
 export const store = configureStore({
   reducer: { weather: weatherReducer, interactions: interactionsReducer },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({ serializableCheck: false }),
 });
 
 export type AppStore = typeof store;
@@ -210,8 +224,12 @@ export type RootState = ReturnType<AppStore["getState"]>;
 export type AppDispatch = AppStore["dispatch"];
 ```
 
-`serializableCheck` is disabled **only** because ArcGIS layer instances live in
-the store. Keep everything else in the store plain and serializable.
+The store holds **only plain, serializable data** — RTK's `serializableCheck`
+is on, at its default. ArcGIS objects must never go in it: layers are
+module-scope singletons in `lib/arcgis/layers.ts`, and the store holds the
+`CloudLayerId` string naming which one is active. (An earlier version put a
+`GeoJSONLayer` in the store and had to disable `serializableCheck` for it;
+don't reintroduce that.)
 
 `StoreProvider` wraps children with the react-redux `<Provider>`, passing the
 singleton store directly (no `useRef` — the `react-hooks/refs` lint rule
@@ -266,14 +284,13 @@ not hooks**, named in `PascalCase`:
 
 ```ts
 // lib/client.ts
-export async function GetCloudCover(): Promise<[...]> {
+export async function GetCloudCover(): Promise<CloudCoverPoint[]> {
   const res = await fetch("/weather/cloud-cover");
   if (!res.ok) {
     throw new Error(`Failed to fetch cloud cover: ${res.status}`);
   }
   const points: CloudCoverPoint[] = await res.json();
-  // ...transform (build GeoJSON, construct ArcGIS layer)...
-  return [layer, points];
+  return points;
 }
 ```
 
@@ -283,8 +300,9 @@ export async function GetCloudCover(): Promise<[...]> {
   prefix to the Express server.
 - **Throw on non-OK responses**; the calling provider catches and dispatches
   the error state.
-- Transformation from API response to app-ready objects (GeoJSON assembly,
-  ArcGIS layer construction) belongs here, not in components or providers.
+- Any transformation from API response to app-ready objects belongs here, not
+  in components or providers. `GetCloudCover` currently needs none — it returns
+  the server's shape as-is.
 
 ## Types
 
@@ -296,14 +314,39 @@ Component prop types are declared locally as `type PropsT = { ... }`.
 ## ArcGIS
 
 - Import from `@arcgis/core` ES modules only. Do not use `esri-loader`.
-- Static map configuration — renderers, popup templates (and label classes
-  etc. as needed) — lives in `lib/arcgis/` as module-scope instances, one
-  file per kind.
+- Static map configuration — layer instances, legend data (and renderers,
+  popup templates etc. if markers ever return) — lives in `lib/arcgis/` as
+  module-scope instances, one file per kind.
 - Exactly one component (`components/Map.tsx`) touches the imperative ArcGIS
-  API. It holds `Map`/`MapView`/layer instances in refs, initializes the view
-  once in a mount effect, and reacts to Redux state (layer swaps, `goTo`
-  flights) in separate focused effects. Other components interact with the map
-  only through Redux (e.g. dispatching coordinates).
+  API. It holds `Map`/`MapView` in refs, initializes the view once in a mount
+  effect, and reacts to Redux state (layer visibility, `goTo` flights) in
+  separate focused effects. Other components interact with the map only
+  through Redux (e.g. dispatching coordinates or a `CloudLayerId`).
+- Both GOES layers are added to the map once and toggled via `.visible`, so
+  switching does not refetch tiles. Visibility is derived from the store in
+  one effect — never set `visible` from anywhere else.
+
+### GIBS tile layers
+
+GIBS publishes each layer only to a fixed maximum zoom (its matrix set:
+`GoogleMapsCompatible_Level7` = zoom 0–7, `Level6` = 0–6). One level past that
+the endpoint returns **400**, not an empty tile. So every GOES layer must cap
+its `tileInfo` LODs to match its matrix set:
+
+```ts
+tileInfo: TileInfo.create({ size: 256, numLODs: 8 }), // Level7 -> LODs 0..7
+```
+
+Past the last LOD ArcGIS stretches the deepest tiles instead of requesting
+ones that don't exist. `tests/layers.test.ts` pins each cap; if you add a GOES
+layer, check its matrix set in the capabilities document and pin it too:
+`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/1.0.0/WMTSCapabilities.xml`
+(5 MB; needs redirect-following).
+
+Legend colours must come from the layer's published GIBS colour map, linked in
+that layer's `<ows:Metadata>` — never eyeballed from a screenshot. Band13's is
+`Clean_Longwave_Infrared_Window_Band.xml` (brightness temperature in °C, -92
+to +57).
 
 ## Component Conventions
 
@@ -357,6 +400,20 @@ same-folder imports use relative paths.
 - Layout uses Tailwind utility classes (`grid`, `flex`, `h-full`, `p-4`).
 - Prose blocks use `@tailwindcss/typography`'s `prose` class.
 
+**The app is dark, and the theme is pinned to it** in `src/app/index.css`:
+
+```css
+@plugin "daisyui/index.js" {
+  themes: dark --default;
+}
+```
+
+This is load-bearing. The chrome hardcodes `bg-black` and the ArcGIS dark
+theme is imported, so if DaisyUI falls back to its light default,
+`text-base-content` resolves to dark text painted onto black and the sidebar
+becomes unreadable. Don't remove the pin, and don't "fix" contrast by
+hardcoding text colours on top of it — that just hides the theme break.
+
 ## Testing — Vitest
 
 `yarn test` (watch) / `yarn vitest run` (once). Config lives in the `test`
@@ -367,11 +424,14 @@ are on, so `describe`/`it`/`expect`/`vi` need no import. `vitest/globals` is in
 ```
 src/tests/
   utils.tsx                  # createTestStore() + renderWithStore() helper
-  client.test.ts             # transform: fetch → GeoJSON → layer
+  client.test.ts             # fetch + throw-on-non-OK
   weather-slice.test.ts      # reducer cases
   interactions-slice.test.ts # reducer cases
+  layers.test.ts             # GIBS URLs + LOD caps per matrix set
+  legends.test.ts            # ramp anchors, tick + seeding-band positions
   WeatherProvider.test.tsx   # provider → store integration
   Clouds.test.tsx            # component integration (RTL)
+  CloudLayers.test.tsx       # switcher + legend rendering
   Map.test.tsx               # component integration, ArcGIS faked
 ```
 
@@ -395,7 +455,12 @@ src/tests/
   (`expect(container.innerHTML).toBe("")`, not `toBeEmptyDOMElement()`).
 - Fake `@arcgis/core` modules with `vi.mock` — the real ones need a WebGL
   context. `Map.test.tsx` shows the pattern: fake classes that record their
-  instances via `vi.hoisted`, asserted through spied `add`/`remove`/`goTo`.
+  instances via `vi.hoisted`, asserted through spied `goTo` and `visible`
+  flags. It fakes `@/lib/arcgis/layers` too; `layers.test.ts` covers the real
+  layer objects, which construct fine in jsdom.
+- **Assert the numbers a legend is derived from, not just its labels.** A test
+  that only reads the caption "−12 to −5 °C" passes even when the bracket is
+  drawn in the wrong place — `legends.test.ts` pins the percentages instead.
 - ESLint has no underscore-ignore rule; an unused mock parameter is an error.
   Put the signature in `vi.fn`'s type argument instead:
   `vi.fn<(blob: Blob) => string>(() => "blob:mock")`.
@@ -585,10 +650,17 @@ The end-to-end pattern, using the existing feature as the reference:
 Open-Meteo API → WeatherService (fetch, map, TTL cache) [server/src/lib/services]
              → express.Router GET /weather/cloud-cover   [server/src/routers]
              → Vite dev proxy (/weather → server :3000)  [app/vite.config.ts]
-             → GetCloudCover() fetch + transform         [app/src/lib/client.ts]
+             → GetCloudCover() fetch                     [app/src/lib/client.ts]
              → WeatherProvider dispatches to Redux       [app/src/lib/context]
              → components select via useAppSelector      [app/src/app/components]
 ```
+
+Map **imagery** deliberately does not follow this path — tile layers stream
+browser → GIBS directly, exactly as the ArcGIS basemap does. The "third-party
+calls only on the server" rule exists for keys, CORS and caching; a keyless
+public tile service has none of those problems, and proxying every tile
+through Express would only add latency. Anything that returns **data** (JSON
+we parse, cache, or reshape) still goes through a service.
 
 **Proxy wiring:** the app always fetches relative paths, so every server route
 prefix must be registered in `server.proxy` in `app/vite.config.ts`. The proxy
@@ -620,6 +692,10 @@ the prefix is part of finishing any feature that calls the server.
    router in `server/src/tests/`, and the client transform, reducer cases, and
    component behavior in `app/src/tests/`. The cloud-cover feature's tests are
    the reference for each layer.
+10. **Run it** — start both services and drive the actual page before calling
+    it done. The suites fake ArcGIS and the network, so they cannot tell you
+    whether imagery painted, a URL 404s, or text is invisible against the
+    background. Every one of those has bitten this feature.
 
 ## Ecosystem Defaults That Do Not Apply Here
 

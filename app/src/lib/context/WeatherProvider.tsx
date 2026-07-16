@@ -16,9 +16,8 @@ export function WeatherProvider({ children }: { children: React.ReactNode }) {
     async function load() {
       try {
         dispatch(weatherActions.setLoading(true));
-        const [layer, points] = await GetCloudCover();
+        const points = await GetCloudCover();
 
-        dispatch(weatherActions.CloudLayer(layer));
         dispatch(weatherActions.CloudPoints(points));
       } catch (error) {
         console.error("Error loading cloud cover:", error);

@@ -8,15 +8,14 @@ import { useAppSelector } from "@/lib/store/hooks";
 import Map from "@arcgis/core/Map";
 import MapView from "@arcgis/core/views/MapView";
 import Extent from "@arcgis/core/geometry/Extent";
-import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
+import { GoesLayers } from "@/lib/arcgis/layers";
 
 export const ArcGIS = () => {
   const mapDiv = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
   const viewRef = useRef<MapView | null>(null);
-  const layerRef = useRef<GeoJSONLayer | null>(null);
 
-  const cloudLayer = useAppSelector((state) => state.weather.CloudLayer);
+  const cloudLayer = useAppSelector((state) => state.interactions.cloudLayer);
   const coordinates = useAppSelector((state) => state.interactions.coordinates);
 
   // Initialize the map once
@@ -24,6 +23,7 @@ export const ArcGIS = () => {
     if (mapDiv.current && !viewRef.current) {
       const map = new Map({
         basemap: "dark-gray-vector",
+        layers: Object.values(GoesLayers),
       });
 
       const view = new MapView({
@@ -51,16 +51,12 @@ export const ArcGIS = () => {
     }
   }, []);
 
-  // Add/replace cloud layer when data arrives from WeatherProvider
+  // Show only the selected GOES layer. Both stay on the map, so switching back
+  // and forth re-uses tiles the browser already has.
   useEffect(() => {
-    if (!mapRef.current || !(cloudLayer instanceof GeoJSONLayer)) return;
-
-    if (layerRef.current) {
-      mapRef.current.remove(layerRef.current);
+    for (const [id, layer] of Object.entries(GoesLayers)) {
+      layer.visible = id === cloudLayer;
     }
-
-    mapRef.current.add(cloudLayer);
-    layerRef.current = cloudLayer;
   }, [cloudLayer]);
 
   // Fly to the selected grid point

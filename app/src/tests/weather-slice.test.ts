@@ -2,7 +2,6 @@
 import weatherReducer, { weatherActions } from "@/lib/store/features/weather";
 
 // Types
-import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
 import type { CloudCoverPoint } from "@/lib/types";
 
 const points: CloudCoverPoint[] = [
@@ -16,14 +15,6 @@ describe("weather reducer", () => {
     expect(initialState.CloudPoints).toBeUndefined();
     expect(initialState.loading).toBe(false);
     expect(initialState.error).toBeNull();
-  });
-
-  it("stores the cloud layer", () => {
-    const layer = { id: "cloud-layer" } as unknown as GeoJSONLayer;
-
-    const state = weatherReducer(initialState, weatherActions.CloudLayer(layer));
-
-    expect(state.CloudLayer).toBe(layer);
   });
 
   it("stores the cloud points", () => {

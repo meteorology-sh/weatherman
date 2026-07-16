@@ -1,18 +1,15 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 // Types
-import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
 import { CloudCoverPoint } from "@/lib/types";
 
-interface WeatherState {
-  CloudLayer: GeoJSONLayer;
+type WeatherState = {
   CloudPoints: CloudCoverPoint[] | undefined;
   loading: boolean;
   error: string | null;
-}
+};
 
 const initialState: WeatherState = {
-  CloudLayer: {} as GeoJSONLayer,
   CloudPoints: undefined,
   loading: false,
   error: null,
@@ -22,9 +19,6 @@ export const weatherSlice = createSlice({
   name: "weather",
   initialState,
   reducers: {
-    CloudLayer: (state, action: PayloadAction<GeoJSONLayer>) => {
-      (state.CloudLayer as unknown as GeoJSONLayer) = action.payload;
-    },
     CloudPoints: (state, action: PayloadAction<CloudCoverPoint[]>) => {
       state.CloudPoints = action.payload;
     },

@@ -52,22 +52,6 @@ export const Clouds = () => {
         </div>
       </div>
 
-      <div>
-        <div className="text-xs opacity-60 mb-1">Cloud cover</div>
-        <div
-          className="h-2 w-full rounded"
-          style={{
-            background:
-              "linear-gradient(to right, rgba(56,168,255,0.3), rgba(200,205,215,0.6), rgba(255,255,255,0.95))",
-          }}
-        />
-        <div className="flex justify-between text-xs opacity-60">
-          <span>0%</span>
-          <span>50%</span>
-          <span>100%</span>
-        </div>
-      </div>
-
       <div className="text-xs opacity-60">
         Observed {points[0].time} UTC &middot; Open-Meteo
       </div>

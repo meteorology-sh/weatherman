@@ -4,36 +4,32 @@ import { act } from "@testing-library/react";
 import { createTestStore, renderWithStore } from "./utils";
 
 // Store
-import { weatherActions } from "@/lib/store/features/weather";
 import { interactionsActions } from "@/lib/store/features/interactions";
-
-// ArcGIS
-import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
 
 // Components
 import { ArcGIS } from "@/app/components/Map";
 
-type FakeMapT = { basemap?: string; add: Mock; remove: Mock };
-type FakeViewT = {
-  center?: [number, number];
-  zoom?: number;
-  goTo: Mock;
-};
+type FakeMapT = { basemap?: string; layers?: unknown[] };
+type FakeViewT = { center?: [number, number]; zoom?: number; goTo: Mock };
 
 // The imperative ArcGIS API needs a real WebGL context, so the classes this
 // component drives are faked. Each fake records its instances, and the tests
-// assert on the calls the component makes to them.
-const { arcgis } = vi.hoisted(() => ({
+// assert on the calls the component makes to them. The GOES layers are faked
+// too — layers.test.ts covers how the real ones are built.
+const { arcgis, goes } = vi.hoisted(() => ({
   arcgis: {
     maps: [] as FakeMapT[],
     views: [] as FakeViewT[],
   },
+  goes: {
+    geocolor: { id: "geocolor-layer", visible: false },
+    band13: { id: "band13-layer", visible: false },
+  },
 }));
 
+vi.mock("@/lib/arcgis/layers", () => ({ GoesLayers: goes }));
 vi.mock("@arcgis/core/Map", () => ({
   default: class FakeMap {
-    add = vi.fn();
-    remove = vi.fn();
     constructor(props: Record<string, unknown>) {
       Object.assign(this, props);
       arcgis.maps.push(this as unknown as FakeMapT);
@@ -56,13 +52,6 @@ vi.mock("@arcgis/core/geometry/Extent", () => ({
     }
   },
 }));
-vi.mock("@arcgis/core/layers/GeoJSONLayer", () => ({
-  default: class FakeGeoJSONLayer {
-    constructor(props: Record<string, unknown>) {
-      Object.assign(this, props);
-    }
-  },
-}));
 
 const map = () => arcgis.maps[arcgis.maps.length - 1];
 const view = () => arcgis.views[arcgis.views.length - 1];
@@ -70,6 +59,8 @@ const view = () => arcgis.views[arcgis.views.length - 1];
 beforeEach(() => {
   arcgis.maps.length = 0;
   arcgis.views.length = 0;
+  goes.geocolor.visible = false;
+  goes.band13.visible = false;
 });
 
 describe("ArcGIS", () => {
@@ -89,39 +80,44 @@ describe("ArcGIS", () => {
     expect(arcgis.views).toHaveLength(1);
   });
 
-  it("does not add the placeholder layer the store starts with", () => {
+  it("puts both GOES layers on the map so switching re-uses their tiles", () => {
     renderWithStore(<ArcGIS />, createTestStore());
 
-    expect(map().add).not.toHaveBeenCalled();
+    expect(map().layers).toEqual([goes.geocolor, goes.band13]);
   });
 
-  it("adds the cloud layer once the provider supplies one", () => {
+  it("shows only the GeoColor layer by default", () => {
+    renderWithStore(<ArcGIS />, createTestStore());
+
+    expect(goes.geocolor.visible).toBe(true);
+    expect(goes.band13.visible).toBe(false);
+  });
+
+  it("shows only the Band13 layer once it is selected", () => {
     const store = createTestStore();
-    const layer = new GeoJSONLayer({ url: "blob:mock" });
 
     renderWithStore(<ArcGIS />, store);
     act(() => {
-      store.dispatch(weatherActions.CloudLayer(layer));
+      store.dispatch(interactionsActions.setCloudLayer("band13"));
     });
 
-    expect(map().add).toHaveBeenCalledWith(layer);
+    expect(goes.band13.visible).toBe(true);
+    expect(goes.geocolor.visible).toBe(false);
   });
 
-  it("removes the previous cloud layer when a new one replaces it", () => {
+  it("switches back to GeoColor", () => {
     const store = createTestStore();
-    const first = new GeoJSONLayer({ url: "blob:first" });
-    const second = new GeoJSONLayer({ url: "blob:second" });
 
     renderWithStore(<ArcGIS />, store);
     act(() => {
-      store.dispatch(weatherActions.CloudLayer(first));
+      store.dispatch(interactionsActions.setCloudLayer("band13"));
     });
     act(() => {
-      store.dispatch(weatherActions.CloudLayer(second));
+      store.dispatch(interactionsActions.setCloudLayer("geocolor"));
     });
 
-    expect(map().remove).toHaveBeenCalledWith(first);
-    expect(map().add).toHaveBeenCalledWith(second);
+    expect(goes.geocolor.visible).toBe(true);
+    expect(goes.band13.visible).toBe(false);
   });
 
   it("does not fly anywhere until a point is selected", () => {

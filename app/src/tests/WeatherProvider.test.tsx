@@ -12,12 +12,10 @@ import { WeatherProvider } from "@/lib/context/WeatherProvider";
 import { weatherActions } from "@/lib/store/features/weather";
 
 // Types
-import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
 import type { CloudCoverPoint } from "@/lib/types";
 
 vi.mock("@/lib/client", () => ({ GetCloudCover: vi.fn() }));
 
-const layer = { id: "cloud-layer" } as unknown as GeoJSONLayer;
 const points: CloudCoverPoint[] = [
   { lat: 40, lon: -100, cloudCover: 75, time: "2026-07-16T06:15" },
 ];
@@ -26,7 +24,7 @@ const mockedGetCloudCover = vi.mocked(GetCloudCover);
 
 beforeEach(() => {
   mockedGetCloudCover.mockReset();
-  mockedGetCloudCover.mockResolvedValue([layer, points]);
+  mockedGetCloudCover.mockResolvedValue(points);
 });
 
 describe("WeatherProvider", () => {
@@ -50,7 +48,7 @@ describe("WeatherProvider", () => {
     await waitFor(() => expect(mockedGetCloudCover).toHaveBeenCalled());
   });
 
-  it("dispatches the fetched layer and points to the store", async () => {
+  it("dispatches the fetched points to the store", async () => {
     const { store } = renderWithStore(
       <WeatherProvider>
         <span />
@@ -60,7 +58,6 @@ describe("WeatherProvider", () => {
     await waitFor(() => {
       expect(store.getState().weather.CloudPoints).toEqual(points);
     });
-    expect(store.getState().weather.CloudLayer).toBe(layer);
   });
 
   it("clears the loading flag once the data arrives", async () => {
