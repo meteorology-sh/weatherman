@@ -9,25 +9,15 @@ import Map from "@arcgis/core/Map";
 import MapView from "@arcgis/core/views/MapView";
 import Extent from "@arcgis/core/geometry/Extent";
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
-import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 
-// Types
-import Graphic from "@arcgis/core/Graphic.js";
-
-type PropsT = {
-  setGraphic: (graphic: Graphic) => void;
-};
-
-export const ArcGIS = (props: PropsT) => {
+export const ArcGIS = () => {
   const mapDiv = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
   const viewRef = useRef<MapView | null>(null);
   const layerRef = useRef<GeoJSONLayer | null>(null);
 
-  const pointLayer = useAppSelector((state) => state.maps.PointLayers);
+  const cloudLayer = useAppSelector((state) => state.weather.CloudLayer);
   const coordinates = useAppSelector((state) => state.interactions.coordinates);
-
-  const setGraphic = props.setGraphic;
 
   // Initialize the map once
   useEffect(() => {
@@ -56,38 +46,29 @@ export const ArcGIS = (props: PropsT) => {
         minZoom: 3,
       };
 
-      reactiveUtils.watch(
-        () => view.popup?.selectedFeature,
-        (graphic) => {
-          if (graphic) {
-            setGraphic(graphic);
-          }
-        }
-      );
-
       viewRef.current = view;
       mapRef.current = map;
     }
-  }, [setGraphic]);
+  }, []);
 
-  // Add/replace point layer when data arrives from PointProvider
+  // Add/replace cloud layer when data arrives from WeatherProvider
   useEffect(() => {
-    if (!mapRef.current || !(pointLayer instanceof GeoJSONLayer)) return;
+    if (!mapRef.current || !(cloudLayer instanceof GeoJSONLayer)) return;
 
     if (layerRef.current) {
       mapRef.current.remove(layerRef.current);
     }
 
-    mapRef.current.add(pointLayer);
-    layerRef.current = pointLayer;
-  }, [pointLayer]);
+    mapRef.current.add(cloudLayer);
+    layerRef.current = cloudLayer;
+  }, [cloudLayer]);
 
-  // Fly to selected company coordinates
+  // Fly to the selected grid point
   useEffect(() => {
     if (coordinates && viewRef.current) {
       viewRef.current.goTo({
         center: coordinates,
-        zoom: 14,
+        zoom: 6,
       });
     }
   }, [coordinates]);

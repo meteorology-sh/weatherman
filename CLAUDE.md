@@ -14,11 +14,15 @@ system design lives outside this repo at `/home/nathan/code/rainmaker/weatherman
 (see its `README.md` and `docs/`). This web app will become the operator
 dashboard for that station.
 
-**Current example feature:** a geospatial "supply chain explorer" — the server
-reads company records from JSON on disk and serves them at `/geo/companies`;
-the app renders them as an interactive ArcGIS map with search. It is not fully
-wired end-to-end yet, but it is the reference implementation of the full-stack
-data pattern all future features should follow.
+**Current example feature:** national cloud cover — the server samples a
+~180-point grid across the continental U.S. from the Open-Meteo API (cached
+in-memory) and serves it at `/weather/cloud-cover`; the app renders it as an
+ArcGIS layer over a dark national map, with a stats/legend sidebar that can
+fly the map to any grid point. It is wired end-to-end (upstream API → service
+→ router → proxy → client → Redux → map) and is the reference implementation
+of the full-stack data pattern all future features should follow. (An earlier
+"supply chain explorer" example was removed as dead code — its on-disk data
+was never committed; see git history if you need it.)
 
 ## Guiding Principles
 
@@ -75,7 +79,7 @@ checks.
 | ArcGIS SDK    | 5       | `@arcgis/core` ES modules only — never `esri-loader`            |
 | Tailwind CSS  | 4       | Vite plugin — no `tailwind.config.js`                           |
 | DaisyUI       | 5       | Semantic component classes + theme tokens                       |
-| Vitest        | 4       | In devDependencies; tests go in `src/tests/` when added         |
+| Vitest        | 4       | + React Testing Library; all tests in `src/tests/`              |
 
 `/app` is an ES module package (`"type": "module"`).
 
@@ -88,24 +92,23 @@ app/src/
     main.tsx               # Entry: router config + provider composition
     layout/                # Chrome components (Navigation)
     components/            # Route pages + feature components
-                           #   (Landing, Interface, Map, Explorer, Drawer)
+                           #   (Landing, Interface, Map, Clouds, Drawer)
     assets/
     index.css / App.css
   lib/                     # Infrastructure — not UI
     client.ts              # Plain async fetch functions (PascalCase names)
     types.ts               # Shared data shapes — mirror server responses
     arcgis/                # Module-scope ArcGIS config objects
-      renderers.ts         #   UniqueValueRenderer / SimpleRenderer instances
-      labels.ts            #   LabelClass instances
+      renderers.ts         #   Renderer instances (symbols, visual variables)
       templates.ts         #   PopupTemplate instances
     context/
       StoreProvider.tsx    # Wraps children with the Redux <Provider>
-      PointProvider.tsx    # Data provider: fetches → dispatches to Redux
+      WeatherProvider.tsx  # Data provider: fetches → dispatches to Redux
     store/
       store.ts             # Singleton store + AppStore/RootState/AppDispatch
       hooks.ts             # useAppDispatch/useAppSelector/useAppStore
-      features/            # One slice per domain (arcgis.ts, interactions.ts)
-  tests/                   # All test files (.test.ts / .test.tsx)
+      features/            # One slice per domain (weather.ts, interactions.ts)
+  tests/                   # All test files (.test.ts / .test.tsx) + utils.tsx
 ```
 
 ## Bootstrapping & Provider Composition
@@ -147,30 +150,29 @@ A data provider fetches external data and syncs it into Redux. It **wraps its
 children** and renders no UI of its own:
 
 ```tsx
-// lib/context/PointProvider.tsx
-export function PointProvider({ children }: { children: React.ReactNode }) {
-  const metadata = useAppSelector((state) => state.maps.PointMetadata);
+// lib/context/WeatherProvider.tsx
+export function WeatherProvider({ children }: { children: React.ReactNode }) {
+  const points = useAppSelector((state) => state.weather.CloudPoints);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
     async function load() {
       try {
-        dispatch(mapActions.setLoading(true));
-        const [layer, metadata, companies] = await GetCompanies();
-        dispatch(mapActions.PointLayers(layer));
-        dispatch(mapActions.PointMetadata(metadata));
-        dispatch(mapActions.setCompanies(companies));
+        dispatch(weatherActions.setLoading(true));
+        const [layer, points] = await GetCloudCover();
+        dispatch(weatherActions.CloudLayer(layer));
+        dispatch(weatherActions.CloudPoints(points));
       } catch (error) {
-        dispatch(mapActions.setError(
+        dispatch(weatherActions.setError(
           error instanceof Error ? error.message : "Failed to load data"
         ));
       } finally {
-        dispatch(mapActions.setLoading(false));
+        dispatch(weatherActions.setLoading(false));
       }
     }
 
-    if (!metadata) load(); // guard: skip if already loaded
-  }, [metadata, dispatch]);
+    if (!points) load(); // guard: skip if already loaded
+  }, [points, dispatch]);
 
   return <>{children}</>;
 }
@@ -198,7 +200,7 @@ never written by hand**:
 ```ts
 // lib/store/store.ts
 export const store = configureStore({
-  reducer: { maps: mapsReducer, interactions: interactionsReducer },
+  reducer: { weather: weatherReducer, interactions: interactionsReducer },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({ serializableCheck: false }),
 });
@@ -211,8 +213,9 @@ export type AppDispatch = AppStore["dispatch"];
 `serializableCheck` is disabled **only** because ArcGIS layer instances live in
 the store. Keep everything else in the store plain and serializable.
 
-`StoreProvider` wraps children with the react-redux `<Provider>` (holding the
-instance in a `useRef`).
+`StoreProvider` wraps children with the react-redux `<Provider>`, passing the
+singleton store directly (no `useRef` — the `react-hooks/refs` lint rule
+forbids reading refs during render).
 
 ### Typed hooks
 
@@ -263,19 +266,19 @@ not hooks**, named in `PascalCase`:
 
 ```ts
 // lib/client.ts
-export async function GetCompanies(): Promise<[...]> {
-  const res = await fetch("/geo/companies");
+export async function GetCloudCover(): Promise<[...]> {
+  const res = await fetch("/weather/cloud-cover");
   if (!res.ok) {
-    throw new Error(`Failed to fetch companies: ${res.status}`);
+    throw new Error(`Failed to fetch cloud cover: ${res.status}`);
   }
-  const companies: CompanyPin[] = await res.json();
+  const points: CloudCoverPoint[] = await res.json();
   // ...transform (build GeoJSON, construct ArcGIS layer)...
-  return [layer, geojson, companies];
+  return [layer, points];
 }
 ```
 
 - Use `fetch` directly (no axios); use `URLSearchParams` for query strings.
-- **Fetch relative paths** (`/geo/...`) — never hardcode the server origin.
+- **Fetch relative paths** (`/weather/...`) — never hardcode the server origin.
   The Vite dev proxy (and eventually the production reverse proxy) routes the
   prefix to the Express server.
 - **Throw on non-OK responses**; the calling provider catches and dispatches
@@ -286,15 +289,16 @@ export async function GetCompanies(): Promise<[...]> {
 ## Types
 
 Shared data shapes live in `lib/types.ts`. Shapes returned by the server
-(e.g. `CompanyPin`) **must mirror the server's types field-for-field** — there
+(e.g. `CloudCoverPoint`) **must mirror the server's types field-for-field** — there
 is no shared package, so the contract is maintained by hand on both sides.
 Component prop types are declared locally as `type PropsT = { ... }`.
 
 ## ArcGIS
 
 - Import from `@arcgis/core` ES modules only. Do not use `esri-loader`.
-- Static map configuration — renderers, label classes, popup templates — lives
-  in `lib/arcgis/` as module-scope instances, one file per kind.
+- Static map configuration — renderers, popup templates (and label classes
+  etc. as needed) — lives in `lib/arcgis/` as module-scope instances, one
+  file per kind.
 - Exactly one component (`components/Map.tsx`) touches the imperative ArcGIS
   API. It holds `Map`/`MapView`/layer instances in refs, initializes the view
   once in a mount effect, and reacts to Redux state (layer swaps, `goTo`
@@ -307,9 +311,9 @@ Component prop types are declared locally as `type PropsT = { ... }`.
 loading/error/empty states at the top level:**
 
 ```tsx
-export const Explorer = () => {
-  const loading = useAppSelector((state) => state.maps.loading);
-  const error = useAppSelector((state) => state.maps.error);
+export const Clouds = () => {
+  const loading = useAppSelector((state) => state.weather.loading);
+  const error = useAppSelector((state) => state.weather.error);
 
   if (loading) return <span className="loading loading-spinner" />;
   if (error) return <div className="text-error p-4">{error}</div>;
@@ -355,17 +359,46 @@ same-folder imports use relative paths.
 
 ## Testing — Vitest
 
-Vitest is in devDependencies; no tests exist yet. When adding them:
+`yarn test` (watch) / `yarn vitest run` (once). Config lives in the `test`
+block of `vite.config.ts` (`environment: "jsdom"`, `globals: true`) — globals
+are on, so `describe`/`it`/`expect`/`vi` need no import. `vitest/globals` is in
+`tsconfig.app.json`'s `types`.
+
+```
+src/tests/
+  utils.tsx                  # createTestStore() + renderWithStore() helper
+  client.test.ts             # transform: fetch → GeoJSON → layer
+  weather-slice.test.ts      # reducer cases
+  interactions-slice.test.ts # reducer cases
+  WeatherProvider.test.tsx   # provider → store integration
+  Clouds.test.tsx            # component integration (RTL)
+  Map.test.tsx               # component integration, ArcGIS faked
+```
 
 - All tests go in `src/tests/` with the `.test.ts` / `.test.tsx` suffix — do
-  not co-locate tests next to source files.
-- Add a `"test": "vitest"` script and the vitest config block (`environment:
-  "jsdom"`, `globals: true`) inside `vite.config.ts` with the first test.
+  not co-locate tests next to source files. Non-test helpers live there too
+  (`utils.tsx`); Vitest's default `include` only picks up `*.test.*`.
 - Priorities (testing trophy): pure logic and data transforms first (client
   transform functions, selectors), then Redux reducer cases (call the reducer
   directly — don't mount a store), then component integration tests with
   React Testing Library as the app grows.
 - Each `it` tests exactly one behavior.
+- **Never test against the singleton store** — `createTestStore()` in
+  `tests/utils.tsx` builds a fresh one per test (mirroring `store.ts`'s
+  config) so state can't leak between tests. `renderWithStore(ui, store)`
+  wraps it in a `<Provider>` via RTL's `wrapper` option (so `rerender` keeps
+  the provider) and returns the store for assertions.
+- Components read the store, so **drive them through it**: dispatch real
+  actions and assert on rendered output or on resulting state. Dispatches
+  after `render` must be wrapped in `act()` or React won't flush the effects.
+- Assert with plain `expect` — `@testing-library/jest-dom` is not installed
+  (`expect(container.innerHTML).toBe("")`, not `toBeEmptyDOMElement()`).
+- Fake `@arcgis/core` modules with `vi.mock` — the real ones need a WebGL
+  context. `Map.test.tsx` shows the pattern: fake classes that record their
+  instances via `vi.hoisted`, asserted through spied `add`/`remove`/`goTo`.
+- ESLint has no underscore-ignore rule; an unused mock parameter is an error.
+  Put the signature in `vi.fn`'s type argument instead:
+  `vi.fn<(blob: Blob) => string>(() => "blob:mock")`.
 
 ## ESLint & Prettier
 
@@ -402,10 +435,11 @@ Scripts: `yarn dev` (nodemon), `yarn docker` (nodemon -L, used in Compose),
 ```
 server/src/
   index.ts                 # App setup: middleware, router mounts, listen
-  routers/                 # One Express router per URL prefix (geo.ts)
+  routers/                 # One Express router per URL prefix (weather.ts)
   lib/
-    services/              # Data access classes + singleton exports (disk.ts)
-    data/                  # On-disk JSON datasets read by services
+    services/              # Data access classes + singleton exports (weather.ts)
+    data/                  # (optional) on-disk JSON datasets read by services
+  tests/                   # All test files (.test.ts)
 ```
 
 ## Entry Point
@@ -420,7 +454,7 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use("/geo", geo);
+app.use("/weather", weather);
 
 app.get("/healthcheck", (req: Request, res: Response) => {
   res.send("Hello, world!");
@@ -440,22 +474,25 @@ One router file per URL prefix in `src/routers/`, exporting a **named**
 `express.Router()` that `index.ts` mounts:
 
 ```ts
-// server/src/routers/geo.ts
-export const geo = express.Router();
+// server/src/routers/weather.ts
+export const weather = express.Router();
 
-geo.get("/companies", async (req: Request, res: Response) => {
+weather.get("/cloud-cover", async (req: Request, res: Response) => {
   try {
-    const companies = await DataStore.companies();
-    res.send(companies);
+    const points = await Forecast.cloudCover();
+    res.send(points);
   } catch (error) {
-    res.status(500).json({ error: error });
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
   }
 });
 ```
 
 - Handlers are thin: call a service method, send the result.
-- Every async handler wraps its body in `try/catch` and returns
-  `res.status(500).json({ error })` on failure — never let a rejection escape.
+- Every async handler wraps its body in `try/catch` and returns a 500 on
+  failure — never let a rejection escape. Serialize `error.message` (a raw
+  `Error` JSON-serializes to `{}`).
 - No data access or business logic in routers — that lives in services.
 
 ## Services
@@ -465,35 +502,75 @@ instance export** (the class carries the logic; the singleton carries the
 cache):
 
 ```ts
-// server/src/lib/services/disk.ts
-export class DataService {
-  private readonly dataPath: string;
-  private companyCache: CompanyPin[] | null = null;
+// server/src/lib/services/weather.ts
+export class WeatherService {
+  private readonly lats: number[] = []; // CONUS sample grid, built once
+  private readonly lons: number[] = [];
+  private cloudCache: {
+    points: CloudCoverPoint[];
+    fetchedAt: number;
+  } | null = null;
 
-  async read<T = unknown>(filename: string): Promise<T> { ... }
-
-  async companies(): Promise<CompanyPin[]> {
-    if (this.companyCache) return this.companyCache;
-    // ...read + join JSON files, populate cache...
+  async cloudCover(): Promise<CloudCoverPoint[]> {
+    if (
+      this.cloudCache &&
+      Date.now() - this.cloudCache.fetchedAt < CACHE_TTL_MS
+    ) {
+      return this.cloudCache.points;
+    }
+    // ...fetch Open-Meteo, map to CloudCoverPoint[], populate cache...
   }
 }
 
-export const DataStore = new DataService();
+export const Forecast = new WeatherService();
 ```
 
-- Methods return typed, app-ready shapes — joining, parsing, and null-safety
-  happen here, not in routers.
-- Cache expensive reads in a private field; return the cache on repeat calls.
-- Response-shape interfaces (e.g. `CompanyPin`) are declared and exported from
-  the service file, and must stay in sync with the copy in
+- Methods return typed, app-ready shapes — upstream fetching, parsing, and
+  null-safety happen here, not in routers.
+- Third-party API calls happen **only on the server**, inside a service —
+  never from the browser (keys, CORS, and caching all live here). Use the
+  global `fetch`.
+- Cache in a private field; return the cache on repeat calls. Static data
+  caches forever; live data caches with a TTL matched to the source's update
+  rate (Open-Meteo updates every 15 min → 10-min TTL).
+- Response-shape interfaces (e.g. `CloudCoverPoint`) are declared and exported
+  from the service file, and must stay in sync with the copy in
   `app/src/lib/types.ts`.
 - New data domains get a new method on an existing service, or a new
   class + singleton pair in a new file when the underlying source differs.
 
+## Testing — `node:test`
+
+`yarn test` runs `node --require ts-node/register --test src/tests/*.test.ts`.
+The server uses **node's built-in test runner, not Vitest** — it needs no
+transform beyond ts-node, and this keeps the dependency list at three. Do not
+add Vitest or any other runner here; `/app` and `/server` differ on purpose,
+like their module systems.
+
+```
+server/src/tests/
+  weather-service.test.ts  # grid, mapping, cache TTL, upstream failure
+  weather-router.test.ts   # route → JSON, service failure → 500
+```
+
+- `node:test` has no globals: import `describe`/`it` from `node:test` and
+  `assert` from `node:assert/strict`. Assert with `assert.deepEqual` /
+  `assert.equal` / `assert.rejects`.
+- Stub with the per-test mocker (`t.mock.method(globalThis, "fetch", ...)`) —
+  it restores automatically at test end. `t.mock.timers.enable({ apis: ["Date"]
+  })` + `tick()` drives cache-TTL expiry without real waits.
+- **Service tests construct a fresh `new WeatherService()`** so the singleton's
+  cache can't leak across tests. Router tests are the exception: they mock the
+  `Forecast` singleton's method, since that's what the router imports.
+- Third-party APIs are never hit for real — always mock `fetch`.
+- Router tests bind a throwaway Express app to port 0 (an OS-assigned free
+  port), mount just the router under test, and drive it with real `fetch`.
+  Close the server in `after`.
+
 ## Server Conventions
 
 - Import grouping comments apply here too (`// Express`, `// Middleware`,
-  `// Routers`, `// Services`, `// Types`).
+  `// Routers`, `// Services`, `// Types`, `// Node`).
 - The server is CommonJS — do not add `"type": "module"` or ESM-only
   dependencies.
 - Same Prettier conventions as `/app`.
@@ -505,25 +582,26 @@ export const DataStore = new DataService();
 The end-to-end pattern, using the existing feature as the reference:
 
 ```
-JSON on disk → DataService (read, join, cache)        [server/src/lib/services]
-            → express.Router GET /geo/companies        [server/src/routers]
-            → Vite dev proxy (/geo → server :3000)     [app/vite.config.ts]
-            → GetCompanies() fetch + transform         [app/src/lib/client.ts]
-            → PointProvider dispatches to Redux        [app/src/lib/context]
-            → components select via useAppSelector     [app/src/app/components]
+Open-Meteo API → WeatherService (fetch, map, TTL cache) [server/src/lib/services]
+             → express.Router GET /weather/cloud-cover   [server/src/routers]
+             → Vite dev proxy (/weather → server :3000)  [app/vite.config.ts]
+             → GetCloudCover() fetch + transform         [app/src/lib/client.ts]
+             → WeatherProvider dispatches to Redux       [app/src/lib/context]
+             → components select via useAppSelector      [app/src/app/components]
 ```
 
 **Proxy wiring:** the app always fetches relative paths, so every server route
-prefix must be registered in `server.proxy` in `app/vite.config.ts`, targeting
-the Express server (`http://localhost:3000` locally;
-`http://weatherman-server-service:3000` inside Compose). The proxy map is
-currently empty — wiring it is part of finishing any feature that calls the
-server.
+prefix must be registered in `server.proxy` in `app/vite.config.ts`. The proxy
+target comes from the `SERVER_ORIGIN` env var (default
+`http://localhost:3000`; `docker-compose.yaml` sets it to
+`http://weatherman-server-service:3000` for the app container). Registering
+the prefix is part of finishing any feature that calls the server.
 
 ## Adding a Feature — Checklist
 
 1. **Service** — add a typed method (or new service class + singleton) under
-   `server/src/lib/services/`; put source data under `server/src/lib/data/`.
+   `server/src/lib/services/` that fetches the upstream API (or reads on-disk
+   JSON placed under `server/src/lib/data/`).
 2. **Router** — add a router in `server/src/routers/` (or extend one); mount
    its prefix in `server/src/index.ts`.
 3. **Proxy** — register the route prefix in `server.proxy` in
@@ -538,6 +616,10 @@ server.
 8. **Route + Component** — add the route in `main.tsx` and the page under
    `app/components/`; read from the store with `useAppSelector`, guard with
    early returns.
+9. **Tests** — cover the service (mock `fetch`; assert mapping + cache) and
+   router in `server/src/tests/`, and the client transform, reducer cases, and
+   component behavior in `app/src/tests/`. The cloud-cover feature's tests are
+   the reference for each layer.
 
 ## Ecosystem Defaults That Do Not Apply Here
 
@@ -551,7 +633,11 @@ does it this way:
   `react-redux` directly.
 - **No `enum`, no `namespace`.** Use `type` unions and plain objects.
 - **`@arcgis/core` ES modules, not `esri-loader`.**
-- **No database.** The server reads JSON from disk through cached services —
-  don't introduce persistence layers until the data outgrows this.
+- **No database.** The server reads upstream APIs (and on-disk JSON) through
+  cached services — don't introduce persistence layers until the data
+  outgrows this.
 - **Split module systems.** `/app` is ESM, `/server` is CommonJS — don't
   "harmonize" them.
+- **Split test runners.** `/app` uses Vitest (it already has the Vite
+  pipeline), `/server` uses the built-in `node:test` (it needs no bundler).
+  Don't "harmonize" these either.

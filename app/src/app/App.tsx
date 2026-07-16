@@ -5,23 +5,18 @@ import { Outlet } from "react-router";
 import { Navigation } from "./layout/Navigation";
 
 // Providers
-import { PointProvider } from "@/lib/context/PointProvider";
+import { WeatherProvider } from "@/lib/context/WeatherProvider";
 
 // Styles
 import "./index.css";
 
 export const App = () => {
   return (
-    <>
-      {" "}
-      <div className="h-[calc(100vh-4rem)] w-screen">
-        {" "}
-        <Navigation />{" "}
-        <PointProvider>
-          {" "}
-          <Outlet />{" "}
-        </PointProvider>{" "}
-      </div>{" "}
-    </>
+    <div className="h-[calc(100vh-4rem)] w-screen">
+      <Navigation />
+      <WeatherProvider>
+        <Outlet />
+      </WeatherProvider>
+    </div>
   );
 };

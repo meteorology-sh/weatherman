@@ -18,5 +18,5 @@ const interactionsSlice = createSlice({
   },
 });
 
-export const { setCoordinates } = interactionsSlice.actions;
+export const interactionsActions = interactionsSlice.actions;
 export default interactionsSlice.reducer;

@@ -1,39 +1,37 @@
+// ArcGIS
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
-import { CompanyRenderer } from "@/lib/arcgis/renderers";
-import { CompanyPopupTemplate } from "@/lib/arcgis/templates";
-import { CompanyLabels } from "@/lib/arcgis/labels";
-import type { CompanyPin, PointI, GeoJSON } from "@/lib/types";
+import { CloudCoverRenderer } from "@/lib/arcgis/renderers";
+import { CloudCoverPopupTemplate } from "@/lib/arcgis/templates";
 
-export async function GetCompanies(): Promise<
-  [GeoJSONLayer, GeoJSON<PointI>, CompanyPin[]]
+// Types
+import type { CloudCoverPoint, CloudPointI, GeoJSON } from "@/lib/types";
+
+export async function GetCloudCover(): Promise<
+  [GeoJSONLayer, CloudCoverPoint[]]
 > {
-  const res = await fetch("/geo/companies");
+  const res = await fetch("/weather/cloud-cover");
   if (!res.ok) {
-    throw new Error(`Failed to fetch companies: ${res.status}`);
+    throw new Error(`Failed to fetch cloud cover: ${res.status}`);
   }
-  const companies: CompanyPin[] = await res.json();
+  const points: CloudCoverPoint[] = await res.json();
 
-  // Build GeoJSON FeatureCollection from companies with valid coordinates
-  const features: PointI[] = companies
-    .filter((c) => c.lat != null && c.lon != null)
-    .map((c) => ({
-      type: "Feature" as const,
-      id: c.id,
-      geometry: {
-        type: "Point" as const,
-        coordinates: [c.lon!, c.lat!] as [number, number],
-      },
-      properties: {
-        id: c.id,
-        name: c.name,
-        category: c.category,
-        city: c.city,
-        state: c.state,
-        url: c.url,
-      },
-    }));
+  // Build GeoJSON FeatureCollection from the sampled national grid
+  const features: CloudPointI[] = points.map((p, index) => ({
+    type: "Feature" as const,
+    id: index + 1,
+    geometry: {
+      type: "Point" as const,
+      coordinates: [p.lon, p.lat] as [number, number],
+    },
+    properties: {
+      cloudCover: p.cloudCover,
+      lat: p.lat,
+      lon: p.lon,
+      time: p.time,
+    },
+  }));
 
-  const geojson: GeoJSON<PointI> = { type: "FeatureCollection", features };
+  const geojson: GeoJSON<CloudPointI> = { type: "FeatureCollection", features };
 
   // Build ArcGIS GeoJSONLayer from blob URL
   const blob = new Blob([JSON.stringify(geojson)], {
@@ -43,12 +41,9 @@ export async function GetCompanies(): Promise<
 
   const layer = new GeoJSONLayer({
     url,
-    renderer: CompanyRenderer,
-    popupTemplate: CompanyPopupTemplate,
-    labelingInfo: [CompanyLabels],
-    minScale: 5000000, // Hide when zoomed out beyond 1:5,000,000 scale
-    maxScale: 0,
+    renderer: CloudCoverRenderer,
+    popupTemplate: CloudCoverPopupTemplate,
   });
 
-  return [layer, geojson, companies];
+  return [layer, points];
 }

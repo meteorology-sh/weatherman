@@ -1,10 +1,10 @@
 import { configureStore } from "@reduxjs/toolkit";
-import mapsReducer from "./features/arcgis";
+import weatherReducer from "./features/weather";
 import interactionsReducer from "./features/interactions";
 
 export const store = configureStore({
   reducer: {
-    maps: mapsReducer,
+    weather: weatherReducer,
     interactions: interactionsReducer,
   },
   middleware: (getDefaultMiddleware) =>

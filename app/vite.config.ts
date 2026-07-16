@@ -1,5 +1,5 @@
 // Vite
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 
 // Meta
 import path from "path";
@@ -28,9 +28,18 @@ export default defineConfig({
       port: 5173,
     },
     cors: true,
-    proxy: {},
+    proxy: {
+      "/weather": {
+        target: process.env.SERVER_ORIGIN || "http://localhost:3000",
+        changeOrigin: true,
+      },
+    },
     watch: {
       usePolling: true,
     },
+  },
+  test: {
+    environment: "jsdom",
+    globals: true,
   },
 });

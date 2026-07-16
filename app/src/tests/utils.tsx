@@ -1,0 +1,47 @@
+// React
+import type { ReactElement, ReactNode } from "react";
+
+// Store
+import { configureStore } from "@reduxjs/toolkit";
+import { Provider } from "react-redux";
+import weatherReducer from "@/lib/store/features/weather";
+import interactionsReducer from "@/lib/store/features/interactions";
+
+// Testing
+import { render } from "@testing-library/react";
+
+/**
+ * A fresh store per test, mirroring the singleton's configuration in
+ * lib/store/store.ts. Tests must not share the singleton — state would leak
+ * between them.
+ */
+export function createTestStore() {
+  return configureStore({
+    reducer: {
+      weather: weatherReducer,
+      interactions: interactionsReducer,
+    },
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware({
+        serializableCheck: false,
+      }),
+  });
+}
+
+/**
+ * The store is supplied through RTL's `wrapper` option rather than inline, so
+ * that `rerender` keeps the <Provider> around the tree.
+ */
+export function renderWithStore(
+  ui: ReactElement,
+  store: ReturnType<typeof createTestStore> = createTestStore()
+) {
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <Provider store={store}>{children}</Provider>
+  );
+
+  return {
+    store,
+    ...render(ui, { wrapper: Wrapper }),
+  };
+}

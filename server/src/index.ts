@@ -3,7 +3,9 @@ import express, { Request, Response } from "express";
 
 // Middleware
 import cors from "cors";
-import { geo } from "./routers/geo";
+
+// Routers
+import { weather } from "./routers/weather";
 
 // Types
 import { Express } from "express";
@@ -14,7 +16,7 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use("/geo", geo);
+app.use("/weather", weather);
 
 app.get("/healthcheck", (req: Request, res: Response) => {
   res.send("Hello, world!");
