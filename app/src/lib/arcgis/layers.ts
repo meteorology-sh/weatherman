@@ -1,6 +1,11 @@
 // ArcGIS
 import WebTileLayer from "@arcgis/core/layers/WebTileLayer";
+import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
 import TileInfo from "@arcgis/core/layers/support/TileInfo";
+import { forecastCloudRenderer } from "./renderers";
+
+// Client
+import { ForecastCloudsUrl } from "@/lib/client";
 
 // Types
 import type { CloudLayerId } from "@/lib/types";
@@ -51,3 +56,18 @@ export const GoesLayers: Record<CloudLayerId, WebTileLayer> = {
   geocolor: GeoColorLayer,
   band13: Band13Layer,
 };
+
+/**
+ * Modelled cloud cover, contoured server-side from HRRR into nested polygons.
+ * Vector rather than raster on purpose: GOES cannot forecast, and unlike an
+ * infrared image these have true nodata — where the model has no cloud, nothing
+ * is drawn and the basemap shows through. Map.tsx repoints `url` as the
+ * forecast-hour slider moves.
+ */
+export const ForecastCloudsLayer = new GeoJSONLayer({
+  title: "HRRR forecast cloud cover",
+  url: ForecastCloudsUrl(0),
+  copyright: "NOAA HRRR",
+  renderer: forecastCloudRenderer,
+  visible: false,
+});

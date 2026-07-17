@@ -33,6 +33,10 @@ export default defineConfig({
         target: process.env.SERVER_ORIGIN || "http://localhost:3000",
         changeOrigin: true,
       },
+      "/forecast": {
+        target: process.env.SERVER_ORIGIN || "http://localhost:3000",
+        changeOrigin: true,
+      },
     },
     watch: {
       usePolling: true,

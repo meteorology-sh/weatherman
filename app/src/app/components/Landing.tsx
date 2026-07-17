@@ -16,7 +16,7 @@ export const LandingPage = () => {
               <h1 className="mb-8">Weatherman</h1>
               <Link
                 to={{
-                  pathname: "/map",
+                  pathname: "/map/forecast",
                 }}
               >
                 <div className="btn w-1/2 mb-12">Launch</div>

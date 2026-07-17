@@ -14,6 +14,18 @@ system design lives outside this repo at `/home/nathan/code/rainmaker/weatherman
 (see its `README.md` and `docs/`). This web app will become the operator
 dashboard for that station.
 
+**The two maps.** The app has two map routes, and the split is editorial, not
+cosmetic:
+
+- **`/map/forecast` — modelled.** HRRR cloud cover, contoured server-side into
+  nested GeoJSON polygons, with a slider stepping f00–f18. **Satellites cannot
+  forecast**, so nothing observed can appear here; this map is entirely model
+  output. Contours are used rather than a raster because a raster has no
+  nodata — infrared paints warm clear sky opaquely and buries the basemap,
+  while a 0%-cloud contour simply isn't drawn.
+- **`/map/candidate` — observed.** GOES-East imagery (GeoColor / Band13) plus
+  the Open-Meteo grid stats. This is "what is the sky doing right now".
+
 **Current example feature:** national cloud cover, which comes from two
 sources with different jobs:
 
@@ -40,6 +52,14 @@ it as scaled/coloured point markers; that was replaced by the imagery, and an
 earlier "supply chain explorer" example was removed as dead code — see git
 history.)
 
+**The rule is not "never draw surfaces"** — it is *don't draw structure finer
+than your sampling*. Compare the variable's correlation length to the sample
+spacing before drawing any new field: cloud shape (1–50 km) may not be
+contoured from a 3° grid, but HRRR's native 3 km cloud cover may, and isotherm
+height (~1000 km, synoptic) would be honest even on the coarse grid.
+Block-averaging 3 km → 12 km *removes* structure and is fine; interpolating
+300 km → 12 km *invents* it and is not. `MEASUREMENTS.md` §5 has the table.
+
 ## Guiding Principles
 
 - **Neat and organized.** Every file has one job and a predictable home.
@@ -60,7 +80,13 @@ weatherman/
   app/                       # React SPA (Vite dev server, port 5173)
   server/                    # Express API (ts-node/nodemon, port 3000)
   docker-compose.yaml        # Runs both services with bind mounts + HMR
+  MEASUREMENTS.md            # Candidate data sources for future layers
 ```
+
+`MEASUREMENTS.md` is a **decision document, not a description of the code** —
+it surveys the free national feeds against the seedability criteria and
+records which layers we might build next. Read it before adding a data
+source; it already documents which ones are dead ends and why.
 
 ## Running the App
 
@@ -108,22 +134,27 @@ app/src/
     main.tsx               # Entry: router config + provider composition
     layout/                # Chrome components (Navigation)
     components/            # Route pages + feature components
-                           #   (Landing, Interface, Map, Clouds, Drawer)
+                           #   (Landing, Forecast, Candidate, Map, Clouds,
+                           #    CloudLayers, TimeSlider, Drawer)
     assets/
     index.css / App.css
   lib/                     # Infrastructure — not UI
     client.ts              # Plain async fetch functions (PascalCase names)
     types.ts               # Shared data shapes — mirror server responses
     arcgis/                # Module-scope ArcGIS config objects
-      layers.ts            #   GOES WebTileLayer instances + GoesLayers map
+      layers.ts            #   GOES WebTileLayer instances + GoesLayers map,
+                           #   ForecastCloudsLayer (GeoJSONLayer)
       legends.ts           #   Legend data per layer (ramp, ticks, caveat)
+      renderers.ts         #   CLOUD_BANDS + the forecast contour renderer
     context/
       StoreProvider.tsx    # Wraps children with the Redux <Provider>
       WeatherProvider.tsx  # Data provider: fetches → dispatches to Redux
+      ForecastProvider.tsx # Data provider: HRRR run metadata
     store/
       store.ts             # Singleton store + AppStore/RootState/AppDispatch
       hooks.ts             # useAppDispatch/useAppSelector/useAppStore
-      features/            # One slice per domain (weather.ts, interactions.ts)
+      features/            # One slice per domain (weather.ts, interactions.ts,
+                           #   forecast.ts)
   tests/                   # All test files (.test.ts / .test.tsx) + utils.tsx
 ```
 
@@ -140,7 +171,16 @@ const router = createBrowserRouter([
     element: <App />, // layout shell
     children: [
       { path: "/", element: <LandingPage /> },
-      { path: "/map", element: <Interface /> },
+      // Page-scoped data: the provider wraps just this route's element.
+      {
+        path: "/map/forecast",
+        element: (
+          <ForecastProvider>
+            <Forecast />
+          </ForecastProvider>
+        ),
+      },
+      { path: "/map/candidate", element: <Candidate /> },
     ],
   },
 ]);
@@ -157,6 +197,10 @@ createRoot(document.getElementById("root")!).render(
 - `StoreProvider` is always the outermost application wrapper.
 - Add new routes as children of the root `App` entry; each route's page
   component lives in `app/components/`.
+- **Page routes live under `/map/…`; server prefixes live at the root.** The
+  dev proxy forwards every `/forecast*` request to Express, so a *page* at
+  `/forecast` gets swallowed by the API and the browser renders Express's
+  "Cannot GET /forecast". Keep the two namespaces apart.
 - `App.tsx` is only for layout chrome (navigation, wrappers) plus data
   providers that child routes need. It renders `<Outlet />` for child routes.
 
@@ -230,6 +274,13 @@ module-scope singletons in `lib/arcgis/layers.ts`, and the store holds the
 `CloudLayerId` string naming which one is active. (An earlier version put a
 `GeoJSONLayer` in the store and had to disable `serializableCheck` for it;
 don't reintroduce that.)
+
+**Bulk geometry stays out of the store too.** A forecast frame is ~1.4 MB of
+contours; 19 of them would be ~27 MB, and `serializableCheck` deep-walks state
+on every dispatch. So `ForecastCloudsLayer` is pointed at
+`/forecast/clouds?hour=N` and fetches the frame itself — the store holds only
+the `hour`. Same reasoning as the GIBS carve-out: what the store carries is
+the *selection*, not the payload.
 
 `StoreProvider` wraps children with the react-redux `<Provider>`, passing the
 singleton store directly (no `useRef` — the `react-hooks/refs` lint rule
@@ -427,12 +478,16 @@ src/tests/
   client.test.ts             # fetch + throw-on-non-OK
   weather-slice.test.ts      # reducer cases
   interactions-slice.test.ts # reducer cases
+  forecast-slice.test.ts     # reducer cases
   layers.test.ts             # GIBS URLs + LOD caps per matrix set
   legends.test.ts            # ramp anchors, tick + seeding-band positions
+  renderers.test.ts          # CLOUD_BANDS contract + stacked alpha maths
   WeatherProvider.test.tsx   # provider → store integration
+  ForecastProvider.test.tsx  # provider → store integration
   Clouds.test.tsx            # component integration (RTL)
   CloudLayers.test.tsx       # switcher + legend rendering
-  Map.test.tsx               # component integration, ArcGIS faked
+  TimeSlider.test.tsx        # slider range, valid-time arithmetic, states
+  Map.test.tsx               # component integration per mode, ArcGIS faked
 ```
 
 - All tests go in `src/tests/` with the `.test.ts` / `.test.tsx` suffix — do
@@ -492,6 +547,19 @@ else. No ORM, no database, no framework layers. Use node built-ins
 (`fs/promises`, `path`) for IO. Adding a dependency requires a reason these
 can't cover.
 
+**One system dependency: `libeccodes-tools`**, installed via `apt-get` in
+`Dockerfiles/Dockerfile.local`. `ForecastService` shells out to its
+`grib_get_data` to read HRRR GRIB2. It is deliberately *not* an npm package —
+the npm list stays at three. Decoding GRIB2 by hand would be ~200 lines of
+bit-unpacking we'd own; eccodes is ECMWF's own tool and is in Debian main.
+(wgrib2, the more famous equivalent, has **no Debian package at all** and
+would need a source build with gfortran.) Reasoning and alternatives:
+`MEASUREMENTS.md` §6.
+
+**If the forecast route 500s with `spawn grib_get_data ENOENT`, the image is
+stale — rebuild it** (`docker-compose up --build`). Source is bind-mounted so
+TypeScript changes hot-reload, but the apt layer does not.
+
 Scripts: `yarn dev` (nodemon), `yarn docker` (nodemon -L, used in Compose),
 `yarn build` (tsc → `dist/`), `yarn start`.
 
@@ -500,12 +568,18 @@ Scripts: `yarn dev` (nodemon), `yarn docker` (nodemon -L, used in Compose),
 ```
 server/src/
   index.ts                 # App setup: middleware, router mounts, listen
-  routers/                 # One Express router per URL prefix (weather.ts)
+  routers/                 # One Express router per URL prefix
+                           #   (weather.ts, forecast.ts)
   lib/
-    services/              # Data access classes + singleton exports (weather.ts)
+    services/              # Data access classes + singleton exports
+                           #   (weather.ts → Forecast, forecast.ts → Hrrr)
     data/                  # (optional) on-disk JSON datasets read by services
   tests/                   # All test files (.test.ts)
 ```
+
+Note the singleton names: `weather.ts` exports `Forecast` (the Open-Meteo
+grid) and `forecast.ts` exports `Hrrr` (the HRRR contours). Confusing, but
+`Forecast` was there first and is the reference feature's name.
 
 ## Entry Point
 
@@ -616,7 +690,15 @@ like their module systems.
 server/src/tests/
   weather-service.test.ts  # grid, mapping, cache TTL, upstream failure
   weather-router.test.ts   # route → JSON, service failure → 500
+  forecast-service.test.ts # marching squares (holes, edges), run discovery
+  forecast-router.test.ts  # route → GeoJSON, hour passthrough, 500s
 ```
+
+- `forecast-service.test.ts` drives `polygons()` with hand-built grids (a solid
+  blob, a donut, disjoint blobs, a blob flush against the edge) rather than
+  real GRIB — the contouring is pure and needs no network or eccodes. Assert
+  *geometry*, not ring counts: that a donut yields **one polygon with two
+  rings** is the thing that breaks, and it renders as solid cloud when it does.
 
 - `node:test` has no globals: import `describe`/`it` from `node:test` and
   `assert` from `node:assert/strict`. Assert with `assert.deepEqual` /
@@ -654,6 +736,25 @@ Open-Meteo API → WeatherService (fetch, map, TTL cache) [server/src/lib/servic
              → WeatherProvider dispatches to Redux       [app/src/lib/context]
              → components select via useAppSelector      [app/src/app/components]
 ```
+
+The forecast feature follows the same path with one deliberate deviation — the
+frames are too big for the store, so only the *metadata* rides the full
+pattern and the geometry goes straight to the layer:
+
+```
+NOMADS HRRR .idx → byte-range GRIB2 subset (~930 KB of a 390 MB file)
+             → grib_get_data (eccodes) → block-average 3 km → 12 km
+             → marching squares + hole nesting            [lib/services/forecast.ts]
+             → GET /forecast/clouds?hour=N                [routers/forecast.ts]
+             → ForecastCloudsLayer.url                    [lib/arcgis/layers.ts]
+
+GET /forecast/meta → GetForecastMeta() → ForecastProvider → forecast slice
+                   → TimeSlider selects `hour` → Map.tsx repoints the layer
+```
+
+A given run+hour never changes, so `ForecastService` caches frames forever and
+evicts only when the run rolls (~5 s cold, ~0 ms warm). Concurrent requests for
+the same frame collapse onto one download.
 
 Map **imagery** deliberately does not follow this path — tile layers stream
 browser → GIBS directly, exactly as the ArcGIS basemap does. The "third-party

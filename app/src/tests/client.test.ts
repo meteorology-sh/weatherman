@@ -1,5 +1,5 @@
 // Client
-import { GetCloudCover } from "@/lib/client";
+import { GetCloudCover, GetForecastMeta, ForecastCloudsUrl } from "@/lib/client";
 
 // Types
 import type { CloudCoverPoint } from "@/lib/types";
@@ -38,5 +38,32 @@ describe("GetCloudCover", () => {
 
   it("returns the points for the store", async () => {
     await expect(GetCloudCover()).resolves.toEqual(points);
+  });
+});
+
+describe("GetForecastMeta", () => {
+  it("fetches the relative server route", async () => {
+    await GetForecastMeta();
+    expect(fetch).toHaveBeenCalledWith("/forecast/meta");
+  });
+
+  it("throws on a non-OK response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 503, json: async () => ({}) }))
+    );
+    await expect(GetForecastMeta()).rejects.toThrow(
+      "Failed to fetch forecast metadata: 503"
+    );
+  });
+});
+
+describe("ForecastCloudsUrl", () => {
+  it("builds a relative url so the proxy routes it", () => {
+    expect(ForecastCloudsUrl(0)).toBe("/forecast/clouds?hour=0");
+  });
+
+  it("carries the requested hour", () => {
+    expect(ForecastCloudsUrl(12)).toBe("/forecast/clouds?hour=12");
   });
 });

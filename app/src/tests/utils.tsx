@@ -6,6 +6,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
 import weatherReducer from "@/lib/store/features/weather";
 import interactionsReducer from "@/lib/store/features/interactions";
+import forecastReducer from "@/lib/store/features/forecast";
 
 // Testing
 import { render } from "@testing-library/react";
@@ -20,11 +21,8 @@ export function createTestStore() {
     reducer: {
       weather: weatherReducer,
       interactions: interactionsReducer,
+      forecast: forecastReducer,
     },
-    middleware: (getDefaultMiddleware) =>
-      getDefaultMiddleware({
-        serializableCheck: false,
-      }),
   });
 }
 

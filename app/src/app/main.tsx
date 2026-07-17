@@ -5,7 +5,8 @@ import { createRoot } from "react-dom/client";
 // Components
 import { App } from "./App.tsx";
 import { LandingPage } from "./components/Landing.tsx";
-import { Interface } from "./components/Interface.tsx";
+import { Candidate } from "./components/Candidate.tsx";
+import { Forecast } from "./components/Forecast.tsx";
 
 // Router
 import { createBrowserRouter } from "react-router";
@@ -13,6 +14,7 @@ import { RouterProvider } from "react-router/dom";
 
 // Providers
 import StoreProvider from "@/lib/context/StoreProvider.tsx";
+import { ForecastProvider } from "@/lib/context/ForecastProvider.tsx";
 
 const router = createBrowserRouter([
   {
@@ -20,7 +22,18 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       { path: "/", element: <LandingPage /> },
-      { path: "/map", element: <Interface /> },
+      // Page routes live under /map so they cannot collide with a server
+      // prefix — the dev proxy forwards every /forecast* request to Express,
+      // so a page at /forecast would be swallowed by the API.
+      {
+        path: "/map/forecast",
+        element: (
+          <ForecastProvider>
+            <Forecast />
+          </ForecastProvider>
+        ),
+      },
+      { path: "/map/candidate", element: <Candidate /> },
     ],
   },
 ]);

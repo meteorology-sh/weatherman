@@ -3,12 +3,12 @@ import { ArcGIS } from "./Map";
 import { CloudLayers } from "./CloudLayers";
 import { Clouds } from "./Clouds";
 
-export const Interface = () => {
+export const Candidate = () => {
   return (
     <div className="w-full h-full bg-black px-4 grid grid-cols-3">
       <div className="col-span-1 p-4 h-[calc(90vh)] overflow-y-auto">
         <div className="prose">
-          <h2>National Cloud Cover</h2>
+          <h2>Candidate Clouds</h2>
           <p>Live GOES-East imagery over the continental U.S.</p>
         </div>
         <div className="py-2">
@@ -34,7 +34,7 @@ export const Interface = () => {
         <Clouds />
       </div>
       <div className="col-span-2">
-        <ArcGIS />
+        <ArcGIS mode="candidate" />
       </div>
     </div>
   );
