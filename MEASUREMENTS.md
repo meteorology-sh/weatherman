@@ -8,7 +8,7 @@ against the real endpoint on **2026-07-16** — the rest is reasoning.
 
 Product context and the C1–C7 criteria live in the system design at
 `/home/nathan/code/rainmaker/weatherman` (`docs/SENSING_STRATEGY.md`). This
-document is the *national-feed* half of that strategy's §5: what the free
+document is the _national-feed_ half of that strategy's §5: what the free
 feeds can answer **without any local ground station**, which is the standing
 constraint on everything below.
 
@@ -28,25 +28,25 @@ gated by **C6** (not already precipitating). Everything below is scored on
 how much of that sentence it answers.
 
 The trap is that "cloud" and "seedable cloud" are almost unrelated. Our
-current GOES imagery answers *"is there a cloud and what shape is it"* (C1,
-C2). It says nothing about phase or temperature *inside* the cloud. **The
+current GOES imagery answers _"is there a cloud and what shape is it"_ (C1,
+C2). It says nothing about phase or temperature _inside_ the cloud. **The
 gap between the map we have and the map we want is entirely C4.**
 
 ## 2. What actually sees supercooled liquid water
 
 The honest hierarchy. Nothing free and national **measures** SLW:
 
-| Source | Relationship to SLW | Res / refresh | Available? |
-|--------|--------------------|----------------|------------|
-| Microwave radiometer + depol lidar | **measures** it | point, continuous | ❌ needs the ground station (Tier B/C, +$90k–$1M) |
-| **HRRR `CLWMR`** | **simulates** it | 3 km, hourly | ✅ free, GRIB2 |
-| **CIP** (FAA icing product) | **fuses** model+sat+radar+PIREP | 13–20 km, 1000 ft, hourly | ⚠️ **no public API** [verified] |
-| **Icing PIREPs** | **confirms** it, spot | ~4 positive / 12 h / CONUS [verified] | ✅ free GeoJSON |
-| MODIS cloud phase / water path | retrieves it, **cloud-top only** | 1 km, 2×/day | ✅ free (GIBS tiles) |
-| GOES ABI (what we ship today) | **cannot see it** | 2 km, 10 min | ✅ free |
+| Source                             | Relationship to SLW              | Res / refresh                         | Available?                                        | Completed |
+| ---------------------------------- | -------------------------------- | ------------------------------------- | ------------------------------------------------- | --------- |
+| Microwave radiometer + depol lidar | **measures** it                  | point, continuous                     | ❌ needs the ground station (Tier B/C, +$90k–$1M) | No        |
+| **HRRR `CLWMR`**                   | **simulates** it                 | 3 km, hourly                          | ✅ free, GRIB2                                    | Yes       |
+| **CIP** (FAA icing product)        | **fuses** model+sat+radar+PIREP  | 13–20 km, 1000 ft, hourly             | ⚠️ **no public API** [verified]                   | No        |
+| **Icing PIREPs**                   | **confirms** it, spot            | ~4 positive / 12 h / CONUS [verified] | ✅ free GeoJSON                                   | No        |
+| MODIS cloud phase / water path     | retrieves it, **cloud-top only** | 1 km, 2×/day                          | ✅ free (GIBS tiles)                              | Yes       |
+| GOES ABI (what we ship today)      | **cannot see it**                | 2 km, 10 min                          | ✅ free                                           | Yes       |
 
-**The conclusion that matters:** with no ground station we get *simulation +
-sparse confirmation*, never measurement. A national map can therefore honestly
+**The conclusion that matters:** with no ground station we get _simulation +
+sparse confirmation_, never measurement. A national map can therefore honestly
 show **candidate volumes** — it cannot render a verdict. That is not a defect
 in the plan; it is precisely the gap the station exists to fill, and the map's
 job is to tell you where to tow it.
@@ -70,7 +70,7 @@ our GOES layers and basemap. MRMS 1 km, ~2 min.
   pattern. **No server code** — it returns imagery, not data, so the
   "third-party calls only on the server" rule doesn't bite (same reasoning as
   the GIBS carve-out in `CLAUDE.md`).
-- **Caveat:** see §5 — radar is a *mask*, not a detector.
+- **Caveat:** see §5 — radar is a _mask_, not a detector.
 - **Verdict: highest value/effort ratio on this list.**
 
 ### B. HRRR supercooled liquid water — C3 ∧ C4 (the real one)
@@ -84,17 +84,17 @@ RWMR / SNMR at or below that level          →  C6
 ```
 
 **`CLWMR` is liquid by definition** (Thompson microphysics separates cloud
-water from ice/snow/graupel), so cloud water at subfreezing temperature *is*
+water from ice/snow/graupel), so cloud water at subfreezing temperature _is_
 supercooled liquid water. One file answers the crux.
 
 Sizing, measured against the live NOMADS file **[verified]**:
 
-| | |
-|---|---|
-| One `CLWMR` level, all 1,905,141 CONUS points | **47.6 KB** (mostly zeros; compresses superbly) |
-| Packing | **template 5.3** — complex + spatial differencing, **not JPEG2000** |
-| 450–700 mb × {CLWMR,TMP,HGT,RWMR,SNMR} | **14.2 MB = 3.6%** of the 390 MB file |
-| Without `HGT` | ~8 MB |
+|                                               |                                                                     |
+| --------------------------------------------- | ------------------------------------------------------------------- |
+| One `CLWMR` level, all 1,905,141 CONUS points | **47.6 KB** (mostly zeros; compresses superbly)                     |
+| Packing                                       | **template 5.3** — complex + spatial differencing, **not JPEG2000** |
+| 450–700 mb × {CLWMR,TMP,HGT,RWMR,SNMR}        | **14.2 MB = 3.6%** of the 390 MB file                               |
+| Without `HGT`                                 | ~8 MB                                                               |
 
 `.idx` files are plain text with byte offsets, so HTTP **range requests**
 fetch only the records we want. Cache 15 min against an hourly model.
@@ -104,7 +104,7 @@ fetch only the records we want. Cache 15 min against an hourly model.
   Using HRRR SLW is what the operational icing product does.
 - **At 3 km this is a legitimately renderable field** — see §5's correlation-
   length rule. Unlike the 3° grid, drawing it as a surface is honest.
-- **Caveat:** it is the model's *opinion*, not an observation — and §5 records
+- **Caveat:** it is the model's _opinion_, not an observation — and §5 records
   a case where it was wrong.
 - **Effort:** the big one. Needs GRIB2 decoding → **decided, see §6.**
 
@@ -141,21 +141,21 @@ https://aviationweather.gov/api/data/pirep?format=geojson&types=ice&age=12&bbox=
 not filter server-side**; filter client-side on `icgInt1`.
 
 Sparse: **22 of 400** reports in 12 h over CONUS carried icing, and most were
-`NEG`. But each positive one is an aircraft *confirming supercooled liquid
-water at a known altitude and temperature*. Today's:
+`NEG`. But each positive one is an aircraft _confirming supercooled liquid
+water at a known altitude and temperature_. Today's:
 
 ```
 SLK UA /OV LKP/TM 2109/FL140/TP PC12/SK TOP 140 BASE 060/TA M05/IC LGT RIME 140
 ```
 
-A Pilatus at 14,000 ft, **−5 °C, light rime** (rime *is* SLW freezing on
+A Pilatus at 14,000 ft, **−5 °C, light rime** (rime _is_ SLW freezing on
 impact), in cloud 6,000–14,000 ft. C2 ∧ C3 ∧ C4 in one line, in July.
 `icgType1` is real phase information: **RIME → small droplets; CLEAR → SLD**
 (supercooled large drops).
 
 - **Verdict:** not a map layer — a **validation overlay**. It is the only
   actual SLW observation available without a ground station, and it is what
-  lets the dashboard say "the model claims a candidate here *and* an aircraft
+  lets the dashboard say "the model claims a candidate here _and_ an aircraft
   confirmed it."
 
 ### E. Freezing level (G-AIRMET FZLVL) — C3, cheap
@@ -174,13 +174,13 @@ to 16 days. **Cannot contribute to C4 at all.**
 
 ### Rejected, with reasons
 
-| Candidate | Why not |
-|-----------|---------|
-| **G-AIRMET icing** | Threshold-gated *hazard warning*, not a diagnosis. **[verified] zero ICE features in July** — it would be blank most of the season. FZLVL from the same feed is fine (E). |
-| **CIP / FIP** | The purpose-built product, and the best thing on this list — but **[verified] no public API**: the AWC OpenAPI spec has 20 endpoints, none is CIP/FIP. NOAAPORT or scraped imagery only. Worth an email to AWC. |
-| **GOES cloud phase** | **[verified] doesn't exist on GIBS.** 3,769 layers, 12 GOES (6 East, 6 West), none is a cloud product. The real GOES-R L2 `ACTP` is NetCDF from `noaa-goes19` on S3 — no tiles, needs regridding. |
-| **MODIS cloud phase / water path** | On GIBS and real (`MODIS_*_Cloud_Phase_Optical_Properties`, `MODIS_*_Cloud_Water_Path`), but **cloud-top only, 2×/day**. Too stale to task a drone. Possible future context layer. |
-| **Open-Meteo `cloud_cover_*hPa`** | It is a humidity field wearing a cloud label. See §5. |
+| Candidate                          | Why not                                                                                                                                                                                                         |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **G-AIRMET icing**                 | Threshold-gated _hazard warning_, not a diagnosis. **[verified] zero ICE features in July** — it would be blank most of the season. FZLVL from the same feed is fine (E).                                       |
+| **CIP / FIP**                      | The purpose-built product, and the best thing on this list — but **[verified] no public API**: the AWC OpenAPI spec has 20 endpoints, none is CIP/FIP. NOAAPORT or scraped imagery only. Worth an email to AWC. |
+| **GOES cloud phase**               | **[verified] doesn't exist on GIBS.** 3,769 layers, 12 GOES (6 East, 6 West), none is a cloud product. The real GOES-R L2 `ACTP` is NetCDF from `noaa-goes19` on S3 — no tiles, needs regridding.               |
+| **MODIS cloud phase / water path** | On GIBS and real (`MODIS_*_Cloud_Phase_Optical_Properties`, `MODIS_*_Cloud_Water_Path`), but **cloud-top only, 2×/day**. Too stale to task a drone. Possible future context layer.                              |
+| **Open-Meteo `cloud_cover_*hPa`**  | It is a humidity field wearing a cloud label. See §5.                                                                                                                                                           |
 
 **Free and unused:** GIBS carries **GOES-West** with the same 6 products we
 already use from GOES-East. Better viewing geometry over the western US, and
@@ -195,10 +195,10 @@ ensemble (31 AIGEFS + 31 GEFSv12) that beats both parents.
 
 **Their complete output**, quoted from the service change notice:
 
-| Scope | Fields |
-|-------|--------|
-| **13 pressure levels** (50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 850, 925, 1000 mb) | `UGRD`, `VGRD`, `TMP`, `HGT`, `SPFH`, `VVEL` |
-| **Surface** | `UGRD` 10 m, `VGRD` 10 m, `TMP` 2 m, `PRMSL`, `APCP` |
+| Scope                                                                                       | Fields                                               |
+| ------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| **13 pressure levels** (50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 850, 925, 1000 mb) | `UGRD`, `VGRD`, `TMP`, `HGT`, `SPFH`, `VVEL`         |
+| **Surface**                                                                                 | `UGRD` 10 m, `VGRD` 10 m, `TMP` 2 m, `PRMSL`, `APCP` |
 
 **That is the entire list. No cloud water, no cloud ice, no cloud fraction —
 not even relative humidity.** GraphCast predicts dynamics and thermodynamics,
@@ -206,7 +206,7 @@ not microphysics. A model with no condensate variable cannot tell you whether
 a cloud is seedable, and **no postprocessing recovers it, because the
 information was never in the model.**
 
-What they *are* good for:
+What they _are_ good for:
 
 - **C3** — `TMP` + `HGT` on 13 levels → isotherm heights → the drone's target
   altitude, out to 16 days.
@@ -240,11 +240,11 @@ on relative humidity"; for AIGFS it is derived from specific humidity via
 Murphy & Koop (2005). **Shipping it as a cloud layer would be the same class
 of error as interpolating the 3° grid** — a picture the data never measured.
 This is exactly the `cloud_cover` field our current sidebar grid uses; it is
-defensible as a *statistic*, never as a phase or condensate claim.
+defensible as a _statistic_, never as a phase or condensate claim.
 
 **Radar cannot see supercooled liquid water.** Backscatter goes as d⁶, so
 10 µm cloud droplets are effectively invisible to NEXRAD; you need ~mm drops.
-Radar shows precipitation that **already formed** — the C6 *negative* signal
+Radar shows precipitation that **already formed** — the C6 _negative_ signal
 (the cloud already converted its liquid, so seeding has no headroom). **Radar
 tells you which candidates to cross off, not where to go.**
 
@@ -258,17 +258,17 @@ why (D) belongs on the map.
 
 **Correlation length decides whether a field may be drawn as a surface.**
 The existing rule in `CLAUDE.md` ("do not render the grid as a continuous
-field") is not "never draw surfaces" — it is *don't draw structure finer than
-your sampling*. The test is the variable's correlation length versus the
+field") is not "never draw surfaces" — it is _don't draw structure finer than
+your sampling_. The test is the variable's correlation length versus the
 sample spacing:
 
-| Variable | Correlation length | 3° grid (~300 km) verdict |
-|----------|--------------------|---------------------------|
-| Cloud shape / cover | 1–50 km | ❌ interpolation invents structure |
-| Isotherm height | ~1000 km (synoptic) | ✅ genuinely smooth; contouring is honest |
-| SLW / condensate | 1–10 km | ❌ at 3°; ✅ at HRRR's native 3 km |
+| Variable            | Correlation length  | 3° grid (~300 km) verdict                 |
+| ------------------- | ------------------- | ----------------------------------------- |
+| Cloud shape / cover | 1–50 km             | ❌ interpolation invents structure        |
+| Isotherm height     | ~1000 km (synoptic) | ✅ genuinely smooth; contouring is honest |
+| SLW / condensate    | 1–10 km             | ❌ at 3°; ✅ at HRRR's native 3 km        |
 
-So the *same* grid is legitimate for (C) and illegitimate for cloud shape, and
+So the _same_ grid is legitimate for (C) and illegitimate for cloud shape, and
 HRRR's 3 km field is legitimate for SLW while a sampled version of it is not.
 **Ask "what is the correlation length" before drawing any new surface.**
 
@@ -296,7 +296,7 @@ npm list stays at three.
 contoured to nested GeoJSON with an f00–f18 slider. That is the plumbing for
 the SLW layer, not the SLW layer itself: swapping `TCDC` for `CLWMR` masked to
 T ∈ [−12,−5] °C is now a service-level change, since the fetch/decode/contour
-path is identical (`CLWMR` is in the *same* `wrfprs` file).
+path is identical (`CLWMR` is in the _same_ `wrfprs` file).
 
 **Open — which layers to build.** (A) is nearly free and answers the standing
 precipitation question. (B) is the only real SLW field. (C) and (D) together
