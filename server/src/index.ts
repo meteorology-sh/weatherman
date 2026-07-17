@@ -5,7 +5,6 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 
 // Routers
-import { weather } from "./routers/weather";
 import { forecast } from "./routers/forecast";
 
 // Types
@@ -17,7 +16,6 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use("/weather", weather);
 app.use("/forecast", forecast);
 
 app.get("/healthcheck", (req: Request, res: Response) => {

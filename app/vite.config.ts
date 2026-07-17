@@ -29,13 +29,13 @@ export default defineConfig({
     },
     cors: true,
     proxy: {
-      "/weather": {
-        target: process.env.SERVER_ORIGIN || "http://localhost:3000",
-        changeOrigin: true,
-      },
       "/forecast": {
         target: process.env.SERVER_ORIGIN || "http://localhost:3000",
         changeOrigin: true,
+        // The seeding-band build is a ~30 s cold read of ~34 GRIB records.
+        // Node's default socket timeout would cut it off mid-build.
+        timeout: 120_000,
+        proxyTimeout: 120_000,
       },
     },
     watch: {

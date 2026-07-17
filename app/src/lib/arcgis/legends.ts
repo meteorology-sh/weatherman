@@ -1,17 +1,14 @@
-// Types
-import type { CloudLayerId } from "@/lib/types";
-
 export type LegendTick = { label: string; percent: number };
 
 export type CloudLayerLegend = {
   name: string;
-  /** One line under the switcher saying what the operator is looking at. */
+  /** One line under the toggle saying what the operator is looking at. */
   summary: string;
-  /** CSS gradient matching the layer's colour ramp; absent for imagery. */
-  gradient?: string;
-  ticks?: LegendTick[];
+  /** CSS gradient matching the layer's colour ramp. */
+  gradient: string;
+  ticks: LegendTick[];
   /** Highlighted span across the ramp, positioned in gradient percent. */
-  band?: { fromPercent: number; toPercent: number; label: string };
+  band: { fromPercent: number; toPercent: number; label: string };
   /** What the layer does not tell you. Shown in the panel. */
   caveat: string;
 };
@@ -49,31 +46,22 @@ const BAND13_GRADIENT =
 /** Position of a temperature on the -90..+40 °C bar, in percent. */
 const tempPercent = (celsius: number) => ((celsius + 90) / 130) * 100;
 
-export const CloudLayerLegends: Record<CloudLayerId, CloudLayerLegend> = {
-  geocolor: {
-    name: "GeoColor",
-    summary: "True colour by day, IR cloud shading at night.",
-    caveat:
-      "Shows what the cloud deck looks like from above, not how thick it is " +
-      "or what is inside it. The day and night renderings differ.",
+export const Band13Legend: CloudLayerLegend = {
+  name: "Band 13 (Clean IR)",
+  summary: "Cloud-top brightness temperature. Identical day and night.",
+  gradient: BAND13_GRADIENT,
+  ticks: [-80, -60, -40, -20, 0, 20, 40].map((celsius) => ({
+    label: `${celsius}°`,
+    percent: tempPercent(celsius),
+  })),
+  band: {
+    fromPercent: tempPercent(-12),
+    toPercent: tempPercent(-5),
+    label: "seeding band",
   },
-  band13: {
-    name: "Band 13 (Clean IR)",
-    summary: "Cloud-top brightness temperature. Identical day and night.",
-    gradient: BAND13_GRADIENT,
-    ticks: [-80, -60, -40, -20, 0, 20, 40].map((celsius) => ({
-      label: `${celsius}°`,
-      percent: tempPercent(celsius),
-    })),
-    band: {
-      fromPercent: tempPercent(-12),
-      toPercent: tempPercent(-5),
-      label: "seeding band",
-    },
-    caveat:
-      "This is the temperature of the cloud top, not of the supercooled " +
-      "liquid inside it — the −5 to −12 °C layer usually sits below the top. " +
-      "The ramp is tuned for deep convection, so the seeding band falls in " +
-      "near-flat grey. Treat it as a hint, not a verdict.",
-  },
+  caveat:
+    "This is the temperature of the cloud top, not of the supercooled " +
+    "liquid inside it — the −5 to −12 °C layer usually sits below the top. " +
+    "The ramp is tuned for deep convection, so the seeding band falls in " +
+    "near-flat grey. The liquid-water layer answers what this one cannot.",
 };

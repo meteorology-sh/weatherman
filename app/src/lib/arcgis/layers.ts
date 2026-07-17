@@ -2,13 +2,18 @@
 import WebTileLayer from "@arcgis/core/layers/WebTileLayer";
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
 import TileInfo from "@arcgis/core/layers/support/TileInfo";
-import { forecastCloudRenderer, forecastPrecipRenderer } from "./renderers";
+import {
+  forecastCloudRenderer,
+  forecastPrecipRenderer,
+  candidateLiquidRenderer,
+} from "./renderers";
 
 // Client
-import { ForecastCloudsUrl, ForecastPrecipUrl } from "@/lib/client";
-
-// Types
-import type { CloudLayerId } from "@/lib/types";
+import {
+  ForecastCloudsUrl,
+  ForecastPrecipUrl,
+  ForecastLiquidUrl,
+} from "@/lib/client";
 
 // NASA GIBS serves GOES ABI imagery as RESTful WMTS tiles: no API key, ~2km
 // native resolution, new imagery every 10 minutes. "default" in the {Style}
@@ -31,16 +36,18 @@ function goesTileInfo(numLODs: number) {
   return TileInfo.create({ size: 256, numLODs });
 }
 
-// Both layers start hidden; Map.tsx drives visibility from the store so the
-// selected layer is decided in exactly one place.
-export const GeoColorLayer = new WebTileLayer({
-  title: "GOES-East GeoColor",
-  urlTemplate: goesUrl("GOES-East_ABI_GeoColor", "GoogleMapsCompatible_Level7"),
-  tileInfo: goesTileInfo(8),
-  copyright: COPYRIGHT,
-  visible: false,
-});
-
+/**
+ * Cloud-top brightness temperature, identical day and night.
+ *
+ * The only GOES rendering we carry. GeoColor was dropped because it answers a
+ * question this product does not ask: it is true colour by day and a different
+ * IR shading by night, so it looks like a photograph and tells the operator
+ * nothing about what is inside the cloud. Band 13 at least reports a
+ * temperature, which is one step from the seeding band.
+ *
+ * Starts hidden; Map.tsx drives visibility from the store so it is decided in
+ * exactly one place.
+ */
 export const Band13Layer = new WebTileLayer({
   title: "GOES-East Band 13 (Clean IR)",
   urlTemplate: goesUrl(
@@ -51,11 +58,6 @@ export const Band13Layer = new WebTileLayer({
   copyright: COPYRIGHT,
   visible: false,
 });
-
-export const GoesLayers: Record<CloudLayerId, WebTileLayer> = {
-  geocolor: GeoColorLayer,
-  band13: Band13Layer,
-};
 
 /**
  * Modelled cloud cover, contoured server-side from HRRR into nested polygons.
@@ -98,5 +100,23 @@ export const ForecastPrecipLayer = new GeoJSONLayer({
     { name: "OBJECTID", type: "oid" },
     { name: "precipRate", type: "double" },
   ],
+  visible: false,
+});
+
+/**
+ * Supercooled liquid water in the seeding band, integrated from HRRR's analysis
+ * and contoured the same way — drawn over Band 13, because the satellite shows
+ * the cloud top and this shows what is inside it.
+ *
+ * Pinned to hour 0: the candidate map is "right now", and for this field the
+ * analysis is a real answer rather than an empty one (CLWMR is a state, not a
+ * flux). Nothing repoints this url, so unlike the forecast layers it is fetched
+ * once per session.
+ */
+export const CandidateLiquidLayer = new GeoJSONLayer({
+  title: "HRRR supercooled liquid water",
+  url: ForecastLiquidUrl(0),
+  copyright: "NOAA HRRR",
+  renderer: candidateLiquidRenderer,
   visible: false,
 });

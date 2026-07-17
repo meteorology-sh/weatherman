@@ -35,7 +35,12 @@ describe("ForecastLayers", () => {
   });
 
   it("labels the precipitation bands in mm/hr", () => {
-    renderWithStore(<ForecastLayers />, createTestStore());
+    const store = createTestStore();
+
+    renderWithStore(<ForecastLayers />, store);
+    act(() => {
+      store.dispatch(forecastActions.setHour(1));
+    });
 
     expect(screen.getByText("7.6")).toBeTruthy();
     expect(screen.getByText(/mm\/hr/)).toBeTruthy();
@@ -109,7 +114,7 @@ describe("ForecastLayers", () => {
   it("explains why the analysis hour has no precipitation", () => {
     renderWithStore(<ForecastLayers />, createTestStore());
 
-    expect(screen.getByText(/analysis has none to show/)).toBeTruthy();
+    expect(screen.getByText(/f00 has none to show/)).toBeTruthy();
   });
 
   it("drops the explanation once the model has precipitation", () => {
@@ -120,7 +125,7 @@ describe("ForecastLayers", () => {
       store.dispatch(forecastActions.setHour(1));
     });
 
-    expect(screen.queryByText(/analysis has none to show/)).toBeNull();
+    expect(screen.queryByText(/f00 has none to show/)).toBeNull();
   });
 
   it("does not explain a layer that is switched off", () => {
@@ -131,6 +136,41 @@ describe("ForecastLayers", () => {
       store.dispatch(forecastActions.setPrecip(false));
     });
 
-    expect(screen.queryByText(/analysis has none to show/)).toBeNull();
+    expect(screen.queryByText(/f00 has none to show/)).toBeNull();
+  });
+
+  // A ramp at full strength while the layer cannot paint is the legend
+  // advertising something the map is not showing.
+  it("mutes the precipitation ramp at the hour it cannot draw", () => {
+    const { container } = renderWithStore(
+      <ForecastLayers />,
+      createTestStore()
+    );
+
+    const ramps = container.querySelectorAll(".opacity-30");
+    expect(ramps).toHaveLength(1);
+  });
+
+  it("un-mutes the ramp once the layer can draw", () => {
+    const store = createTestStore();
+
+    const { container } = renderWithStore(<ForecastLayers />, store);
+    act(() => {
+      store.dispatch(forecastActions.setHour(1));
+    });
+
+    expect(container.querySelectorAll(".opacity-30")).toHaveLength(0);
+  });
+
+  // The explanation names the fix, so it should be able to perform it.
+  it("steps to the first modelled hour when the operator takes the offer", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ForecastLayers />, store);
+    act(() => {
+      screen.getByText(/Step to \+1 h/).click();
+    });
+
+    expect(store.getState().forecast.hour).toBe(1);
   });
 });

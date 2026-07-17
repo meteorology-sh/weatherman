@@ -45,9 +45,31 @@ export const PRECIP_BANDS: readonly Band[] = [
 ];
 
 /**
+ * Supercooled liquid water path in the -5..-12 C band, g/m^2, mirroring
+ * SEEDING.levels in server/src/lib/services/forecast.ts. This is the seedability
+ * signal itself, so unlike the other two layers the bands mean "worth flying
+ * to", not "how much weather".
+ *
+ * Drawn over GOES Band 13 imagery rather than the basemap, which is a darker
+ * backdrop than either forecast layer gets — hence the slightly stronger fills.
+ * The top band still lands near 60% opacity, so cloud-top structure reads
+ * through the richest cell on the map.
+ */
+export const SLW_BANDS: readonly Band[] = [
+  { value: 10, alpha: 0.15 },
+  { value: 50, alpha: 0.18 },
+  { value: 150, alpha: 0.22 },
+  { value: 400, alpha: 0.26 },
+];
+
+/**
  * First forecast hour with precipitation. Mirrors FIELDS.precip.firstHour on the
  * server: HRRR diagnoses PRATE by integrating a timestep forward, so the
  * analysis carries none and the layer has nothing to draw at f00.
+ *
+ * Supercooled liquid water has no equivalent: a mixing ratio is a state the
+ * analysis holds, so CLWMR is real at f00 and the candidate map can show it for
+ * "right now".
  */
 export const PRECIP_FIRST_HOUR = 1;
 
@@ -56,9 +78,13 @@ export const PRECIP_FIRST_HOUR = 1;
  * of it, so it gets a hue cloud can never be confused for. One hue per layer,
  * shaded by the stacking — a multi-hue ramp cannot work here, because a heavy
  * cell is painted by all four bands at once and the hues would blend.
+ *
+ * Liquid water is amber because it shares the candidate map with Band 13, whose
+ * published GIBS ramp already spends cyan and green on cloud-top temperature.
  */
 export const CLOUD_RGB = [255, 255, 255] as const;
 export const PRECIP_RGB = [34, 211, 238] as const;
+export const SLW_RGB = [251, 191, 36] as const;
 
 /**
  * Alpha of the first n bands painted over each other. Fills composite
@@ -93,5 +119,18 @@ export const forecastPrecipRenderer = new UniqueValueRenderer({
   uniqueValueInfos: fills(PRECIP_BANDS, PRECIP_RGB),
 });
 
+export const candidateLiquidRenderer = new UniqueValueRenderer({
+  field: "slwPath",
+  uniqueValueInfos: fills(SLW_BANDS, SLW_RGB),
+});
+
 /** The words an operator reads, not the raw number. Parallel to PRECIP_BANDS. */
 export const PRECIP_LABELS = ["trace", "light", "moderate", "heavy"] as const;
+
+/**
+ * Parallel to SLW_BANDS. These are seeding judgements, not measurements: a cloud
+ * carrying under ~50 g/m^2 of supercooled liquid is not worth a sortie, and the
+ * top band is where the classic glaciogenic-seeding literature puts a strong
+ * target.
+ */
+export const SLW_LABELS = ["trace", "marginal", "good", "prime"] as const;

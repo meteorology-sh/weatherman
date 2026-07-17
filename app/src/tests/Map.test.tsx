@@ -6,6 +6,7 @@ import { createTestStore, renderWithStore } from "./utils";
 // Store
 import { interactionsActions } from "@/lib/store/features/interactions";
 import { forecastActions } from "@/lib/store/features/forecast";
+import { candidateActions } from "@/lib/store/features/candidate";
 
 // Components
 import { ArcGIS } from "@/app/components/Map";
@@ -22,24 +23,29 @@ type FakeViewT = {
 // component drives are faked. Each fake records its instances, and the tests
 // assert on the calls the component makes to them. The layers are faked too —
 // layers.test.ts covers how the real ones are built.
-const { arcgis, goes, forecastLayer, precipLayer, watch } = vi.hoisted(() => ({
-  arcgis: {
-    maps: [] as FakeMapT[],
-    views: [] as FakeViewT[],
-  },
-  goes: {
-    geocolor: { id: "geocolor-layer", visible: false },
+const { arcgis, band13, forecastLayer, precipLayer, liquidLayer, watch } =
+  vi.hoisted(() => ({
+    arcgis: {
+      maps: [] as FakeMapT[],
+      views: [] as FakeViewT[],
+    },
     band13: { id: "band13-layer", visible: false },
-  },
-  forecastLayer: { id: "forecast-layer", visible: false, url: "", refresh: vi.fn() },
-  precipLayer: { id: "precip-layer", visible: false, url: "", refresh: vi.fn() },
-  watch: vi.fn(() => ({ remove: vi.fn() })),
-}));
+    forecastLayer: {
+      id: "forecast-layer",
+      visible: false,
+      url: "",
+      refresh: vi.fn(),
+    },
+    precipLayer: { id: "precip-layer", visible: false, url: "", refresh: vi.fn() },
+    liquidLayer: { id: "liquid-layer", visible: false, url: "", refresh: vi.fn() },
+    watch: vi.fn(() => ({ remove: vi.fn() })),
+  }));
 
 vi.mock("@/lib/arcgis/layers", () => ({
-  GoesLayers: goes,
+  Band13Layer: band13,
   ForecastCloudsLayer: forecastLayer,
   ForecastPrecipLayer: precipLayer,
+  CandidateLiquidLayer: liquidLayer,
 }));
 vi.mock("@arcgis/core/core/reactiveUtils", () => ({ watch }));
 vi.mock("@arcgis/core/Map", () => ({
@@ -74,8 +80,9 @@ const view = () => arcgis.views[arcgis.views.length - 1];
 beforeEach(() => {
   arcgis.maps.length = 0;
   arcgis.views.length = 0;
-  goes.geocolor.visible = false;
-  goes.band13.visible = false;
+  band13.visible = false;
+  liquidLayer.visible = false;
+  liquidLayer.refresh.mockClear();
   forecastLayer.visible = false;
   forecastLayer.url = "";
   forecastLayer.refresh.mockClear();
@@ -108,10 +115,10 @@ describe("ArcGIS", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     expect(map().layers).toEqual([
-      goes.geocolor,
-      goes.band13,
+      band13,
       forecastLayer,
       precipLayer,
+      liquidLayer,
     ]);
   });
 
@@ -125,7 +132,7 @@ describe("ArcGIS", () => {
     );
   });
 
-  it("flies to the selected grid point", () => {
+  it("flies to a selected location", () => {
     const store = createTestStore();
 
     renderWithStore(<ArcGIS mode="candidate" />, store);
@@ -144,38 +151,44 @@ describe("ArcGIS", () => {
 });
 
 describe("ArcGIS in candidate mode", () => {
-  it("shows only the GeoColor layer by default", () => {
+  it("shows the observed imagery and the modelled liquid water together", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
-    expect(goes.geocolor.visible).toBe(true);
-    expect(goes.band13.visible).toBe(false);
+    expect(band13.visible).toBe(true);
+    expect(liquidLayer.visible).toBe(true);
   });
 
-  it("shows only the Band13 layer once it is selected", () => {
+  // The satellite shows the cloud top; the contours show what is inside it. The
+  // liquid has to sit above or it is buried by the imagery it explains.
+  it("draws the liquid water above the imagery it explains", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    const layers = map().layers ?? [];
+    expect(layers.indexOf(liquidLayer)).toBeGreaterThan(layers.indexOf(band13));
+  });
+
+  it("hides the imagery when the operator turns it off", () => {
     const store = createTestStore();
 
     renderWithStore(<ArcGIS mode="candidate" />, store);
     act(() => {
-      store.dispatch(interactionsActions.setCloudLayer("band13"));
+      store.dispatch(candidateActions.setImagery(false));
     });
 
-    expect(goes.band13.visible).toBe(true);
-    expect(goes.geocolor.visible).toBe(false);
+    expect(band13.visible).toBe(false);
+    expect(liquidLayer.visible).toBe(true);
   });
 
-  it("switches back to GeoColor", () => {
+  it("hides the liquid water when the operator turns it off", () => {
     const store = createTestStore();
 
     renderWithStore(<ArcGIS mode="candidate" />, store);
     act(() => {
-      store.dispatch(interactionsActions.setCloudLayer("band13"));
-    });
-    act(() => {
-      store.dispatch(interactionsActions.setCloudLayer("geocolor"));
+      store.dispatch(candidateActions.setLiquid(false));
     });
 
-    expect(goes.geocolor.visible).toBe(true);
-    expect(goes.band13.visible).toBe(false);
+    expect(liquidLayer.visible).toBe(false);
+    expect(band13.visible).toBe(true);
   });
 
   it("hides the modelled forecast contours", () => {
@@ -196,8 +209,15 @@ describe("ArcGIS in forecast mode", () => {
   it("hides the GOES imagery, which cannot forecast", () => {
     renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
 
-    expect(goes.geocolor.visible).toBe(false);
-    expect(goes.band13.visible).toBe(false);
+    expect(band13.visible).toBe(false);
+  });
+
+  // The liquid layer is pinned to the analysis, so it would contradict the
+  // slider the moment the operator moved it.
+  it("hides the analysis-hour liquid water on the forecast map", () => {
+    renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
+
+    expect(liquidLayer.visible).toBe(false);
   });
 
   it("starts on the analysis hour", () => {

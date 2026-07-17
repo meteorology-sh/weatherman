@@ -5,7 +5,7 @@ import { Outlet } from "react-router";
 import { Navigation } from "./layout/Navigation";
 
 // Providers
-import { WeatherProvider } from "@/lib/context/WeatherProvider";
+import { CandidateProvider } from "@/lib/context/CandidateProvider";
 
 // Styles
 import "./index.css";
@@ -14,9 +14,11 @@ export const App = () => {
   return (
     <div className="h-[calc(100vh-4rem)] w-screen">
       <Navigation />
-      <WeatherProvider>
+      {/* App-wide so the server starts building the seeding-band frame the
+          moment the operator lands, not when they open the map. */}
+      <CandidateProvider>
         <Outlet />
-      </WeatherProvider>
+      </CandidateProvider>
     </div>
   );
 };

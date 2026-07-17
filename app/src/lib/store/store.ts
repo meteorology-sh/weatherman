@@ -1,5 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
-import weatherReducer from "./features/weather";
+import candidateReducer from "./features/candidate";
 import interactionsReducer from "./features/interactions";
 import forecastReducer from "./features/forecast";
 
@@ -8,7 +8,7 @@ import forecastReducer from "./features/forecast";
 // and the store holds only plain data, so the check is back on.
 export const store = configureStore({
   reducer: {
-    weather: weatherReducer,
+    candidate: candidateReducer,
     interactions: interactionsReducer,
     forecast: forecastReducer,
   },

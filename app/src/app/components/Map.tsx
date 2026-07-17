@@ -14,9 +14,10 @@ import MapView from "@arcgis/core/views/MapView";
 import Extent from "@arcgis/core/geometry/Extent";
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils";
 import {
-  GoesLayers,
+  Band13Layer,
   ForecastCloudsLayer,
   ForecastPrecipLayer,
+  CandidateLiquidLayer,
 } from "@/lib/arcgis/layers";
 import { PRECIP_FIRST_HOUR } from "@/lib/arcgis/renderers";
 
@@ -36,10 +37,11 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const drawnPrecipUrl = useRef<string | null>(null);
 
   const dispatch = useAppDispatch();
-  const cloudLayer = useAppSelector((state) => state.interactions.cloudLayer);
   const coordinates = useAppSelector((state) => state.interactions.coordinates);
   const hour = useAppSelector((state) => state.forecast.hour);
   const precip = useAppSelector((state) => state.forecast.precip);
+  const imagery = useAppSelector((state) => state.candidate.imagery);
+  const liquid = useAppSelector((state) => state.candidate.liquid);
   const forecasting = mode === "forecast";
   const raining = forecasting && hour >= PRECIP_FIRST_HOUR;
 
@@ -48,11 +50,15 @@ export const ArcGIS = ({ mode }: PropsT) => {
     if (mapDiv.current && !viewRef.current) {
       const map = new Map({
         basemap: "dark-gray-vector",
-        // Order is draw order: rain sits over cloud.
+        // Order is draw order. On the forecast map rain sits over cloud; on the
+        // candidate map the modelled liquid water sits over the observed
+        // imagery, because it is the more specific signal and covers far less
+        // ground.
         layers: [
-          ...Object.values(GoesLayers),
+          Band13Layer,
           ForecastCloudsLayer,
           ForecastPrecipLayer,
+          CandidateLiquidLayer,
         ],
       });
 
@@ -83,7 +89,8 @@ export const ArcGIS = ({ mode }: PropsT) => {
 
   // Layer visibility is derived from the route's mode plus the store, in one
   // place. The forecast map is modelled contours; the candidate map is observed
-  // GOES imagery. Both stay on the map so switching re-uses what's loaded.
+  // imagery plus the analysis of what is inside the cloud. Both stay on the map
+  // so switching re-uses what's loaded.
   //
   // The precipitation layer hides before PRECIP_FIRST_HOUR rather than drawing
   // an empty frame: HRRR has no precipitation at the analysis, and a layer
@@ -91,16 +98,18 @@ export const ArcGIS = ({ mode }: PropsT) => {
   useEffect(() => {
     ForecastCloudsLayer.visible = forecasting;
     ForecastPrecipLayer.visible = raining && precip;
-    for (const [id, layer] of Object.entries(GoesLayers)) {
-      layer.visible = !forecasting && id === cloudLayer;
-    }
-  }, [forecasting, raining, precip, cloudLayer]);
+    Band13Layer.visible = !forecasting && imagery;
+    CandidateLiquidLayer.visible = !forecasting && liquid;
+  }, [forecasting, raining, precip, imagery, liquid]);
 
-  // Point each contour layer at the selected hour. Repointing the url
+  // Point each forecast contour layer at the selected hour. Repointing the url
   // refetches; the frames are megabytes of geometry, so they never enter the
   // store. A null url means there is nothing to draw and the layer is left
   // alone rather than sent after an empty frame. The guards matter: without
   // them StrictMode's double-invoked effect re-downloads the same frame.
+  //
+  // The candidate liquid layer has no equivalent — it is pinned to the analysis
+  // hour, so its constructor url is the only one it ever needs.
   const cloudUrl = forecasting ? ForecastCloudsUrl(hour) : null;
   const precipUrl = raining ? ForecastPrecipUrl(hour) : null;
 
@@ -139,7 +148,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     return () => handle?.remove();
   }, [mode, dispatch]);
 
-  // Fly to the selected grid point
+  // Fly to a selected location
   useEffect(() => {
     if (coordinates && viewRef.current) {
       viewRef.current.goTo({

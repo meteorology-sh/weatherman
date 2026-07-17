@@ -10,49 +10,16 @@ import {
   PRECIP_LABELS,
   PRECIP_RGB,
   PRECIP_FIRST_HOUR,
-  stackedColor,
 } from "@/lib/arcgis/renderers";
 
-type RampPropsT = {
-  bands: readonly { value: number; alpha: number }[];
-  rgb: readonly number[];
-  /** One caption per band, in the operator's units. */
-  captions: string[];
-  /** Optional hover text per band, for the words behind the numbers. */
-  titles?: readonly string[];
-};
-
-/**
- * The map paints these bands over each other, so each swatch shows the same
- * cumulative alpha, composited the way the map composites it. Derive it — a
- * legend that sums the alphas reads far darker than the map draws.
- */
-const Ramp = ({ bands, rgb, captions, titles }: RampPropsT) => (
-  <div className="flex flex-col gap-1">
-    <div className="flex rounded overflow-hidden border border-base-300">
-      {bands.map((band, i) => (
-        <div
-          key={band.value}
-          className="h-4 flex-1"
-          title={titles?.[i]}
-          style={{ backgroundColor: stackedColor(bands, rgb, i + 1) }}
-        />
-      ))}
-    </div>
-    <div className="flex text-xs opacity-60">
-      {captions.map((caption) => (
-        <span key={caption} className="flex-1">
-          {caption}
-        </span>
-      ))}
-    </div>
-  </div>
-);
+// Components
+import { Ramp } from "./Ramp";
 
 export const ForecastLayers = () => {
   const dispatch = useAppDispatch();
   const precip = useAppSelector((state) => state.forecast.precip);
   const hour = useAppSelector((state) => state.forecast.hour);
+  const blank = hour < PRECIP_FIRST_HOUR;
 
   return (
     <div className="flex flex-col gap-4">
@@ -81,20 +48,35 @@ export const ForecastLayers = () => {
 
         {precip && (
           <>
+            {/* The ramp is greyed at the analysis hour rather than hidden: the
+                layer exists and will paint one step along, so the operator
+                should see what is coming, not watch a control vanish. */}
             <Ramp
               bands={PRECIP_BANDS}
               rgb={PRECIP_RGB}
               captions={PRECIP_BANDS.map((band) => String(band.value))}
               titles={PRECIP_LABELS}
+              muted={blank}
             />
-            <div className="text-xs opacity-60">
-              mm/hr &middot; {PRECIP_LABELS[0]} to{" "}
-              {PRECIP_LABELS[PRECIP_LABELS.length - 1]}
-            </div>
-            {hour < PRECIP_FIRST_HOUR && (
-              <div className="text-xs opacity-70">
-                HRRR diagnoses rain by stepping the model forward, so the
-                analysis has none to show. Step to +{PRECIP_FIRST_HOUR} h.
+            {blank ? (
+              <div className="alert alert-info alert-soft p-2 text-xs">
+                <span>
+                  No rain at the analysis hour — HRRR diagnoses precipitation by
+                  stepping the model forward, so f00 has none to show.{" "}
+                  <button
+                    className="link font-semibold"
+                    onClick={() =>
+                      dispatch(forecastActions.setHour(PRECIP_FIRST_HOUR))
+                    }
+                  >
+                    Step to +{PRECIP_FIRST_HOUR} h
+                  </button>
+                </span>
+              </div>
+            ) : (
+              <div className="text-xs opacity-60">
+                mm/hr &middot; {PRECIP_LABELS[0]} to{" "}
+                {PRECIP_LABELS[PRECIP_LABELS.length - 1]}
               </div>
             )}
           </>

@@ -1,7 +1,7 @@
 // Components
 import { ArcGIS } from "./Map";
-import { CloudLayers } from "./CloudLayers";
-import { Clouds } from "./Clouds";
+import { CandidateLayers } from "./CandidateLayers";
+import { Liquid } from "./Liquid";
 
 export const Candidate = () => {
   return (
@@ -9,7 +9,7 @@ export const Candidate = () => {
       <div className="col-span-1 p-4 h-[calc(90vh)] overflow-y-auto">
         <div className="prose">
           <h2>Candidate Clouds</h2>
-          <p>Live GOES-East imagery over the continental U.S.</p>
+          <p>What the sky is doing right now, and whether it is worth flying.</p>
         </div>
         <div className="py-2">
           <div className="collapse bg-base-200 border-base-300 border">
@@ -18,20 +18,22 @@ export const Candidate = () => {
             <div className="collapse-content text-sm">
               <div className="prose">
                 <p>
-                  The map shows GOES-East satellite imagery, refreshed every 10
-                  minutes at roughly 2 km resolution — the cloud shapes are
-                  observed, not modelled. Switch between the two renderings
-                  below. The figures underneath come from a separate 3° model
-                  grid, so they summarise the nation rather than the picture;
-                  click a location to fly there.
+                  Two layers answering two halves of one question. GOES-East
+                  Band 13 is <em>observed</em> — real infrared, refreshed every
+                  10 minutes at ~2 km, showing where cloud is and how cold its
+                  top is. The amber contours are <em>modelled</em>: HRRR's
+                  analysis of the supercooled liquid water sitting in the −5 to
+                  −12 °C band, which is the thing a satellite cannot see and the
+                  thing seeding needs. Cold tops with no amber under them are
+                  glaciated already — nothing left to freeze.
                 </p>
               </div>
             </div>
           </div>
         </div>
-        <CloudLayers />
+        <CandidateLayers />
         <div className="divider my-1" />
-        <Clouds />
+        <Liquid />
       </div>
       <div className="col-span-2">
         <ArcGIS mode="candidate" />

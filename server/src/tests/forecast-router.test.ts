@@ -11,7 +11,12 @@ import express from "express";
 import { forecast } from "../routers/forecast";
 
 // Services
-import { Hrrr, ContourFrame, ForecastMeta } from "../lib/services/forecast";
+import {
+  Hrrr,
+  ContourFrame,
+  ForecastMeta,
+  SlwStats,
+} from "../lib/services/forecast";
 
 const meta: ForecastMeta = {
   run: "2026-07-17T00:00:00.000Z",
@@ -41,6 +46,18 @@ const frameOf = (property: string, level: number): ContourFrame => ({
 
 const frame = frameOf("cloudCover", 30);
 const rain = frameOf("precipRate", 2.5);
+const water = frameOf("slwPath", 50);
+
+const stats: SlwStats = {
+  run: "2026-07-17T00:00:00.000Z",
+  hour: 0,
+  validTime: "2026-07-17T00:00:00.000Z",
+  coveragePct: 1.99,
+  seedableKm2: 338832,
+  peak: 964,
+  bandTopMb: 425,
+  bandBaseMb: 700,
+};
 
 describe("forecast router", () => {
   let server: Server;
@@ -169,6 +186,87 @@ describe("forecast router", () => {
     assert.equal(res.status, 500);
     assert.deepEqual(await res.json(), {
       error: "Forecast hour must be an integer 0-18",
+    });
+  });
+
+  it("responds with the liquid water frame as GeoJSON", async (t) => {
+    t.mock.method(Hrrr, "liquid", async () => water);
+
+    const res = await fetch(`${origin}/forecast/liquid?hour=0`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), water);
+  });
+
+  it("responds with the liquid water stats as JSON", async (t) => {
+    t.mock.method(Hrrr, "liquidStats", async () => stats);
+
+    const res = await fetch(`${origin}/forecast/liquid/stats?hour=0`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), stats);
+  });
+
+  // The stats route is more specific than the frame route; Express must not let
+  // /liquid swallow /liquid/stats.
+  it("keeps the stats route distinct from the frame route", async (t) => {
+    t.mock.method(Hrrr, "liquid", async () => water);
+    t.mock.method(Hrrr, "liquidStats", async () => stats);
+
+    const [geo, summary] = await Promise.all([
+      fetch(`${origin}/forecast/liquid?hour=0`).then((r) => r.json()),
+      fetch(`${origin}/forecast/liquid/stats?hour=0`).then((r) => r.json()),
+    ]);
+
+    assert.equal(geo.type, "FeatureCollection");
+    assert.equal(summary.peak, 964);
+  });
+
+  it("passes the requested hour through to the liquid service", async (t) => {
+    const seen: number[] = [];
+    t.mock.method(Hrrr, "liquid", async (hour: number) => {
+      seen.push(hour);
+      return water;
+    });
+
+    await fetch(`${origin}/forecast/liquid?hour=3`);
+
+    assert.deepEqual(seen, [3]);
+  });
+
+  it("defaults the stats to the analysis hour, which is what the map shows", async (t) => {
+    const seen: number[] = [];
+    t.mock.method(Hrrr, "liquidStats", async (hour: number) => {
+      seen.push(hour);
+      return stats;
+    });
+
+    await fetch(`${origin}/forecast/liquid/stats`);
+
+    assert.deepEqual(seen, [0]);
+  });
+
+  it("responds 500 with the message when the liquid build fails", async (t) => {
+    t.mock.method(Hrrr, "liquid", async () => {
+      throw new Error("spawn grib_filter ENOENT");
+    });
+
+    const res = await fetch(`${origin}/forecast/liquid?hour=0`);
+
+    assert.equal(res.status, 500);
+    assert.deepEqual(await res.json(), { error: "spawn grib_filter ENOENT" });
+  });
+
+  it("responds 500 with the message when the stats build fails", async (t) => {
+    t.mock.method(Hrrr, "liquidStats", async () => {
+      throw new Error("HRRR index unavailable: 404");
+    });
+
+    const res = await fetch(`${origin}/forecast/liquid/stats?hour=0`);
+
+    assert.equal(res.status, 500);
+    assert.deepEqual(await res.json(), {
+      error: "HRRR index unavailable: 404",
     });
   });
 });

@@ -7,6 +7,7 @@ import {
   ForecastService,
   polygons,
   accumulate,
+  blockAverage,
   FORECAST_HOURS,
 } from "../lib/services/forecast";
 
@@ -312,5 +313,58 @@ describe("ForecastService.meta", () => {
     assert.equal(meta.hours[0], 0);
     assert.equal(meta.hours[meta.hours.length - 1], FORECAST_HOURS);
     assert.ok(meta.run.endsWith("Z") || meta.run.includes("T"));
+  });
+});
+
+describe("blockAverage", () => {
+  // A 4x4 grid is exactly one 12 km block, so the whole grid collapses to its
+  // own mean — the simplest statement of what this does.
+  it("collapses one block to its mean", () => {
+    const values = new Float32Array([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+    ]);
+
+    const grid = blockAverage(values, 1, 4, 4);
+
+    assert.deepEqual({ nx: grid.nx, ny: grid.ny }, { nx: 1, ny: 1 });
+    assert.equal(grid.values[0], 8.5);
+  });
+
+  it("applies the scale to the mean", () => {
+    const values = new Float32Array(16).fill(2);
+
+    const grid = blockAverage(values, 1000, 4, 4);
+
+    assert.equal(grid.values[0], 2000);
+  });
+
+  it("averages each block independently", () => {
+    // Two blocks side by side: the left all 4s, the right all 8s.
+    const values = new Float32Array(8 * 4);
+    for (let j = 0; j < 4; j++) {
+      for (let i = 0; i < 8; i++) values[j * 8 + i] = i < 4 ? 4 : 8;
+    }
+
+    const grid = blockAverage(values, 1, 8, 4);
+
+    assert.equal(grid.nx, 2);
+    assert.deepEqual(Array.from(grid.values), [4, 8]);
+  });
+
+  // Mean, not max: a lone hot cell is diluted by its block rather than smeared
+  // across it. Block-averaging removes structure; it must never invent it.
+  it("dilutes a lone cell rather than promoting it", () => {
+    const values = new Float32Array(16);
+    values[0] = 16;
+
+    const grid = blockAverage(values, 1, 4, 4);
+
+    assert.equal(grid.values[0], 1);
+  });
+
+  it("drops the remainder rows a whole block cannot cover", () => {
+    const grid = blockAverage(new Float32Array(9 * 9), 1, 9, 9);
+
+    assert.deepEqual({ nx: grid.nx, ny: grid.ny }, { nx: 2, ny: 2 });
   });
 });

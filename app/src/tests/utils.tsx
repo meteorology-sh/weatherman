@@ -4,7 +4,7 @@ import type { ReactElement, ReactNode } from "react";
 // Store
 import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
-import weatherReducer from "@/lib/store/features/weather";
+import candidateReducer from "@/lib/store/features/candidate";
 import interactionsReducer from "@/lib/store/features/interactions";
 import forecastReducer from "@/lib/store/features/forecast";
 
@@ -19,7 +19,7 @@ import { render } from "@testing-library/react";
 export function createTestStore() {
   return configureStore({
     reducer: {
-      weather: weatherReducer,
+      candidate: candidateReducer,
       interactions: interactionsReducer,
       forecast: forecastReducer,
     },

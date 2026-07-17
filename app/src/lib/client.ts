@@ -1,5 +1,5 @@
 // Types
-import type { CloudCoverPoint, ForecastMeta } from "@/lib/types";
+import type { ForecastMeta, SlwStats } from "@/lib/types";
 
 export async function GetForecastMeta(): Promise<ForecastMeta> {
   const res = await fetch("/forecast/meta");
@@ -23,11 +23,22 @@ export function ForecastPrecipUrl(hour: number): string {
   return `/forecast/precip?${new URLSearchParams({ hour: String(hour) })}`;
 }
 
-export async function GetCloudCover(): Promise<CloudCoverPoint[]> {
-  const res = await fetch("/weather/cloud-cover");
+export function ForecastLiquidUrl(hour: number): string {
+  return `/forecast/liquid?${new URLSearchParams({ hour: String(hour) })}`;
+}
+
+/**
+ * Summary of the supercooled-liquid layer. Small enough for the store, unlike
+ * the frame it summarises — and asking for it warms the server's build of that
+ * frame, which is why the provider fetches it on landing rather than on the map.
+ */
+export async function GetLiquidStats(hour: number): Promise<SlwStats> {
+  const res = await fetch(
+    `/forecast/liquid/stats?${new URLSearchParams({ hour: String(hour) })}`
+  );
   if (!res.ok) {
-    throw new Error(`Failed to fetch cloud cover: ${res.status}`);
+    throw new Error(`Failed to fetch liquid water stats: ${res.status}`);
   }
-  const points: CloudCoverPoint[] = await res.json();
-  return points;
+  const stats: SlwStats = await res.json();
+  return stats;
 }

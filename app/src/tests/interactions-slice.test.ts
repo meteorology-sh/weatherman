@@ -10,33 +10,6 @@ describe("interactions reducer", () => {
     expect(initialState.coordinates).toBeNull();
   });
 
-  it("starts on the GeoColor imagery", () => {
-    expect(initialState.cloudLayer).toBe("geocolor");
-  });
-
-  it("switches the cloud layer", () => {
-    const state = interactionsReducer(
-      initialState,
-      interactionsActions.setCloudLayer("band13")
-    );
-
-    expect(state.cloudLayer).toBe("band13");
-  });
-
-  it("keeps the selected coordinates when the layer changes", () => {
-    const selected = interactionsReducer(
-      initialState,
-      interactionsActions.setCoordinates([-100, 40])
-    );
-
-    const state = interactionsReducer(
-      selected,
-      interactionsActions.setCloudLayer("band13")
-    );
-
-    expect(state.coordinates).toEqual([-100, 40]);
-  });
-
   it("stores the selected coordinates", () => {
     const state = interactionsReducer(
       initialState,
