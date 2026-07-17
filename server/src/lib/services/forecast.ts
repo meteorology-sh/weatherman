@@ -17,41 +17,81 @@ const NY = 1059;
 /** 3 km -> 12 km. Block-averaging removes structure; it never invents it. */
 const BLOCK = 4;
 
+/** `grib_get_data -m` prints this where the record has no value. */
+const MISSING = 9999;
+
 /**
- * Cloud-cover isopleths, in percent. Nested: each is a subset of the one below.
- * Must stay in step with CLOUD_BANDS in app/src/lib/arcgis/renderers.ts, which
- * decides how each level is painted.
+ * The fields we contour. Each is one record in the same wrfsfc GRIB2 file,
+ * pulled out by byte range from that file's .idx.
  *
- * No 10% band on purpose: ~65% of the country has at least 10% cloud on a
- * normal day, so it veils the map without telling the operator anything.
+ * `levels` are nested — each is a subset of the one below — and must stay in
+ * step with the matching BANDS in app/src/lib/arcgis/renderers.ts. The server
+ * decides which contours exist; the app decides how each one is painted.
  */
-const LEVELS = [30, 50, 70, 90];
+const FIELDS = {
+  /**
+   * Total cloud cover, percent.
+   *
+   * No 10% band on purpose: ~65% of the country has at least 10% cloud on a
+   * normal day, so it veils the map without telling the operator anything.
+   */
+  clouds: {
+    grib: { name: "TCDC", level: "entire atmosphere" },
+    property: "cloudCover",
+    scale: 1,
+    levels: [30, 50, 70, 90],
+    firstHour: 0,
+  },
+  /**
+   * Precipitation rate. GRIB carries kg m-2 s-1, which is mm/s, so x3600 gives
+   * the mm/hr an operator reads. Levels are the NWS intensity classes: 0.1
+   * trace, 0.5 light, 2.5 moderate (NWS light/moderate boundary), 7.6 heavy.
+   *
+   * `firstHour: 1` is a fact about HRRR, not a guess. PRATE is a diagnostic the
+   * model produces by integrating a timestep forward, and the analysis has not
+   * taken one — its PRATE record is 188 bytes (GRIB2's size for a constant
+   * field) and decodes to zero at all 1.9M points, on every cycle checked. So
+   * f00 has no precipitation to draw and we do not download it.
+   */
+  precip: {
+    grib: { name: "PRATE", level: "surface" },
+    property: "precipRate",
+    scale: 3600,
+    levels: [0.1, 0.5, 2.5, 7.6],
+    firstHour: 1,
+  },
+} as const;
+
+export type FieldId = keyof typeof FIELDS;
+
+type FieldSpec = (typeof FIELDS)[FieldId];
 
 /** HRRR publishes f00-f18 every cycle. */
 export const FORECAST_HOURS = 18;
 
-export type CloudForecastMeta = {
+export type ForecastMeta = {
   /** Model run, ISO 8601 (e.g. "2026-07-16T21:00:00.000Z"). */
   run: string;
   /** Forecast hours available from that run. */
   hours: number[];
 };
 
-export type CloudRing = [number, number][];
+export type ContourRing = [number, number][];
 
-export type CloudFeature = {
+export type ContourFeature = {
   type: "Feature";
-  properties: { cloudCover: number };
-  geometry: { type: "MultiPolygon"; coordinates: CloudRing[][] };
+  /** One entry, keyed by the field's `property` and set to the contour level. */
+  properties: Record<string, number>;
+  geometry: { type: "MultiPolygon"; coordinates: ContourRing[][] };
 };
 
-export type CloudForecast = {
+export type ContourFrame = {
   type: "FeatureCollection";
   /** Valid time of this frame, ISO 8601. */
   validTime: string;
   run: string;
   hour: number;
-  features: CloudFeature[];
+  features: ContourFeature[];
 };
 
 type Grid = { nx: number; ny: number; values: Float32Array };
@@ -62,9 +102,12 @@ type Geo = { nx: number; ny: number; lats: Float32Array; lons: Float32Array };
 export class ForecastService {
   private geo: Geo | null = null;
   private runCache: { run: Date; checkedAt: number } | null = null;
-  /** Keyed `${runIso}:${hour}`. A given run+hour never changes, so this never expires. */
-  private frames = new Map<string, CloudForecast>();
-  private inflight = new Map<string, Promise<CloudForecast>>();
+  /**
+   * Keyed `${runIso}:${field}:${hour}`. A given run+field+hour never changes,
+   * so this never expires; evictOldRuns drops it when the run rolls.
+   */
+  private frames = new Map<string, ContourFrame>();
+  private inflight = new Map<string, Promise<ContourFrame>>();
 
   /** Most recent cycle whose f00 index is published. Re-checked every 5 min. */
   async latestRun(): Promise<Date> {
@@ -92,7 +135,7 @@ export class ForecastService {
     throw new Error("No published HRRR run found in the last 6 cycles");
   }
 
-  async meta(): Promise<CloudForecastMeta> {
+  async meta(): Promise<ForecastMeta> {
     const run = await this.latestRun();
     return {
       run: run.toISOString(),
@@ -100,13 +143,28 @@ export class ForecastService {
     };
   }
 
-  async clouds(hour: number): Promise<CloudForecast> {
+  async clouds(hour: number): Promise<ContourFrame> {
+    return this.contours("clouds", hour);
+  }
+
+  async precip(hour: number): Promise<ContourFrame> {
+    return this.contours("precip", hour);
+  }
+
+  private async contours(field: FieldId, hour: number): Promise<ContourFrame> {
     if (!Number.isInteger(hour) || hour < 0 || hour > FORECAST_HOURS) {
       throw new Error(`Forecast hour must be an integer 0-${FORECAST_HOURS}`);
     }
 
     const run = await this.latestRun();
-    const key = `${run.toISOString()}:${hour}`;
+    const spec = FIELDS[field];
+
+    // The model does not diagnose this field yet (see FIELDS.precip.firstHour).
+    // Answer honestly with an empty frame rather than downloading a record we
+    // already know decodes to zeros.
+    if (hour < spec.firstHour) return frame(run, hour, []);
+
+    const key = `${run.toISOString()}:${field}:${hour}`;
 
     const cached = this.frames.get(key);
     if (cached) return cached;
@@ -115,11 +173,11 @@ export class ForecastService {
     const running = this.inflight.get(key);
     if (running) return running;
 
-    const work = this.build(run, hour)
-      .then((frame) => {
-        this.frames.set(key, frame);
+    const work = this.build(run, hour, spec)
+      .then((built) => {
+        this.frames.set(key, built);
         this.evictOldRuns(run);
-        return frame;
+        return built;
       })
       .finally(() => this.inflight.delete(key));
 
@@ -145,8 +203,12 @@ export class ForecastService {
     return `${HRRR}/hrrr.${d}/conus/hrrr.t${cc}z.wrfsfcf${fh}.grib2`;
   }
 
-  /** Byte range of the total-cloud-cover record, from the plain-text .idx. */
-  private async cloudRange(run: Date, hour: number): Promise<[number, number]> {
+  /** Byte range of one field's record, from the plain-text .idx. */
+  private async range(
+    run: Date,
+    hour: number,
+    grib: FieldSpec["grib"]
+  ): Promise<[number, number]> {
     const res = await fetch(this.idxUrl(run, hour));
     if (!res.ok) {
       throw new Error(`HRRR index unavailable: ${res.status}`);
@@ -154,43 +216,45 @@ export class ForecastService {
     const lines = (await res.text()).trim().split("\n");
     const rows = lines.map((l) => l.split(":"));
     const i = rows.findIndex(
-      (r) => r[3] === "TCDC" && r[4] === "entire atmosphere"
+      (r) => r[3] === grib.name && r[4] === grib.level
     );
-    if (i < 0) throw new Error("TCDC not present in HRRR index");
+    if (i < 0) throw new Error(`${grib.name} not present in HRRR index`);
     const start = Number(rows[i][1]);
+    // The .idx lists start offsets only, so a record ends where the next begins.
     const end = rows[i + 1] ? Number(rows[i + 1][1]) - 1 : NaN;
-    if (!Number.isFinite(end)) throw new Error("Could not bound TCDC record");
+    if (!Number.isFinite(end)) {
+      throw new Error(`Could not bound ${grib.name} record`);
+    }
     return [start, end];
   }
 
-  private async build(run: Date, hour: number): Promise<CloudForecast> {
-    const [start, end] = await this.cloudRange(run, hour);
+  private async build(
+    run: Date,
+    hour: number,
+    spec: FieldSpec
+  ): Promise<ContourFrame> {
+    const [start, end] = await this.range(run, hour, spec.grib);
     const res = await fetch(this.gribUrl(run, hour), {
       headers: { Range: `bytes=${start}-${end}` },
     });
     if (!res.ok) throw new Error(`HRRR fetch failed: ${res.status}`);
     const grib = Buffer.from(await res.arrayBuffer());
 
-    const { grid, geo } = await this.decode(grib);
+    const { grid, geo } = await this.decode(grib, spec);
     if (!this.geo) this.geo = geo;
 
-    const features = LEVELS.map((level) => ({
-      type: "Feature" as const,
-      properties: { cloudCover: level },
-      geometry: {
-        type: "MultiPolygon" as const,
-        coordinates: polygons(grid, this.geo!, level),
-      },
-    })).filter((f) => f.geometry.coordinates.length > 0);
+    const features = spec.levels
+      .map((level) => ({
+        type: "Feature" as const,
+        properties: { [spec.property]: level },
+        geometry: {
+          type: "MultiPolygon" as const,
+          coordinates: polygons(grid, this.geo!, level),
+        },
+      }))
+      .filter((f) => f.geometry.coordinates.length > 0);
 
-    const valid = new Date(run.getTime() + hour * 3_600_000);
-    return {
-      type: "FeatureCollection",
-      run: run.toISOString(),
-      hour,
-      validTime: valid.toISOString(),
-      features,
-    };
+    return frame(run, hour, features);
   }
 
   /**
@@ -199,35 +263,68 @@ export class ForecastService {
    * the fly — the full 3 km grid is 1.9M points and we don't need that
    * resolution for a national overview.
    */
-  private async decode(grib: Buffer): Promise<{ grid: Grid; geo: Geo }> {
+  private async decode(
+    grib: Buffer,
+    spec: FieldSpec
+  ): Promise<{ grid: Grid; geo: Geo }> {
     const dir = await mkdtemp(join(tmpdir(), "hrrr-"));
-    const file = join(dir, "tcdc.grib2");
+    const file = join(dir, `${spec.grib.name.toLowerCase()}.grib2`);
     try {
       await writeFile(file, grib);
       const { stdout } = await execFileAsync(
         "grib_get_data",
-        ["-m", "9999", file],
+        ["-m", String(MISSING), file],
         { maxBuffer: 256 * 1024 * 1024 }
       );
-      return accumulate(stdout);
+      return accumulate(stdout, spec.scale);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
   }
 }
 
+function frame(run: Date, hour: number, features: ContourFeature[]): ContourFrame {
+  return {
+    type: "FeatureCollection",
+    run: run.toISOString(),
+    hour,
+    validTime: new Date(run.getTime() + hour * 3_600_000).toISOString(),
+    features,
+  };
+}
+
 /**
  * Parse `grib_get_data` output ("lat lon value" per line, row-major) directly
- * into block averages, so the 1.9M-point grid is never held in memory.
+ * into block averages, so the 1.9M-point grid is never held in memory. `scale`
+ * converts the GRIB units to the units we contour in, and is applied to the
+ * block mean rather than each point — the mean is linear, so it is the same
+ * number for a sixteenth of the multiplies.
+ *
+ * Mean rather than max on purpose. Precipitation is the awkward case: it covers
+ * ~2% of the domain, so a lone 3 km core is diluted 16x by a mean, and a max
+ * would keep its peak. Measured against the 3 km truth for a real f12 frame,
+ * the mean conserves total water to 0.3% and overstates the >=7.6 mm/hr area by
+ * 10%, while the max inflates that area 3.6x and total water 3.7x. The crushed
+ * peak (235 -> 72 mm/hr) costs nothing because the top contour is 7.6 and both
+ * agree the cell is heavy. `nx`/`ny` are parameters so this is testable on a
+ * grid you can read.
  */
-function accumulate(text: string): { grid: Grid; geo: Geo } {
-  const ox = Math.floor(NX / BLOCK);
-  const oy = Math.floor(NY / BLOCK);
+export function accumulate(
+  text: string,
+  scale: number,
+  nx = NX,
+  ny = NY
+): { grid: Grid; geo: Geo } {
+  const ox = Math.floor(nx / BLOCK);
+  const oy = Math.floor(ny / BLOCK);
   const n = ox * oy;
   const sv = new Float64Array(n);
   const sla = new Float64Array(n);
   const slo = new Float64Array(n);
+  /** Points in the block — every row has a lat/lon, even a missing one. */
   const cnt = new Uint16Array(n);
+  /** Points in the block with a real value. Only these may divide `sv`. */
+  const vcnt = new Uint16Array(n);
 
   let i = 0; // point index within the full grid
   let pos = text.indexOf("\n") + 1; // skip the header line
@@ -242,24 +339,33 @@ function accumulate(text: string): { grid: Grid; geo: Geo } {
     const parts = line.trim().split(/\s+/);
     if (parts.length < 3) continue;
 
-    const row = Math.floor(i / NX);
-    const col = i % NX;
+    const row = Math.floor(i / nx);
+    const col = i % nx;
     i++;
 
     const bj = Math.floor(row / BLOCK);
     const bi = Math.floor(col / BLOCK);
     if (bj >= oy || bi >= ox) continue;
 
-    const value = Number(parts[2]);
-    if (!Number.isFinite(value)) continue;
-
     const o = bj * ox + bi;
+
+    // The location is good even where the value is not, so the geo grid takes
+    // every row. Dropping a whole row here would drag the block's centroid.
     sla[o] += Number(parts[0]);
     let lon = Number(parts[1]);
     if (lon > 180) lon -= 360;
     slo[o] += lon;
-    sv[o] += value;
     cnt[o]++;
+
+    const value = Number(parts[2]);
+    // MISSING is what we asked grib_get_data to print for absent values, so it
+    // must be dropped rather than averaged in — it is finite, and 9999 would
+    // read as permanent overcast or a cloudburst. Neither field currently has
+    // any, so this guards the contract rather than a live failure.
+    if (!Number.isFinite(value) || value === MISSING) continue;
+
+    sv[o] += value;
+    vcnt[o]++;
   }
 
   const values = new Float32Array(n);
@@ -267,9 +373,11 @@ function accumulate(text: string): { grid: Grid; geo: Geo } {
   const lons = new Float32Array(n);
   for (let k = 0; k < n; k++) {
     const c = cnt[k] || 1;
-    values[k] = sv[k] / c;
     lats[k] = sla[k] / c;
     lons[k] = slo[k] / c;
+    // A block with no readings at all contours as 0, which draws nothing —
+    // the honest answer for nodata, and the reason these are vectors.
+    values[k] = vcnt[k] ? (sv[k] / vcnt[k]) * scale : 0;
   }
 
   return {
@@ -285,13 +393,13 @@ type Pt = readonly [number, number];
  * holes nested inside the exterior that contains them (GeoJSON needs
  * [exterior, ...holes] or a clear patch inside a cloud mass renders as cloud).
  */
-export function polygons(grid: Grid, geo: Geo, level: number): CloudRing[][] {
+export function polygons(grid: Grid, geo: Geo, level: number): ContourRing[][] {
   const rings = trace(grid, level).map((ring) =>
     ring.map(([fi, fj]) => project(fi, fj, geo))
   );
 
-  const exteriors: { ring: CloudRing; area: number; holes: CloudRing[] }[] = [];
-  const holes: CloudRing[] = [];
+  const exteriors: { ring: ContourRing; area: number; holes: ContourRing[] }[] = [];
+  const holes: ContourRing[] = [];
 
   for (const ring of rings) {
     const a = signedArea(ring);
@@ -423,7 +531,7 @@ function trace(grid: Grid, level: number): Pt[][] {
   return rings;
 }
 
-function signedArea(ring: CloudRing): number {
+function signedArea(ring: ContourRing): number {
   let s = 0;
   for (let i = 0; i < ring.length - 1; i++) {
     s += (ring[i + 1][0] - ring[i][0]) * (ring[i + 1][1] + ring[i][1]);
@@ -432,7 +540,7 @@ function signedArea(ring: CloudRing): number {
 }
 
 /** Ray casting; ring is closed (first === last). */
-function contains(ring: CloudRing, p: [number, number]): boolean {
+function contains(ring: ContourRing, p: [number, number]): boolean {
   let inside = false;
   for (let i = 0, j = ring.length - 2; i < ring.length - 1; j = i++) {
     const [xi, yi] = ring[i];

@@ -7,6 +7,8 @@ type ForecastState = {
   meta: ForecastMeta | undefined;
   /** Forecast hour the slider is on. */
   hour: number;
+  /** Whether the precipitation contours are drawn over the cloud contours. */
+  precip: boolean;
   /** True while the map is fetching/drawing the selected frame. */
   drawing: boolean;
   loading: boolean;
@@ -16,6 +18,7 @@ type ForecastState = {
 const initialState: ForecastState = {
   meta: undefined,
   hour: 0,
+  precip: true,
   drawing: false,
   loading: false,
   error: null,
@@ -30,6 +33,9 @@ const forecastSlice = createSlice({
     },
     setHour(state, action: PayloadAction<number>) {
       state.hour = action.payload;
+    },
+    setPrecip(state, action: PayloadAction<boolean>) {
+      state.precip = action.payload;
     },
     setDrawing(state, action: PayloadAction<boolean>) {
       state.drawing = action.payload;

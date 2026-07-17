@@ -26,6 +26,10 @@ describe("forecast slice", () => {
     expect(initial().drawing).toBe(false);
   });
 
+  it("starts with precipitation drawn", () => {
+    expect(initial().precip).toBe(true);
+  });
+
   it("stores the run metadata", () => {
     const state = reducer(initial(), forecastActions.setMeta(meta));
 
@@ -36,6 +40,19 @@ describe("forecast slice", () => {
     const state = reducer(initial(), forecastActions.setHour(12));
 
     expect(state.hour).toBe(12);
+  });
+
+  it("turns precipitation off", () => {
+    const state = reducer(initial(), forecastActions.setPrecip(false));
+
+    expect(state.precip).toBe(false);
+  });
+
+  it("leaves the forecast hour alone when precipitation toggles", () => {
+    const moved = reducer(initial(), forecastActions.setHour(9));
+    const state = reducer(moved, forecastActions.setPrecip(false));
+
+    expect(state.hour).toBe(9);
   });
 
   it("tracks the loading flag", () => {

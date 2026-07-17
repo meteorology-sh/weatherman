@@ -12,11 +12,15 @@ export async function GetForecastMeta(): Promise<ForecastMeta> {
 
 /**
  * The URL of a forecast frame. The contours are megabytes of geometry, so the
- * GeoJSONLayer fetches this itself rather than routing it through Redux — the
- * same reasoning that keeps GIBS tiles out of the store.
+ * GeoJSONLayer fetches these itself rather than routing them through Redux —
+ * the same reasoning that keeps GIBS tiles out of the store.
  */
 export function ForecastCloudsUrl(hour: number): string {
   return `/forecast/clouds?${new URLSearchParams({ hour: String(hour) })}`;
+}
+
+export function ForecastPrecipUrl(hour: number): string {
+  return `/forecast/precip?${new URLSearchParams({ hour: String(hour) })}`;
 }
 
 export async function GetCloudCover(): Promise<CloudCoverPoint[]> {

@@ -1,36 +1,7 @@
-// ArcGIS
-import { CLOUD_BANDS, stackedAlpha } from "@/lib/arcgis/renderers";
-
 // Components
 import { ArcGIS } from "./Map";
 import { TimeSlider } from "./TimeSlider";
-
-const Legend = () => (
-  <div className="flex flex-col gap-1">
-    <div className="text-sm font-semibold">Cloud cover</div>
-    <div className="flex items-center gap-2">
-      <div className="flex-1 flex rounded overflow-hidden border border-base-300">
-        {CLOUD_BANDS.map(({ value }, i) => (
-          <div
-            key={value}
-            className="h-4 flex-1"
-            // The map paints these bands over each other, so the legend shows
-            // the same cumulative alpha — computed the way the map composites
-            // it, or the swatches would not match what is drawn.
-            style={{
-              backgroundColor: `rgba(255,255,255,${stackedAlpha(i + 1).toFixed(3)})`,
-            }}
-          />
-        ))}
-      </div>
-    </div>
-    <div className="flex justify-between text-xs opacity-60">
-      {CLOUD_BANDS.map(({ value }) => (
-        <span key={value}>{value}%</span>
-      ))}
-    </div>
-  </div>
-);
+import { ForecastLayers } from "./ForecastLayers";
 
 export const Forecast = () => {
   return (
@@ -38,7 +9,10 @@ export const Forecast = () => {
       <div className="col-span-1 p-4 h-[calc(90vh)] overflow-y-auto">
         <div className="prose">
           <h2>Cloud Forecast</h2>
-          <p>Modelled cloud cover from NOAA HRRR, out to 18 hours.</p>
+          <p>
+            Modelled cloud cover and precipitation from NOAA HRRR, out to 18
+            hours.
+          </p>
         </div>
 
         <div className="py-2">
@@ -54,6 +28,12 @@ export const Forecast = () => {
                   cloud, nothing is drawn, so the basemap stays readable.
                 </p>
                 <p>
+                  Precipitation rate is contoured the same way, in cyan, over
+                  the cloud. Rain covers a fraction of the ground cloud does, so
+                  it reads as distinct cells rather than a wash — and a cloud
+                  that is already raining is not a seeding candidate.
+                </p>
+                <p>
                   This is a <em>model</em>, not a picture: satellites cannot see
                   the future, so nothing here is observed. For observed cloud
                   shape, use the candidate map.
@@ -65,7 +45,7 @@ export const Forecast = () => {
 
         <TimeSlider />
         <div className="divider my-1" />
-        <Legend />
+        <ForecastLayers />
       </div>
 
       <div className="col-span-2">

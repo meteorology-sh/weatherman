@@ -3,7 +3,12 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 // Services
-import { ForecastService, polygons, FORECAST_HOURS } from "../lib/services/forecast";
+import {
+  ForecastService,
+  polygons,
+  accumulate,
+  FORECAST_HOURS,
+} from "../lib/services/forecast";
 
 const NX = 20;
 const NY = 20;
@@ -127,6 +132,141 @@ describe("ForecastService.clouds", () => {
   it("rejects a negative hour", async () => {
     const svc = new ForecastService();
     await assert.rejects(() => svc.clouds(-1), /0-18/);
+  });
+});
+
+describe("ForecastService.precip", () => {
+  it("rejects a non-integer hour", async () => {
+    const svc = new ForecastService();
+    await assert.rejects(() => svc.precip(1.5), /integer/);
+  });
+
+  it("rejects an hour beyond the model's range", async () => {
+    const svc = new ForecastService();
+    await assert.rejects(() => svc.precip(FORECAST_HOURS + 1), /0-18/);
+  });
+
+  // HRRR only diagnoses PRATE by integrating a timestep forward: the analysis
+  // record is a 188-byte constant that decodes to zero at all 1.9M points. So
+  // f00 is answered from that fact rather than downloaded.
+  it("answers the analysis hour with an empty frame", async (t) => {
+    const svc = new ForecastService();
+    t.mock.method(globalThis, "fetch", async () => ({ ok: true }) as Response);
+
+    const frame = await svc.precip(0);
+
+    assert.deepEqual(frame.features, []);
+  });
+
+  it("does not download the analysis frame it knows is empty", async (t) => {
+    const svc = new ForecastService();
+    const urls: string[] = [];
+    t.mock.method(globalThis, "fetch", async (url: string | URL) => {
+      urls.push(String(url));
+      return { ok: true } as Response;
+    });
+
+    await svc.precip(0);
+
+    // Only latestRun's HEAD probe of the f00 index — no .idx read, no GRIB.
+    assert.equal(urls.length, 1);
+    assert.ok(urls[0].endsWith(".idx"), urls[0]);
+  });
+
+  it("still dates the empty analysis frame correctly", async (t) => {
+    const svc = new ForecastService();
+    t.mock.method(globalThis, "fetch", async () => ({ ok: true }) as Response);
+
+    const frame = await svc.precip(0);
+
+    assert.equal(frame.hour, 0);
+    assert.equal(frame.validTime, frame.run);
+    assert.equal(frame.type, "FeatureCollection");
+  });
+});
+
+describe("accumulate", () => {
+  /** grib_get_data's output: a header line, then "lat lon value" row-major. */
+  const dump = (values: number[], nx: number) =>
+    "Latitude Longitude Value\n" +
+    values
+      .map((v, i) => {
+        const row = Math.floor(i / nx);
+        const col = i % nx;
+        return `${row} ${col} ${v}`;
+      })
+      .join("\n");
+
+  it("block-averages the 4x4 cells into one", () => {
+    const values = Array.from({ length: 16 }, (_, i) => i); // mean 7.5
+    const { grid } = accumulate(dump(values, 4), 1, 4, 4);
+
+    assert.equal(grid.nx, 1);
+    assert.equal(grid.ny, 1);
+    assert.equal(grid.values[0], 7.5);
+  });
+
+  // PRATE arrives as kg m-2 s-1; the map, the legend and the operator all talk
+  // in mm/hr.
+  it("scales the block mean into the units we contour", () => {
+    const values = new Array(16).fill(2);
+    const { grid } = accumulate(dump(values, 4), 3600, 4, 4);
+
+    assert.equal(grid.values[0], 7200);
+  });
+
+  it("keeps the block's lat/lon centroid", () => {
+    const values = new Array(16).fill(1);
+    const { geo } = accumulate(dump(values, 4), 1, 4, 4);
+
+    assert.equal(geo.lats[0], 1.5);
+    assert.equal(geo.lons[0], 1.5);
+  });
+
+  it("folds longitudes past the antimeridian back into -180..180", () => {
+    const text =
+      "Latitude Longitude Value\n" +
+      new Array(16).fill(0).map(() => `40 260 1`).join("\n");
+    const { geo } = accumulate(text, 1, 4, 4);
+
+    assert.equal(geo.lons[0], -100);
+  });
+
+  // We ask grib_get_data to print 9999 for absent values, so 9999 must be
+  // dropped rather than averaged in: it is finite, and would read as permanent
+  // overcast or a cloudburst.
+  it("drops the missing sentinel instead of averaging it in", () => {
+    const values = [...new Array(15).fill(10), 9999];
+    const { grid } = accumulate(dump(values, 4), 1, 4, 4);
+
+    assert.equal(grid.values[0], 10);
+  });
+
+  // The location is good even where the value is not, so a missing row must
+  // still count toward the centroid or the block drifts.
+  it("keeps a missing point's location in the centroid", () => {
+    const values = [...new Array(15).fill(10), 9999];
+    const { geo } = accumulate(dump(values, 4), 1, 4, 4);
+
+    assert.equal(geo.lats[0], 1.5);
+    assert.equal(geo.lons[0], 1.5);
+  });
+
+  it("contours a fully missing block as nothing rather than as 9999", () => {
+    const values = new Array(16).fill(9999);
+    const { grid } = accumulate(dump(values, 4), 1, 4, 4);
+
+    assert.equal(grid.values[0], 0);
+  });
+
+  it("drops the partial block a non-multiple grid leaves over", () => {
+    // 6x6 at BLOCK 4 -> one 4x4 block; the ragged edge is not half-counted.
+    const values = new Array(36).fill(5);
+    const { grid } = accumulate(dump(values, 6), 1, 6, 6);
+
+    assert.equal(grid.nx, 1);
+    assert.equal(grid.ny, 1);
+    assert.equal(grid.values[0], 5);
   });
 });
 

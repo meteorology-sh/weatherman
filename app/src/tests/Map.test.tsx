@@ -22,7 +22,7 @@ type FakeViewT = {
 // component drives are faked. Each fake records its instances, and the tests
 // assert on the calls the component makes to them. The layers are faked too —
 // layers.test.ts covers how the real ones are built.
-const { arcgis, goes, forecastLayer, watch } = vi.hoisted(() => ({
+const { arcgis, goes, forecastLayer, precipLayer, watch } = vi.hoisted(() => ({
   arcgis: {
     maps: [] as FakeMapT[],
     views: [] as FakeViewT[],
@@ -32,12 +32,14 @@ const { arcgis, goes, forecastLayer, watch } = vi.hoisted(() => ({
     band13: { id: "band13-layer", visible: false },
   },
   forecastLayer: { id: "forecast-layer", visible: false, url: "", refresh: vi.fn() },
+  precipLayer: { id: "precip-layer", visible: false, url: "", refresh: vi.fn() },
   watch: vi.fn(() => ({ remove: vi.fn() })),
 }));
 
 vi.mock("@/lib/arcgis/layers", () => ({
   GoesLayers: goes,
   ForecastCloudsLayer: forecastLayer,
+  ForecastPrecipLayer: precipLayer,
 }));
 vi.mock("@arcgis/core/core/reactiveUtils", () => ({ watch }));
 vi.mock("@arcgis/core/Map", () => ({
@@ -77,6 +79,9 @@ beforeEach(() => {
   forecastLayer.visible = false;
   forecastLayer.url = "";
   forecastLayer.refresh.mockClear();
+  precipLayer.visible = false;
+  precipLayer.url = "";
+  precipLayer.refresh.mockClear();
 });
 
 describe("ArcGIS", () => {
@@ -102,7 +107,22 @@ describe("ArcGIS", () => {
   it("puts every layer on the map so switching re-uses what is loaded", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
-    expect(map().layers).toEqual([goes.geocolor, goes.band13, forecastLayer]);
+    expect(map().layers).toEqual([
+      goes.geocolor,
+      goes.band13,
+      forecastLayer,
+      precipLayer,
+    ]);
+  });
+
+  // Draw order is array order, and rain has to sit over the cloud it falls from.
+  it("draws precipitation above the cloud it falls from", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    const layers = map().layers ?? [];
+    expect(layers.indexOf(precipLayer)).toBeGreaterThan(
+      layers.indexOf(forecastLayer)
+    );
   });
 
   it("flies to the selected grid point", () => {
@@ -162,6 +182,7 @@ describe("ArcGIS in candidate mode", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     expect(forecastLayer.visible).toBe(false);
+    expect(precipLayer.visible).toBe(false);
   });
 });
 
@@ -217,5 +238,83 @@ describe("ArcGIS in forecast mode", () => {
     });
 
     expect(forecastLayer.url).toBe("");
+    expect(precipLayer.url).toBe("");
+  });
+});
+
+describe("ArcGIS precipitation", () => {
+  const atHour = (hour: number) => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="forecast" />, store);
+    act(() => {
+      store.dispatch(forecastActions.setHour(hour));
+    });
+    return store;
+  };
+
+  it("draws precipitation once the model has some", () => {
+    atHour(6);
+
+    expect(precipLayer.visible).toBe(true);
+    expect(precipLayer.url).toBe("/forecast/precip?hour=6");
+  });
+
+  // HRRR diagnoses PRATE by stepping forward, so f00 is zero everywhere. A
+  // layer that is on but empty reads as "no rain" rather than "not modelled",
+  // so it stays hidden instead.
+  it("hides precipitation at the analysis hour rather than drawing nothing", () => {
+    renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
+
+    expect(precipLayer.visible).toBe(false);
+  });
+
+  it("never asks the server for the analysis frame it knows is empty", () => {
+    renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
+
+    expect(precipLayer.url).toBe("");
+  });
+
+  it("comes back when the slider leaves the analysis hour", () => {
+    const store = atHour(1);
+
+    expect(precipLayer.visible).toBe(true);
+    act(() => {
+      store.dispatch(forecastActions.setHour(0));
+    });
+
+    expect(precipLayer.visible).toBe(false);
+  });
+
+  it("still draws the cloud contours at the analysis hour", () => {
+    renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
+
+    expect(forecastLayer.visible).toBe(true);
+    expect(forecastLayer.url).toBe("/forecast/clouds?hour=0");
+  });
+
+  it("hides precipitation when the operator turns it off", () => {
+    const store = atHour(6);
+
+    act(() => {
+      store.dispatch(forecastActions.setPrecip(false));
+    });
+
+    expect(precipLayer.visible).toBe(false);
+    expect(forecastLayer.visible).toBe(true);
+  });
+
+  it("keeps the frame it already fetched when toggled off and on", () => {
+    const store = atHour(6);
+
+    act(() => {
+      store.dispatch(forecastActions.setPrecip(false));
+    });
+    precipLayer.refresh.mockClear();
+    act(() => {
+      store.dispatch(forecastActions.setPrecip(true));
+    });
+
+    expect(precipLayer.visible).toBe(true);
+    expect(precipLayer.refresh).not.toHaveBeenCalled();
   });
 });

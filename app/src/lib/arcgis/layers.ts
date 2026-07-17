@@ -2,10 +2,10 @@
 import WebTileLayer from "@arcgis/core/layers/WebTileLayer";
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
 import TileInfo from "@arcgis/core/layers/support/TileInfo";
-import { forecastCloudRenderer } from "./renderers";
+import { forecastCloudRenderer, forecastPrecipRenderer } from "./renderers";
 
 // Client
-import { ForecastCloudsUrl } from "@/lib/client";
+import { ForecastCloudsUrl, ForecastPrecipUrl } from "@/lib/client";
 
 // Types
 import type { CloudLayerId } from "@/lib/types";
@@ -69,5 +69,34 @@ export const ForecastCloudsLayer = new GeoJSONLayer({
   url: ForecastCloudsUrl(0),
   copyright: "NOAA HRRR",
   renderer: forecastCloudRenderer,
+  visible: false,
+});
+
+/**
+ * Modelled precipitation rate, contoured the same way and drawn over the cloud
+ * layer — rain is the more specific signal and covers far less ground, so it
+ * belongs on top.
+ *
+ * `fields` and `geometryType` are declared rather than inferred, because this
+ * layer starts empty and stays that way until the slider passes
+ * PRECIP_FIRST_HOUR. An empty FeatureCollection gives ArcGIS nothing to infer a
+ * schema from, which would leave the renderer with no field to match.
+ *
+ * It is built on hour 0 for the same reason Map.tsx hides it there: that frame
+ * is 123 bytes the server answers from a constant, so the layer costs nothing
+ * until the operator asks for a real one. Constructing it on PRECIP_FIRST_HOUR
+ * instead would download a frame nobody has asked to see.
+ */
+export const ForecastPrecipLayer = new GeoJSONLayer({
+  title: "HRRR forecast precipitation rate",
+  url: ForecastPrecipUrl(0),
+  copyright: "NOAA HRRR",
+  renderer: forecastPrecipRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "precipRate", type: "double" },
+  ],
   visible: false,
 });

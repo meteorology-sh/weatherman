@@ -11,14 +11,21 @@ import express from "express";
 import { forecast } from "../routers/forecast";
 
 // Services
-import { Hrrr, CloudForecast, CloudForecastMeta } from "../lib/services/forecast";
+import { Hrrr, ContourFrame, ForecastMeta } from "../lib/services/forecast";
 
-const meta: CloudForecastMeta = {
+const meta: ForecastMeta = {
   run: "2026-07-17T00:00:00.000Z",
   hours: [0, 1, 2],
 };
 
-const frame: CloudForecast = {
+const ring: [number, number][] = [
+  [-100, 40],
+  [-99, 40],
+  [-99, 41],
+  [-100, 40],
+];
+
+const frameOf = (property: string, level: number): ContourFrame => ({
   type: "FeatureCollection",
   run: "2026-07-17T00:00:00.000Z",
   hour: 6,
@@ -26,14 +33,14 @@ const frame: CloudForecast = {
   features: [
     {
       type: "Feature",
-      properties: { cloudCover: 30 },
-      geometry: {
-        type: "MultiPolygon",
-        coordinates: [[[[-100, 40], [-99, 40], [-99, 41], [-100, 40]]]],
-      },
+      properties: { [property]: level },
+      geometry: { type: "MultiPolygon", coordinates: [[ring]] },
     },
   ],
-};
+});
+
+const frame = frameOf("cloudCover", 30);
+const rain = frameOf("precipRate", 2.5);
 
 describe("forecast router", () => {
   let server: Server;
@@ -115,6 +122,49 @@ describe("forecast router", () => {
 
   it("responds 500 with the message when the hour is out of range", async () => {
     const res = await fetch(`${origin}/forecast/clouds?hour=99`);
+
+    assert.equal(res.status, 500);
+    assert.deepEqual(await res.json(), {
+      error: "Forecast hour must be an integer 0-18",
+    });
+  });
+
+  it("responds with the requested precipitation frame as GeoJSON", async (t) => {
+    t.mock.method(Hrrr, "precip", async () => rain);
+
+    const res = await fetch(`${origin}/forecast/precip?hour=6`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), rain);
+  });
+
+  it("passes the requested hour through to the precipitation service", async (t) => {
+    const seen: number[] = [];
+    t.mock.method(Hrrr, "precip", async (hour: number) => {
+      seen.push(hour);
+      return rain;
+    });
+
+    await fetch(`${origin}/forecast/precip?hour=12`);
+
+    assert.deepEqual(seen, [12]);
+  });
+
+  it("serves precipitation from a different field than clouds", async (t) => {
+    t.mock.method(Hrrr, "clouds", async () => frame);
+    t.mock.method(Hrrr, "precip", async () => rain);
+
+    const [clouds, precip] = await Promise.all([
+      fetch(`${origin}/forecast/clouds?hour=6`).then((r) => r.json()),
+      fetch(`${origin}/forecast/precip?hour=6`).then((r) => r.json()),
+    ]);
+
+    assert.ok("cloudCover" in clouds.features[0].properties);
+    assert.ok("precipRate" in precip.features[0].properties);
+  });
+
+  it("responds 500 with the message when the precipitation hour is out of range", async () => {
+    const res = await fetch(`${origin}/forecast/precip?hour=99`);
 
     assert.equal(res.status, 500);
     assert.deepEqual(await res.json(), {

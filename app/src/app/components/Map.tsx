@@ -6,14 +6,19 @@ import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
 import { forecastActions } from "@/lib/store/features/forecast";
 
 // Client
-import { ForecastCloudsUrl } from "@/lib/client";
+import { ForecastCloudsUrl, ForecastPrecipUrl } from "@/lib/client";
 
 // ArcGIS
 import Map from "@arcgis/core/Map";
 import MapView from "@arcgis/core/views/MapView";
 import Extent from "@arcgis/core/geometry/Extent";
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils";
-import { GoesLayers, ForecastCloudsLayer } from "@/lib/arcgis/layers";
+import {
+  GoesLayers,
+  ForecastCloudsLayer,
+  ForecastPrecipLayer,
+} from "@/lib/arcgis/layers";
+import { PRECIP_FIRST_HOUR } from "@/lib/arcgis/renderers";
 
 // Types
 import type { MapMode } from "@/lib/types";
@@ -27,19 +32,28 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const mapDiv = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
   const viewRef = useRef<MapView | null>(null);
-  const drawnUrl = useRef<string | null>(null);
+  const drawnCloudUrl = useRef<string | null>(null);
+  const drawnPrecipUrl = useRef<string | null>(null);
 
   const dispatch = useAppDispatch();
   const cloudLayer = useAppSelector((state) => state.interactions.cloudLayer);
   const coordinates = useAppSelector((state) => state.interactions.coordinates);
   const hour = useAppSelector((state) => state.forecast.hour);
+  const precip = useAppSelector((state) => state.forecast.precip);
+  const forecasting = mode === "forecast";
+  const raining = forecasting && hour >= PRECIP_FIRST_HOUR;
 
   // Initialize the map once
   useEffect(() => {
     if (mapDiv.current && !viewRef.current) {
       const map = new Map({
         basemap: "dark-gray-vector",
-        layers: [...Object.values(GoesLayers), ForecastCloudsLayer],
+        // Order is draw order: rain sits over cloud.
+        layers: [
+          ...Object.values(GoesLayers),
+          ForecastCloudsLayer,
+          ForecastPrecipLayer,
+        ],
       });
 
       const view = new MapView({
@@ -70,26 +84,39 @@ export const ArcGIS = ({ mode }: PropsT) => {
   // Layer visibility is derived from the route's mode plus the store, in one
   // place. The forecast map is modelled contours; the candidate map is observed
   // GOES imagery. Both stay on the map so switching re-uses what's loaded.
+  //
+  // The precipitation layer hides before PRECIP_FIRST_HOUR rather than drawing
+  // an empty frame: HRRR has no precipitation at the analysis, and a layer
+  // that's on but blank reads as "no rain" instead of "not modelled yet".
   useEffect(() => {
-    const forecasting = mode === "forecast";
     ForecastCloudsLayer.visible = forecasting;
+    ForecastPrecipLayer.visible = raining && precip;
     for (const [id, layer] of Object.entries(GoesLayers)) {
       layer.visible = !forecasting && id === cloudLayer;
     }
-  }, [mode, cloudLayer]);
+  }, [forecasting, raining, precip, cloudLayer]);
 
-  // Move the forecast layer to the selected hour. Repointing the url refetches;
-  // the frames are megabytes of geometry, so they never enter the store. The
-  // guard matters: without it StrictMode's double-invoked effect re-downloads
-  // the same frame.
+  // Point each contour layer at the selected hour. Repointing the url
+  // refetches; the frames are megabytes of geometry, so they never enter the
+  // store. A null url means there is nothing to draw and the layer is left
+  // alone rather than sent after an empty frame. The guards matter: without
+  // them StrictMode's double-invoked effect re-downloads the same frame.
+  const cloudUrl = forecasting ? ForecastCloudsUrl(hour) : null;
+  const precipUrl = raining ? ForecastPrecipUrl(hour) : null;
+
   useEffect(() => {
-    if (mode !== "forecast") return;
-    const url = ForecastCloudsUrl(hour);
-    if (drawnUrl.current === url) return;
-    drawnUrl.current = url;
-    ForecastCloudsLayer.url = url;
+    if (cloudUrl === null || drawnCloudUrl.current === cloudUrl) return;
+    drawnCloudUrl.current = cloudUrl;
+    ForecastCloudsLayer.url = cloudUrl;
     ForecastCloudsLayer.refresh();
-  }, [mode, hour]);
+  }, [cloudUrl]);
+
+  useEffect(() => {
+    if (precipUrl === null || drawnPrecipUrl.current === precipUrl) return;
+    drawnPrecipUrl.current = precipUrl;
+    ForecastPrecipLayer.url = precipUrl;
+    ForecastPrecipLayer.refresh();
+  }, [precipUrl]);
 
   // Surface "still drawing" so the slider can say so rather than looking stuck.
   useEffect(() => {

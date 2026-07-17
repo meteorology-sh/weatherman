@@ -28,3 +28,15 @@ forecast.get("/clouds", async (req: Request, res: Response) => {
       .json({ error: error instanceof Error ? error.message : String(error) });
   }
 });
+
+forecast.get("/precip", async (req: Request, res: Response) => {
+  try {
+    const hour = Number(req.query.hour ?? 0);
+    const frame = await Hrrr.precip(hour);
+    res.send(frame);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});

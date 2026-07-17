@@ -1,5 +1,10 @@
 // Client
-import { GetCloudCover, GetForecastMeta, ForecastCloudsUrl } from "@/lib/client";
+import {
+  GetCloudCover,
+  GetForecastMeta,
+  ForecastCloudsUrl,
+  ForecastPrecipUrl,
+} from "@/lib/client";
 
 // Types
 import type { CloudCoverPoint } from "@/lib/types";
@@ -65,5 +70,19 @@ describe("ForecastCloudsUrl", () => {
 
   it("carries the requested hour", () => {
     expect(ForecastCloudsUrl(12)).toBe("/forecast/clouds?hour=12");
+  });
+});
+
+describe("ForecastPrecipUrl", () => {
+  it("builds a relative url so the proxy routes it", () => {
+    expect(ForecastPrecipUrl(1)).toBe("/forecast/precip?hour=1");
+  });
+
+  it("carries the requested hour", () => {
+    expect(ForecastPrecipUrl(12)).toBe("/forecast/precip?hour=12");
+  });
+
+  it("asks a different route than the cloud frame", () => {
+    expect(ForecastPrecipUrl(6)).not.toBe(ForecastCloudsUrl(6));
   });
 });
