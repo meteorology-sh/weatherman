@@ -57,7 +57,9 @@ export const TimeSlider = () => {
         step={1}
         value={hour}
         aria-label="Forecast hour"
-        onChange={(e) => dispatch(forecastActions.setHour(Number(e.target.value)))}
+        onChange={(e) =>
+          dispatch(forecastActions.setHour(Number(e.target.value)))
+        }
       />
 
       <div className="flex justify-between text-xs opacity-60">

@@ -2,7 +2,7 @@
 import { useAppSelector } from "@/lib/store/hooks";
 
 // ArcGIS
-import { SLW_BANDS } from "@/lib/arcgis/renderers";
+import { SLW_BANDS, BAND_LABEL } from "@/lib/arcgis/renderers";
 
 const km2 = new Intl.NumberFormat("en-US");
 
@@ -69,7 +69,9 @@ export const Liquid = () => {
         </div>
         <div className="stat py-2">
           <div className="stat-title">Richest cell</div>
-          <div className="stat-value text-lg">{km2.format(stats.peak)} g/m²</div>
+          <div className="stat-value text-lg">
+            {km2.format(stats.peak)} g/m²
+          </div>
           <div className="stat-desc">
             {stats.peak >= SLW_BANDS[SLW_BANDS.length - 1].value
               ? "A prime target exists somewhere in the domain"
@@ -83,7 +85,7 @@ export const Liquid = () => {
               {stats.bandTopMb}–{stats.bandBaseMb} mb
             </div>
             <div className="stat-desc">
-              Where −5 to −12 °C sits across the domain
+              Where {BAND_LABEL} sits across the domain
             </div>
           </div>
         )}

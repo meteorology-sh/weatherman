@@ -67,3 +67,22 @@ forecast.get("/liquid/stats", async (req: Request, res: Response) => {
       .json({ error: error instanceof Error ? error.message : String(error) });
   }
 });
+
+// The profile over one point: the altitudes a drone is actually given. Reads
+// the same model as the contours, so the readout and the map agree about where
+// the band is — the whole reason it is not a second opinion from Open-Meteo.
+forecast.get("/sounding", async (req: Request, res: Response) => {
+  try {
+    const hour = Number(req.query.hour ?? 0);
+    const sounding = await Hrrr.sounding(
+      Number(req.query.lat),
+      Number(req.query.lon),
+      hour
+    );
+    res.send(sounding);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});

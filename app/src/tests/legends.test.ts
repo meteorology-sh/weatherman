@@ -1,4 +1,9 @@
 // ArcGIS
+import {
+  BAND_LABEL,
+  BAND_WARMEST_C,
+  BAND_COLDEST_C,
+} from "@/lib/arcgis/renderers";
 import { Band13Legend } from "@/lib/arcgis/legends";
 
 /** Where a temperature should sit on a -90..+40 °C bar, as a percentage. */
@@ -16,12 +21,24 @@ describe("Band13 legend", () => {
     expect(Band13Legend.gradient).toContain("rgb(44,44,44) 100.0%");
   });
 
-  it("brackets the seeding band at -12 °C", () => {
-    expect(Band13Legend.band.fromPercent).toBeCloseTo(expectedPercent(-12), 5);
+  // Pinned against the band constants rather than literals: the bracket has to
+  // follow the band when it moves, and it did not the first time it moved.
+  it("brackets the seeding band at its cold edge", () => {
+    expect(Band13Legend.band.fromPercent).toBeCloseTo(
+      expectedPercent(BAND_COLDEST_C),
+      5
+    );
   });
 
-  it("brackets the seeding band at -5 °C", () => {
-    expect(Band13Legend.band.toPercent).toBeCloseTo(expectedPercent(-5), 5);
+  it("brackets the seeding band at its warm edge", () => {
+    expect(Band13Legend.band.toPercent).toBeCloseTo(
+      expectedPercent(BAND_WARMEST_C),
+      5
+    );
+  });
+
+  it("names the band it brackets in the caveat", () => {
+    expect(Band13Legend.caveat).toContain(BAND_LABEL);
   });
 
   it("keeps the seeding bracket the right way round", () => {

@@ -37,6 +37,17 @@ export default defineConfig({
         timeout: 120_000,
         proxyTimeout: 120_000,
       },
+      "/pireps": {
+        target: process.env.SERVER_ORIGIN || "http://localhost:3000",
+        changeOrigin: true,
+      },
+      "/radar": {
+        target: process.env.SERVER_ORIGIN || "http://localhost:3000",
+        changeOrigin: true,
+        // A cold mosaic is a ~9 s decode of a 24.5M-point grid.
+        timeout: 60_000,
+        proxyTimeout: 60_000,
+      },
     },
     watch: {
       usePolling: true,

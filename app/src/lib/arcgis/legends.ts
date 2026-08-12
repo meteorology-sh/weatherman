@@ -1,3 +1,6 @@
+// ArcGIS
+import { BAND_LABEL, BAND_WARMEST_C, BAND_COLDEST_C } from "./renderers";
+
 export type LegendTick = { label: string; percent: number };
 
 export type CloudLayerLegend = {
@@ -55,13 +58,13 @@ export const Band13Legend: CloudLayerLegend = {
     percent: tempPercent(celsius),
   })),
   band: {
-    fromPercent: tempPercent(-12),
-    toPercent: tempPercent(-5),
+    fromPercent: tempPercent(BAND_COLDEST_C),
+    toPercent: tempPercent(BAND_WARMEST_C),
     label: "seeding band",
   },
   caveat:
     "This is the temperature of the cloud top, not of the supercooled " +
-    "liquid inside it — the −5 to −12 °C layer usually sits below the top. " +
+    `liquid inside it — the ${BAND_LABEL} layer usually sits below the top. ` +
     "The ramp is tuned for deep convection, so the seeding band falls in " +
     "near-flat grey. The liquid-water layer answers what this one cannot.",
 };

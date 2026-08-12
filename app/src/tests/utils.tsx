@@ -7,6 +7,9 @@ import { Provider } from "react-redux";
 import candidateReducer from "@/lib/store/features/candidate";
 import interactionsReducer from "@/lib/store/features/interactions";
 import forecastReducer from "@/lib/store/features/forecast";
+import pirepReducer from "@/lib/store/features/pirep";
+import radarReducer from "@/lib/store/features/radar";
+import soundingReducer from "@/lib/store/features/sounding";
 
 // Testing
 import { render } from "@testing-library/react";
@@ -22,6 +25,9 @@ export function createTestStore() {
       candidate: candidateReducer,
       interactions: interactionsReducer,
       forecast: forecastReducer,
+      pirep: pirepReducer,
+      radar: radarReducer,
+      sounding: soundingReducer,
     },
   });
 }

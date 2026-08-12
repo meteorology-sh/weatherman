@@ -16,6 +16,7 @@ import {
   ContourFrame,
   ForecastMeta,
   SlwStats,
+  Sounding,
 } from "../lib/services/forecast";
 
 const meta: ForecastMeta = {
@@ -267,6 +268,105 @@ describe("forecast router", () => {
     assert.equal(res.status, 500);
     assert.deepEqual(await res.json(), {
       error: "HRRR index unavailable: 404",
+    });
+  });
+});
+
+const sounding: Sounding = {
+  run: "2026-08-12T04:00:00.000Z",
+  hour: 0,
+  validTime: "2026-08-12T04:00:00.000Z",
+  lat: 39.8,
+  lon: -98.54,
+  surfaceFt: 1830,
+  freezingFt: 16433,
+  bandBaseFt: 18685,
+  bandTopFt: 22066,
+  baseC: 35.6,
+  topC: -32.4,
+  levels: [
+    { mb: 600, tempC: 4.37, heightFt: 14665 },
+    { mb: 550, tempC: -1.32, heightFt: 16966 },
+  ],
+};
+
+describe("forecast router sounding", () => {
+  let server: Server;
+  let origin: string;
+
+  before(async () => {
+    const app = express();
+    app.use("/forecast", forecast);
+    await new Promise<void>((resolve, reject) => {
+      server = app.listen(0, "127.0.0.1", (error) =>
+        error ? reject(error) : resolve()
+      );
+    });
+    const { port } = server.address() as AddressInfo;
+    origin = `http://127.0.0.1:${port}`;
+  });
+
+  after(async () => {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  });
+
+  it("responds with the profile as JSON", async (t) => {
+    t.mock.method(Hrrr, "sounding", async () => sounding);
+
+    const res = await fetch(
+      `${origin}/forecast/sounding?lat=39.83&lon=-98.58&hour=0`
+    );
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), sounding);
+  });
+
+  it("passes the point through to the service", async (t) => {
+    const seen: number[][] = [];
+    t.mock.method(
+      Hrrr,
+      "sounding",
+      async (lat: number, lon: number, hour: number) => {
+        seen.push([lat, lon, hour]);
+        return sounding;
+      }
+    );
+
+    await fetch(`${origin}/forecast/sounding?lat=39.83&lon=-98.58&hour=2`);
+
+    assert.deepEqual(seen, [[39.83, -98.58, 2]]);
+  });
+
+  it("defaults to the analysis hour", async (t) => {
+    const seen: number[] = [];
+    t.mock.method(
+      Hrrr,
+      "sounding",
+      async (_lat: number, _lon: number, hour: number) => {
+        seen.push(hour);
+        return sounding;
+      }
+    );
+
+    await fetch(`${origin}/forecast/sounding?lat=39.83&lon=-98.58`);
+
+    assert.deepEqual(seen, [0]);
+  });
+
+  // Outside CONUS there is no HRRR column, and the service says so rather than
+  // handing back the nearest edge cell.
+  it("responds 500 with the message for a point off the domain", async (t) => {
+    t.mock.method(Hrrr, "sounding", async () => {
+      throw new Error("No HRRR data at 21, -158 — the domain is CONUS");
+    });
+
+    const res = await fetch(`${origin}/forecast/sounding?lat=21&lon=-158`);
+
+    assert.equal(res.status, 500);
+    assert.deepEqual(await res.json(), {
+      error: "No HRRR data at 21, -158 — the domain is CONUS",
     });
   });
 });

@@ -3,20 +3,18 @@ import { waitFor } from "@testing-library/react";
 import { createTestStore, renderWithStore } from "./utils";
 
 // Providers
-import { CandidateProvider } from "@/lib/context/CandidateProvider";
+import { RadarProvider } from "@/lib/context/RadarProvider";
 
 // Types
-import type { SlwStats } from "@/lib/types";
+import type { RadarStats } from "@/lib/types";
 
-const stats: SlwStats = {
-  run: "2026-07-17T03:00:00.000Z",
-  hour: 0,
-  validTime: "2026-07-17T03:00:00.000Z",
-  coveragePct: 1.99,
-  seedableKm2: 338832,
-  peak: 964,
-  bandTopMb: 425,
-  bandBaseMb: 700,
+const stats: RadarStats = {
+  fetchedAt: "2026-08-12T04:15:46.334Z",
+  validTime: "2026-08-12T04:10:00.000Z",
+  radarCoveragePct: 67.33,
+  echoPct: 2.01,
+  echoKm2: 309859,
+  peakDbz: 57,
 };
 
 beforeEach(() => {
@@ -30,45 +28,44 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("CandidateProvider", () => {
+describe("RadarProvider", () => {
   it("renders its children", () => {
     const { getByText } = renderWithStore(
-      <CandidateProvider>
+      <RadarProvider>
         <span>child</span>
-      </CandidateProvider>,
+      </RadarProvider>,
       createTestStore()
     );
 
     expect(getByText("child")).toBeTruthy();
   });
 
-  it("puts the stats in the store", async () => {
+  it("puts the scene summary in the store", async () => {
     const store = createTestStore();
 
     renderWithStore(
-      <CandidateProvider>
+      <RadarProvider>
         <span />
-      </CandidateProvider>,
+      </RadarProvider>,
       store
     );
 
     await waitFor(() => {
-      expect(store.getState().candidate.stats).toEqual(stats);
+      expect(store.getState().radar.stats).toEqual(stats);
     });
   });
 
-  // The whole point of mounting this app-wide: it warms the server's ~30 s
-  // build on landing, and it can only do that by asking for the analysis hour.
-  it("asks for the analysis hour, so the map's frame is already built", async () => {
+  // A scene has no run and no hour to ask for.
+  it("asks for the summary with no parameters", async () => {
     renderWithStore(
-      <CandidateProvider>
+      <RadarProvider>
         <span />
-      </CandidateProvider>,
+      </RadarProvider>,
       createTestStore()
     );
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith("/forecast/liquid/stats?hour=0");
+      expect(fetch).toHaveBeenCalledWith("/radar/reflectivity/stats");
     });
   });
 
@@ -76,58 +73,56 @@ describe("CandidateProvider", () => {
     const store = createTestStore();
 
     renderWithStore(
-      <CandidateProvider>
+      <RadarProvider>
         <span />
-      </CandidateProvider>,
+      </RadarProvider>,
       store
     );
 
     await waitFor(() => {
-      expect(store.getState().candidate.loading).toBe(false);
+      expect(store.getState().radar.loading).toBe(false);
     });
   });
 
-  it("dispatches the error when the fetch fails", async () => {
+  it("dispatches the error when the mosaic is down", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) }))
+      vi.fn(async () => ({ ok: false, status: 503, json: async () => ({}) }))
     );
     const store = createTestStore();
 
     renderWithStore(
-      <CandidateProvider>
+      <RadarProvider>
         <span />
-      </CandidateProvider>,
+      </RadarProvider>,
       store
     );
 
     await waitFor(() => {
-      expect(store.getState().candidate.error).toBe(
-        "Failed to fetch liquid water stats: 500"
+      expect(store.getState().radar.error).toBe(
+        "Failed to fetch radar mosaic: 503"
       );
     });
   });
 
   // The guard is what stops StrictMode's double-invoked effect refetching — and
-  // here a refetch would mean a second ~30 s server build.
+  // this build costs the server ~9 s, so a redundant one is not free.
   it("does not refetch when the stats are already in the store", async () => {
     const store = createTestStore();
 
     renderWithStore(
-      <CandidateProvider>
+      <RadarProvider>
         <span />
-      </CandidateProvider>,
+      </RadarProvider>,
       store
     );
-    await waitFor(() =>
-      expect(store.getState().candidate.stats).toEqual(stats)
-    );
+    await waitFor(() => expect(store.getState().radar.stats).toEqual(stats));
     const calls = (fetch as ReturnType<typeof vi.fn>).mock.calls.length;
 
     renderWithStore(
-      <CandidateProvider>
+      <RadarProvider>
         <span />
-      </CandidateProvider>,
+      </RadarProvider>,
       store
     );
 

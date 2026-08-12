@@ -9,11 +9,46 @@
 export type Grid = { nx: number; ny: number; values: Float32Array };
 
 /** Lat/lon of each grid cell. Identical for every HRRR run, so computed once. */
-export type Geo = { nx: number; ny: number; lats: Float32Array; lons: Float32Array };
+export type Geo = {
+  nx: number;
+  ny: number;
+  lats: Float32Array;
+  lons: Float32Array;
+};
 
 export type ContourRing = [number, number][];
 
+export type ContourFeature = {
+  type: "Feature";
+  /** One entry, keyed by the field's `property` and set to the contour level. */
+  properties: Record<string, number>;
+  geometry: { type: "MultiPolygon"; coordinates: ContourRing[][] };
+};
+
 type Pt = readonly [number, number];
+
+/**
+ * One nested MultiPolygon per level, dropping levels nothing in the grid
+ * reaches. Every contoured layer in this server — HRRR's fields and MRMS
+ * reflectivity alike — is built by this, so they nest and stack identically.
+ */
+export function features(
+  grid: Grid,
+  geo: Geo,
+  property: string,
+  levels: readonly number[]
+): ContourFeature[] {
+  return levels
+    .map((level) => ({
+      type: "Feature" as const,
+      properties: { [property]: level },
+      geometry: {
+        type: "MultiPolygon" as const,
+        coordinates: polygons(grid, geo, level),
+      },
+    }))
+    .filter((f) => f.geometry.coordinates.length > 0);
+}
 
 /**
  * Marching squares over {value >= level}, stitched into closed rings, with
@@ -25,7 +60,8 @@ export function polygons(grid: Grid, geo: Geo, level: number): ContourRing[][] {
     ring.map(([fi, fj]) => project(fi, fj, geo))
   );
 
-  const exteriors: { ring: ContourRing; area: number; holes: ContourRing[] }[] = [];
+  const exteriors: { ring: ContourRing; area: number; holes: ContourRing[] }[] =
+    [];
   const holes: ContourRing[] = [];
 
   for (const ring of rings) {

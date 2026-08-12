@@ -2,9 +2,14 @@
 import {
   GetForecastMeta,
   GetLiquidStats,
+  GetIcingStats,
+  GetRadarStats,
+  GetSounding,
+  RadarReflectivityUrl,
   ForecastCloudsUrl,
   ForecastPrecipUrl,
   ForecastLiquidUrl,
+  IcingPirepsUrl,
 } from "@/lib/client";
 
 // Types
@@ -103,5 +108,94 @@ describe("ForecastLiquidUrl", () => {
   // separate routes: the geometry never enters the store.
   it("asks a different route than the stats", () => {
     expect(ForecastLiquidUrl(0)).not.toBe("/forecast/liquid/stats?hour=0");
+  });
+});
+
+describe("IcingPirepsUrl", () => {
+  it("builds a relative url so the proxy routes it", () => {
+    expect(IcingPirepsUrl()).toBe("/pireps/icing");
+  });
+
+  // An observation feed has no forecast hour to ask for. If a query string ever
+  // appears here, ArcGIS will strip it into customParameters and the layer's
+  // url will stop being the whole story.
+  it("takes no parameters, because there is only one window", () => {
+    expect(IcingPirepsUrl()).not.toContain("?");
+  });
+});
+
+describe("GetIcingStats", () => {
+  it("fetches the relative server route", async () => {
+    await GetIcingStats();
+    expect(fetch).toHaveBeenCalledWith("/pireps/icing/stats");
+  });
+
+  it("throws on a non-OK response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 503, json: async () => ({}) }))
+    );
+    await expect(GetIcingStats()).rejects.toThrow(
+      "Failed to fetch icing reports: 503"
+    );
+  });
+});
+
+describe("RadarReflectivityUrl", () => {
+  it("builds a relative url so the proxy routes it", () => {
+    expect(RadarReflectivityUrl()).toBe("/radar/reflectivity");
+  });
+
+  // A radar scene has no run and no forecast hour, and a query string here
+  // would be stripped into ArcGIS's customParameters rather than the url.
+  it("takes no parameters, because a scene is whatever is current", () => {
+    expect(RadarReflectivityUrl()).not.toContain("?");
+  });
+});
+
+describe("GetRadarStats", () => {
+  it("fetches the relative server route", async () => {
+    await GetRadarStats();
+    expect(fetch).toHaveBeenCalledWith("/radar/reflectivity/stats");
+  });
+
+  it("throws on a non-OK response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 503, json: async () => ({}) }))
+    );
+    await expect(GetRadarStats()).rejects.toThrow(
+      "Failed to fetch radar mosaic: 503"
+    );
+  });
+});
+
+describe("GetSounding", () => {
+  // The server takes lat/lon; the app thinks in [lon, lat] because that is what
+  // ArcGIS hands back from a click. The swap happens here, once.
+  it("sends the point as lat and lon, whatever order the caller holds it in", async () => {
+    await GetSounding(-98.58, 39.83, 0);
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/forecast/sounding?lat=39.83&lon=-98.58&hour=0"
+    );
+  });
+
+  it("passes the hour through", async () => {
+    await GetSounding(-98.58, 39.83, 6);
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/forecast/sounding?lat=39.83&lon=-98.58&hour=6"
+    );
+  });
+
+  it("throws on a non-OK response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) }))
+    );
+    await expect(GetSounding(-98.58, 39.83, 0)).rejects.toThrow(
+      "Failed to fetch the sounding: 500"
+    );
   });
 });

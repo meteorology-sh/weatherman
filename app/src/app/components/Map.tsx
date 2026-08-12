@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 // Store
 import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
 import { forecastActions } from "@/lib/store/features/forecast";
+import { soundingActions } from "@/lib/store/features/sounding";
 
 // Client
 import { ForecastCloudsUrl, ForecastPrecipUrl } from "@/lib/client";
@@ -18,10 +19,13 @@ import {
   ForecastCloudsLayer,
   ForecastPrecipLayer,
   CandidateLiquidLayer,
+  CandidateRadarLayer,
+  CandidatePirepLayer,
 } from "@/lib/arcgis/layers";
-import { PRECIP_FIRST_HOUR } from "@/lib/arcgis/renderers";
+import { PRECIP_FIRST_HOUR, PIREP_IN_BAND } from "@/lib/arcgis/renderers";
 
 // Types
+import type { ClickEvent } from "@arcgis/core/views/input/types";
 import type { MapMode } from "@/lib/types";
 
 type PropsT = {
@@ -42,6 +46,9 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const precip = useAppSelector((state) => state.forecast.precip);
   const imagery = useAppSelector((state) => state.candidate.imagery);
   const liquid = useAppSelector((state) => state.candidate.liquid);
+  const radar = useAppSelector((state) => state.radar.visible);
+  const pireps = useAppSelector((state) => state.pirep.visible);
+  const bandOnly = useAppSelector((state) => state.pirep.bandOnly);
   const forecasting = mode === "forecast";
   const raining = forecasting && hour >= PRECIP_FIRST_HOUR;
 
@@ -53,12 +60,18 @@ export const ArcGIS = ({ mode }: PropsT) => {
         // Order is draw order. On the forecast map rain sits over cloud; on the
         // candidate map the modelled liquid water sits over the observed
         // imagery, because it is the more specific signal and covers far less
-        // ground.
+        // ground, and the observed radar sits over that — a candidate is only
+        // disqualified by rain where the two overlap, so the disqualifier has to
+        // be the layer you can see. The PIREPs go on top of everything: a dozen
+        // markers cannot veil anything, and they are the only thing on the map
+        // an aircraft actually measured.
         layers: [
           Band13Layer,
           ForecastCloudsLayer,
           ForecastPrecipLayer,
           CandidateLiquidLayer,
+          CandidateRadarLayer,
+          CandidatePirepLayer,
         ],
       });
 
@@ -100,7 +113,18 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ForecastPrecipLayer.visible = raining && precip;
     Band13Layer.visible = !forecasting && imagery;
     CandidateLiquidLayer.visible = !forecasting && liquid;
-  }, [forecasting, raining, precip, imagery, liquid]);
+    // Observations, so they never appear on the modelled map — the same rule
+    // that keeps the satellite imagery off it.
+    CandidateRadarLayer.visible = !forecasting && radar;
+    CandidatePirepLayer.visible = !forecasting && pireps;
+  }, [forecasting, raining, precip, imagery, liquid, radar, pireps]);
+
+  // Narrow the reports to the seeding band. A definitionExpression filters the
+  // features already fetched rather than repointing the url, so toggling it
+  // costs nothing and the layer is pulled once per session.
+  useEffect(() => {
+    CandidatePirepLayer.definitionExpression = bandOnly ? PIREP_IN_BAND : "";
+  }, [bandOnly]);
 
   // Point each forecast contour layer at the selected hour. Repointing the url
   // refetches; the frames are megabytes of geometry, so they never enter the
@@ -146,6 +170,31 @@ export const ArcGIS = ({ mode }: PropsT) => {
       });
 
     return () => handle?.remove();
+  }, [mode, dispatch]);
+
+  // Clicking the observed map picks the point the sounding panel profiles.
+  //
+  // Candidate map only: the profile is the analysis hour, so offering it on the
+  // forecast map would answer a question about now under a slider set to +12 h.
+  // The handler is attached once and reads `mode` through a ref-free closure —
+  // it is registered inside the mount effect's own scope, so re-registering on
+  // every render would leak handles.
+  useEffect(() => {
+    if (mode !== "candidate" || !viewRef.current) return;
+
+    const handle = viewRef.current.on("click", (event: ClickEvent) => {
+      // A click outside the projection's valid area has no map point at all.
+      const { longitude, latitude } = event.mapPoint ?? {};
+      if (longitude == null || latitude == null) return;
+      dispatch(
+        soundingActions.setPoint([
+          Math.round(longitude * 100) / 100,
+          Math.round(latitude * 100) / 100,
+        ])
+      );
+    });
+
+    return () => handle.remove();
   }, [mode, dispatch]);
 
   // Fly to a selected location

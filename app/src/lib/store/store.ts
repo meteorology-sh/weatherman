@@ -2,6 +2,9 @@ import { configureStore } from "@reduxjs/toolkit";
 import candidateReducer from "./features/candidate";
 import interactionsReducer from "./features/interactions";
 import forecastReducer from "./features/forecast";
+import pirepReducer from "./features/pirep";
+import radarReducer from "./features/radar";
+import soundingReducer from "./features/sounding";
 
 // ArcGIS layer instances used to live in the store, which forced
 // serializableCheck off. They are module-scope singletons in lib/arcgis/ now
@@ -11,6 +14,9 @@ export const store = configureStore({
     candidate: candidateReducer,
     interactions: interactionsReducer,
     forecast: forecastReducer,
+    pirep: pirepReducer,
+    radar: radarReducer,
+    sounding: soundingReducer,
   },
 });
 

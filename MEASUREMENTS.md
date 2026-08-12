@@ -1,10 +1,13 @@
 # Measurements — what a national seedability map can and cannot know
 
-**Status: decision document, not a description of the code.** Nothing in the
-"candidate layers" section is built. `CLAUDE.md` describes what actually
-exists (GOES imagery + the Open-Meteo cloud-cover grid); this file is the
-menu we pick from next. Findings marked **[verified]** were tested live
-against the real endpoint on **2026-07-16** — the rest is reasoning.
+**Status: decision document, not a description of the code.** Some of the
+"candidate layers" section is now built — the **Completed** column of §2 says
+which, and each built entry carries a note on what shipping it actually meant.
+`CLAUDE.md` describes what exists; this file is the menu we pick from next.
+Findings marked **[verified]** were tested live against the real endpoint on
+**2026-07-16**; the PIREP figures in §D, and the MRMS, HRRR-profile and
+seeding-band figures in §A, §B and §C, were verified **2026-08-12**. The rest
+is reasoning.
 
 Product context and the C1–C7 criteria live in the system design at
 `/home/nathan/code/rainmaker/weatherman` (`docs/SENSING_STRATEGY.md`). This
@@ -20,8 +23,21 @@ Seeding does exactly one useful thing: it drops AgI into **supercooled liquid
 water** so the Wegener–Bergeron–Findeisen process can convert it to
 precipitation. So the map has to find:
 
-> **cloud liquid water — not ice — at −5 to −12 °C, that isn't already
+> **cloud liquid water — not ice — at −5 to −18 °C, that isn't already
 > raining itself out.**
+
+The band was **−5 to −12 °C** until 2026-08-12, following
+`SENSING_STRATEGY.md`. The warm edge is physics: silver iodide barely
+nucleates ice above −5 °C. The cold edge is a judgement — AgI keeps working to
+roughly −20 °C, and what thins out below −12 °C is the _supply_ of liquid
+rather than the agent, because natural ice nuclei activate and take it first.
+So −12 °C was a bet on where the liquid usually is, and it discarded real
+supercooled water at −13 to −18 °C. **[verified] on a live PIREP pull the day
+it changed:** of 21 positive icing reports, 9 fell in −5..−12 °C and **6 more
+sat at −13 to −18 °C** — a 67% increase in confirmations, from reports that
+were previously thrown away. Five colder than −18 °C are still excluded.
+Widened on the principle that a tool for _finding_ candidates shows what is
+there and lets the operator judge.
 
 That is `SENSING_STRATEGY` **C3 ∧ C4** (the temperature band ∧ the phase),
 gated by **C6** (not already precipitating). Everything below is scored on
@@ -36,14 +52,14 @@ gap between the map we have and the map we want is entirely C4.**
 
 The honest hierarchy. Nothing free and national **measures** SLW:
 
-| Source                             | Relationship to SLW              | Res / refresh                         | Available?                                        | Completed |
-| ---------------------------------- | -------------------------------- | ------------------------------------- | ------------------------------------------------- | --------- |
-| Microwave radiometer + depol lidar | **measures** it                  | point, continuous                     | ❌ needs the ground station (Tier B/C, +$90k–$1M) | No        |
-| **HRRR `CLWMR`**                   | **simulates** it                 | 3 km, hourly                          | ✅ free, GRIB2                                    | Yes       |
-| **CIP** (FAA icing product)        | **fuses** model+sat+radar+PIREP  | 13–20 km, 1000 ft, hourly             | ⚠️ **no public API** [verified]                   | No        |
-| **Icing PIREPs**                   | **confirms** it, spot            | ~4 positive / 12 h / CONUS [verified] | ✅ free GeoJSON                                   | No        |
-| MODIS cloud phase / water path     | retrieves it, **cloud-top only** | 1 km, 2×/day                          | ✅ free (GIBS tiles)                              | Yes       |
-| GOES ABI (what we ship today)      | **cannot see it**                | 2 km, 10 min                          | ✅ free                                           | Yes       |
+| Source                             | Relationship to SLW              | Res / refresh                          | Available?                                        | Completed |
+| ---------------------------------- | -------------------------------- | -------------------------------------- | ------------------------------------------------- | --------- |
+| Microwave radiometer + depol lidar | **measures** it                  | point, continuous                      | ❌ needs the ground station (Tier B/C, +$90k–$1M) | No        |
+| **HRRR `CLWMR`**                   | **simulates** it                 | 3 km, hourly                           | ✅ free, GRIB2                                    | Yes       |
+| **CIP** (FAA icing product)        | **fuses** model+sat+radar+PIREP  | 13–20 km, 1000 ft, hourly              | ⚠️ **no public API** [verified]                   | No        |
+| **Icing PIREPs**                   | **confirms** it, spot            | ~20 positive / 12 h / CONUS [verified] | ✅ free GeoJSON                                   | Yes       |
+| MODIS cloud phase / water path     | retrieves it, **cloud-top only** | 1 km, 2×/day                           | ✅ free (GIBS tiles)                              | Yes       |
+| GOES ABI (what we ship today)      | **cannot see it**                | 2 km, 10 min                           | ✅ free                                           | Yes       |
 
 **The conclusion that matters:** with no ground station we get _simulation +
 sparse confirmation_, never measurement. A national map can therefore honestly
@@ -72,6 +88,38 @@ our GOES layers and basemap. MRMS 1 km, ~2 min.
   the GIBS carve-out in `CLAUDE.md`).
 - **Caveat:** see §5 — radar is a _mask_, not a detector.
 - **Verdict: highest value/effort ratio on this list.**
+
+**Built** (`/radar/reflectivity`, on `/map/candidate`) — but **not as the image
+layer described above**, and that is the whole story of this entry:
+
+- **Contours from the GRIB2 mosaic, not NOAA's ready-made `MapImageLayer`.**
+  The image was near-zero effort and it was still the wrong call: a rendered PNG
+  cannot composite with the liquid-water contours beneath it, and reading cyan
+  against amber — a candidate already raining itself out — is the only reason
+  this layer is on the candidate map at all. So it reads
+  `MRMS_MergedBaseReflectivityQC.latest.grib2.gz` (**[verified]** 907 KB,
+  keyless, single message, ~2 min cadence) through the same eccodes → marching
+  squares path HRRR uses. Cost: ~9 s to build, 5-minute TTL, ~65 KB of GeoJSON.
+- **This is allowed where the PIREPs are not.** MRMS samples at 1 km; block
+  averaging to 12 km removes structure rather than inventing it. §5's rule
+  permits the surface, and the rule is the reason the two layers look different.
+- **Averaged in reflectivity factor, not in dBZ.** dBZ is a logarithm — the mean
+  of 20 and 50 dBZ is not 35 dBZ of weather. Points are converted to
+  Z = 10^(dBZ/10), averaged, and converted back.
+- **Two sentinels, and they are opposites.** **[verified] on a live mosaic:**
+  `-99` (a radar looked and found nothing) covers 15.6M of the 24.5M points and
+  `-999` (no radar sees this at all) covers 8.2M — **a third of the box**. No
+  coverage is dropped from the denominator rather than averaged in as clear air,
+  and the sidebar reports the coverage figure (67%) beside every count.
+- **Levels 20/30/40/50 dBZ**, measured against a real mosaic: 1.41% of the box,
+  0.36%, 0.074%, 0.008% — the same footprint the HRRR layers have, so the same
+  faint stacked fills work.
+- **Trap found in the build:** MRMS scans north-to-south and HRRR south-to-north,
+  and the contourer reads ring orientation from signed area. A north-up grid
+  inverts every ring, so exteriors are classified as holes and dropped — 2,395
+  cells over 20 dBZ contoured to 23 stray polygons while the stats still
+  reported a 57 dBZ peak. Rows are flipped in the radar service; `radar-service.test.ts`
+  pins it.
 
 ### B. HRRR supercooled liquid water — C3 ∧ C4 (the real one)
 
@@ -108,17 +156,48 @@ fetch only the records we want. Cache 15 min against an hourly model.
   a case where it was wrong.
 - **Effort:** the big one. Needs GRIB2 decoding → **decided, see §6.**
 
+**Built** (`/forecast/liquid`, on `/map/candidate` at the analysis hour). What
+shipping it meant:
+
+- **Integrated, not sampled at a level.** The band moves — 425–525 mb over
+  Texas in July, 700–950 mb in a winter airmass — so drawing CLWMR at any
+  fixed level would be arbitrary. The service integrates `q_c · dp / g` over
+  exactly the 25 mb levels whose `TMP` is inside the band at that point, and
+  contours the resulting **path in g/m²**.
+- **The band is found before it is read.** Every decoded record costs ~1 s, so
+  reading all 25 levels of TMP+CLWMR (50 records, ~43 s) spends most of the
+  build on levels that contribute nothing. A 7-record `TMP` scout ladder
+  (400→1000 mb) bounds the band first; only the levels that can contain it are
+  read at full spacing. ~25 s flat across seasons instead of worst-case always.
+- **Contour levels are measured, not round.** 10 / 50 / 150 / 400 g/m² against
+  a real analysis: ≥10 covers **1.73%** of CONUS, ≥50 0.90%, ≥400 0.07% — the
+  same footprint precipitation has, so the same faint stacked fills work.
+- **It exists at f00**, unlike PRATE (a flux needing a timestep the analysis
+  has not taken). That is what lets the _observed_ map show it for "right now",
+  and it is the one modelled layer on that map — the sidebar says so.
+- **The sidebar reports the numbers an operator acts on** — coverage %,
+  seedable km², peak path, and the pressure window the band occupied — not a
+  domain mean, which for a field covering ~2% of the country is a number about
+  the other 98%.
+
 ### C. Seeding-band sounding — C3 (target altitude)
 
 Click the map → vertical profile at that point → the 0 / −5 / −12 °C isotherm
 heights. Straight from `temperature_*hPa` + `geopotential_height_*hPa` via
 Open-Meteo JSON, keyless.
 
-**[verified]** working today; at 44.26 N, −73.96 W the −5..−12 °C band sat at
-600–550 mb = **14,035–16,250 ft**. Note the seasonal shift: over Central Texas
-in July the band is **higher** than the design docs' 10,000–18,000 ft figure
-(600 mb was still ~0 °C at 14,500 ft), so the band is not a fixed altitude and
-must be computed per-day, per-target.
+**[verified]** working today; at 44.26 N, −73.96 W the −5..−12 °C band (the
+then-current definition) sat at
+600–550 mb = **14,035–16,250 ft**.
+
+**10,000–18,000 ft is not a specification, and nothing may be gated on it.**
+`SENSING_STRATEGY.md` gives that range as what −5..−12 °C works out to _in
+Central Texas convection_ — a consequence of one region's temperature profile,
+quoted for scale. The band's altitude is set by the column: surface
+temperature, lapse rate, season, latitude and terrain elevation all move it,
+and it ranges from the ground in a winter airmass to **above 22,000 ft** in a
+summer one (both measured, below). The physical quantity is the temperature;
+the altitude is derived per point, per hour, and always has been in the code.
 
 - Produces the design docs' "0/−5/−12 °C isotherm heights" product directly,
   which is also **the drone's target ceiling** (DRONE_DESIGN R2).
@@ -129,6 +208,48 @@ must be computed per-day, per-target.
   sidesteps the interpolation question entirely.
 - **Temperature is the best-forecast variable there is**: it matched a real
   aircraft observation within **1.4 °C** (§5).
+
+**Built** (`/forecast/sounding`, on `/map/candidate`) — **from HRRR, not
+Open-Meteo**, which is the one thing this entry got wrong:
+
+- **The same model as the contours.** Open-Meteo would have been less work and
+  it would have put two models on one screen: the amber contours saying the band
+  is one place and the readout saying another, with no way for an operator to
+  choose. HRRR already has `TMP` and `HGT` on the same pressure levels the
+  liquid-water integral reads, so the readout is derived from the same numbers
+  the map is drawn from.
+- **A national profile grid, not a point query.** One build reads TMP+HGT at
+  50 mb from 300 mb to HRRR's lowest level (32 records, **[verified]** ~32 s)
+  and block-averages to the same 12 km grid the contours use. Every later click
+  is answered from it in **~11 ms**. The panel therefore loads for the map
+  centre on mount rather than waiting for a click.
+- **50 mb, not wrfprs' native 25 mb.** 32 records is ~32 s and 64 would be
+  ~64 s; temperature is near-linear across a 500 m layer, so interpolating
+  within one costs tens of feet.
+- **The read window is the one altitude-shaped assumption left, and it is set
+  from measurements.** It first shipped as 400–1000 mb, which was wrong at both
+  ends. **[verified] 12 Aug:** the warmest 12 km cell at 400 mb was **−13.4 °C**
+  — 1.4 °C from the band's cold edge, so one hot airmass would have pushed the
+  band's top through the ceiling. And 1000 mb is not the ground: in a winter
+  airmass the band reaches the surface, and HRRR's own lowest level is 1013.2 mb.
+  Now 300 mb → 1013.2 mb, which puts ~20 °C of margin above the band (**topC
+  −32.4 °C** on the same column) and reaches the bottom of the model.
+- **A missing isotherm is explained, not reported as absence.** Outside the read
+  window `isothermFt` finds no crossing and returns null — which was rendered as
+  "there is no altitude here to seed at" whether the column was _too cold
+  throughout_ (a real answer) or simply _not read high enough_ (our limit). The
+  sounding now carries the column's base and top temperature so the panel can
+  tell those apart.
+- **Terrain comes too.** HRRR extrapolates pressure levels _below ground_, so
+  without `HGT:surface` a freezing level in Colorado reads as a real altitude
+  when it is 2,000 ft inside a mountain. The panel says so when it happens.
+- **The lowest crossing wins.** An inversion can cross 0 °C twice; the altitude
+  that matters for flying into the band is the first one reached going up.
+- **[verified] live**, and it is why the 10–18 kft figure above must stay
+  descriptive: Kansas, 12 Aug 04Z — freezing level **16,433 ft**, band
+  **18,685–22,066 ft**. Denver the same hour: ground 5,272 ft, band
+  **19,157–22,668 ft**. Both far
+  above the design docs' 10,000–18,000 ft.
 
 ### D. Icing PIREPs — C4 spot truth
 
@@ -158,7 +279,31 @@ impact), in cloud 6,000–14,000 ft. C2 ∧ C3 ∧ C4 in one line, in July.
   lets the dashboard say "the model claims a candidate here _and_ an aircraft
   confirmed it."
 
-### E. Freezing level (G-AIRMET FZLVL) — C3, cheap
+**Built** (`/pireps/icing`, on `/map/candidate`), as an overlay and not a
+layer in the contour sense. What that meant in practice:
+
+- **Points, never a surface.** ~20 positive reports over CONUS in 12 h,
+  hundreds of km apart and only along airways: there is no sampling to
+  interpolate. Contouring them would draw an icing map out of route structure.
+  The colour banding rides a **marker ramp** (`PIREP_CLASSES`) instead of a
+  fill — the aesthetic of the other layers without their claim.
+- **Negative reports are drawn too**, in grey. `NEG` is an aircraft saying it
+  flew through that point and found none — the only falsification of the model
+  anywhere in this system, and the thing that keeps ~20 violet dots from
+  reading as a national picture.
+- **Ranked, not just plotted.** `icgInt1` is pilot vocabulary (`NEG`, `TRC`,
+  `LGT-MOD`, `MOD`, `SEV`, and forms like `NEGclr`); the service ranks it 0–4,
+  taking the worst class a range names.
+- **The temperature is the filter that matters.** `TA` is carried through as
+  `tempC` and each report is flagged `inBand` for the seeding band.
+  **[verified] on a live pull: 21 positive, 15 in band** — the rest iced up too
+  cold to seed (−20 °C and below).
+  A report with no temperature is _not_ in band; "we cannot say" must not be
+  promoted to "yes".
+- The sidebar reports every count against its denominator ("20 of 400 PIREPs
+  filed"), because the hits alone read as an icing map.
+
+### E. Freezing level (G-AIRMET FZLVL) — C3, cheap — **retired, superseded by C**
 
 `https://aviationweather.gov/api/data/gairmet?format=geojson` — **[verified]**
 18 features right now, **10 of them `ZULU`/`FZLVL`** contours with a `level`
@@ -166,6 +311,13 @@ in hundreds of feet. Keyless, always-on, GeoJSON.
 
 Gives the 0 °C surface nationally; the seeding band sits above it. Cheaper
 than (C) but coarser — contours, not a profile.
+
+**Do not build this.** Since (C) shipped, the freezing level is read straight
+off HRRR's own profile, per 12 km cell, in feet — and (C) also gives the −5 and
+−12 °C surfaces, which FZLVL does not. This would add a coarser answer to a
+question already answered, from a second source that could disagree with the
+contours on screen. Its only remaining advantage was cheapness, and (C) is now
+built.
 
 ### F. AIGFS / HGEFS — planning horizon, not seedability
 
@@ -273,6 +425,18 @@ HRRR's 3 km field is legitimate for SLW while a sampled version of it is not.
 **Ask "what is the correlation length" before drawing any new surface.**
 
 ## 6. Decisions
+
+**Taken 2026-08-12 — the seeding band is −5 to −18 °C, not −5 to −12 °C.**
+Reasoning and the live PIREP evidence are in §1. What it touches: the SLW
+integral reads more levels (build ~25 s → ~33 s, peak path 895 → 2,003 g/m² on
+the same day), the sounding's `bandTopFt` is the −18 °C height, and a PIREP is
+`inBand` up to −18 °C. The contour levels 10/50/150/400 g/m² were
+**re-measured** rather than assumed to still hold: they cover 4.0% / 1.55% /
+0.41% / 0.086% of CONUS under the wider band, which nests the same way the
+levels were designed for, so they stand. Both edges live in `SEEDING` in
+`forecast.ts`, mirrored by `BAND_WARMEST_C`/`BAND_COLDEST_C` in the app —
+widening them the first time meant editing eight hardcoded strings, which is
+why they are now in one place on each side.
 
 **Taken — GRIB2 decoding: `libeccodes-tools` in the Docker image.** Shell out
 to a proven binary rather than writing a decoder. Costs a system dependency in

@@ -1,5 +1,11 @@
 // Types
-import type { ForecastMeta, SlwStats } from "@/lib/types";
+import type {
+  ForecastMeta,
+  SlwStats,
+  IcingStats,
+  RadarStats,
+  Sounding,
+} from "@/lib/types";
 
 export async function GetForecastMeta(): Promise<ForecastMeta> {
   const res = await fetch("/forecast/meta");
@@ -40,5 +46,68 @@ export async function GetLiquidStats(hour: number): Promise<SlwStats> {
     throw new Error(`Failed to fetch liquid water stats: ${res.status}`);
   }
   const stats: SlwStats = await res.json();
+  return stats;
+}
+
+/**
+ * The vertical profile over one point: where 0, −5 and −12 °C sit, in feet.
+ *
+ * Small enough for the store, unlike everything else HRRR serves here — it is
+ * one column of a dozen levels, not a national field.
+ */
+export async function GetSounding(
+  lon: number,
+  lat: number,
+  hour: number
+): Promise<Sounding> {
+  const query = new URLSearchParams({
+    lat: String(lat),
+    lon: String(lon),
+    hour: String(hour),
+  });
+  const res = await fetch(`/forecast/sounding?${query}`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch the sounding: ${res.status}`);
+  }
+  const sounding: Sounding = await res.json();
+  return sounding;
+}
+
+/**
+ * The icing-PIREP feature collection. Takes no parameters — this is an
+ * observation feed, so there is only ever the last 12 hours of it, and the
+ * server decides that window. Like the contour frames it goes straight to the
+ * GeoJSONLayer rather than through Redux.
+ */
+export function IcingPirepsUrl(): string {
+  return "/pireps/icing";
+}
+
+/** The same pull's summary, which is small enough for the store. */
+export async function GetIcingStats(): Promise<IcingStats> {
+  const res = await fetch("/pireps/icing/stats");
+  if (!res.ok) {
+    throw new Error(`Failed to fetch icing reports: ${res.status}`);
+  }
+  const stats: IcingStats = await res.json();
+  return stats;
+}
+
+/**
+ * Observed reflectivity, contoured server-side from the MRMS mosaic. No hour
+ * and no run: a radar scene is whatever the network saw a few minutes ago, and
+ * the frame carries its own valid time.
+ */
+export function RadarReflectivityUrl(): string {
+  return "/radar/reflectivity";
+}
+
+/** The same scene's summary. Asking for it also warms the server's build. */
+export async function GetRadarStats(): Promise<RadarStats> {
+  const res = await fetch("/radar/reflectivity/stats");
+  if (!res.ok) {
+    throw new Error(`Failed to fetch radar mosaic: ${res.status}`);
+  }
+  const stats: RadarStats = await res.json();
   return stats;
 }

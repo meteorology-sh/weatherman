@@ -7,6 +7,9 @@ import { createTestStore, renderWithStore } from "./utils";
 import { interactionsActions } from "@/lib/store/features/interactions";
 import { forecastActions } from "@/lib/store/features/forecast";
 import { candidateActions } from "@/lib/store/features/candidate";
+import { pirepActions } from "@/lib/store/features/pirep";
+import { radarActions } from "@/lib/store/features/radar";
+import { soundingActions } from "@/lib/store/features/sounding";
 
 // Components
 import { ArcGIS } from "@/app/components/Map";
@@ -17,35 +20,71 @@ type FakeViewT = {
   zoom?: number;
   goTo: Mock;
   whenLayerView: Mock;
+  on: Mock;
+  /** Handlers the component registered, by event name. */
+  handlers: Record<string, (event: unknown) => void>;
+  removed: number;
 };
 
 // The imperative ArcGIS API needs a real WebGL context, so the classes this
 // component drives are faked. Each fake records its instances, and the tests
 // assert on the calls the component makes to them. The layers are faked too —
 // layers.test.ts covers how the real ones are built.
-const { arcgis, band13, forecastLayer, precipLayer, liquidLayer, watch } =
-  vi.hoisted(() => ({
-    arcgis: {
-      maps: [] as FakeMapT[],
-      views: [] as FakeViewT[],
-    },
-    band13: { id: "band13-layer", visible: false },
-    forecastLayer: {
-      id: "forecast-layer",
-      visible: false,
-      url: "",
-      refresh: vi.fn(),
-    },
-    precipLayer: { id: "precip-layer", visible: false, url: "", refresh: vi.fn() },
-    liquidLayer: { id: "liquid-layer", visible: false, url: "", refresh: vi.fn() },
-    watch: vi.fn(() => ({ remove: vi.fn() })),
-  }));
+const {
+  arcgis,
+  band13,
+  forecastLayer,
+  precipLayer,
+  liquidLayer,
+  radarLayer,
+  pirepLayer,
+  watch,
+} = vi.hoisted(() => ({
+  arcgis: {
+    maps: [] as FakeMapT[],
+    views: [] as FakeViewT[],
+  },
+  band13: { id: "band13-layer", visible: false },
+  forecastLayer: {
+    id: "forecast-layer",
+    visible: false,
+    url: "",
+    refresh: vi.fn(),
+  },
+  precipLayer: {
+    id: "precip-layer",
+    visible: false,
+    url: "",
+    refresh: vi.fn(),
+  },
+  liquidLayer: {
+    id: "liquid-layer",
+    visible: false,
+    url: "",
+    refresh: vi.fn(),
+  },
+  radarLayer: {
+    id: "radar-layer",
+    visible: false,
+    url: "",
+    refresh: vi.fn(),
+  },
+  pirepLayer: {
+    id: "pirep-layer",
+    visible: false,
+    definitionExpression: "",
+    refresh: vi.fn(),
+  },
+  watch: vi.fn(() => ({ remove: vi.fn() })),
+}));
 
 vi.mock("@/lib/arcgis/layers", () => ({
   Band13Layer: band13,
   ForecastCloudsLayer: forecastLayer,
   ForecastPrecipLayer: precipLayer,
   CandidateLiquidLayer: liquidLayer,
+  CandidateRadarLayer: radarLayer,
+  CandidatePirepLayer: pirepLayer,
 }));
 vi.mock("@arcgis/core/core/reactiveUtils", () => ({ watch }));
 vi.mock("@arcgis/core/Map", () => ({
@@ -60,6 +99,17 @@ vi.mock("@arcgis/core/views/MapView", () => ({
   default: class FakeMapView {
     goTo = vi.fn();
     whenLayerView = vi.fn(() => Promise.resolve({ updating: false }));
+    handlers: Record<string, (event: unknown) => void> = {};
+    removed = 0;
+    on = vi.fn((name: string, handler: (event: unknown) => void) => {
+      this.handlers[name] = handler;
+      return {
+        remove: () => {
+          this.removed++;
+          delete this.handlers[name];
+        },
+      };
+    });
     constructor(props: Record<string, unknown>) {
       Object.assign(this, props);
       arcgis.views.push(this as unknown as FakeViewT);
@@ -89,6 +139,9 @@ beforeEach(() => {
   precipLayer.visible = false;
   precipLayer.url = "";
   precipLayer.refresh.mockClear();
+  pirepLayer.visible = false;
+  pirepLayer.definitionExpression = "";
+  pirepLayer.refresh.mockClear();
 });
 
 describe("ArcGIS", () => {
@@ -119,6 +172,8 @@ describe("ArcGIS", () => {
       forecastLayer,
       precipLayer,
       liquidLayer,
+      radarLayer,
+      pirepLayer,
     ]);
   });
 
@@ -196,6 +251,137 @@ describe("ArcGIS in candidate mode", () => {
 
     expect(forecastLayer.visible).toBe(false);
     expect(precipLayer.visible).toBe(false);
+  });
+});
+
+describe("ArcGIS radar", () => {
+  it("draws the mosaic on the observed map", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    expect(radarLayer.visible).toBe(true);
+  });
+
+  // An observation, so the same rule that keeps the satellite off the modelled
+  // map keeps this off it — the forecast map has HRRR's own precipitation.
+  it("keeps it off the modelled map", () => {
+    renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
+
+    expect(radarLayer.visible).toBe(false);
+  });
+
+  // The disqualifier has to be the layer you can see: a candidate is ruled out
+  // exactly where cyan covers amber.
+  it("draws it above the liquid water it disqualifies", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    const layers = map().layers ?? [];
+    expect(layers.indexOf(radarLayer)).toBeGreaterThan(
+      layers.indexOf(liquidLayer)
+    );
+  });
+
+  it("keeps the reports above it, since a dozen markers veil nothing", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    const layers = map().layers ?? [];
+    expect(layers.indexOf(pirepLayer)).toBeGreaterThan(
+      layers.indexOf(radarLayer)
+    );
+  });
+
+  it("hides it when the operator turns it off", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      store.dispatch(radarActions.setVisible(false));
+    });
+
+    expect(radarLayer.visible).toBe(false);
+  });
+});
+
+describe("ArcGIS icing reports", () => {
+  it("draws the reports on the observed map", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    expect(pirepLayer.visible).toBe(true);
+  });
+
+  // Observations, so the same rule that keeps the satellite off the modelled
+  // map keeps these off it.
+  it("keeps them off the modelled map", () => {
+    renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
+
+    expect(pirepLayer.visible).toBe(false);
+  });
+
+  // A dozen markers cannot veil anything, and they are the only thing on the
+  // map an aircraft actually measured.
+  it("draws them above the model output they check", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    const layers = map().layers ?? [];
+    expect(layers.indexOf(pirepLayer)).toBeGreaterThan(
+      layers.indexOf(liquidLayer)
+    );
+  });
+
+  it("hides them when the operator turns them off", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      store.dispatch(pirepActions.setVisible(false));
+    });
+
+    expect(pirepLayer.visible).toBe(false);
+    expect(liquidLayer.visible).toBe(true);
+  });
+
+  it("shows every report until the operator narrows the band", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    expect(pirepLayer.definitionExpression).toBe("");
+  });
+
+  it("narrows to the seeding band on the flag the server set", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      store.dispatch(pirepActions.setBandOnly(true));
+    });
+
+    expect(pirepLayer.definitionExpression).toBe("inBand = 1");
+  });
+
+  // Filtering features already fetched, not repointing a url: toggling the band
+  // filter must not cost another pull of the feed.
+  it("filters what it already has rather than refetching", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    pirepLayer.refresh.mockClear();
+    act(() => {
+      store.dispatch(pirepActions.setBandOnly(true));
+    });
+
+    expect(pirepLayer.refresh).not.toHaveBeenCalled();
+  });
+
+  it("widens again when the filter comes off", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      store.dispatch(pirepActions.setBandOnly(true));
+    });
+    act(() => {
+      store.dispatch(pirepActions.setBandOnly(false));
+    });
+
+    expect(pirepLayer.definitionExpression).toBe("");
   });
 });
 
@@ -336,5 +522,67 @@ describe("ArcGIS precipitation", () => {
 
     expect(precipLayer.visible).toBe(true);
     expect(precipLayer.refresh).not.toHaveBeenCalled();
+  });
+});
+
+/** A map click, shaped the way ArcGIS hands one back. */
+const clickAt = (longitude: number, latitude: number) =>
+  view().handlers.click?.({ mapPoint: { longitude, latitude } });
+
+describe("ArcGIS sounding point", () => {
+  it("profiles the point that was clicked", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      clickAt(-104.9903, 39.7392);
+    });
+
+    expect(store.getState().sounding.point).toEqual([-104.99, 39.74]);
+  });
+
+  // The profile is the analysis hour, so offering it under a slider set to
+  // +12 h would answer a question about now while the map shows later.
+  it("does not listen on the modelled map", () => {
+    renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
+
+    expect(view().handlers.click).toBeUndefined();
+  });
+
+  // ArcGIS hands back no map point for a click outside the projection.
+  it("ignores a click with no map point", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      view().handlers.click?.({ mapPoint: null });
+    });
+
+    expect(store.getState().sounding.point).toEqual([-98.58, 39.83]);
+  });
+
+  it("releases the handler when the map goes away", () => {
+    const { unmount } = renderWithStore(
+      <ArcGIS mode="candidate" />,
+      createTestStore()
+    );
+    const fake = view();
+
+    unmount();
+
+    expect(fake.removed).toBe(1);
+  });
+
+  // Clicking picks a point to profile; it must not also fly the map somewhere.
+  it("does not fly the map to the clicked point", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      clickAt(-104.99, 39.74);
+      store.dispatch(soundingActions.setPoint([-104.99, 39.74]));
+    });
+
+    expect(view().goTo).not.toHaveBeenCalled();
   });
 });

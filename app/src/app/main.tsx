@@ -15,6 +15,9 @@ import { RouterProvider } from "react-router/dom";
 // Providers
 import StoreProvider from "@/lib/context/StoreProvider.tsx";
 import { ForecastProvider } from "@/lib/context/ForecastProvider.tsx";
+import { PirepProvider } from "@/lib/context/PirepProvider.tsx";
+import { RadarProvider } from "@/lib/context/RadarProvider.tsx";
+import { SoundingProvider } from "@/lib/context/SoundingProvider.tsx";
 
 const router = createBrowserRouter([
   {
@@ -33,7 +36,21 @@ const router = createBrowserRouter([
           </ForecastProvider>
         ),
       },
-      { path: "/map/candidate", element: <Candidate /> },
+      // Page-scoped: the PIREP pull is one cheap cached fetch, and the radar
+      // scene goes stale in minutes, so unlike the seeding-band build there is
+      // nothing worth warming from the landing page.
+      {
+        path: "/map/candidate",
+        element: (
+          <RadarProvider>
+            <PirepProvider>
+              <SoundingProvider>
+                <Candidate />
+              </SoundingProvider>
+            </PirepProvider>
+          </RadarProvider>
+        ),
+      },
     ],
   },
 ]);

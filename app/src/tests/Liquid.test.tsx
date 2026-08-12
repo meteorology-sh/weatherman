@@ -94,7 +94,13 @@ describe("Liquid", () => {
   // A zero here is a real verdict, not a missing reading, and it should read
   // like one rather than as an empty stats block.
   it("says plainly when there is nothing to seed", () => {
-    withStats({ coveragePct: 0, seedableKm2: 0, peak: 0, bandTopMb: null, bandBaseMb: null });
+    withStats({
+      coveragePct: 0,
+      seedableKm2: 0,
+      peak: 0,
+      bandTopMb: null,
+      bandBaseMb: null,
+    });
 
     expect(screen.getByText(/Nothing to seed/)).toBeTruthy();
   });

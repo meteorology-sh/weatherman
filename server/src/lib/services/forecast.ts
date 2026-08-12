@@ -1,15 +1,16 @@
 // Node
-import { execFile, spawn } from "child_process";
+import { execFile } from "child_process";
 import { promisify } from "util";
 import { mkdtemp, writeFile, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 
 // Services
-import { polygons } from "./contour";
+import { features, polygons } from "./contour";
+import { eachMessage } from "./grib";
 
 // Types
-import type { Grid, Geo, ContourRing } from "./contour";
+import type { Grid, Geo, ContourRing, ContourFeature } from "./contour";
 
 const execFileAsync = promisify(execFile);
 
@@ -107,9 +108,29 @@ const SEEDING = {
    * fills keep the basemap readable.
    */
   levels: [10, 50, 150, 400],
-  /** The band worth seeding: warmer than this and ice will not nucleate. */
+  /**
+   * The band worth seeding.
+   *
+   * **Warm edge, −5 °C: a physical threshold.** Silver iodide barely nucleates
+   * ice above it, so liquid warmer than this is not seedable with AgI at all.
+   *
+   * **Cold edge, −18 °C: a judgement, and a deliberately generous one.** AgI
+   * keeps working to roughly −20 °C; what falls off below about −12 °C is not
+   * the seeding agent but the *supply* — natural ice nuclei activate and take
+   * the liquid first, so there is progressively less of it to find. −12 °C is
+   * where the literature puts the point of diminishing returns, and this
+   * product used it until 2026-08-12. It was tightened deliberately and it cut
+   * both ways: it kept the map focused on the richest band, and it also
+   * discarded real supercooled liquid at −13 to −18 °C that AgI would convert.
+   * Widened on the principle that a tool for *finding* candidates should show
+   * what is there and let the operator judge, rather than pre-filter to what is
+   * likeliest.
+   *
+   * Both edges are read by the SLW integral, the sounding, and the PIREP band
+   * flag (mirrored in server/src/lib/services/pirep.ts), so they move together.
+   */
   warmestC: -5,
-  coldestC: -12,
+  coldestC: -18,
 } as const;
 
 /** wrfprs carries CLWMR and TMP every 25 mb. */
@@ -129,17 +150,79 @@ const GRAVITY = 9.81;
  * it are read at full spacing. Cost is then flat across seasons (~25 s) instead
  * of worst-case always.
  */
-const SCOUT_LADDER_MB = [400, 500, 600, 700, 800, 900, 1000];
+export const SCOUT_LADDER_MB = [300, 400, 500, 600, 700, 800, 900, 1000];
 
-/** Deepest/highest the ladder can look. Below 1000 mb is mostly below ground. */
-const SCOUT_MIN_MB = 400;
+/**
+ * How far the ladder may look, and these bounds are load-bearing: a band that
+ * falls outside them is not truncated, it *disappears* — the scout finds no
+ * touching level and the service answers "no supercooled liquid water anywhere
+ * in the domain", which is a false negative rather than a small error.
+ *
+ * They are set from the temperature, not from an altitude convention. Measured
+ * on a real August analysis, the warmest 12 km cell at 400 mb was **−13.4 °C** —
+ * only 1.4 °C of margin against the −12 °C edge of the band, which is thin
+ * enough that a hotter airmass could push the band's top above a 400 mb ceiling.
+ * 300 mb (~30,000 ft) puts ~10 °C between the band and the ceiling. The floor is
+ * HRRR's own lowest level rather than 1000 mb, because in a winter airmass the
+ * band reaches the ground and 1000 mb is not the ground.
+ */
+const SCOUT_MIN_MB = 300;
 const SCOUT_MAX_MB = 1000;
+
+/**
+ * HRRR's lowest pressure level, below 1000 mb and off the 25 mb ladder.
+ *
+ * It matters in exactly the case a mid-latitude-winter product cares about most:
+ * an orographic snowpack event with supercooled liquid at 950–1013 mb. Skipping
+ * it drops the bottom 13 mb of every column.
+ */
+const SURFACE_MB = 1013.2;
+
+/**
+ * The vertical profile behind the point readout: where 0, −5 and −12 °C sit
+ * over one spot, in feet.
+ *
+ * The contours say *where* to fly; this says *how high*, which is the number the
+ * drone is actually given (DRONE_DESIGN R2). It reads HRRR rather than a second
+ * model on purpose — a sounding from somewhere else would disagree with the
+ * amber on screen about where the band is, and an operator cannot act on two
+ * answers.
+ *
+ * 50 mb rather than wrfprs' native 25 mb: 32 records is ~32 s to build, 64
+ * would be ~64 s, and temperature is near-linear across a 50 mb layer (~500 m),
+ * so interpolating within one costs tens of feet. The whole 300 mb–surface range
+ * is read rather than the band window, because the isotherms move hundreds of
+ * millibars between seasons — see SCOUT_MIN_MB for the measurement behind those
+ * bounds.
+ *
+ * One build serves every click on that hour — it is a national profile grid,
+ * not a point query — so the cost is paid once per run, not per click.
+ */
+const SOUNDING = {
+  minMb: SCOUT_MIN_MB,
+  maxMb: SCOUT_MAX_MB,
+  stepMb: 50,
+  /** Metres to feet: HGT is geopotential metres, operators fly in feet. */
+  metresToFeet: 3.28084,
+} as const;
+
+/** The levels the profile reads, bottom-inclusive: 300–1000 by 50, plus 1013.2. */
+export const SOUNDING_LEVELS: number[] = (() => {
+  const out: number[] = [];
+  for (let mb = SOUNDING.minMb; mb <= SOUNDING.maxMb; mb += SOUNDING.stepMb) {
+    out.push(mb);
+  }
+  // HRRR's lowest level is below 1000 mb and off the ladder; in a winter
+  // airmass the band reaches it, so the column has to.
+  out.push(SURFACE_MB);
+  return out;
+})();
+
+/** Profile grids are ~12 MB an hour, so only the last few hours are kept. */
+const PROFILE_CACHE = 3;
 
 /** HRRR publishes f00-f18 every cycle. */
 export const FORECAST_HOURS = 18;
-
-/** Marks each message in a multi-record grib_filter decode. */
-const MARKER = "@@@";
 
 export type ForecastMeta = {
   /** Model run, ISO 8601 (e.g. "2026-07-16T21:00:00.000Z"). */
@@ -148,14 +231,7 @@ export type ForecastMeta = {
   hours: number[];
 };
 
-export type { ContourRing };
-
-export type ContourFeature = {
-  type: "Feature";
-  /** One entry, keyed by the field's `property` and set to the contour level. */
-  properties: Record<string, number>;
-  geometry: { type: "MultiPolygon"; coordinates: ContourRing[][] };
-};
+export type { ContourRing, ContourFeature };
 
 export type ContourFrame = {
   type: "FeatureCollection";
@@ -187,9 +263,62 @@ export type SlwStats = {
   bandBaseMb: number | null;
 };
 
+/** One level of the point profile, in the units an operator reads. */
+export type SoundingLevel = {
+  mb: number;
+  tempC: number;
+  heightFt: number;
+};
+
+/**
+ * The profile over one point. `lat`/`lon` are the 12 km cell actually sampled,
+ * not the click — reporting the click back would imply a precision the grid
+ * does not have.
+ */
+export type Sounding = {
+  run: string;
+  hour: number;
+  validTime: string;
+  lat: number;
+  lon: number;
+  /** Terrain height at that cell, ft. Isotherms below it are underground. */
+  surfaceFt: number;
+  /** 0 °C, ft MSL. Null when the column never crosses it. */
+  freezingFt: number | null;
+  /** Warm edge of the seeding band, −5 °C. */
+  bandBaseFt: number | null;
+  /** Cold edge of the seeding band, −12 °C. */
+  bandTopFt: number | null;
+  /**
+   * Temperature at the bottom and top of the column that was read.
+   *
+   * These exist so a missing isotherm can be explained rather than reported as
+   * "there is nothing here". A null `bandBaseFt` means one of two opposite
+   * things — the column is already colder than −5 °C at its base (a real
+   * answer: too cold, the band is at or below the ground) or it never gets that
+   * cold at all (the band is above the column, i.e. we did not look high
+   * enough). Without these two numbers the panel cannot tell them apart, and it
+   * printed "no altitude here to seed at" for both.
+   */
+  baseC: number;
+  topC: number;
+  /** Every level read, bottom up. Small enough to show, and it is the evidence. */
+  levels: SoundingLevel[];
+};
+
 type IdxRow = { name: string; level: string; start: number; end: number };
 
 type Slw = { frame: ContourFrame; stats: SlwStats };
+
+/** Block-averaged temperature and height at each level, for the whole domain. */
+type Profile = {
+  run: Date;
+  hour: number;
+  levels: number[];
+  tempC: Map<number, Float32Array>;
+  heightFt: Map<number, Float32Array>;
+  surfaceFt: Float32Array;
+};
 
 export class ForecastService {
   private geo: Geo | null = null;
@@ -200,8 +329,10 @@ export class ForecastService {
    */
   private frames = new Map<string, ContourFrame>();
   private slw = new Map<string, Slw>();
+  private profiles = new Map<string, Profile>();
   private inflight = new Map<string, Promise<ContourFrame>>();
   private slwInflight = new Map<string, Promise<Slw>>();
+  private profileInflight = new Map<string, Promise<Profile>>();
 
   /** Most recent cycle whose f00 index is published. Re-checked every 5 min. */
   async latestRun(): Promise<Date> {
@@ -220,7 +351,9 @@ export class ForecastService {
           now.getUTCHours() - back
         )
       );
-      const res = await fetch(this.idxUrl(run, 0, "wrfsfc"), { method: "HEAD" });
+      const res = await fetch(this.idxUrl(run, 0, "wrfsfc"), {
+        method: "HEAD",
+      });
       if (res.ok) {
         this.runCache = { run, checkedAt: Date.now() };
         return run;
@@ -250,9 +383,157 @@ export class ForecastService {
     return (await this.seeding(hour)).frame;
   }
 
+  /**
+   * The vertical profile over one point: the altitudes a drone is given.
+   *
+   * The point is snapped to the 12 km cell the contours are drawn on, so this
+   * readout and the amber on the map are answers about the same box.
+   */
+  async sounding(lat: number, lon: number, hour: number): Promise<Sounding> {
+    this.assertPoint(lat, lon);
+    const profile = await this.profile(hour);
+    const geo = this.geo!;
+    const cell = nearestCell(geo, lat, lon);
+
+    const levels: SoundingLevel[] = profile.levels
+      .map((mb) => ({
+        mb,
+        tempC: profile.tempC.get(levelKey(mb))![cell],
+        heightFt: Math.round(profile.heightFt.get(levelKey(mb))![cell]),
+      }))
+      // Bottom up, so a search for the lowest crossing walks it in order.
+      .sort((a, b) => a.heightFt - b.heightFt);
+
+    return {
+      run: profile.run.toISOString(),
+      hour,
+      validTime: new Date(
+        profile.run.getTime() + hour * 3_600_000
+      ).toISOString(),
+      lat: Math.round(geo.lats[cell] * 100) / 100,
+      lon: Math.round(geo.lons[cell] * 100) / 100,
+      surfaceFt: Math.round(profile.surfaceFt[cell]),
+      freezingFt: isothermFt(levels, 0),
+      bandBaseFt: isothermFt(levels, SEEDING.warmestC),
+      bandTopFt: isothermFt(levels, SEEDING.coldestC),
+      baseC: Math.round(levels[0].tempC * 10) / 10,
+      topC: Math.round(levels[levels.length - 1].tempC * 10) / 10,
+      levels,
+    };
+  }
+
   /** The same build's summary. Shares the cache, so asking for either warms both. */
   async liquidStats(hour: number): Promise<SlwStats> {
     return (await this.seeding(hour)).stats;
+  }
+
+  /** The domain-wide profile grid every click on this hour is answered from. */
+  private async profile(hour: number): Promise<Profile> {
+    this.assertHour(hour);
+
+    const run = await this.latestRun();
+    const key = `${run.toISOString()}:profile:${hour}`;
+
+    const cached = this.profiles.get(key);
+    if (cached) return cached;
+
+    const running = this.profileInflight.get(key);
+    if (running) return running;
+
+    const work = this.buildProfile(run, hour)
+      .then((built) => {
+        this.profiles.set(key, built);
+        // ~12 MB each, so the map is capped rather than left to grow across the
+        // 19 forecast hours. Oldest insertion goes first.
+        while (this.profiles.size > PROFILE_CACHE) {
+          this.profiles.delete(this.profiles.keys().next().value!);
+        }
+        this.evictOldRuns(run);
+        return built;
+      })
+      .finally(() => this.profileInflight.delete(key));
+
+    this.profileInflight.set(key, work);
+    return work;
+  }
+
+  /**
+   * Read TMP and HGT on the 50 mb ladder, plus the terrain height.
+   *
+   * Fields are keyed by (name, level) rather than paired by arrival order — the
+   * seeding build can rely on TMP preceding CLWMR within a level, but here two
+   * fields from two products are being assembled and guessing at the order would
+   * silently swap temperature for altitude.
+   */
+  private async buildProfile(run: Date, hour: number): Promise<Profile> {
+    const rows = await this.index(run, hour, "wrfprs");
+    const url = this.gribUrl(run, hour, "wrfprs");
+    const levels = SOUNDING_LEVELS;
+
+    const grib = await this.fetchRanges(
+      url,
+      levels.flatMap((mb) =>
+        ["TMP", "HGT"].map((name) => pick(rows, name, `${mbLabel(mb)} mb`))
+      )
+    );
+
+    const tempC = new Map<number, Float32Array>();
+    const heightFt = new Map<number, Float32Array>();
+
+    await this.eachMessage(grib, (name, level, values) => {
+      if (name === "t") {
+        // The block mean is linear, so averaging kelvin and subtracting once is
+        // the same number as converting 1.9M points first.
+        const grid = blockAverage(values, 1);
+        for (let i = 0; i < grid.values.length; i++) grid.values[i] -= 273.15;
+        tempC.set(levelKey(level), grid.values);
+        return;
+      }
+      if (name === "gh") {
+        heightFt.set(
+          levelKey(level),
+          blockAverage(values, SOUNDING.metresToFeet).values
+        );
+      }
+    });
+
+    for (const mb of levels) {
+      if (!tempC.has(levelKey(mb)) || !heightFt.has(levelKey(mb))) {
+        throw new Error(`HRRR profile is missing TMP or HGT at ${mb} mb`);
+      }
+    }
+
+    await this.ensureGeo(grib);
+
+    return {
+      run,
+      hour,
+      levels,
+      tempC,
+      heightFt,
+      surfaceFt: await this.terrain(run, hour),
+    };
+  }
+
+  /**
+   * Terrain height, so the readout can say when an isotherm is underground.
+   *
+   * HRRR extrapolates its pressure levels below ground rather than leaving them
+   * missing, so without this a freezing level in Colorado reads as a real
+   * altitude when it is 2,000 ft inside a mountain.
+   */
+  private async terrain(run: Date, hour: number): Promise<Float32Array> {
+    const rows = await this.index(run, hour, "wrfsfc");
+    const grib = await this.fetchRanges(this.gribUrl(run, hour, "wrfsfc"), [
+      pick(rows, "HGT", "surface"),
+    ]);
+
+    let surface: Float32Array | null = null;
+    await this.eachMessage(grib, (_name, _level, values) => {
+      surface = blockAverage(values, SOUNDING.metresToFeet).values;
+    });
+    if (!surface) throw new Error("HRRR carried no surface height");
+    return surface;
   }
 
   private async contours(field: FieldId, hour: number): Promise<ContourFrame> {
@@ -309,6 +590,20 @@ export class ForecastService {
 
     this.slwInflight.set(key, work);
     return work;
+  }
+
+  /**
+   * The HRRR domain is CONUS, so a point outside it has no profile. Refusing is
+   * the honest answer; nearestCell would otherwise happily return an edge cell
+   * and report Kansas' sounding for a click on Hawaii.
+   */
+  private assertPoint(lat: number, lon: number) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      throw new Error("Sounding needs a numeric lat and lon");
+    }
+    if (lat < 21 || lat > 53 || lon < -135 || lon > -60) {
+      throw new Error(`No HRRR data at ${lat}, ${lon} — the domain is CONUS`);
+    }
   }
 
   private assertHour(hour: number) {
@@ -371,7 +666,9 @@ export class ForecastService {
     grib: FieldSpec["grib"]
   ): Promise<[number, number]> {
     const rows = await this.index(run, hour, "wrfsfc");
-    const row = rows.find((r) => r.name === grib.name && r.level === grib.level);
+    const row = rows.find(
+      (r) => r.name === grib.name && r.level === grib.level
+    );
     if (!row) throw new Error(`${grib.name} not present in HRRR index`);
     if (!Number.isFinite(row.end)) {
       throw new Error(`Could not bound ${grib.name} record`);
@@ -392,7 +689,9 @@ export class ForecastService {
     ranges: [number, number][]
   ): Promise<Buffer> {
     const res = await fetch(url, {
-      headers: { Range: `bytes=${ranges.map(([a, b]) => `${a}-${b}`).join(",")}` },
+      headers: {
+        Range: `bytes=${ranges.map(([a, b]) => `${a}-${b}`).join(",")}`,
+      },
     });
     if (!res.ok) throw new Error(`HRRR fetch failed: ${res.status}`);
     const body = Buffer.from(await res.arrayBuffer());
@@ -419,22 +718,13 @@ export class ForecastService {
     return frame(run, hour, this.features(grid, spec.property, spec.levels));
   }
 
-  /** One nested MultiPolygon per level, dropping levels nothing reaches. */
+  /** One nested MultiPolygon per level, against the grid built by ensureGeo. */
   private features(
     grid: Grid,
     property: string,
     levels: readonly number[]
   ): ContourFeature[] {
-    return levels
-      .map((level) => ({
-        type: "Feature" as const,
-        properties: { [property]: level },
-        geometry: {
-          type: "MultiPolygon" as const,
-          coordinates: polygons(grid, this.geo!, level),
-        },
-      }))
-      .filter((f) => f.geometry.coordinates.length > 0);
+    return features(grid, this.geo!, property, levels);
   }
 
   /**
@@ -604,30 +894,25 @@ export class ForecastService {
   }
 
   /**
-   * Stream a multi-message GRIB through grib_filter, one callback per message.
+   * Stream a multi-message GRIB, one callback per message.
    *
-   * grib_filter prints the values array alone. grib_get_data would print a
-   * lat/lon for every point of every message — ~68 MB and ~2.5 s each, against
-   * ~4 MB and ~0.7 s here — and we already hold the grid. Streaming rather than
-   * buffering keeps a 50-record read flat in memory instead of gigabytes.
+   * The decoding itself lives in ./grib, which the radar service uses too; this
+   * only names the keys HRRR is read by and turns the level back into a number.
    */
-  private async eachMessage(
+  private eachMessage(
     grib: Buffer,
     onMessage: (name: string, level: number, values: Float32Array) => void
   ): Promise<void> {
-    const dir = await mkdtemp(join(tmpdir(), "hrrr-msg-"));
-    const file = join(dir, "stack.grib2");
-    const rules = join(dir, "values.filter");
-    try {
-      await writeFile(file, grib);
-      await writeFile(
-        rules,
-        `print "${MARKER} [shortName] [level]";\nprint "[values]";\n`
-      );
-      await streamValues(rules, file, onMessage);
-    } finally {
-      await rm(dir, { recursive: true, force: true });
-    }
+    return eachMessage(
+      grib,
+      {
+        keys: ["shortName", "level"],
+        points: POINTS,
+        onMessage: ([name, level], values) =>
+          onMessage(name, Number(level), values),
+      },
+      "hrrr-msg"
+    );
   }
 }
 
@@ -641,17 +926,88 @@ function pick(rows: IdxRow[], name: string, level: string): [number, number] {
   return [row.start, row.end];
 }
 
-/** The 25 mb levels from `topMb` down to `baseMb`, inclusive. */
+/**
+ * Index of the grid cell nearest a point.
+ *
+ * A plain scan of the 12 km grid — 118k cells, well under a millisecond, and it
+ * needs no assumption about how the Lambert projection lays out. Longitude is
+ * scaled by cos(lat) so "nearest" means nearest on the ground rather than
+ * nearest in degrees, which at 45 N would be 40% wrong east-west.
+ */
+export function nearestCell(geo: Geo, lat: number, lon: number): number {
+  const scale = Math.cos((lat * Math.PI) / 180);
+  let best = 0;
+  let bestD = Infinity;
+  for (let i = 0; i < geo.lats.length; i++) {
+    const dy = geo.lats[i] - lat;
+    const dx = (geo.lons[i] - lon) * scale;
+    const d = dy * dy + dx * dx;
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+    }
+  }
+  return best;
+}
+
+/**
+ * Height of an isotherm, interpolated between the two levels that bracket it.
+ *
+ * `levels` must run bottom up. The **lowest** crossing wins: an inversion can
+ * put a column above and below freezing more than once, and the altitude that
+ * matters for flying into the band is the first one reached on the way up.
+ * Returns null when the column never crosses the temperature at all, which is a
+ * real answer — "the whole profile is colder than −12 °C" is not the same as
+ * "the band is at zero feet".
+ */
+export function isothermFt(
+  levels: readonly SoundingLevel[],
+  targetC: number
+): number | null {
+  for (let i = 0; i < levels.length - 1; i++) {
+    const below = levels[i];
+    const above = levels[i + 1];
+    // Temperature falls with height, so a crossing is warmer-then-colder.
+    if (below.tempC < targetC || above.tempC > targetC) continue;
+    const span = below.tempC - above.tempC;
+    if (span === 0) return below.heightFt;
+    const f = (below.tempC - targetC) / span;
+    return Math.round(below.heightFt + f * (above.heightFt - below.heightFt));
+  }
+  return null;
+}
+
+/**
+ * The 25 mb levels from `topMb` down to `baseMb`, inclusive — plus HRRR's
+ * lowest level when the window reaches the bottom of the ladder, since that one
+ * is 13 mb below 1000 and would otherwise be skipped.
+ */
 function pressureLevels(topMb: number, baseMb: number): number[] {
   const out: number[] = [];
   for (let mb = topMb; mb <= baseMb; mb += LEVEL_STEP_MB) out.push(mb);
+  if (baseMb >= SCOUT_MAX_MB) out.push(SURFACE_MB);
   return out;
 }
 
 /** The .idx spells whole millibars without a decimal point. */
 const mbLabel = (mb: number) => String(mb);
 
-function frame(run: Date, hour: number, features: ContourFeature[]): ContourFrame {
+/**
+ * Key a level by whole millibars.
+ *
+ * The .idx names HRRR's lowest level `1013.2 mb`, but eccodes prints its
+ * `level` key as the rounded `1013` — so a map keyed on the raw values misses
+ * on exactly the level that was added to reach the winter band, and the build
+ * fails with "missing TMP or HGT at 1013.2 mb". The label and the key are
+ * different things: `mbLabel` addresses the index, this addresses the decode.
+ */
+const levelKey = (mb: number) => Math.round(mb);
+
+function frame(
+  run: Date,
+  hour: number,
+  features: ContourFeature[]
+): ContourFrame {
   return {
     type: "FeatureCollection",
     run: run.toISOString(),
@@ -741,85 +1097,6 @@ export function concatParts(body: Buffer, contentType: string): Buffer {
 
   parts.sort((a, b) => a.offset - b.offset);
   return Buffer.concat(parts.map((p) => p.data));
-}
-
-/** Spawn grib_filter and hand back one Float32Array per message, streaming. */
-function streamValues(
-  rules: string,
-  file: string,
-  onMessage: (name: string, level: number, values: Float32Array) => void
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn("grib_filter", [rules, file]);
-    let name = "";
-    let level = 0;
-    let values: Float32Array | null = null;
-    let count = 0;
-    let carry = "";
-    let failed: Error | null = null;
-
-    const flush = () => {
-      if (!values) return;
-      if (count !== POINTS) {
-        failed ??= new Error(
-          `${name} at ${level} mb decoded ${count} values, expected ${POINTS}`
-        );
-      }
-      onMessage(name, level, values);
-      values = null;
-    };
-
-    const line = (text: string) => {
-      if (text.startsWith(MARKER)) {
-        flush();
-        const parts = text.split(" ");
-        name = parts[1];
-        level = Number(parts[2]);
-        values = new Float32Array(POINTS);
-        count = 0;
-        return;
-      }
-      if (!values) return;
-      let p = 0;
-      while (p < text.length) {
-        let q = text.indexOf(" ", p);
-        if (q < 0) q = text.length;
-        if (q > p && count < POINTS) values[count++] = Number(text.slice(p, q));
-        p = q + 1;
-      }
-    };
-
-    child.stdout.setEncoding("utf8");
-    child.stdout.on("data", (chunk: string) => {
-      const text = carry + chunk;
-      const end = text.lastIndexOf("\n");
-      if (end < 0) {
-        carry = text;
-        return;
-      }
-      carry = text.slice(end + 1);
-      for (const l of text.slice(0, end).split("\n")) if (l) line(l);
-    });
-
-    let stderr = "";
-    child.stderr.setEncoding("utf8");
-    child.stderr.on("data", (c: string) => {
-      stderr += c;
-    });
-
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (carry) line(carry);
-      flush();
-      if (code !== 0) {
-        return reject(
-          new Error(`grib_filter exited ${code}: ${stderr.trim().slice(0, 200)}`)
-        );
-      }
-      if (failed) return reject(failed);
-      resolve();
-    });
-  });
 }
 
 /**
