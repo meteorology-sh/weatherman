@@ -86,9 +86,9 @@ export const ReplayRadarLayer = new GeoJSONLayer({
  * These bands are simply not drawn where the satellite sees no cloud — roughly
  * half a scene — and the basemap shows through.
  *
- * It is also filtered. Only tops colder than −5 °C appear, which is criterion
- * C2: a warmer top means the seeding band lies above the cloud entirely, so
- * there is nothing inside it to seed. That removes most cloudy ground.
+ * It is also filtered. Only tops colder than −5 °C appear: a warmer top means
+ * the seeding band lies above the cloud entirely, so there is nothing inside it
+ * to seed. That removes most cloudy ground.
  *
  * The geometry comes from the satellite and the temperatures from HRRR's
  * profile — see the server's `cloudtop.ts` for why that split runs the way it

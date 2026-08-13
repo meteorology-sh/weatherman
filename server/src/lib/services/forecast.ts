@@ -309,9 +309,9 @@ export const SOUNDING_LEVELS: number[] = PROFILE_LEVELS.filter(
  * AGL, and over Texas the two differ by up to ~4,000 ft between the coast and
  * the Llano Estacado. This app reads it as MSL because that is the datum
  * everything else here is in — `HGT:cloud base` is geopotential metres above
- * sea level, the sounding's band base and freezing level are MSL, and C2 is a
- * comparison between those three numbers, which is only meaningful in one
- * datum. The point readout carries the height above ground alongside it.
+ * sea level, the sounding's band base and freezing level are MSL, and asking
+ * whether the band lies between base and top is a comparison between those
+ * three numbers, which is only meaningful in one datum. The point readout carries the height above ground alongside it.
  */
 export const BASE_WINDOW_FT = [4000, 12000] as const;
 
@@ -386,7 +386,7 @@ const NO_ECHO = -999;
  * `CLWMR`/`CLMR`-style rename in this set.
  */
 const DIAGNOSTICS = {
-  /** **C2.** The selection variable Texas practice actually uses. */
+  /** The selection variable Texas practice actually uses. */
   cloudBase: {
     grib: { name: "HGT", level: "cloud base" },
     id: "3:5:cloudBase",
@@ -395,7 +395,7 @@ const DIAGNOSTICS = {
     firstHour: 0,
   },
   /**
-   * **C2.** HRRR's own cloud top, and it is sparse where the base is dense —
+   * HRRR's own cloud top, and it is sparse where the base is dense —
    * 27.7% of CONUS against 58.6% on the sampled hour, because `PRES`/`HGT:cloud
    * top` report one deck rather than the highest (`MEASUREMENTS.md` §4). It is
    * read for the point readout and deliberately not drawn: a layer that
@@ -409,7 +409,8 @@ const DIAGNOSTICS = {
     missing: SFC_MISSING,
     firstHour: 0,
   },
-  /** **C1.** Surface-based convective available potential energy, J/kg. */
+  /** Surface-based convective available potential energy, J/kg — how much a
+   * turret has to grow on. */
   cape: {
     grib: { name: "CAPE", level: "surface" },
     id: "7:6:surface",
@@ -417,7 +418,7 @@ const DIAGNOSTICS = {
     missing: null,
     firstHour: 0,
   },
-  /** **C1.** The mixed-layer parcel, which is the one a turret grows out of. */
+  /** The mixed-layer parcel, which is the one a turret grows out of. */
   mixedCape: {
     grib: { name: "CAPE", level: "180-0 mb above ground" },
     id: "7:6:pressureFromGroundLayer",
@@ -425,7 +426,8 @@ const DIAGNOSTICS = {
     missing: null,
     firstHour: 0,
   },
-  /** **C7.** Storm motion, m/s, east and north components of the 0–6 km vector. */
+  /** Storm motion, m/s, east and north components of the 0–6 km vector —
+   * where a seeded cloud would carry the plume. */
   stormU: {
     grib: { name: "USTM", level: "0-6000 m above ground" },
     id: "2:27:heightAboveGroundLayer",
@@ -441,7 +443,7 @@ const DIAGNOSTICS = {
     firstHour: 0,
   },
   /**
-   * **C1, C7.** Electrification.
+   * Electrification: how much lightning the model is producing here.
    *
    * `firstHour: 1` for the same reason `PRATE` has it, and verified the same
    * way: at f00 this record is **188 bytes** — GRIB2's size for a constant
@@ -458,7 +460,7 @@ const DIAGNOSTICS = {
     missing: null,
     firstHour: 1,
   },
-  /** **C5.** Vertically integrated liquid, kg/m² — an independent check on the
+  /** Vertically integrated liquid, kg/m² — an independent check on the
    * supercooled-liquid integral, which is derived from a different field. */
   vil: {
     grib: { name: "VIL", level: "entire atmosphere" },
@@ -467,7 +469,7 @@ const DIAGNOSTICS = {
     missing: null,
     firstHour: 0,
   },
-  /** **C1.** Model-diagnosed radar echo top. See `NO_ECHO` for its sentinel. */
+  /** Model-diagnosed radar echo top. See `NO_ECHO` for its sentinel. */
   echoTop: {
     grib: { name: "RETOP", level: "cloud top" },
     id: "16:3:cloudTop",
@@ -558,13 +560,15 @@ export type CloudBaseStats = {
 /**
  * The `wrfsfc` diagnostics over one point — **attributes, never gates.**
  *
- * These are the C1, C5 and C7 variables the map has never carried, and they
- * ride here rather than filtering anything: `MEASUREMENTS.md` §6 is explicit
- * that a threshold needs a citation and not a coverage table, and none of these
- * has one yet. So the panel prints them and the operator judges.
+ * Convective energy, storm motion, electrification and integrated liquid: the
+ * variables the map has never carried. They ride here rather than filtering
+ * anything, because `MEASUREMENTS.md` §6 is explicit that a threshold needs a
+ * citation and not a coverage table, and none of these has one yet. So the
+ * panel prints them and the operator judges.
  *
- * C2 is the exception in kind: `cloudBaseFt` and `cloudTopFt` are two ends of a
- * real criterion, and `bandInCloud` evaluates it at this point.
+ * Cloud base and cloud top are the exception in kind: they are the two ends of
+ * a real question — is the seeding band inside this cloud — and `bandInCloud`
+ * answers it at this point.
  */
 export type Diagnostics = {
   /** Cloud base, ft MSL. Null where the model has no cloud over the cell. */
@@ -576,8 +580,7 @@ export type Diagnostics = {
   /** Top minus base. Null when either is missing, or when they invert. */
   depthFt: number | null;
   /**
-   * **C2 at this point:** does the seeding band's base lie between cloud base
-   * and cloud top? Null when the column has no band base, or when HRRR reports
+   * Does the seeding band's base lie between cloud base and cloud top? Null when the column has no band base, or when HRRR reports
    * no top here — which is most cloudy cells, and is why the map's cloud top
    * comes from the satellite instead.
    */

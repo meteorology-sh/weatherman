@@ -53,7 +53,7 @@ export interface Diagnostics {
   cloudTopFt: number | null;
   /** Top minus base. Null when either is missing, or when they invert. */
   depthFt: number | null;
-  /** C2 at this point: is the band's base between cloud base and cloud top? */
+  /** Is the band's base between cloud base and cloud top over this point? */
   bandInCloud: boolean | null;
   /** Surface-based CAPE, J/kg. */
   capeJKg: number;

@@ -76,7 +76,7 @@ third is the same layers at a different hour:
   That also makes it the only cloud layer that can contradict the
   supercooled-liquid contours drawn over it.
   It has **real nodata** — where the satellite sees no cloud, nothing is drawn.
-  And it is **filtered to C2**: only tops at −5 °C or colder appear, because a
+  And it is **filtered**: only tops at −5 °C or colder appear, because a
   warmer top means the seeding band lies above the cloud entirely, which
   accounts for most cloudy ground over a Texas year. The bands are **disjoint,
   not nested** — see `bandFeatures` in `contour.ts`, and `MEASUREMENTS.md` §4
@@ -95,8 +95,9 @@ third is the same layers at a different hour:
   base of a cirrus deck with clear air underneath.
   **Depth is not drawn.** `HGT:cloud top` is diagnosed over far less ground than
   the base is, so a depth layer would vanish over most of the cloud the base
-  layer shows; depth and C2 are answered at the clicked point instead, and the
-  map's cloud top comes from the satellite. The rest of the file's
+  layer shows. Depth, and whether the seeding band lies between base and top,
+  are answered at the clicked point instead, and the map's cloud top comes from
+  the satellite. The rest of the file's
   diagnostics — CAPE, storm motion, lightning, vertically integrated liquid,
   echo top — ride the same build as **attributes on that point readout**, and
   nothing gates on them.
@@ -133,6 +134,24 @@ point shape from the source's own sampling rather than adapting a contour layer.
 - **Follow the existing pattern.** Each layer below has one canonical example
   in the code — copy its shape for new features rather than inventing a
   parallel approach.
+- **Write in plain technical language.** Say it the way you would say it out
+  loud to another engineer. Short sentences, ordinary words, the direct verb —
+  "this reads the cloud base", not "this facilitates the ingestion of cloud-base
+  data". Keep every fact, name, number, file path, unit and threshold exactly as
+  it is; plain language is about the words around them, never about dropping or
+  rounding them. This governs code comments, docs, commit messages and anything
+  the operator reads.
+
+  **Name a thing by what it measures, not by its code.** The criterion labels
+  C1–C7 are planning shorthand. They belong in the planning documents that argue
+  about scope — `PLAN.md`, `INVESTIGATION.md` and the system design — and
+  **nowhere in the app**: not in the UI, not in code comments, not in test
+  names. A label is not a reason. Anywhere else, write the thing the criterion
+  is about — "the seeding band has to lie between cloud base and cloud top" —
+  which is what the reader needed and what the label was standing in for. The
+  same holds for other spellings that mean nothing outside the repo, and for
+  anything the operator reads: field names, sentinel values and product codes
+  are implementation, not information.
 
 ## Repository Layout
 
@@ -587,7 +606,8 @@ src/tests/
   cloudbase-slice.test.ts    # reducer cases, incl. starting hidden
   CloudBaseProvider.test.tsx # provider → store integration
   CloudBase.test.tsx         # sidebar stats, incl. the cloud-free domain
-  Convective.test.tsx        # point diagnostics, and C2's three answers
+  Convective.test.tsx        # point diagnostics; band-inside-cloud, all three
+                             #   answers including "cannot tell"
   legends.test.ts            # ramp anchors, tick + seeding-band positions
   renderers.test.ts          # BANDS contracts, stacked alpha, solo vs stacked
   ForecastProvider.test.tsx  # provider → store integration
@@ -898,7 +918,7 @@ server/src/tests/
   forecast-service.test.ts # marching squares (holes, edges), run discovery
   forecast-router.test.ts  # route → GeoJSON, hour passthrough, 500s
   sounding.test.ts         # isotherm interpolation, inversions, nearest cell
-  cloudbase-service.test.ts# sparse block average, window stats, C2 at a point
+  cloudbase-service.test.ts# sparse block average, window stats, band vs cloud
   multipart.test.ts        # byte-range reassembly, in file order
   radar-service.test.ts    # dBZ averaged in Z, the two sentinels, row order
   radar-router.test.ts     # route → GeoJSON, scene time, 500s

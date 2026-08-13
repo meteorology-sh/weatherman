@@ -85,7 +85,7 @@ const CLOUD_TOP = {
    *
    * **−5 °C is a filter; the other three are not.**
    *
-   * −5 °C is criterion **C2** from `SENSING_STRATEGY.md`: "the band must
+   * −5 °C is the rule `SENSING_STRATEGY.md` states as "the band must
    * physically lie between base and top. A shallow warm cloud never reaches
    * it." A top warmer than −5 °C means the seeding band is *above* the cloud,
    * so there is nothing inside it to seed, and that describes most cloudy

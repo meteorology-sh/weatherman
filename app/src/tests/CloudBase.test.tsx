@@ -70,7 +70,7 @@ describe("CloudBase panel", () => {
   });
 
   // MSL, and it has to say so: the sounding's band altitudes are MSL too, and
-  // C2 compares the two.
+  // asking whether the band is inside the cloud compares the two.
   it("reports the median base with its datum", () => {
     withStats();
 

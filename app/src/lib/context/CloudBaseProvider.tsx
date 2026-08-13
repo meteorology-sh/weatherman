@@ -15,7 +15,7 @@ const ANALYSIS_HOUR = 0;
  * Loads the cloud-base field's summary.
  *
  * Page-scoped, and it warms the build every wrfsfc diagnostic comes out of —
- * the same one the sounding's C1/C5/C7 attributes are read from. So a click on
+ * the same one the sounding's convective attributes are read from. So a click on
  * the map after the page has settled is answered from cache rather than paying
  * for a second decode of the same file.
  */

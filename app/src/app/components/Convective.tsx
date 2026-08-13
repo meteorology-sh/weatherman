@@ -16,14 +16,14 @@ const compass = (deg: number) => POINTS[Math.round(deg / 45) % 8];
 /**
  * The HRRR 2D diagnostics over the clicked point — **attributes, not gates.**
  *
- * These are the C1, C5 and C7 variables the map has never carried: how much
- * convective energy is available, where a storm would carry a seeded plume, and
- * whether the cell is already electrified. Nothing here filters the map, and
- * that is deliberate — a cutoff on any of them needs a citation rather than a
- * coverage table, so the numbers are shown and the operator judges.
+ * These are the variables the map has never carried: how much convective
+ * energy is available, where a storm would carry a seeded plume, and whether
+ * the cell is already electrified. Nothing here filters the map, and that is
+ * deliberate — a cutoff on any of them needs a citation rather than a coverage
+ * table, so the numbers are shown and the operator judges.
  *
- * C2 is the exception in kind. Cloud base and cloud top are the two ends of a
- * real criterion, and the verdict line evaluates it: does the seeding band's
+ * Cloud base and cloud top are the exception in kind. They are the two ends of
+ * a real question, and the verdict line answers it: does the seeding band's
  * base actually lie inside the cloud over this point.
  */
 export const Convective = () => {
@@ -66,15 +66,16 @@ export const Convective = () => {
           must not read as "no". */}
       {d.bandInCloud === null ? (
         <div className="text-xs opacity-60">
-          C2 cannot be evaluated here: it needs a cloud base, a cloud top and a
-          band base, and one of the three is missing.
+          Not enough here to say whether the seeding band is inside this cloud.
+          That needs a cloud base, a cloud top and a band base, and one of the
+          three is missing.
         </div>
       ) : d.bandInCloud ? (
         <div className="alert alert-success alert-soft p-2 text-xs">
           <span>
             The {BAND_WARMEST_C} °C level lies between this cloud's base and its
-            top, so the seeding band is inside the cloud. That is C2, and it is
-            the first criterion this app has been able to check.
+            top, so the seeding band is inside the cloud — there is cloud around
+            the altitude worth seeding, rather than clear air.
           </span>
         </div>
       ) : (
@@ -110,11 +111,12 @@ export const Convective = () => {
       </div>
 
       <div className="text-xs opacity-50">
-        All modelled, and none of it gates the map. CAPE and storm motion are C1
-        and C7 — how much energy a turret has and where its plume would go — and
-        integrated liquid is an independent check on the amber contours, derived
-        from a different field than they are. HRRR publishes no unit for its
-        lightning field, so it is shown as the bare number.
+        All modelled, and none of it filters the map. CAPE says how much energy
+        a growing turret has to work with, and storm motion says where the
+        seeded cloud would carry the plume. Integrated liquid is a second
+        opinion on the amber contours, worked out from a different field than
+        they are. HRRR publishes no unit for its lightning field, so it is shown
+        as the bare number.
       </div>
     </div>
   );

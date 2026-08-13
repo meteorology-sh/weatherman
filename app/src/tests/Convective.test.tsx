@@ -78,7 +78,7 @@ describe("Convective panel", () => {
     expect(screen.getByText(/Top at 39,562 ft MSL/)).toBeTruthy();
   });
 
-  describe("C2", () => {
+  describe("the band against the cloud", () => {
     it("says the band is inside the cloud when it is", () => {
       withDiagnostics();
 
@@ -96,7 +96,9 @@ describe("Convective panel", () => {
     it("says it cannot be evaluated rather than failing it", () => {
       withDiagnostics({ bandInCloud: null, cloudTopFt: null, depthFt: null });
 
-      expect(screen.getByText(/C2 cannot be evaluated here/)).toBeTruthy();
+      expect(
+        screen.getByText(/Not enough here to say whether the seeding band/)
+      ).toBeTruthy();
       expect(screen.queryByText(/do not overlap/)).toBeNull();
     });
 
@@ -159,6 +161,6 @@ describe("Convective panel", () => {
   it("says these are attributes rather than gates", () => {
     withDiagnostics();
 
-    expect(screen.getByText(/none of it gates the map/)).toBeTruthy();
+    expect(screen.getByText(/none of it filters the map/)).toBeTruthy();
   });
 });

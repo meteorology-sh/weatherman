@@ -69,8 +69,9 @@ forecast.get("/liquid/stats", async (req: Request, res: Response) => {
   }
 });
 
-// Cloud base — the variable Texas operations select on, and the half of C2 the
-// app has never read. Served from /forecast because HRRR is the source; the
+// Cloud base — the variable Texas operations select on, and the end of the
+// cloud the app has never read. Served from /forecast because HRRR is the
+// source; the
 // candidate map reads it at hour 0, like the liquid-water layer. Both routes
 // share one cached build of every wrfsfc diagnostic, so whichever is asked for
 // first pays and the point readout is then free.

@@ -22,7 +22,7 @@ describe("cloud-top legend", () => {
     expect(CloudTopLegend.caveat).toContain(BAND_LABEL);
   });
 
-  // The warm edge is criterion C2, not decoration: a top warmer than it means
+  // The warm edge is load-bearing, not decoration: a top warmer than it means
   // the seeding band is above the cloud entirely. Read from the bands rather
   // than written twice, so the prose has to follow the mask when it moves.
   it("takes its warm edge from the bands themselves", () => {

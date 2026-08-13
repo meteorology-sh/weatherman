@@ -14,7 +14,7 @@ export type LayerLegend = {
   caveat: string;
 };
 
-/** Warm edge of the mask, as a temperature — the C2 filter. */
+/** Warm edge of the mask: above this the seeding band is above the cloud. */
 export const CLOUD_TOP_WARMEST_C = CLOUD_TOP_BANDS[0].fromC;
 
 /** The window's edges as an operator reads them, e.g. "4,000–12,000 ft". */

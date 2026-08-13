@@ -227,7 +227,7 @@ describe("diagnostics", () => {
     assert.equal(d.depthFt, null);
   });
 
-  describe("C2", () => {
+  describe("the band against the cloud", () => {
     it("passes when the band's base is between cloud base and top", () => {
       const d = diagnostics(
         fields({ cloudBase: 4000, cloudTop: 30000 }),
