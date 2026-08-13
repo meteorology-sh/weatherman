@@ -13,6 +13,7 @@ import { forecast } from "../routers/forecast";
 // Services
 import {
   Hrrr,
+  CloudBaseStats,
   ContourFrame,
   ForecastMeta,
   SlwStats,
@@ -48,6 +49,17 @@ const frameOf = (property: string, level: number): ContourFrame => ({
 const frame = frameOf("cloudCover", 30);
 const rain = frameOf("precipRate", 2.5);
 const water = frameOf("slwPath", 50);
+const base = frameOf("cloudBaseFt", 4000);
+
+const baseStats: CloudBaseStats = {
+  run: "2026-07-17T00:00:00.000Z",
+  hour: 0,
+  validTime: "2026-07-17T00:00:00.000Z",
+  basePct: 55.88,
+  windowPct: 17.14,
+  windowKm2: 2925792,
+  medianFt: 3719,
+};
 
 const stats: SlwStats = {
   run: "2026-07-17T00:00:00.000Z",
@@ -270,6 +282,75 @@ describe("forecast router", () => {
       error: "HRRR index unavailable: 404",
     });
   });
+
+  it("responds with the cloud base frame as GeoJSON", async (t) => {
+    t.mock.method(Hrrr, "cloudBase", async () => base);
+
+    const res = await fetch(`${origin}/forecast/cloudbase?hour=0`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), base);
+  });
+
+  it("responds with the cloud base stats as JSON", async (t) => {
+    t.mock.method(Hrrr, "cloudBaseStats", async () => baseStats);
+
+    const res = await fetch(`${origin}/forecast/cloudbase/stats?hour=0`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), baseStats);
+  });
+
+  // Same trap as /liquid: the frame route must not swallow the stats route.
+  it("keeps the cloud base stats route distinct from the frame route", async (t) => {
+    t.mock.method(Hrrr, "cloudBase", async () => base);
+    t.mock.method(Hrrr, "cloudBaseStats", async () => baseStats);
+
+    const [geo, summary] = await Promise.all([
+      fetch(`${origin}/forecast/cloudbase?hour=0`).then((r) => r.json()),
+      fetch(`${origin}/forecast/cloudbase/stats?hour=0`).then((r) => r.json()),
+    ]);
+
+    assert.equal(geo.type, "FeatureCollection");
+    assert.equal(summary.windowPct, 17.14);
+  });
+
+  it("passes the requested hour through to the cloud base service", async (t) => {
+    const seen: number[] = [];
+    t.mock.method(Hrrr, "cloudBase", async (hour: number) => {
+      seen.push(hour);
+      return base;
+    });
+
+    await fetch(`${origin}/forecast/cloudbase?hour=9`);
+
+    assert.deepEqual(seen, [9]);
+  });
+
+  it("defaults the cloud base to the analysis hour, which is what the map shows", async (t) => {
+    const seen: number[] = [];
+    t.mock.method(Hrrr, "cloudBaseStats", async (hour: number) => {
+      seen.push(hour);
+      return baseStats;
+    });
+
+    await fetch(`${origin}/forecast/cloudbase/stats`);
+
+    assert.deepEqual(seen, [0]);
+  });
+
+  it("responds 500 with the message when the cloud base build fails", async (t) => {
+    t.mock.method(Hrrr, "cloudBase", async () => {
+      throw new Error("HRRR carried no HGT at cloud base");
+    });
+
+    const res = await fetch(`${origin}/forecast/cloudbase?hour=0`);
+
+    assert.equal(res.status, 500);
+    assert.deepEqual(await res.json(), {
+      error: "HRRR carried no HGT at cloud base",
+    });
+  });
 });
 
 const sounding: Sounding = {
@@ -288,6 +369,20 @@ const sounding: Sounding = {
     { mb: 600, tempC: 4.37, heightFt: 14665 },
     { mb: 550, tempC: -1.32, heightFt: 16966 },
   ],
+  diagnostics: {
+    cloudBaseFt: 3456,
+    cloudBaseAglFt: 1626,
+    cloudTopFt: 39562,
+    depthFt: 36106,
+    bandInCloud: true,
+    capeJKg: 2499,
+    mixedCapeJKg: 2339,
+    stormMotionKt: 35,
+    stormMotionTowardDeg: 13,
+    lightning: 2,
+    vilKgM2: 24.9,
+    echoTopFt: 34498,
+  },
 };
 
 describe("forecast router sounding", () => {

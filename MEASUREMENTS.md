@@ -118,6 +118,13 @@ is the likely explanation for any cell reporting a top warmer than −5 °C whil
 still carrying in-band liquid. A passive radiometer almost certainly shares the
 failure, since it sees whichever deck is on top.
 
+**HRRR diagnoses a cloud base over roughly twice the ground it diagnoses a
+cloud top.** Both are bitmapped fields in `wrfsfc`, and the base is the denser
+of the two by a wide margin. So depth — the other half of C2 — cannot be a
+national layer built from HRRR alone: it would vanish over most of the cloud the
+base layer draws. Read the base from the model and the top from the satellite,
+which is the same split the cloud-top layer already makes for the same reason.
+
 **A cloud top warmer than −5 °C means the band is above the cloud entirely**, so
 there is nothing inside it to seed. That is C2, it is already in the design
 document, and masking those cells off is the single most useful thing a
@@ -140,6 +147,25 @@ shows precipitation that **already formed**, which is the C6 _negative_ signal:
 the cloud has already converted its liquid, so seeding has no headroom. **Radar
 tells you which candidates to cross off, not where to go.** Quiet air over a
 cloud is no evidence about what is inside it.
+
+**eccodes' default nodata sentinel is 9999, which is a real value in half the
+fields worth reading.** It is safe for a mixing ratio and unsafe for anything in
+metres: 9999 m is an ordinary cloud top, and HRRR carries real ones half again
+as high. Decoding a bitmapped height field at the default reads genuine deep
+convection as missing, and the symptom is cloud tops below cloud bases rather
+than an error. **Name a sentinel outside the field's own physical range** —
+`set missingValue` in a grib_filter rule, `-m` for `grib_get_data`.
+
+**A bitmap is not the only way a field says "nothing here".** `RETOP` carries no
+bitmap and writes −999 at the 97% of points where the model diagnoses no echo,
+so the sentinel above never sees them. Check whether a new field's nodata is a
+bitmap or a magic number before averaging anything.
+
+**Not every field has a `shortName`, and some share one.** NCEP's `RETOP` decodes
+as `unknown`, and cloud base and cloud top are both `gh` at level 0. Match
+messages on the GRIB2 parameter identity — `parameterCategory`,
+`parameterNumber`, `typeOfLevel` — which is unique where the display name is
+absent or ambiguous.
 
 **Reflectivity averages in Z, not in dBZ.** dBZ is a logarithm; the mean of 20
 and 50 dBZ is not 35 dBZ of weather. Convert to Z = 10^(dBZ/10), average, and

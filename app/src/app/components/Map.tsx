@@ -21,6 +21,7 @@ import MapView from "@arcgis/core/views/MapView";
 import Extent from "@arcgis/core/geometry/Extent";
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils";
 import {
+  CandidateCloudBaseLayer,
   CandidateCloudTopLayer,
   ForecastCloudsLayer,
   ForecastPrecipLayer,
@@ -53,6 +54,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const coordinates = useAppSelector((state) => state.interactions.coordinates);
   const hour = useAppSelector((state) => state.forecast.hour);
   const precip = useAppSelector((state) => state.forecast.precip);
+  const cloudBase = useAppSelector((state) => state.cloudbase.visible);
   const cloudTop = useAppSelector((state) => state.cloudtop.visible);
   const liquid = useAppSelector((state) => state.candidate.liquid);
   const radar = useAppSelector((state) => state.radar.visible);
@@ -75,7 +77,12 @@ export const ArcGIS = ({ mode }: PropsT) => {
         // ground, and the observed radar sits over that — a candidate is only
         // disqualified by rain where the two overlap, so the disqualifier has to
         // be the layer you can see.
+        //
+        // Cloud base is at the bottom: it covers more ground than any of them
+        // and it is the question you ask *before* the others — can I get into
+        // this cloud at all — so it belongs under the answers.
         layers: [
+          CandidateCloudBaseLayer,
           CandidateCloudTopLayer,
           ForecastCloudsLayer,
           ForecastPrecipLayer,
@@ -125,6 +132,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
   useEffect(() => {
     ForecastCloudsLayer.visible = forecasting;
     ForecastPrecipLayer.visible = raining && precip;
+    CandidateCloudBaseLayer.visible = candidating && cloudBase;
     CandidateCloudTopLayer.visible = candidating && cloudTop;
     CandidateLiquidLayer.visible = candidating && liquid;
     // Observations, so they never appear on the modelled map — the same rule
@@ -144,6 +152,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     replaying,
     raining,
     precip,
+    cloudBase,
     cloudTop,
     liquid,
     radar,
@@ -225,7 +234,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
       .then((layerView) => {
         handle = reactiveUtils.watch(
           () => layerView.updating,
-          (updating) => dispatch(forecastActions.setDrawing(updating)),
+          (updating) => dispatch(forecastActions.setDrawing(updating))
         );
       })
       .catch(() => {
@@ -253,7 +262,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
         soundingActions.setPoint([
           Math.round(longitude * 100) / 100,
           Math.round(latitude * 100) / 100,
-        ]),
+        ])
       );
     });
 

@@ -6,7 +6,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 
 // Services
-import { features, polygons } from "./contour";
+import { bandFeatures, features, polygons } from "./contour";
 import { eachMessage } from "./grib";
 
 // Types
@@ -293,11 +293,203 @@ export const PROFILE_LEVELS: number[] = (() => {
  * the widening above.
  */
 export const SOUNDING_LEVELS: number[] = PROFILE_LEVELS.filter(
-  (mb) => mb >= SOUNDING.minMb,
+  (mb) => mb >= SOUNDING.minMb
 );
+
+/**
+ * The window Texas operations select cloud bases in, ft MSL.
+ *
+ * **Cited, not derived.** The state's published description of its permitted
+ * programmes targets convective clouds with bases between 4,000 and 12,000 ft;
+ * this is that number, not a cutoff chosen from a coverage table. It is
+ * reported and drawn, never used to filter anything out — a base outside it is
+ * still a base, and the layer still paints it.
+ *
+ * **The datum is ours, not theirs.** The published figure does not say MSL or
+ * AGL, and over Texas the two differ by up to ~4,000 ft between the coast and
+ * the Llano Estacado. This app reads it as MSL because that is the datum
+ * everything else here is in — `HGT:cloud base` is geopotential metres above
+ * sea level, the sounding's band base and freezing level are MSL, and C2 is a
+ * comparison between those three numbers, which is only meaningful in one
+ * datum. The point readout carries the height above ground alongside it.
+ */
+export const BASE_WINDOW_FT = [4000, 12000] as const;
+
+/**
+ * Cloud base, contoured into **disjoint bands** rather than nested contours.
+ *
+ * The shape is chosen the way `CLAUDE.md` says to choose it — by measuring the
+ * coverage of each level first. Over the Texas box on a rainy-season afternoon
+ * (2025-05-15 18z f00, 11,071 12 km cells) 39.3% of cells carry a base at all,
+ * and those split 18% below 4,000 ft, 12% inside the window, and 70% above
+ * 12,000 ft. That is bimodal — low convective bases, or the base of a cirrus
+ * deck with clear air underneath — and nesting cannot express it: "lower is
+ * better" up to a point and then "lower" means fog. Exactly one band applies to
+ * a cell, so the legend reads straight, the same way cloud-top temperature
+ * does.
+ *
+ * The edges are the operational window's own, so the middle band **is** the
+ * window rather than an approximation of it.
+ */
+const CLOUD_BASE = {
+  property: "cloudBaseFt",
+  edges: [0, ...BASE_WINDOW_FT] as const,
+} as const;
+
+/**
+ * What a bitmapped-missing point is printed as while decoding the 2D
+ * diagnostics.
+ *
+ * eccodes defaults to 9999, and **for a height in metres that is a real
+ * value**: HRRR's `HGT:cloud top` carries tops to 15,698 m in this same file,
+ * so 9999 would silently read genuine deep convection as nodata. The first pass
+ * at this layer produced cloud tops below cloud bases for exactly that reason.
+ * The sentinel has to sit outside the field's physical range instead.
+ */
+const SFC_MISSING = -9_999_999;
+
+/**
+ * Where a block has no sampled points at all.
+ *
+ * NaN rather than a number, because there is no number here that is not a
+ * plausible height. It is also what every consumer already wants: marching
+ * squares thresholds with `>=`, which is false for NaN, so nothing is drawn
+ * where there is no cloud — the same real nodata the cloud-top layer has.
+ */
+const NO_VALUE = Number.NaN;
+
+/**
+ * RETOP's own no-echo value. It carries no bitmap and writes −999 where the
+ * model diagnoses no radar echo, so `SFC_MISSING` never sees those points and
+ * this has to be dropped by hand. 97.6% of CONUS on the sampled hour.
+ */
+const NO_ECHO = -999;
+
+/**
+ * The 2D diagnostics read out of `wrfsfc` — the file the cloud-cover and
+ * precipitation layers already download.
+ *
+ * These are **not** in `FIELDS`, and the split is not cosmetic: `FIELDS` is the
+ * set contoured into nested levels by `features()`, and every entry here is
+ * either banded (cloud base) or reported as an attribute at one point (the
+ * rest). Attributes, not gates — the sidebar prints them and nothing filters on
+ * them, because a cutoff needs a citation rather than a coverage table.
+ *
+ * `id` is eccodes' `parameterCategory:parameterNumber:typeOfLevel`, which is
+ * how messages are matched back to fields on the way out. **Not `shortName`**:
+ * `RETOP` decodes as `unknown` (NCEP has no eccodes entry for it), and cloud
+ * base and cloud top are both `gh` at level 0 and would collide. The GRIB2
+ * parameter identity does not have either problem.
+ *
+ * `grib` is the `.idx` naming, which both origins agree on here — verified
+ * against a 2025-05-15 archive index and a live NOMADS one. There is no
+ * `CLWMR`/`CLMR`-style rename in this set.
+ */
+const DIAGNOSTICS = {
+  /** **C2.** The selection variable Texas practice actually uses. */
+  cloudBase: {
+    grib: { name: "HGT", level: "cloud base" },
+    id: "3:5:cloudBase",
+    scale: SOUNDING.metresToFeet,
+    missing: SFC_MISSING,
+    firstHour: 0,
+  },
+  /**
+   * **C2.** HRRR's own cloud top, and it is sparse where the base is dense —
+   * 27.7% of CONUS against 58.6% on the sampled hour, because `PRES`/`HGT:cloud
+   * top` report one deck rather than the highest (`MEASUREMENTS.md` §4). It is
+   * read for the point readout and deliberately not drawn: a layer that
+   * vanished over most of the cloud the base layer shows would read as "no
+   * cloud". The map's answer for cloud top is the satellite's.
+   */
+  cloudTop: {
+    grib: { name: "HGT", level: "cloud top" },
+    id: "3:5:cloudTop",
+    scale: SOUNDING.metresToFeet,
+    missing: SFC_MISSING,
+    firstHour: 0,
+  },
+  /** **C1.** Surface-based convective available potential energy, J/kg. */
+  cape: {
+    grib: { name: "CAPE", level: "surface" },
+    id: "7:6:surface",
+    scale: 1,
+    missing: null,
+    firstHour: 0,
+  },
+  /** **C1.** The mixed-layer parcel, which is the one a turret grows out of. */
+  mixedCape: {
+    grib: { name: "CAPE", level: "180-0 mb above ground" },
+    id: "7:6:pressureFromGroundLayer",
+    scale: 1,
+    missing: null,
+    firstHour: 0,
+  },
+  /** **C7.** Storm motion, m/s, east and north components of the 0–6 km vector. */
+  stormU: {
+    grib: { name: "USTM", level: "0-6000 m above ground" },
+    id: "2:27:heightAboveGroundLayer",
+    scale: 1,
+    missing: null,
+    firstHour: 0,
+  },
+  stormV: {
+    grib: { name: "VSTM", level: "0-6000 m above ground" },
+    id: "2:28:heightAboveGroundLayer",
+    scale: 1,
+    missing: null,
+    firstHour: 0,
+  },
+  /**
+   * **C1, C7.** Electrification.
+   *
+   * `firstHour: 1` for the same reason `PRATE` has it, and verified the same
+   * way: at f00 this record is **188 bytes** — GRIB2's size for a constant
+   * field — and decodes to zero everywhere. A flash rate is diagnosed by
+   * integrating a timestep forward and the analysis has not taken one.
+   *
+   * eccodes reports it `dimensionless` and NCEP publishes no unit for it, so it
+   * is reported as the bare number HRRR carries rather than dressed in one.
+   */
+  lightning: {
+    grib: { name: "LTNG", level: "entire atmosphere" },
+    id: "17:192:atmosphere",
+    scale: 1,
+    missing: null,
+    firstHour: 1,
+  },
+  /** **C5.** Vertically integrated liquid, kg/m² — an independent check on the
+   * supercooled-liquid integral, which is derived from a different field. */
+  vil: {
+    grib: { name: "VIL", level: "entire atmosphere" },
+    id: "15:3:atmosphere",
+    scale: 1,
+    missing: null,
+    firstHour: 0,
+  },
+  /** **C1.** Model-diagnosed radar echo top. See `NO_ECHO` for its sentinel. */
+  echoTop: {
+    grib: { name: "RETOP", level: "cloud top" },
+    id: "16:3:cloudTop",
+    scale: SOUNDING.metresToFeet,
+    missing: NO_ECHO,
+    firstHour: 0,
+  },
+} as const;
+
+export type DiagnosticId = keyof typeof DIAGNOSTICS;
 
 /** Profile grids are ~12 MB an hour, so only the last few hours are kept. */
 const PROFILE_CACHE = 3;
+
+/**
+ * Diagnostic grids are ~4 MB an hour — nine 12 km fields plus the banded
+ * frame — so the same policy applies.
+ */
+const SURFACE_CACHE = 3;
+
+/** m/s to knots, which is what a storm-motion vector is read in. */
+const KNOTS = 1.94384;
 
 /** HRRR publishes f00-f18 every cycle. */
 export const FORECAST_HOURS = 18;
@@ -341,6 +533,71 @@ export type SlwStats = {
   bandBaseMb: number | null;
 };
 
+/**
+ * What the sidebar reports for the cloud-base layer.
+ *
+ * The two figures that matter are how much of the domain has a cloud base at
+ * all and how much of it sits in the window Texas operations select in — the
+ * gap between them is mostly cirrus base over clear low levels, which is not a
+ * target and covers most of the cloudy ground on a typical hour.
+ */
+export type CloudBaseStats = {
+  run: string;
+  hour: number;
+  validTime: string;
+  /** Percent of the HRRR domain with a cloud base at all. */
+  basePct: number;
+  /** Percent of the domain whose base is inside BASE_WINDOW_FT. */
+  windowPct: number;
+  /** Ground with a base inside the window, km^2. */
+  windowKm2: number;
+  /** Median base where there is one, ft MSL. Null when there is no cloud. */
+  medianFt: number | null;
+};
+
+/**
+ * The `wrfsfc` diagnostics over one point — **attributes, never gates.**
+ *
+ * These are the C1, C5 and C7 variables the map has never carried, and they
+ * ride here rather than filtering anything: `MEASUREMENTS.md` §6 is explicit
+ * that a threshold needs a citation and not a coverage table, and none of these
+ * has one yet. So the panel prints them and the operator judges.
+ *
+ * C2 is the exception in kind: `cloudBaseFt` and `cloudTopFt` are two ends of a
+ * real criterion, and `bandInCloud` evaluates it at this point.
+ */
+export type Diagnostics = {
+  /** Cloud base, ft MSL. Null where the model has no cloud over the cell. */
+  cloudBaseFt: number | null;
+  /** The same base above the terrain, which is what a ceiling report means. */
+  cloudBaseAglFt: number | null;
+  /** HRRR's own cloud top, ft MSL — one deck, not necessarily the highest. */
+  cloudTopFt: number | null;
+  /** Top minus base. Null when either is missing, or when they invert. */
+  depthFt: number | null;
+  /**
+   * **C2 at this point:** does the seeding band's base lie between cloud base
+   * and cloud top? Null when the column has no band base, or when HRRR reports
+   * no top here — which is most cloudy cells, and is why the map's cloud top
+   * comes from the satellite instead.
+   */
+  bandInCloud: boolean | null;
+  /** Surface-based CAPE, J/kg. */
+  capeJKg: number;
+  /** Mixed-layer (180–0 mb) CAPE, J/kg. */
+  mixedCapeJKg: number;
+  /** 0–6 km storm motion, knots. */
+  stormMotionKt: number;
+  /** Compass bearing the storm is moving **toward**, degrees. Null when still. */
+  stormMotionTowardDeg: number | null;
+  /** HRRR's lightning field, dimensionless. Null at f00, where it is not diagnosed. */
+  lightning: number | null;
+  /** Vertically integrated liquid, kg/m^2. */
+  vilKgM2: number;
+  /** Model radar echo top, ft MSL. Null where the model diagnoses no echo. */
+  echoTopFt: number | null;
+};
+
 /** One level of the point profile, in the units an operator reads. */
 export type SoundingLevel = {
   mb: number;
@@ -382,6 +639,14 @@ export type Sounding = {
   topC: number;
   /** Every level read, bottom up. Small enough to show, and it is the evidence. */
   levels: SoundingLevel[];
+  /**
+   * The 2D diagnostics over the same cell.
+   *
+   * They ride on this response rather than on a route of their own because they
+   * answer the same click. Two routes would mean two round trips for one point
+   * and, on an hour boundary, two different cells.
+   */
+  diagnostics: Diagnostics;
 };
 
 /**
@@ -399,6 +664,24 @@ export type Column = {
 type IdxRow = { name: string; level: string; start: number; end: number };
 
 type Slw = { frame: ContourFrame; stats: SlwStats };
+
+/**
+ * One hour's `wrfsfc` diagnostics: every field on the 12 km grid, plus the
+ * cloud-base layer built from one of them.
+ *
+ * **One build, several answers.** All nine records come out of one file, one
+ * index read and one ranged fetch, and both consumers — the cloud-base contours
+ * and the point readout — are on the same page at the same hour. Splitting them
+ * would mean two index reads and two downloads of the same file to answer one
+ * click.
+ */
+type Surface = {
+  run: Date;
+  hour: number;
+  /** Absent for a field the hour does not carry — see `lightning`'s firstHour. */
+  fields: Map<DiagnosticId, Float32Array>;
+  base: { frame: ContourFrame; stats: CloudBaseStats };
+};
 
 /** Block-averaged temperature and height at each level, for the whole domain. */
 type Profile = {
@@ -420,9 +703,11 @@ export class ForecastService {
   private frames = new Map<string, ContourFrame>();
   private slw = new Map<string, Slw>();
   private profiles = new Map<string, Profile>();
+  private surfaces = new Map<string, Surface>();
   private inflight = new Map<string, Promise<ContourFrame>>();
   private slwInflight = new Map<string, Promise<Slw>>();
   private profileInflight = new Map<string, Promise<Profile>>();
+  private surfaceInflight = new Map<string, Promise<Surface>>();
 
   /** Most recent cycle whose f00 index is published. Re-checked every 5 min. */
   async latestRun(): Promise<Date> {
@@ -438,12 +723,12 @@ export class ForecastService {
           now.getUTCFullYear(),
           now.getUTCMonth(),
           now.getUTCDate(),
-          now.getUTCHours() - back,
-        ),
+          now.getUTCHours() - back
+        )
       );
       const res = await fetch(
         this.idxUrl({ run, origin: "nomads" }, 0, "wrfsfc"),
-        { method: "HEAD" },
+        { method: "HEAD" }
       );
       if (res.ok) {
         this.runCache = { run, checkedAt: Date.now() };
@@ -489,6 +774,19 @@ export class ForecastService {
   }
 
   /**
+   * Cloud base, banded — the selection variable Texas practice uses and this
+   * app has never read.
+   */
+  async cloudBase(hour: number, at?: Date): Promise<ContourFrame> {
+    return (await this.surface(hour, at)).base.frame;
+  }
+
+  /** The same build's summary. Asking for either warms both. */
+  async cloudBaseStats(hour: number, at?: Date): Promise<CloudBaseStats> {
+    return (await this.surface(hour, at)).base.stats;
+  }
+
+  /**
    * The vertical profile over one point: the altitudes a drone is given.
    *
    * The point is snapped to the 12 km cell the contours are drawn on, so this
@@ -498,10 +796,15 @@ export class ForecastService {
     lat: number,
     lon: number,
     hour: number,
-    at?: Date,
+    at?: Date
   ): Promise<Sounding> {
     this.assertPoint(lat, lon);
-    const profile = await this.profile(hour, at);
+    // Two builds off two products, and neither needs the other, so the first
+    // click pays for the slower rather than for the sum.
+    const [profile, surface] = await Promise.all([
+      this.profile(hour, at),
+      this.surface(hour, at),
+    ]);
     const geo = this.geo!;
     const cell = nearestCell(geo, lat, lon);
 
@@ -515,21 +818,29 @@ export class ForecastService {
       // Bottom up, so a search for the lowest crossing walks it in order.
       .sort((a, b) => a.heightFt - b.heightFt);
 
+    const bandBaseFt = isothermFt(levels, SEEDING.warmestC);
+
     return {
       run: profile.run.toISOString(),
       hour,
       validTime: new Date(
-        profile.run.getTime() + hour * 3_600_000,
+        profile.run.getTime() + hour * 3_600_000
       ).toISOString(),
       lat: Math.round(geo.lats[cell] * 100) / 100,
       lon: Math.round(geo.lons[cell] * 100) / 100,
       surfaceFt: Math.round(profile.surfaceFt[cell]),
       freezingFt: isothermFt(levels, 0),
-      bandBaseFt: isothermFt(levels, SEEDING.warmestC),
+      bandBaseFt,
       bandTopFt: isothermFt(levels, SEEDING.coldestC),
       baseC: Math.round(levels[0].tempC * 10) / 10,
       topC: Math.round(levels[levels.length - 1].tempC * 10) / 10,
       levels,
+      diagnostics: diagnostics(
+        surface.fields,
+        cell,
+        profile.surfaceFt[cell],
+        bandBaseFt
+      ),
     };
   }
 
@@ -593,6 +904,109 @@ export class ForecastService {
     return work;
   }
 
+  /** The hour's 2D diagnostics, and the cloud-base layer built from them. */
+  private async surface(hour: number, at?: Date): Promise<Surface> {
+    this.assertHour(hour);
+
+    const cycle = await this.cycle(at);
+    const key = `${cycle.run.toISOString()}:surface:${hour}`;
+
+    const cached = this.surfaces.get(key);
+    if (cached) return cached;
+
+    const running = this.surfaceInflight.get(key);
+    if (running) return running;
+
+    const work = this.buildSurface(cycle, hour)
+      .then((built) => {
+        this.surfaces.set(key, built);
+        cap(this.surfaces, SURFACE_CACHE);
+        this.evictOldRuns(cycle);
+        return built;
+      })
+      .finally(() => this.surfaceInflight.delete(key));
+
+    this.surfaceInflight.set(key, work);
+    return work;
+  }
+
+  /**
+   * Read every `wrfsfc` diagnostic this hour carries, block-average each to
+   * 12 km, and band the cloud base.
+   *
+   * Messages are matched back to fields by their GRIB2 parameter identity
+   * rather than by arrival order — see `DIAGNOSTICS.id` for why `shortName`
+   * cannot do it here — and every field asked for must arrive, so a renamed or
+   * dropped record fails loudly instead of leaving a hole in the readout.
+   */
+  private async buildSurface(cycle: Cycle, hour: number): Promise<Surface> {
+    const rows = await this.index(cycle, hour, "wrfsfc");
+    const url = this.gribUrl(cycle, hour, "wrfsfc");
+
+    const wanted = recordsAt(hour);
+    const grib = await this.fetchRanges(
+      url,
+      wanted.map((id) =>
+        pick(rows, DIAGNOSTICS[id].grib.name, DIAGNOSTICS[id].grib.level)
+      ),
+      cycle.origin
+    );
+
+    const byId = new Map(
+      wanted.map((id) => [DIAGNOSTICS[id].id as string, id])
+    );
+    const fields = new Map<DiagnosticId, Float32Array>();
+
+    await eachMessage(
+      grib,
+      {
+        keys: ["parameterCategory", "parameterNumber", "typeOfLevel"],
+        points: POINTS,
+        missingValue: SFC_MISSING,
+        onMessage: (keys, values) => {
+          const id = byId.get(keys.join(":"));
+          if (!id)
+            throw new Error(`Unexpected HRRR record [${keys.join(" ")}]`);
+          const spec = DIAGNOSTICS[id];
+          fields.set(
+            id,
+            blockAverageSparse(values, spec.scale, spec.missing).values
+          );
+        },
+      },
+      "hrrr-sfc"
+    );
+
+    for (const id of wanted) {
+      if (!fields.has(id)) {
+        const { name, level } = DIAGNOSTICS[id].grib;
+        throw new Error(`HRRR carried no ${name} at ${level}`);
+      }
+    }
+
+    await this.ensureGeo(grib);
+    const geo = this.geo!;
+    const grid: Grid = {
+      nx: geo.nx,
+      ny: geo.ny,
+      values: fields.get("cloudBase")!,
+    };
+
+    return {
+      run: cycle.run,
+      hour,
+      fields,
+      base: {
+        frame: frame(
+          cycle.run,
+          hour,
+          bandFeatures(grid, geo, CLOUD_BASE.property, CLOUD_BASE.edges)
+        ),
+        stats: baseStats(cycle.run, hour, grid),
+      },
+    };
+  }
+
   /**
    * Read TMP and HGT on the 50 mb ladder, plus the terrain height.
    *
@@ -609,9 +1023,9 @@ export class ForecastService {
     const grib = await this.fetchRanges(
       url,
       levels.flatMap((mb) =>
-        ["TMP", "HGT"].map((name) => pick(rows, name, `${mbLabel(mb)} mb`)),
+        ["TMP", "HGT"].map((name) => pick(rows, name, `${mbLabel(mb)} mb`))
       ),
-      cycle.origin,
+      cycle.origin
     );
 
     const tempC = new Map<number, Float32Array>();
@@ -629,7 +1043,7 @@ export class ForecastService {
       if (name === "gh") {
         heightFt.set(
           levelKey(level),
-          blockAverage(values, SOUNDING.metresToFeet).values,
+          blockAverage(values, SOUNDING.metresToFeet).values
         );
       }
     });
@@ -664,7 +1078,7 @@ export class ForecastService {
     const grib = await this.fetchRanges(
       this.gribUrl(cycle, hour, "wrfsfc"),
       [pick(rows, "HGT", "surface")],
-      cycle.origin,
+      cycle.origin
     );
 
     let surface: Float32Array | null = null;
@@ -678,7 +1092,7 @@ export class ForecastService {
   private async contours(
     field: FieldId,
     hour: number,
-    at?: Date,
+    at?: Date
   ): Promise<ContourFrame> {
     this.assertHour(hour);
 
@@ -800,7 +1214,7 @@ export class ForecastService {
   private async index(
     cycle: Cycle,
     hour: number,
-    product: Product,
+    product: Product
   ): Promise<IdxRow[]> {
     const res = await fetch(this.idxUrl(cycle, hour, product));
     if (!res.ok) {
@@ -822,11 +1236,11 @@ export class ForecastService {
   private async range(
     cycle: Cycle,
     hour: number,
-    grib: FieldSpec["grib"],
+    grib: FieldSpec["grib"]
   ): Promise<[number, number]> {
     const rows = await this.index(cycle, hour, "wrfsfc");
     const row = rows.find(
-      (r) => r.name === grib.name && r.level === grib.level,
+      (r) => r.name === grib.name && r.level === grib.level
     );
     if (!row) throw new Error(`${grib.name} not present in HRRR index`);
     if (!Number.isFinite(row.end)) {
@@ -846,7 +1260,7 @@ export class ForecastService {
   private async fetchRanges(
     url: string,
     ranges: [number, number][],
-    origin: Origin = "nomads",
+    origin: Origin = "nomads"
   ): Promise<Buffer> {
     if (origin === "archive") return fetchRangesOneByOne(url, ranges);
 
@@ -867,13 +1281,13 @@ export class ForecastService {
   private async build(
     cycle: Cycle,
     hour: number,
-    spec: FieldSpec,
+    spec: FieldSpec
   ): Promise<ContourFrame> {
     const [start, end] = await this.range(cycle, hour, spec.grib);
     const grib = await this.fetchRanges(
       this.gribUrl(cycle, hour, "wrfsfc"),
       [[start, end]],
-      cycle.origin,
+      cycle.origin
     );
 
     const { grid, geo } = await this.decode(grib, spec);
@@ -882,7 +1296,7 @@ export class ForecastService {
     return frame(
       cycle.run,
       hour,
-      this.features(grid, spec.property, spec.levels),
+      this.features(grid, spec.property, spec.levels)
     );
   }
 
@@ -890,7 +1304,7 @@ export class ForecastService {
   private features(
     grid: Grid,
     property: string,
-    levels: readonly number[],
+    levels: readonly number[]
   ): ContourFeature[] {
     return features(grid, this.geo!, property, levels);
   }
@@ -903,7 +1317,7 @@ export class ForecastService {
    */
   private async decode(
     grib: Buffer,
-    spec: FieldSpec,
+    spec: FieldSpec
   ): Promise<{ grid: Grid; geo: Geo }> {
     const dir = await mkdtemp(join(tmpdir(), "hrrr-"));
     const file = join(dir, `${spec.grib.name.toLowerCase()}.grib2`);
@@ -912,7 +1326,7 @@ export class ForecastService {
       const { stdout } = await execFileAsync(
         "grib_get_data",
         ["-m", String(MISSING), file],
-        { maxBuffer: 256 * 1024 * 1024 },
+        { maxBuffer: 256 * 1024 * 1024 }
       );
       return accumulate(stdout, spec.scale);
     } finally {
@@ -946,8 +1360,8 @@ export class ForecastService {
     // eccodes calls it `clwmr` on both, so only this lookup needs to know.
     const wanted = levels.flatMap((mb) =>
       ["TMP", CLWMR_NAME[origin]].map((name) =>
-        pick(rows, name, `${mbLabel(mb)} mb`),
-      ),
+        pick(rows, name, `${mbLabel(mb)} mb`)
+      )
     );
     const grib = await this.fetchRanges(url, wanted, origin);
 
@@ -993,7 +1407,7 @@ export class ForecastService {
       frame: frame(
         run,
         hour,
-        this.features(grid, SEEDING.property, SEEDING.levels),
+        this.features(grid, SEEDING.property, SEEDING.levels)
       ),
       stats: stats(run, hour, grid, topMb, baseMb),
     };
@@ -1011,12 +1425,12 @@ export class ForecastService {
   private async scout(
     rows: IdxRow[],
     url: string,
-    origin: Origin,
+    origin: Origin
   ): Promise<{ topMb: number; baseMb: number } | null> {
     const grib = await this.fetchRanges(
       url,
       SCOUT_LADDER_MB.map((mb) => pick(rows, "TMP", `${mb} mb`)),
-      origin,
+      origin
     );
 
     const seen: { mb: number; min: number; max: number }[] = [];
@@ -1033,7 +1447,7 @@ export class ForecastService {
     seen.sort((a, b) => a.mb - b.mb);
 
     const touching = seen.filter(
-      (s) => s.max >= SEEDING.coldestC && s.min <= SEEDING.warmestC,
+      (s) => s.max >= SEEDING.coldestC && s.min <= SEEDING.warmestC
     );
     if (touching.length === 0) return null;
 
@@ -1060,7 +1474,7 @@ export class ForecastService {
       const { stdout } = await execFileAsync(
         "grib_get_data",
         ["-m", String(MISSING), "-w", "count=1", file],
-        { maxBuffer: 256 * 1024 * 1024 },
+        { maxBuffer: 256 * 1024 * 1024 }
       );
       this.geo = accumulate(stdout, 1).geo;
     } finally {
@@ -1076,7 +1490,7 @@ export class ForecastService {
    */
   private eachMessage(
     grib: Buffer,
-    onMessage: (name: string, level: number, values: Float32Array) => void,
+    onMessage: (name: string, level: number, values: Float32Array) => void
   ): Promise<void> {
     return eachMessage(
       grib,
@@ -1086,7 +1500,7 @@ export class ForecastService {
         onMessage: ([name, level], values) =>
           onMessage(name, Number(level), values),
       },
-      "hrrr-msg",
+      "hrrr-msg"
     );
   }
 }
@@ -1108,7 +1522,7 @@ export class ForecastService {
  */
 export async function fetchRangesOneByOne(
   url: string,
-  ranges: [number, number][],
+  ranges: [number, number][]
 ): Promise<Buffer> {
   const parts: Buffer[] = [];
   for (const [start, end] of ranges) {
@@ -1118,7 +1532,7 @@ export async function fetchRangesOneByOne(
     if (res.status !== 206) {
       throw new Error(
         `HRRR archive ignored the byte range (got ${res.status}, expected 206) — ` +
-          `refusing to download the whole object`,
+          `refusing to download the whole object`
       );
     }
     parts.push(Buffer.from(await res.arrayBuffer()));
@@ -1133,8 +1547,8 @@ export function floorHour(at: Date): Date {
       at.getUTCFullYear(),
       at.getUTCMonth(),
       at.getUTCDate(),
-      at.getUTCHours(),
-    ),
+      at.getUTCHours()
+    )
   );
 }
 
@@ -1152,7 +1566,7 @@ export function assertAt(at: Date) {
   if (Date.now() - at.getTime() < ARCHIVE_LAG_MS) {
     throw new Error(
       "`at` must name a cycle at least an hour old — HRRR posts ~50 min after " +
-        "the hour. Omit `at` for the current run.",
+        "the hour. Omit `at` for the current run."
     );
   }
 }
@@ -1208,7 +1622,7 @@ export function nearestCell(geo: Geo, lat: number, lon: number): number {
  */
 export function isothermFt(
   levels: readonly SoundingLevel[],
-  targetC: number,
+  targetC: number
 ): number | null {
   for (let i = 0; i < levels.length - 1; i++) {
     const below = levels[i];
@@ -1241,7 +1655,7 @@ export function temperatureAtMb(
   levels: readonly number[],
   tempC: Map<number, Float32Array>,
   cell: number,
-  mb: number,
+  mb: number
 ): number {
   const at = (level: number) => tempC.get(levelKey(level))![cell];
 
@@ -1287,7 +1701,7 @@ const levelKey = (mb: number) => Math.round(mb);
 function frame(
   run: Date,
   hour: number,
-  features: ContourFeature[],
+  features: ContourFeature[]
 ): ContourFrame {
   return {
     type: "FeatureCollection",
@@ -1316,7 +1730,7 @@ function stats(
   hour: number,
   grid: Grid,
   bandTopMb: number | null,
-  bandBaseMb: number | null,
+  bandBaseMb: number | null
 ): SlwStats {
   const floor = SEEDING.levels[0];
   let seedable = 0;
@@ -1395,7 +1809,7 @@ export function blockAverage(
   values: Float32Array,
   scale: number,
   nx = NX,
-  ny = NY,
+  ny = NY
 ): Grid {
   const ox = Math.floor(nx / BLOCK);
   const oy = Math.floor(ny / BLOCK);
@@ -1415,6 +1829,172 @@ export function blockAverage(
 }
 
 /**
+ * Which diagnostics an hour carries.
+ *
+ * Only `lightning` is ever dropped, and it is dropped for a fact about HRRR
+ * rather than a preference: at f00 that record is a 188-byte constant field of
+ * zeros, so downloading it would cost a request to learn nothing. Everything
+ * else is a state the analysis holds and is full-size at f00.
+ */
+export function recordsAt(hour: number): DiagnosticId[] {
+  return (Object.keys(DIAGNOSTICS) as DiagnosticId[]).filter(
+    (id) => hour >= DIAGNOSTICS[id].firstHour
+  );
+}
+
+/**
+ * Block-average a field that has real nodata in it.
+ *
+ * `blockAverage` above is the right tool for a field that is defined
+ * everywhere; this one is for the `wrfsfc` diagnostics, where "no cloud here"
+ * is an answer rather than a gap. Two rules make it honest:
+ *
+ * - **Missing points never enter the mean.** Averaging a sentinel in would put
+ *   a cloud base halfway to the sentinel wherever cloud met clear sky.
+ * - **A cell needs a majority of real points to have a value at all**, which is
+ *   the same rule the cloud-top layer resamples the satellite with. The
+ *   alternative — one sampled point makes the cell — paints a solid 12 km base
+ *   over a scatter of cumulus, which is not a target a drone is sent to.
+ *
+ * `missing` is null for a field with no sentinel, where every point is real and
+ * the majority rule can never bite.
+ */
+export function blockAverageSparse(
+  values: Float32Array,
+  scale: number,
+  missing: number | null,
+  nx = NX,
+  ny = NY
+): Grid {
+  const ox = Math.floor(nx / BLOCK);
+  const oy = Math.floor(ny / BLOCK);
+  const out = new Float32Array(ox * oy);
+  const points = BLOCK * BLOCK;
+
+  for (let bj = 0; bj < oy; bj++) {
+    for (let bi = 0; bi < ox; bi++) {
+      let sum = 0;
+      let seen = 0;
+      for (let dj = 0; dj < BLOCK; dj++) {
+        const row = (bj * BLOCK + dj) * nx + bi * BLOCK;
+        for (let di = 0; di < BLOCK; di++) {
+          const v = values[row + di];
+          if (missing !== null && v === missing) continue;
+          sum += v;
+          seen++;
+        }
+      }
+      out[bj * ox + bi] = seen * 2 > points ? (sum / seen) * scale : NO_VALUE;
+    }
+  }
+  return { nx: ox, ny: oy, values: out };
+}
+
+/**
+ * The cloud-base sidebar's numbers, against the same 12 km grid the bands are
+ * drawn from so the picture and the figures cannot disagree.
+ */
+export function baseStats(run: Date, hour: number, grid: Grid): CloudBaseStats {
+  const [low, high] = BASE_WINDOW_FT;
+  const bases: number[] = [];
+  let inWindow = 0;
+
+  for (const v of grid.values) {
+    if (Number.isNaN(v)) continue;
+    bases.push(v);
+    if (v >= low && v < high) inWindow++;
+  }
+
+  const total = grid.values.length;
+  bases.sort((a, b) => a - b);
+
+  return {
+    run: run.toISOString(),
+    hour,
+    validTime: new Date(run.getTime() + hour * 3_600_000).toISOString(),
+    basePct: Math.round((10000 * bases.length) / total) / 100,
+    windowPct: Math.round((10000 * inWindow) / total) / 100,
+    windowKm2: inWindow * CELL_KM2,
+    medianFt: bases.length
+      ? Math.round(bases[Math.floor((bases.length - 1) / 2)])
+      : null,
+  };
+}
+
+/** One field's value over one cell, or null where it has none. */
+export type Fields = Map<DiagnosticId, Float32Array>;
+
+const at = (fields: Fields, id: DiagnosticId, cell: number): number | null => {
+  const v = fields.get(id)?.[cell];
+  return v === undefined || Number.isNaN(v) ? null : v;
+};
+
+/**
+ * The 2D diagnostics over one cell, in the units the readout prints.
+ *
+ * Exported for the tests: everything here is arithmetic over arrays, and the
+ * only way to reach it through the service is a 10 MB download and eccodes.
+ */
+export function diagnostics(
+  fields: Fields,
+  cell: number,
+  surfaceFt: number,
+  bandBaseFt: number | null
+): Diagnostics {
+  const round = (v: number | null) => (v === null ? null : Math.round(v));
+  const round2 = (v: number | null) =>
+    v === null ? null : Math.round(v * 100) / 100;
+
+  const cloudBaseFt = round(at(fields, "cloudBase", cell));
+  const cloudTopFt = round(at(fields, "cloudTop", cell));
+
+  // A top at or below the base is not a thin cloud — `PRES`/`HGT:cloud top`
+  // report one deck rather than the highest, so the two diagnostics can be
+  // describing different decks. Reporting the difference would invent a depth.
+  const deep =
+    cloudBaseFt !== null && cloudTopFt !== null && cloudTopFt > cloudBaseFt;
+
+  const u = at(fields, "stormU", cell) ?? 0;
+  const v = at(fields, "stormV", cell) ?? 0;
+  const speed = Math.round(Math.hypot(u, v) * KNOTS);
+
+  return {
+    cloudBaseFt,
+    cloudBaseAglFt:
+      cloudBaseFt === null ? null : Math.round(cloudBaseFt - surfaceFt),
+    cloudTopFt,
+    depthFt: deep ? cloudTopFt! - cloudBaseFt! : null,
+    bandInCloud:
+      bandBaseFt === null || cloudBaseFt === null || cloudTopFt === null
+        ? null
+        : cloudBaseFt <= bandBaseFt && bandBaseFt <= cloudTopFt,
+    capeJKg: Math.round(at(fields, "cape", cell) ?? 0),
+    mixedCapeJKg: Math.round(at(fields, "mixedCape", cell) ?? 0),
+    stormMotionKt: speed,
+    // A bearing off a zero vector is atan2(0, 0), which is 0 rather than
+    // "nowhere". Say there is no direction instead of pointing north.
+    stormMotionTowardDeg: speed === 0 ? null : bearing(u, v),
+    lightning: round2(at(fields, "lightning", cell)),
+    vilKgM2: Math.round((at(fields, "vil", cell) ?? 0) * 10) / 10,
+    // RETOP's no-echo points are dropped by the block average like any other
+    // nodata, so a cell with no echo in it has no value rather than −999 ft.
+    echoTopFt: round(at(fields, "echoTop", cell)),
+  };
+}
+
+/**
+ * Compass bearing a vector points **toward**, degrees clockwise from north.
+ *
+ * Toward rather than from, and the choice is the whole reason this is a
+ * function with a comment. Wind is conventionally named by where it comes from
+ * and storm motion by where it is going, and a readout that guesses wrong is
+ * 180 degrees wrong without looking wrong.
+ */
+export function bearing(u: number, v: number): number {
+  return Math.round(((Math.atan2(u, v) * 180) / Math.PI + 360) % 360);
+}
+
+/**
  * Parse `grib_get_data` output ("lat lon value" per line, row-major) directly
  * into block averages, so the 1.9M-point grid is never held in memory. `scale`
  * converts the GRIB units to the units we contour in, and is applied to the
@@ -1426,7 +2006,7 @@ export function accumulate(
   text: string,
   scale: number,
   nx = NX,
-  ny = NY,
+  ny = NY
 ): { grid: Grid; geo: Geo } {
   const ox = Math.floor(nx / BLOCK);
   const oy = Math.floor(ny / BLOCK);

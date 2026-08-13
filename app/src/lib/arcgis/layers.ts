@@ -3,6 +3,7 @@ import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
 import {
   forecastCloudRenderer,
   forecastPrecipRenderer,
+  candidateCloudBaseRenderer,
   candidateCloudTopRenderer,
   candidateLiquidRenderer,
   candidateRadarRenderer,
@@ -12,6 +13,7 @@ import {
 import {
   CloudTopUrl,
   ForecastCloudsUrl,
+  ForecastCloudBaseUrl,
   ForecastPrecipUrl,
   ForecastLiquidUrl,
   RadarReflectivityUrl,
@@ -104,6 +106,34 @@ export const CandidateCloudTopLayer = new GeoJSONLayer({
   fields: [
     { name: "OBJECTID", type: "oid" },
     { name: "topColdnessC", type: "double" },
+  ],
+  visible: false,
+});
+
+/**
+ * Modelled cloud base, banded server-side from HRRR — the height an aircraft
+ * would climb through, and the variable Texas operations actually select on.
+ *
+ * **Disjoint bands, not nested contours**, because the field is a window rather
+ * than a magnitude: below it the base is fog, above it the base is cirrus, and
+ * the middle band is the one worth looking at. It has the same real nodata the
+ * cloud-top layer has — where the model has no cloud over a cell, nothing is
+ * drawn.
+ *
+ * Pinned to hour 0, like the liquid-water layer and for the same reason: the
+ * candidate map is "right now", and a cloud base is a state the analysis holds
+ * rather than a flux needing a timestep. Nothing repoints this url.
+ */
+export const CandidateCloudBaseLayer = new GeoJSONLayer({
+  title: "HRRR cloud base",
+  url: ForecastCloudBaseUrl(0),
+  copyright: "NOAA HRRR",
+  renderer: candidateCloudBaseRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "cloudBaseFt", type: "double" },
   ],
   visible: false,
 });

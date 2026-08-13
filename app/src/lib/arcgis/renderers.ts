@@ -252,6 +252,70 @@ export const candidateCloudTopRenderer = new UniqueValueRenderer({
 export const soloColor = (rgb: readonly number[], alpha: number) =>
   `rgba(${rgb.join(",")},${alpha.toFixed(3)})`;
 
+/**
+ * The window Texas operations select cloud bases in, ft MSL. Mirrors
+ * BASE_WINDOW_FT in server/src/lib/services/forecast.ts — the server bands on
+ * these edges and every caption here reads them from this one place.
+ */
+export const BASE_WINDOW_FT = [4000, 12000] as const;
+
+/**
+ * One cloud-base band: its lower edge in ft MSL, and the fill painted for it.
+ *
+ * **Disjoint, like the cloud-top bands and for the same reason.** Cloud base
+ * over Texas is bimodal — a low convective base, or the base of a cirrus deck
+ * with clear air under it — so nested levels would land on top of each other.
+ * Measured over the Texas box on a rainy-season afternoon, of the 39% of cells
+ * with a base at all: 18% below 4,000 ft, 12% in the window, 70% above it.
+ */
+export type CloudBaseBand = {
+  readonly value: number;
+  readonly label: string;
+  readonly alpha: number;
+};
+
+/**
+ * Violet, and the last hue this map has left. Slate is cloud shape, amber is
+ * modelled liquid water, cyan is observed rain; cloud base is a fourth claim
+ * and cannot borrow any of the three without reading as one of them.
+ */
+export const CLOUD_BASE_RGB = [167, 139, 250] as const;
+
+/**
+ * Mirrors CLOUD_BASE.edges in server/src/lib/services/forecast.ts.
+ *
+ * **The middle band is the loud one**, which is neither quiet-to-loud nor
+ * loud-to-quiet: the ramp is not a magnitude at all. It is a window with a
+ * wrong side on each end — below it the base is fog or low stratus, above it
+ * the base is cirrus over clear air, and the operator is looking for what is
+ * between. So the band that carries the operational window is the one that
+ * shows, and the other two are context.
+ */
+export const CLOUD_BASE_BANDS: readonly CloudBaseBand[] = [
+  { value: 0, label: `under ${BASE_WINDOW_FT[0] / 1000}k`, alpha: 0.1 },
+  {
+    value: BASE_WINDOW_FT[0],
+    label: `${BASE_WINDOW_FT[0] / 1000}–${BASE_WINDOW_FT[1] / 1000}k`,
+    alpha: 0.32,
+  },
+  {
+    value: BASE_WINDOW_FT[1],
+    label: `over ${BASE_WINDOW_FT[1] / 1000}k`,
+    alpha: 0.1,
+  },
+];
+
+export const candidateCloudBaseRenderer = new UniqueValueRenderer({
+  field: "cloudBaseFt",
+  uniqueValueInfos: CLOUD_BASE_BANDS.map(({ value, alpha }) => ({
+    value,
+    symbol: new SimpleFillSymbol({
+      color: [...CLOUD_BASE_RGB, alpha],
+      outline: { width: 0 },
+    }),
+  })),
+});
+
 /** The words an operator reads, not the raw number. Parallel to PRECIP_BANDS. */
 export const PRECIP_LABELS = ["trace", "light", "moderate", "heavy"] as const;
 

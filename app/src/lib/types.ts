@@ -28,6 +28,49 @@ export interface SlwStats {
   bandBaseMb: number | null;
 }
 
+/** Mirrors CloudBaseStats in server/src/lib/services/forecast.ts */
+export interface CloudBaseStats {
+  run: string;
+  hour: number;
+  validTime: string;
+  /** Percent of the HRRR domain with a cloud base at all. */
+  basePct: number;
+  /** Percent of the domain whose base is inside the operational window. */
+  windowPct: number;
+  /** Ground with a base inside the window, km². */
+  windowKm2: number;
+  /** Median base where there is one, ft MSL. Null when there is no cloud. */
+  medianFt: number | null;
+}
+
+/** Mirrors Diagnostics in server/src/lib/services/forecast.ts */
+export interface Diagnostics {
+  /** Cloud base, ft MSL. Null where the model has no cloud over the cell. */
+  cloudBaseFt: number | null;
+  /** The same base above the terrain, which is what a ceiling report means. */
+  cloudBaseAglFt: number | null;
+  /** HRRR's own cloud top, ft MSL — one deck, not necessarily the highest. */
+  cloudTopFt: number | null;
+  /** Top minus base. Null when either is missing, or when they invert. */
+  depthFt: number | null;
+  /** C2 at this point: is the band's base between cloud base and cloud top? */
+  bandInCloud: boolean | null;
+  /** Surface-based CAPE, J/kg. */
+  capeJKg: number;
+  /** Mixed-layer (180–0 mb) CAPE, J/kg. */
+  mixedCapeJKg: number;
+  /** 0–6 km storm motion, knots. */
+  stormMotionKt: number;
+  /** Compass bearing the storm is moving toward, degrees. Null when still. */
+  stormMotionTowardDeg: number | null;
+  /** HRRR's lightning field, dimensionless. Null at f00. */
+  lightning: number | null;
+  /** Vertically integrated liquid, kg/m². */
+  vilKgM2: number;
+  /** Model radar echo top, ft MSL. Null where the model diagnoses no echo. */
+  echoTopFt: number | null;
+}
+
 /** Mirrors SoundingLevel in server/src/lib/services/forecast.ts */
 export interface SoundingLevel {
   mb: number;
@@ -55,6 +98,8 @@ export interface Sounding {
   baseC: number;
   topC: number;
   levels: SoundingLevel[];
+  /** The wrfsfc diagnostics over the same cell — attributes, never gates. */
+  diagnostics: Diagnostics;
 }
 
 /** Mirrors RadarStats in server/src/lib/services/radar.ts */

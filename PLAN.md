@@ -72,15 +72,15 @@ bimodal Texas rainfall pattern intersected with the TDLR permitted season.
 
 ## 2. Reconciliation — what the app shows vs. what Texas actually seeds
 
-| Texas operational practice                              | What the app has today               | Gap                                                  |
-| ------------------------------------------------------- | ------------------------------------ | ---------------------------------------------------- |
-| Targets **convective clouds with base 4,000–12,000 ft** | No cloud base at all                 | **C2** — the primary selection variable is absent    |
-| Requires **vertical depth past the freezing level**     | Cloud top only; depth never computed | **C2** — depth needs base + top                      |
-| Seeds **growing turrets with cloud-base inflow**        | Static column snapshot               | **C1** — no vigour, no growth, no tendency           |
-| Cloud-top seeding temp normally **−5 to −10 °C**        | −5 °C filter, open-ended cold        | admits cirrus-topped systems alongside young turrets |
-| Season **April 1 – September 30**                       | No season awareness                  | benign, but corpus and calibration must respect it   |
-| **Excludes severe storms** (TDLR)                       | No severe screen                     | **C7** — no CAPE, no storm motion, no lightning      |
-| Judged by a **field meteorologist on the day**          | Three layers, fused by eye           | **the join** — no single candidate field             |
+| Texas operational practice                              | What the app has today                | Gap                                                  |
+| ------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------- |
+| Targets **convective clouds with base 4,000–12,000 ft** | Cloud base, banded on that window     | closed — Phase 1                                     |
+| Requires **vertical depth past the freezing level**     | Depth and the C2 test, at one point   | partly closed — the map's answer waits on the join   |
+| Seeds **growing turrets with cloud-base inflow**        | CAPE at a point; no tendency          | **C1** — vigour is reported, growth still is not     |
+| Cloud-top seeding temp normally **−5 to −10 °C**        | −5 °C filter, open-ended cold         | admits cirrus-topped systems alongside young turrets |
+| Season **April 1 – September 30**                       | No season awareness                   | benign, but corpus and calibration must respect it   |
+| **Excludes severe storms** (TDLR)                       | Storm motion and lightning at a point | **C7** — reported, and nothing screens on them       |
+| Judged by a **field meteorologist on the day**          | Four layers, fused by eye             | **the join** — no single candidate field             |
 
 **The reconciliation, in one line:** the app answers _"is there modelled liquid in
 the band over this point"_; Texas practice asks _"which growing turret, with a base
@@ -135,7 +135,7 @@ cover the picker and the layer wiring.
 
 ---
 
-### Phase 1 — Harvest `wrfsfc`, which we already download
+### Phase 1 — Harvest `wrfsfc`, which we already download — **built**
 
 The single best effort-to-value step. The app fetches `wrfsfcf00`/`f01+` for `TCDC`
 and `PRATE` already. That same file carries, verified in the 2025-05-15 index:
@@ -150,46 +150,70 @@ and `PRATE` already. That same file carries, verified in the 2025-05-15 index:
 | `VIL:entire atmosphere`                      | C5        | independent cross-check on the SLW integral    |
 | `RETOP:cloud top`                            | C1        | radar echo top                                 |
 
-**Measured on 2025-05-15 18z over Texas** (`grib_get_data`, Texas box):
+**Measured on 2025-05-15 18z f00**, at the 12 km block averages the app
+contours on, with a cell counted as having a base only when most of its 3 km
+points do:
 
 ```
-cloud base present            39.6 % of Texas cells   (60.4 % clear -> real nodata)
-cloud top  present             7.6 %                  (92.4 % missing)
-both base and top              7.6 %  = 13,389 cells
-top <= base (degenerate)       0.4 %  of those
-cloud base ft   median  3,890   p10  2,549   p90 20,553
-cloud depth ft  median  3,824   p10  1,471   p90 21,874
+Texas box (11,071 cells)
+  cloud base present            39.3 %   (60.7 % clear -> real nodata)
+  of those, base MSL:  p10  3,185   median 16,226   p90 23,263 ft
+                       <4k 18.3 %   4-12k 11.7 %    >=12k 69.9 %
+  the 4-12k window as a share of all Texas cells:   4.6 %
 
-C2 proper - the -5 C level (17,268 ft that day) lies between base and top:
-                               2.41 % of Texas
-Texas operational gate, base 4,000-12,000 ft:
-                               1.9 % of cells with a cloud
+CONUS
+  cloud base present            55.9 %      median 3,719 ft MSL
+  cloud top  present            27.7 %   (of raw 3 km points)
 ```
 
-Two conclusions:
+The Texas median sits high because `HGT:cloud base` is the base of the **lowest
+deck of any kind**, and on that afternoon most cloudy Texas cells were cirrus
+over clear low levels. Read the window share, not the median: the operational
+target is 12% of cloudy Texas ground, not the typical case.
 
-1. **HRRR's cloud base is dense (39.6%) and its cloud top is sparse (7.6%).** So
-   take **base from HRRR and top from GOES** — which mirrors the existing cloud-top
-   layer's two-source split and matches `MEASUREMENTS.md` §4's note that
-   `PRES:cloud top` reports one deck rather than the highest. Using HRRR for both
-   would throw away 80% of the cells that have a base.
-2. **C2 is computable today** and lands at 2.41% of Texas on a rainy-season
-   afternoon — the first time depth has been evaluated at all.
+Three conclusions:
+
+1. **The field is bimodal**, so the layer is **disjoint bands**, not nested
+   contours — and its ramp lights the middle band, because cloud base is a
+   window with a wrong side at each end rather than a magnitude.
+2. **HRRR's cloud base is dense and its cloud top is sparse** — twice the ground
+   on the same hour. So take **base from HRRR and top from GOES**, mirroring the
+   existing cloud-top layer's two-source split and matching `MEASUREMENTS.md`
+   §4's note that `PRES:cloud top` reports one deck rather than the highest.
+   Depth is therefore **not drawn**; it is answered at the clicked point, where
+   HRRR's own top is either present or honestly reported absent.
+3. **C2 is computable today**, and it is the first criterion in the design the
+   app has ever been able to check.
 
 **Verified trap — the f00 constant-field signature.** `LTNG` at f00 is a **188-byte
 record decoding to zero at all 1,905,141 points** — exactly the signature the repo
 already documents for `PRATE`. Lightning is a flux needing a timestep, so it is
-**f01+ only**, and the existing `firstHour` mechanism in `FIELDS` covers it.
+**f01+ only**, and a `firstHour` covers it. Every other record here is full-size at
+f00, so the layer works at the analysis hour the candidate map draws.
 
-**Second verified trap — the nodata sentinel.** `grib_get_data -m 9999` is unsafe
-for a height field in metres: 9999 m ≈ 32,800 ft is a **plausible real cloud top**,
-so real values get read as missing. My first pass produced cloud tops below cloud
-bases because of exactly this. Use a sentinel outside the physical range.
+**Second verified trap — the nodata sentinel.** 9999 is unsafe for a height field
+in metres: `HGT:cloud top` carries real values to 15,698 m in the same file, so
+9999 m ≈ 32,800 ft is an ordinary cloud top and real values get read as missing.
+The symptom is cloud tops below cloud bases rather than an error. Use a sentinel
+outside the physical range.
 
-**Work:** extend `FIELDS` in `forecast.ts` with the new records; add a
-`cloudBase()`/`depth()` method; new contour layer for base, attributes for the rest.
-Follow the existing checklist end to end (service → router → proxy → type → client →
-slice → provider → component → tests).
+**Third trap, found while building it.** `RETOP` carries no bitmap and writes its
+own −999 where there is no echo, so the sentinel above never sees those points;
+and it decodes with `shortName` `unknown` while cloud base and cloud top are both
+`gh` at level 0. Messages are matched on `parameterCategory:parameterNumber:
+typeOfLevel` instead. All three are now in `MEASUREMENTS.md` §5.
+
+**What shipped.** `DIAGNOSTICS` in `forecast.ts` reads all nine records in one
+ranged fetch and one cached build; `cloudBase()`/`cloudBaseStats()` serve the
+banded layer and its summary, and `sounding()` reads the same grid at the clicked
+cell for `diagnostics` — cloud base MSL and AGL, depth, the C2 verdict, both CAPE
+parcels, storm motion, lightning, VIL and echo top. The layer is on the candidate
+map at the analysis hour, off by default, with `CloudBase` and `Convective`
+panels. A cold build is ~12 s and every later request that hour is cached.
+
+**Not in this phase:** the replay map still carries three layers. A fourth source
+lengthens its all-answered gate, and its panel is being kept clear for the Phase 2
+candidate field.
 
 ---
 
@@ -349,7 +373,8 @@ failure.**
 - Replay resolution: `at` picks the right archive key; a `200` on a multi-range
   request throws.
 - Sentinel handling: a cloud top at 9,999 m decodes as a **value**, not as missing.
-- `LTNG` at f00 is skipped by `firstHour`, as `PRATE` is.
+  (`cloudbase-service.test.ts`.)
+- `LTNG` at f00 is skipped, as `PRATE` is. (`recordsAt`, same file.)
 
 **Corpus run** (network, scripted, not in `yarn test`): the Phase 4 table, reported
 as hit rate and false-alarm rate at district-day resolution.
@@ -359,7 +384,7 @@ as hit rate and false-alarm rate at district-day resolution.
 ## 5. Ordering and dependencies
 
 ```
-Phase 0 (replay) ──┬── Phase 1 (wrfsfc: C2, C1, C7)
+Phase 0 (replay) ──┬── Phase 1 (wrfsfc: C2, C1, C7)   [built]
                    │        │
                    │        v
                    ├── Phase 2 (the join)  ── Phase 3 (ACTP cross-check)

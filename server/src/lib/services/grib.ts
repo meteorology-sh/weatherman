@@ -31,6 +31,14 @@ export type Decode = {
   /** Values per message. A short or long message is an error, never truncated. */
   points: number;
   onMessage: (keys: string[], values: Float32Array) => void;
+  /**
+   * What a bitmapped-missing point is printed as. eccodes defaults to **9999**,
+   * which is safe for a mixing ratio and unsafe for anything measured in
+   * metres: HRRR's `HGT:cloud top` carries real values to 15,698 m, so 9999
+   * would be read as nodata over genuine deep convection. A field with a
+   * bitmap must name a sentinel outside its own physical range.
+   */
+  missingValue?: number;
 };
 
 /**
@@ -51,7 +59,14 @@ export async function eachMessage(
   try {
     await writeFile(file, grib);
     const header = decode.keys.map((k) => `[${k}]`).join(" ");
-    await writeFile(rules, `print "${MARKER} ${header}";\nprint "[values]";\n`);
+    const missing =
+      decode.missingValue === undefined
+        ? ""
+        : `set missingValue=${decode.missingValue};\n`;
+    await writeFile(
+      rules,
+      `${missing}print "${MARKER} ${header}";\nprint "[values]";\n`
+    );
     await streamValues(rules, file, decode);
   } finally {
     await rm(dir, { recursive: true, force: true });

@@ -1,6 +1,6 @@
 // Testing
 import { act, screen } from "@testing-library/react";
-import { createTestStore, renderWithStore } from "./utils";
+import { createTestStore, noDiagnostics, renderWithStore } from "./utils";
 
 // Store
 import { soundingActions } from "@/lib/store/features/sounding";
@@ -28,6 +28,7 @@ const sounding: SoundingT = {
     { mb: 600, tempC: 4.37, heightFt: 14665 },
     { mb: 550, tempC: -1.32, heightFt: 16966 },
   ],
+  diagnostics: noDiagnostics,
 };
 
 const withData = (over: Partial<SoundingT> = {}) => {

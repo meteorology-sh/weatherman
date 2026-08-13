@@ -1,5 +1,6 @@
 // Types
 import type {
+  CloudBaseStats,
   CloudTopStats,
   ForecastMeta,
   SlwStats,
@@ -34,13 +35,36 @@ export function ForecastLiquidUrl(hour: number): string {
 }
 
 /**
+ * Cloud base, banded server-side. Pinned to the analysis hour on the candidate
+ * map, like the liquid-water layer, so nothing repoints this url.
+ */
+export function ForecastCloudBaseUrl(hour: number): string {
+  return `/forecast/cloudbase?${new URLSearchParams({ hour: String(hour) })}`;
+}
+
+/** The same build's summary. Asking for it also warms the server's build. */
+export async function GetCloudBaseStats(
+  hour: number,
+  at?: string
+): Promise<CloudBaseStats> {
+  const query = new URLSearchParams({ hour: String(hour) });
+  if (at) query.set("at", at);
+  const res = await fetch(`/forecast/cloudbase/stats?${query}`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch cloud base stats: ${res.status}`);
+  }
+  const stats: CloudBaseStats = await res.json();
+  return stats;
+}
+
+/**
  * Summary of the supercooled-liquid layer. Small enough for the store, unlike
  * the frame it summarises — and asking for it warms the server's build of that
  * frame, which is why the provider fetches it on landing rather than on the map.
  */
 export async function GetLiquidStats(
   hour: number,
-  at?: string,
+  at?: string
 ): Promise<SlwStats> {
   const query = new URLSearchParams({ hour: String(hour) });
   if (at) query.set("at", at);
@@ -61,7 +85,7 @@ export async function GetLiquidStats(
 export async function GetSounding(
   lon: number,
   lat: number,
-  hour: number,
+  hour: number
 ): Promise<Sounding> {
   const query = new URLSearchParams({
     lat: String(lat),
@@ -109,7 +133,7 @@ export async function GetCloudTopStats(at?: string): Promise<CloudTopStats> {
   const res = await fetch(
     at
       ? `/cloudtop/temperature/stats?${new URLSearchParams({ at })}`
-      : "/cloudtop/temperature/stats",
+      : "/cloudtop/temperature/stats"
   );
   if (!res.ok) {
     throw new Error(`Failed to fetch cloud tops: ${res.status}`);
@@ -132,7 +156,7 @@ export async function GetRadarStats(at?: string): Promise<RadarStats> {
   const res = await fetch(
     at
       ? `/radar/reflectivity/stats?${new URLSearchParams({ at })}`
-      : "/radar/reflectivity/stats",
+      : "/radar/reflectivity/stats"
   );
   if (!res.ok) {
     throw new Error(`Failed to fetch radar mosaic: ${res.status}`);

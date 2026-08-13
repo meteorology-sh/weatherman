@@ -4,6 +4,7 @@ import { createTestStore, renderWithStore } from "./utils";
 
 // Store
 import { candidateActions } from "@/lib/store/features/candidate";
+import { cloudBaseActions } from "@/lib/store/features/cloudbase";
 import { cloudTopActions } from "@/lib/store/features/cloudtop";
 import { radarActions } from "@/lib/store/features/radar";
 
@@ -20,7 +21,12 @@ import {
   soloColor,
 } from "@/lib/arcgis/renderers";
 import { CLOUD_TOP_BANDS, CLOUD_TOP_RGB } from "@/lib/arcgis/renderers";
-import { CloudTopLegend } from "@/lib/arcgis/legends";
+import {
+  BASE_WINDOW_FT,
+  CLOUD_BASE_BANDS,
+  CLOUD_BASE_RGB,
+} from "@/lib/arcgis/renderers";
+import { CloudBaseLegend, CloudTopLegend } from "@/lib/arcgis/legends";
 
 // Components
 import { CandidateLayers } from "@/app/components/CandidateLayers";
@@ -40,7 +46,10 @@ const swatches = (container: HTMLElement, titles: readonly string[]) =>
  * rather than its formatting.
  */
 const rgba = (css: string) =>
-  css.replace(/\s+/g, "").replace(/(\.\d*?)0+\)/, "$1)").replace(/\.\)/, ")");
+  css
+    .replace(/\s+/g, "")
+    .replace(/(\.\d*?)0+\)/, "$1)")
+    .replace(/\.\)/, ")");
 
 describe("CandidateLayers", () => {
   it("shows a swatch for every liquid-water band", () => {
@@ -163,6 +172,102 @@ describe("CandidateLayers", () => {
     renderWithStore(<CandidateLayers />, createTestStore());
 
     expect(screen.getByText(/Modelled, not observed/)).toBeTruthy();
+  });
+});
+
+describe("CandidateLayers cloud base", () => {
+  /** The cloud-base ramp's swatches, which carry the band's own title. */
+  const bases = (container: HTMLElement) =>
+    Array.from(
+      container.querySelectorAll<HTMLElement>("div.h-3.w-full")
+    ).filter((el) => el.title.endsWith("ft MSL"));
+
+  const withLayer = () => {
+    const store = createTestStore();
+    const { container } = renderWithStore(<CandidateLayers />, store);
+    act(() => {
+      store.dispatch(cloudBaseActions.setVisible(true));
+    });
+    return { store, container };
+  };
+
+  // It starts off, so nothing about it should be on screen until asked for.
+  it("hides its ramp until the layer is switched on", () => {
+    const { container } = renderWithStore(
+      <CandidateLayers />,
+      createTestStore()
+    );
+
+    expect(bases(container)).toHaveLength(0);
+  });
+
+  it("shows a swatch for every cloud-base band", () => {
+    const { container } = withLayer();
+
+    expect(bases(container)).toHaveLength(CLOUD_BASE_BANDS.length);
+  });
+
+  // Disjoint bands, like the cloud tops: each swatch is the literal fill.
+  it("paints each swatch its own unstacked fill", () => {
+    const { container } = withLayer();
+
+    const window = bases(container)[1];
+    expect(rgba(window.style.backgroundColor)).toBe(
+      rgba(soloColor(CLOUD_BASE_RGB, CLOUD_BASE_BANDS[1].alpha))
+    );
+  });
+
+  // The ramp is neither quiet-to-loud nor loud-to-quiet: it is a window with a
+  // wrong side on each end, so the middle band is the one that shows.
+  it("keeps the operational window the loudest band", () => {
+    const [below, window, above] = CLOUD_BASE_BANDS.map((b) => b.alpha);
+
+    expect(window).toBeGreaterThan(below);
+    expect(window).toBeGreaterThan(above);
+  });
+
+  // The band edges are the cited operational window, not numbers picked from a
+  // coverage table — so the middle band has to start and end on them.
+  it("bands on the operational window's own edges", () => {
+    expect(CLOUD_BASE_BANDS[1].value).toBe(BASE_WINDOW_FT[0]);
+    expect(CLOUD_BASE_BANDS[2].value).toBe(BASE_WINDOW_FT[1]);
+  });
+
+  it("drives its toggle from the store", () => {
+    const { store } = withLayer();
+    const toggle = screen.getByLabelText("Cloud base") as HTMLInputElement;
+
+    expect(toggle.checked).toBe(true);
+
+    act(() => {
+      store.dispatch(cloudBaseActions.setVisible(false));
+    });
+
+    expect(toggle.checked).toBe(false);
+  });
+
+  it("turns the layer on when its toggle is clicked", () => {
+    const store = createTestStore();
+
+    renderWithStore(<CandidateLayers />, store);
+    act(() => {
+      (screen.getByLabelText("Cloud base") as HTMLElement).click();
+    });
+
+    expect(store.getState().cloudbase.visible).toBe(true);
+  });
+
+  it("says the layer is modelled and names its datum", () => {
+    withLayer();
+
+    expect(screen.getByText(CloudBaseLegend.caveat)).toBeTruthy();
+  });
+
+  // Switching this one on must not disturb the ramps already on screen.
+  it("leaves the liquid ramp alone", () => {
+    const { container } = withLayer();
+
+    expect(swatches(container, SLW_LABELS)).toHaveLength(SLW_BANDS.length);
   });
 });
 

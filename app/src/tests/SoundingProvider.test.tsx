@@ -1,6 +1,6 @@
 // Testing
 import { act, waitFor } from "@testing-library/react";
-import { createTestStore, renderWithStore } from "./utils";
+import { createTestStore, noDiagnostics, renderWithStore } from "./utils";
 
 // Store
 import { soundingActions } from "@/lib/store/features/sounding";
@@ -24,6 +24,7 @@ const sounding: Sounding = {
   baseC: 34.9,
   topC: -18.1,
   levels: [{ mb: 550, tempC: -1.32, heightFt: 16966 }],
+  diagnostics: noDiagnostics,
 };
 
 const calls = () => (fetch as ReturnType<typeof vi.fn>).mock.calls;

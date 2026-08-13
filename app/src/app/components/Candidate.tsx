@@ -4,7 +4,9 @@ import { BAND_LABEL } from "@/lib/arcgis/renderers";
 // Components
 import { ArcGIS } from "./Map";
 import { CandidateLayers } from "./CandidateLayers";
+import { CloudBase } from "./CloudBase";
 import { CloudTop } from "./CloudTop";
+import { Convective } from "./Convective";
 import { Liquid } from "./Liquid";
 import { Sounding } from "./Sounding";
 import { Radar } from "./Radar";
@@ -26,8 +28,8 @@ export const Candidate = () => {
             <div className="collapse-content text-sm">
               <div className="prose">
                 <p>
-                  Three layers, and they are not the same kind of claim. The
-                  grey cloud tops are <em>observed</em> — a GOES-East scene from
+                  Four layers, and they are not the same kind of claim. The grey
+                  cloud tops are <em>observed</em> — a GOES-East scene from
                   minutes ago, showing where there is cloud and how cold its top
                   is, with nothing drawn where there is no cloud. Only tops at
                   −5 °C or colder appear: a warmer top means the seeding band
@@ -45,6 +47,17 @@ export const Candidate = () => {
                   no cloud at all, and that is worth distrusting.
                 </p>
                 <p>
+                  Violet, off by default, is <em>modelled</em> too and answers
+                  the question that comes before the others: how high is the
+                  cloud base, and could an aircraft climb into this cloud at
+                  all. Only the middle band is lit, because that is the
+                  4,000–12,000 ft window Texas operations select in — below it
+                  is fog and low stratus, above it is usually the base of a
+                  cirrus deck with clear air underneath. Clicking the map reads
+                  the base, the depth to cloud top, and whether the seeding band
+                  actually lies inside the cloud over that point.
+                </p>
+                <p>
                   Cyan is the disqualifier, and the only <em>measured</em>
                   thing here: the MRMS radar mosaic, contoured the same way, at
                   the reflectivity a rain gauge would agree with. A candidate
@@ -59,11 +72,15 @@ export const Candidate = () => {
         </div>
         <CandidateLayers />
         <div className="divider my-1" />
+        <CloudBase />
+        <div className="divider my-1" />
         <CloudTop />
         <div className="divider my-1" />
         <Liquid />
         <div className="divider my-1" />
         <Sounding />
+        <div className="divider my-1" />
+        <Convective />
         <div className="divider my-1" />
         <Radar />
       </div>

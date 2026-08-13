@@ -1,11 +1,12 @@
 // Store
 import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
 import { candidateActions } from "@/lib/store/features/candidate";
+import { cloudBaseActions } from "@/lib/store/features/cloudbase";
 import { cloudTopActions } from "@/lib/store/features/cloudtop";
 import { radarActions } from "@/lib/store/features/radar";
 
 // ArcGIS
-import { CloudTopLegend } from "@/lib/arcgis/legends";
+import { CloudBaseLegend, CloudTopLegend } from "@/lib/arcgis/legends";
 import {
   SLW_BANDS,
   SLW_LABELS,
@@ -19,10 +20,12 @@ import {
 // Components
 import { LayerToggle } from "./LayerToggle";
 import { Ramp } from "./Ramp";
+import { CloudBaseRamp } from "./CloudBaseRamp";
 import { CloudTopRamp } from "./CloudTopRamp";
 
 export const CandidateLayers = () => {
   const dispatch = useAppDispatch();
+  const cloudBase = useAppSelector((state) => state.cloudbase.visible);
   const cloudTop = useAppSelector((state) => state.cloudtop.visible);
   const liquid = useAppSelector((state) => state.candidate.liquid);
   const radar = useAppSelector((state) => state.radar.visible);
@@ -42,6 +45,21 @@ export const CandidateLayers = () => {
           supercooled-topped cloud worth finding; the faintest is cirrus.
         </div>
         <div className="text-xs opacity-50">{CloudTopLegend.caveat}</div>
+      </LayerToggle>
+
+      <LayerToggle
+        name="Cloud base"
+        title={<>Cloud base &middot; {CloudBaseLegend.name}</>}
+        checked={cloudBase}
+        onChange={(on) => dispatch(cloudBaseActions.setVisible(on))}
+      >
+        <div className="text-xs opacity-60">{CloudBaseLegend.summary}</div>
+        <CloudBaseRamp />
+        <div className="text-xs opacity-60">
+          ft MSL at the cloud base &middot; the lit band is the window Texas
+          operations select in; either side of it is context.
+        </div>
+        <div className="text-xs opacity-50">{CloudBaseLegend.caveat}</div>
       </LayerToggle>
 
       <LayerToggle

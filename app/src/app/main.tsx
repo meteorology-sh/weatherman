@@ -16,6 +16,7 @@ import { RouterProvider } from "react-router/dom";
 // Providers
 import StoreProvider from "@/lib/context/StoreProvider.tsx";
 import { ForecastProvider } from "@/lib/context/ForecastProvider.tsx";
+import { CloudBaseProvider } from "@/lib/context/CloudBaseProvider.tsx";
 import { CloudTopProvider } from "@/lib/context/CloudTopProvider.tsx";
 import { RadarProvider } from "@/lib/context/RadarProvider.tsx";
 import { SoundingProvider } from "@/lib/context/SoundingProvider.tsx";
@@ -54,13 +55,15 @@ const router = createBrowserRouter([
       {
         path: "/map/candidate",
         element: (
-          <CloudTopProvider>
-            <RadarProvider>
-              <SoundingProvider>
-                <Candidate />
-              </SoundingProvider>
-            </RadarProvider>
-          </CloudTopProvider>
+          <CloudBaseProvider>
+            <CloudTopProvider>
+              <RadarProvider>
+                <SoundingProvider>
+                  <Candidate />
+                </SoundingProvider>
+              </RadarProvider>
+            </CloudTopProvider>
+          </CloudBaseProvider>
         ),
       },
     ],
@@ -73,5 +76,5 @@ createRoot(document.getElementById("root")!).render(
       {" "}
       <RouterProvider router={router} />{" "}
     </StoreProvider>{" "}
-  </StrictMode>,
+  </StrictMode>
 );

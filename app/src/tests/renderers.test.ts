@@ -1,5 +1,9 @@
 // ArcGIS
 import {
+  BASE_WINDOW_FT,
+  CLOUD_BASE_BANDS,
+  CLOUD_BASE_RGB,
+  candidateCloudBaseRenderer,
   CLOUD_TOP_BANDS,
   CLOUD_TOP_RGB,
   candidateCloudTopRenderer,
@@ -15,6 +19,7 @@ import {
   soloColor,
   CLOUD_RGB,
   PRECIP_RGB,
+  SLW_RGB,
 } from "@/lib/arcgis/renderers";
 
 describe("CLOUD_BANDS", () => {
@@ -234,5 +239,46 @@ describe("CLOUD_TOP_BANDS", () => {
     const [r, g, b] = CLOUD_TOP_RGB;
 
     expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeLessThan(50);
+  });
+});
+
+describe("CLOUD_BASE_BANDS", () => {
+  // The server bands on the operational window's own edges, so the middle
+  // swatch is the window rather than an approximation of it. If these drift
+  // apart the renderer matches nothing and the layer paints as invisible.
+  it("keys each band on the lower edge the server emits", () => {
+    expect(CLOUD_BASE_BANDS.map((band) => band.value)).toEqual([
+      0,
+      BASE_WINDOW_FT[0],
+      BASE_WINDOW_FT[1],
+    ]);
+  });
+
+  it("matches on the field the server writes", () => {
+    expect(candidateCloudBaseRenderer.field).toBe("cloudBaseFt");
+  });
+
+  // Neither quiet-to-loud nor loud-to-quiet: the field is a window with a wrong
+  // side at each end, so the band in the middle is the one that shows.
+  it("lights the window and leaves both wrong sides quiet", () => {
+    const [below, window, above] = CLOUD_BASE_BANDS.map((b) => b.alpha);
+
+    expect(window).toBeGreaterThan(below);
+    expect(window).toBeGreaterThan(above);
+  });
+
+  // Three fills on one map, and a fourth that must not read as any of them.
+  it("takes the one hue the candidate map has left", () => {
+    for (const other of [SLW_RGB, RADAR_RGB, CLOUD_TOP_RGB]) {
+      expect(CLOUD_BASE_RGB).not.toEqual(other);
+    }
+  });
+
+  // Disjoint bands, so the swatch is the literal fill. Nothing composites, and
+  // a stacked alpha would describe a map that is not being drawn.
+  it("stays faint enough that the basemap reads through the window", () => {
+    for (const band of CLOUD_BASE_BANDS) {
+      expect(band.alpha).toBeLessThan(0.5);
+    }
   });
 });

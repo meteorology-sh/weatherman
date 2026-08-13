@@ -21,16 +21,22 @@ third is the same layers at a different hour:
   nested GeoJSON polygons, with a slider stepping f00–f18. **Satellites cannot
   forecast**, so nothing observed can appear here; this map is entirely model
   output.
-- **`/map/candidate` — observed.** Three layers, and they are three different
-  kinds of claim. Bottom to top: GOES-East cloud-top temperature (_observed_
-  cloud tops), the HRRR supercooled-liquid contours for the analysis hour
-  (_modelled_ — the deliberate exception, and the sidebar says so), and the MRMS
-  radar mosaic (_measured_, and the only measurement on either map). Clicking
-  anywhere profiles that point's column. This is "what is the sky doing right
+- **`/map/candidate` — observed.** Four layers, and they are not the same kind
+  of claim. Bottom to top: HRRR cloud base (_modelled_, off by default), GOES-East
+  cloud-top temperature (_observed_ cloud tops), the HRRR supercooled-liquid
+  contours for the analysis hour (_modelled_ — the deliberate exception, and the
+  sidebar says so), and the MRMS radar mosaic (_measured_, and the only
+  measurement on either map). Clicking anywhere profiles that point's column and
+  reads that cell's convective diagnostics. This is "what is the sky doing right
   now, and how high".
 
-- **`/map/replay` — the candidate map at an hour you pick.** The same three
-  layers, rebuilt from that hour's own sources: the HRRR cycle initialised then,
+  **Cloud base sits at the bottom because it is the question asked first** — can
+  an aircraft climb into this cloud at all — and the other three are answers
+  about a cloud you can reach. It is the only layer here that starts hidden: a
+  fourth fill switched on by default lands on three an operator already reads.
+
+- **`/map/replay` — the candidate map at an hour you pick.** Its three layers,
+  rebuilt from that hour's own sources: the HRRR cycle initialised then,
   and the satellite and radar scans nearest it. The left panel is a calendar and
   nothing else — no stats blocks, because a replay with four unjoined readouts is
   the candidate map with a different clock on it, and the panel is being kept
@@ -79,6 +85,21 @@ third is the same layers at a different hour:
   forecast map, supercooled liquid water and the point sounding on the
   candidate map — all decoded from GRIB2 server-side and contoured. See
   "Full-Stack Data Flow".
+- **Cloud _base_, and the convective diagnostics: HRRR's `wrfsfc`**, the file the
+  cloud-cover and precipitation layers already download. `HGT:cloud base` is the
+  variable Texas practice selects on, banded on the **4,000–12,000 ft window**
+  the state's published description names — a cited figure, drawn and reported,
+  never used to filter. It has **real nodata**, and its bands are **disjoint**
+  for a reason the ramp shape has to carry: the field is a window with a wrong
+  side at each end, not a magnitude. Below it is fog, above it is usually the
+  base of a cirrus deck with clear air underneath.
+  **Depth is not drawn.** `HGT:cloud top` is diagnosed over far less ground than
+  the base is, so a depth layer would vanish over most of the cloud the base
+  layer shows; depth and C2 are answered at the clicked point instead, and the
+  map's cloud top comes from the satellite. The rest of the file's
+  diagnostics — CAPE, storm motion, lightning, vertically integrated liquid,
+  echo top — ride the same build as **attributes on that point readout**, and
+  nothing gates on them.
 - **Rain: MRMS.** The observed check on all of it.
 
 **Why the split:** the satellite answers "what shape, where, and how cold on
@@ -179,9 +200,10 @@ app/src/
                            #   Panels:  ForecastLayers, CandidateLayers,
                            #            ReplayLayers, ReplayCalendar,
                            #            ReplayStatus,
-                           #            CloudTop, Liquid, Radar, Sounding,
+                           #            CloudBase, CloudTop, Convective,
+                           #            Liquid, Radar, Sounding,
                            #            TimeSlider, Drawer
-                           #   Legends: Ramp, CloudTopRamp
+                           #   Legends: Ramp, CloudTopRamp, CloudBaseRamp
                            #   Shared:  LayerToggle (switch + its legend)
     assets/
     index.css / App.css
@@ -189,14 +211,18 @@ app/src/
     client.ts              # Plain async fetch functions (PascalCase names)
     types.ts               # Shared data shapes — mirror server responses
     arcgis/                # Module-scope ArcGIS config objects
-      layers.ts            #   CandidateCloudTopLayer, the HRRR and MRMS
-                           #   contour GeoJSONLayers, and the Replay* trio
+      layers.ts            #   CandidateCloudTopLayer, CandidateCloudBaseLayer,
+                           #   the HRRR and MRMS contour GeoJSONLayers, and the
+                           #   Replay* trio
       legends.ts           #   Legend data per layer (ramp, ticks, caveat)
-      renderers.ts         #   Contour BANDS + CLOUD_TOP_BANDS + the renderers
+      renderers.ts         #   Contour BANDS + the two disjoint band sets
+                           #   (CLOUD_TOP_BANDS, CLOUD_BASE_BANDS) + renderers
     context/
       StoreProvider.tsx    # Wraps children with the Redux <Provider>
       ForecastProvider.tsx # Data provider: HRRR run metadata
       CandidateProvider.tsx# Data provider: supercooled-liquid stats (app-wide)
+      CloudBaseProvider.tsx# Data provider: HRRR cloud-base stats (page-scoped);
+                           #   warms the build the point diagnostics share
       CloudTopProvider.tsx # Data provider: GOES cloud-top stats (page-scoped)
       RadarProvider.tsx    # Data provider: radar scene stats (page-scoped)
       SoundingProvider.tsx # Data provider: point profile; refetches on click
@@ -206,7 +232,7 @@ app/src/
       store.ts             # Singleton store + AppStore/RootState/AppDispatch
       hooks.ts             # useAppDispatch/useAppSelector/useAppStore
       features/            # One slice per domain (forecast.ts, candidate.ts,
-                           #   cloudtop.ts, radar.ts, replay.ts,
+                           #   cloudbase.ts, cloudtop.ts, radar.ts, replay.ts,
                            #   sounding.ts, interactions.ts)
   tests/                   # All test files (.test.ts / .test.tsx) + utils.tsx
 ```
@@ -234,10 +260,11 @@ const router = createBrowserRouter([
         ),
       },
       // Page-scoped providers stack around the one route that needs them.
-      { path: "/map/candidate", element: /* CloudTop > Radar > Sounding */ ... },
-      // No provider: the replay page holds its chosen hour in the store and
-      // its layers fetch their own geometry, so there is nothing to warm.
-      { path: "/map/replay", element: <Replay /> },
+      { path: "/map/candidate",
+        element: /* CloudBase > CloudTop > Radar > Sounding */ ... },
+      // The replay provider warms all three of that hour's sources before the
+      // map is allowed to draw any of them.
+      { path: "/map/replay", element: <ReplayProvider><Replay /></ReplayProvider> },
     ],
   },
 ]);
@@ -449,24 +476,27 @@ Both are GeoJSON from our own server, and the difference is not cosmetic:
   each one stays faint. Use this when the field's extremes are rare and "more"
   genuinely means "more".
 - **Disjoint bands** (`bandFeatures()` server-side, unstacked ramp in the
-  panel). Cloud-top temperature. Exactly one band applies to a cell and nothing
-  composites, so each swatch is the literal fill and the legend reads them
-  straight.
+  panel). Cloud-top temperature, cloud base. Exactly one band applies to a cell
+  and nothing composites, so each swatch is the literal fill and the legend
+  reads them straight.
 
 **Check the coverage of each level before choosing.** Nesting only works where
 the extremes are rare. If every level covers a similar share of the grid, the
 bands are four rings almost on top of each other and paint a third of the map at
 full opacity. Cloud-top temperature is bimodal — warm low cloud, or very cold
 cirrus, little between — which nesting cannot express, so it uses disjoint
-bands.
+bands. Cloud base is bimodal the same way, and worse for nesting: it is a
+**window**, so "lower" is better only until it becomes fog.
 
 A third shape exists for sparse point sources: discrete classes on a marker
 ramp. Nothing in the app needs it now — see the sparse-source rule near the top.
 
-**The opacity ramp is not always quiet-to-loud.** Cloud-top temperature runs
-backwards — warmest band loudest — because the warm end is the target and the
-cold end is cirrus covering most of the sky. `renderers.test.ts` pins that
-direction.
+**The opacity ramp is not always quiet-to-loud, and is not always a ramp.**
+Cloud-top temperature runs backwards — warmest band loudest — because the warm
+end is the target and the cold end is cirrus covering most of the sky. Cloud
+base runs neither way: the lit band is the one in the middle, because the field
+is a window with a wrong side at each end. `renderers.test.ts` pins both
+directions. Take the shape from what the field means, not from a house style.
 
 ## Component Conventions
 
@@ -554,6 +584,10 @@ src/tests/
   cloudtop-slice.test.ts     # reducer cases
   CloudTopProvider.test.tsx  # provider → store integration
   CloudTop.test.tsx          # sidebar stats, incl. the cloud-free scene
+  cloudbase-slice.test.ts    # reducer cases, incl. starting hidden
+  CloudBaseProvider.test.tsx # provider → store integration
+  CloudBase.test.tsx         # sidebar stats, incl. the cloud-free domain
+  Convective.test.tsx        # point diagnostics, and C2's three answers
   legends.test.ts            # ramp anchors, tick + seeding-band positions
   renderers.test.ts          # BANDS contracts, stacked alpha, solo vs stacked
   ForecastProvider.test.tsx  # provider → store integration
@@ -864,6 +898,7 @@ server/src/tests/
   forecast-service.test.ts # marching squares (holes, edges), run discovery
   forecast-router.test.ts  # route → GeoJSON, hour passthrough, 500s
   sounding.test.ts         # isotherm interpolation, inversions, nearest cell
+  cloudbase-service.test.ts# sparse block average, window stats, C2 at a point
   multipart.test.ts        # byte-range reassembly, in file order
   radar-service.test.ts    # dBZ averaged in Z, the two sentinels, row order
   radar-router.test.ts     # route → GeoJSON, scene time, 500s
@@ -960,6 +995,24 @@ noaa-goes19 S3 listing → newest ABI-L2-ACHP2KMC scene (4.1 MB NetCDF4)
 
 GET /cloudtop/temperature/stats → GetCloudTopStats() → CloudTopProvider
                                 → cloudtop slice → CloudTop panel
+```
+
+The cloud-base layer is the one build that serves a layer **and** a point
+readout, because both come out of the same nine `wrfsfc` records:
+
+```
+NOMADS HRRR .idx → byte-range subset of the 2D diagnostics (~10 MB, 9 records)
+             → grib_filter with a sentinel outside the physical range
+             → block-average 3 km → 12 km, majority rule, NaN where unsampled
+             → disjoint bands on the operational window  [lib/services/forecast.ts]
+             → GET /forecast/cloudbase?hour=N            [routers/forecast.ts]
+             → CandidateCloudBaseLayer.url               [lib/arcgis/layers.ts]
+
+GET /forecast/cloudbase/stats → GetCloudBaseStats() → CloudBaseProvider
+                              → cloudbase slice → CloudBase panel
+
+GET /forecast/sounding?lat&lon&hour → the same cached grid, read at one cell
+                              → Sounding.diagnostics → Convective panel
 ```
 
 The decode inside that reference build, in full — one gzipped GRIB2 message

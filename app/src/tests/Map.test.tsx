@@ -7,6 +7,7 @@ import { createTestStore, renderWithStore } from "./utils";
 import { interactionsActions } from "@/lib/store/features/interactions";
 import { forecastActions } from "@/lib/store/features/forecast";
 import { candidateActions } from "@/lib/store/features/candidate";
+import { cloudBaseActions } from "@/lib/store/features/cloudbase";
 import { cloudTopActions } from "@/lib/store/features/cloudtop";
 import { radarActions } from "@/lib/store/features/radar";
 import { replayActions } from "@/lib/store/features/replay";
@@ -37,6 +38,7 @@ type FakeViewT = {
 // layers.test.ts covers how the real ones are built.
 const {
   arcgis,
+  cloudBaseLayer,
   cloudTopLayer,
   forecastLayer,
   precipLayer,
@@ -51,6 +53,7 @@ const {
     maps: [] as FakeMapT[],
     views: [] as FakeViewT[],
   },
+  cloudBaseLayer: { id: "cloudbase-layer", visible: false },
   cloudTopLayer: { id: "cloudtop-layer", visible: false },
   forecastLayer: {
     id: "forecast-layer",
@@ -101,6 +104,7 @@ const {
 }));
 
 vi.mock("@/lib/arcgis/layers", () => ({
+  CandidateCloudBaseLayer: cloudBaseLayer,
   CandidateCloudTopLayer: cloudTopLayer,
   ForecastCloudsLayer: forecastLayer,
   ForecastPrecipLayer: precipLayer,
@@ -161,6 +165,7 @@ const view = () => arcgis.views[arcgis.views.length - 1];
 beforeEach(() => {
   arcgis.maps.length = 0;
   arcgis.views.length = 0;
+  cloudBaseLayer.visible = false;
   cloudTopLayer.visible = false;
   liquidLayer.visible = false;
   liquidLayer.refresh.mockClear();
@@ -194,7 +199,7 @@ describe("ArcGIS", () => {
   it("builds the view only once across rerenders", () => {
     const { rerender } = renderWithStore(
       <ArcGIS mode="candidate" />,
-      createTestStore(),
+      createTestStore()
     );
 
     rerender(<ArcGIS mode="candidate" />);
@@ -206,6 +211,7 @@ describe("ArcGIS", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     expect(map().layers).toEqual([
+      cloudBaseLayer,
       cloudTopLayer,
       forecastLayer,
       precipLayer,
@@ -214,13 +220,24 @@ describe("ArcGIS", () => {
     ]);
   });
 
+  // Cloud base answers "can I get into this cloud at all", which is the
+  // question before the ones the other layers answer, so it sits under them.
+  it("draws the cloud tops above the cloud base", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    const layers = map().layers ?? [];
+    expect(layers.indexOf(cloudTopLayer)).toBeGreaterThan(
+      layers.indexOf(cloudBaseLayer)
+    );
+  });
+
   // Draw order is array order, and rain has to sit over the cloud it falls from.
   it("draws precipitation above the cloud it falls from", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     const layers = map().layers ?? [];
     expect(layers.indexOf(precipLayer)).toBeGreaterThan(
-      layers.indexOf(forecastLayer),
+      layers.indexOf(forecastLayer)
     );
   });
 
@@ -257,7 +274,7 @@ describe("ArcGIS in candidate mode", () => {
 
     const layers = map().layers ?? [];
     expect(layers.indexOf(liquidLayer)).toBeGreaterThan(
-      layers.indexOf(cloudTopLayer),
+      layers.indexOf(cloudTopLayer)
     );
   });
 
@@ -291,6 +308,35 @@ describe("ArcGIS in candidate mode", () => {
     expect(forecastLayer.visible).toBe(false);
     expect(precipLayer.visible).toBe(false);
   });
+
+  // The newest layer on the map, and the only one that starts off: a fourth
+  // fill switched on by default lands on three an operator already reads.
+  it("leaves the cloud base off until it is asked for", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+
+    expect(cloudBaseLayer.visible).toBe(false);
+
+    act(() => {
+      store.dispatch(cloudBaseActions.setVisible(true));
+    });
+
+    expect(cloudBaseLayer.visible).toBe(true);
+  });
+
+  // Modelled, so it belongs to the candidate map only — the same rule that
+  // keeps the observed layers off the forecast one, running the other way.
+  it("keeps the cloud base off the forecast map even when it is switched on", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="forecast" />, store);
+    act(() => {
+      store.dispatch(cloudBaseActions.setVisible(true));
+    });
+
+    expect(cloudBaseLayer.visible).toBe(false);
+  });
 });
 
 describe("ArcGIS radar", () => {
@@ -315,7 +361,7 @@ describe("ArcGIS radar", () => {
 
     const layers = map().layers ?? [];
     expect(layers.indexOf(radarLayer)).toBeGreaterThan(
-      layers.indexOf(liquidLayer),
+      layers.indexOf(liquidLayer)
     );
   });
 
@@ -510,7 +556,7 @@ describe("ArcGIS sounding point", () => {
   it("releases the handler when the map goes away", () => {
     const { unmount } = renderWithStore(
       <ArcGIS mode="candidate" />,
-      createTestStore(),
+      createTestStore()
     );
     const fake = view();
 
@@ -647,10 +693,10 @@ describe("ArcGIS in replay mode", () => {
     const layers = map().layers ?? [];
     expect(layers).toContain(replayCloudTopLayer);
     expect(layers.indexOf(replayLiquidLayer)).toBeGreaterThan(
-      layers.indexOf(replayCloudTopLayer),
+      layers.indexOf(replayCloudTopLayer)
     );
     expect(layers.indexOf(replayRadarLayer)).toBeGreaterThan(
-      layers.indexOf(replayLiquidLayer),
+      layers.indexOf(replayLiquidLayer)
     );
   });
 

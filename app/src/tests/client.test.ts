@@ -1,6 +1,8 @@
 // Client
 import {
   CloudTopUrl,
+  ForecastCloudBaseUrl,
+  GetCloudBaseStats,
   GetCloudTopStats,
   GetForecastMeta,
   GetLiquidStats,
@@ -96,6 +98,51 @@ describe("ForecastPrecipUrl", () => {
 
   it("asks a different route than the cloud frame", () => {
     expect(ForecastPrecipUrl(6)).not.toBe(ForecastCloudsUrl(6));
+  });
+});
+
+describe("GetCloudBaseStats", () => {
+  it("fetches the relative server route with the hour", async () => {
+    await GetCloudBaseStats(0);
+    expect(fetch).toHaveBeenCalledWith("/forecast/cloudbase/stats?hour=0");
+  });
+
+  // Every route takes `at`, and its absence means live rather than a default
+  // date — so the parameter must not be sent when there is none.
+  it("omits `at` when no hour is being replayed", async () => {
+    await GetCloudBaseStats(0);
+    expect(fetch).toHaveBeenCalledWith("/forecast/cloudbase/stats?hour=0");
+  });
+
+  it("passes a replayed hour through", async () => {
+    await GetCloudBaseStats(0, "2025-05-15T18:00:00.000Z");
+    expect(fetch).toHaveBeenCalledWith(
+      "/forecast/cloudbase/stats?hour=0&at=2025-05-15T18%3A00%3A00.000Z"
+    );
+  });
+
+  it("throws on a non-OK response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) }))
+    );
+    await expect(GetCloudBaseStats(0)).rejects.toThrow(
+      "Failed to fetch cloud base stats: 500"
+    );
+  });
+});
+
+describe("ForecastCloudBaseUrl", () => {
+  it("builds a relative url so the proxy routes it", () => {
+    expect(ForecastCloudBaseUrl(0)).toBe("/forecast/cloudbase?hour=0");
+  });
+
+  // One cached server build serves both, but they are separate routes: the
+  // geometry never enters the store.
+  it("asks a different route than the stats", () => {
+    expect(ForecastCloudBaseUrl(0)).not.toBe(
+      "/forecast/cloudbase/stats?hour=0"
+    );
   });
 });
 

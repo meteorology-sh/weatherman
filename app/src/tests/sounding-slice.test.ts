@@ -4,6 +4,9 @@ import reducer, {
   DEFAULT_POINT,
 } from "@/lib/store/features/sounding";
 
+// Testing
+import { noDiagnostics } from "./utils";
+
 // Types
 import type { Sounding } from "@/lib/types";
 
@@ -20,6 +23,7 @@ const sounding: Sounding = {
   baseC: 34.9,
   topC: -18.1,
   levels: [{ mb: 550, tempC: -1.32, heightFt: 16966 }],
+  diagnostics: noDiagnostics,
 };
 
 const initial = reducer(undefined, { type: "@@INIT" });
