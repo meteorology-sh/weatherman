@@ -6,10 +6,9 @@ import assert from "node:assert/strict";
 import {
   ForecastService,
   polygons,
-  accumulate,
-  blockAverage,
   FORECAST_HOURS,
 } from "../lib/services/forecast";
+import { accumulate, blockAverage } from "../lib/services/grid";
 
 const NX = 20;
 const NY = 20;
@@ -52,7 +51,11 @@ describe("polygons (marching squares)", () => {
   it("traces one polygon with one ring for a solid blob", () => {
     const { values, lats, lons } = fixture();
     fill(values, 5, 14, 5, 14, 100);
-    const out = polygons({ nx: NX, ny: NY, values }, { nx: NX, ny: NY, lats, lons }, 50);
+    const out = polygons(
+      { nx: NX, ny: NY, values },
+      { nx: NX, ny: NY, lats, lons },
+      50
+    );
     assert.equal(out.length, 1);
     assert.equal(out[0].length, 1);
   });
@@ -60,7 +63,11 @@ describe("polygons (marching squares)", () => {
   it("closes every ring it emits", () => {
     const { values, lats, lons } = fixture();
     fill(values, 5, 14, 5, 14, 100);
-    const out = polygons({ nx: NX, ny: NY, values }, { nx: NX, ny: NY, lats, lons }, 50);
+    const out = polygons(
+      { nx: NX, ny: NY, values },
+      { nx: NX, ny: NY, lats, lons },
+      50
+    );
     for (const poly of out) {
       for (const ring of poly) {
         assert.deepEqual(ring[0], ring[ring.length - 1]);
@@ -71,7 +78,11 @@ describe("polygons (marching squares)", () => {
   it("wraps the blob's true extent", () => {
     const { values, lats, lons } = fixture();
     fill(values, 5, 14, 5, 14, 100);
-    const out = polygons({ nx: NX, ny: NY, values }, { nx: NX, ny: NY, lats, lons }, 50);
+    const out = polygons(
+      { nx: NX, ny: NY, values },
+      { nx: NX, ny: NY, lats, lons },
+      50
+    );
     const b = bbox(out[0][0]);
     // Contour sits on cell boundaries, so it hugs the blob within half a cell.
     assert.ok(b.minLon >= 4 && b.minLon <= 5.5, `minLon ${b.minLon}`);
@@ -84,36 +95,58 @@ describe("polygons (marching squares)", () => {
     const { values, lats, lons } = fixture();
     fill(values, 5, 14, 5, 14, 100);
     fill(values, 8, 11, 8, 11, 0); // punch a clear hole
-    const out = polygons({ nx: NX, ny: NY, values }, { nx: NX, ny: NY, lats, lons }, 50);
+    const out = polygons(
+      { nx: NX, ny: NY, values },
+      { nx: NX, ny: NY, lats, lons },
+      50
+    );
     assert.equal(out.length, 1, "one polygon");
     assert.equal(out[0].length, 2, "exterior + hole");
 
     // The hole must be the smaller ring, and inside the exterior.
     const ext = bbox(out[0][0]);
     const hole = bbox(out[0][1]);
-    assert.ok(hole.minLon > ext.minLon && hole.maxLon < ext.maxLon, "hole within exterior lon");
-    assert.ok(hole.minLat > ext.minLat && hole.maxLat < ext.maxLat, "hole within exterior lat");
+    assert.ok(
+      hole.minLon > ext.minLon && hole.maxLon < ext.maxLon,
+      "hole within exterior lon"
+    );
+    assert.ok(
+      hole.minLat > ext.minLat && hole.maxLat < ext.maxLat,
+      "hole within exterior lat"
+    );
   });
 
   it("separates disjoint blobs into separate polygons", () => {
     const { values, lats, lons } = fixture();
     fill(values, 2, 5, 2, 5, 100);
     fill(values, 12, 15, 12, 15, 100);
-    const out = polygons({ nx: NX, ny: NY, values }, { nx: NX, ny: NY, lats, lons }, 50);
+    const out = polygons(
+      { nx: NX, ny: NY, values },
+      { nx: NX, ny: NY, lats, lons },
+      50
+    );
     assert.equal(out.length, 2);
   });
 
   it("emits nothing when no cell reaches the level", () => {
     const { values, lats, lons } = fixture();
     fill(values, 5, 14, 5, 14, 40);
-    const out = polygons({ nx: NX, ny: NY, values }, { nx: NX, ny: NY, lats, lons }, 50);
+    const out = polygons(
+      { nx: NX, ny: NY, values },
+      { nx: NX, ny: NY, lats, lons },
+      50
+    );
     assert.equal(out.length, 0);
   });
 
   it("closes regions that run off the domain edge", () => {
     const { values, lats, lons } = fixture();
     fill(values, 0, 6, 0, 6, 100); // flush against the corner
-    const out = polygons({ nx: NX, ny: NY, values }, { nx: NX, ny: NY, lats, lons }, 50);
+    const out = polygons(
+      { nx: NX, ny: NY, values },
+      { nx: NX, ny: NY, lats, lons },
+      50
+    );
     assert.equal(out.length, 1);
     assert.deepEqual(out[0][0][0], out[0][0][out[0][0].length - 1]);
   });
@@ -227,7 +260,10 @@ describe("accumulate", () => {
   it("folds longitudes past the antimeridian back into -180..180", () => {
     const text =
       "Latitude Longitude Value\n" +
-      new Array(16).fill(0).map(() => `40 260 1`).join("\n");
+      new Array(16)
+        .fill(0)
+        .map(() => `40 260 1`)
+        .join("\n");
     const { geo } = accumulate(text, 1, 4, 4);
 
     assert.equal(geo.lons[0], -100);

@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 // Services
 import { abiGrid, scanAngles, pixelAt } from "../lib/services/abi";
 import { sceneTime, dayOfYear, summarize } from "../lib/services/cloudtop";
-import { temperatureAtMb } from "../lib/services/forecast";
+import { temperatureAtMb } from "../lib/services/profile";
 import { bandFeatures } from "../lib/services/contour";
 
 // Types

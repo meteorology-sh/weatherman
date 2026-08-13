@@ -7,13 +7,13 @@ import {
   BASE_WINDOW_FT,
   baseStats,
   bearing,
-  blockAverageSparse,
   diagnostics,
   recordsAt,
-} from "../lib/services/forecast";
+} from "../lib/services/diagnostics";
+import { blockAverageSparse } from "../lib/services/grid";
 
 // Types
-import type { Fields } from "../lib/services/forecast";
+import type { Fields } from "../lib/services/diagnostics";
 import type { Grid } from "../lib/services/contour";
 
 const MISSING = -9_999_999;

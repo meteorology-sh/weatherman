@@ -2,11 +2,7 @@ import { describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
 
 import { parseAt } from "../lib/services/replay";
-import {
-  assertAt,
-  floorHour,
-  fetchRangesOneByOne,
-} from "../lib/services/forecast";
+import { assertAt, floorHour, fetchRangesOneByOne } from "../lib/services/hrrr";
 import { archiveKeyTime } from "../lib/services/radar";
 
 describe("parseAt", () => {
@@ -22,7 +18,7 @@ describe("parseAt", () => {
   it("parses an ISO timestamp", () => {
     assert.equal(
       parseAt("2025-05-15T18:00:00Z")!.toISOString(),
-      "2025-05-15T18:00:00.000Z",
+      "2025-05-15T18:00:00.000Z"
     );
   });
 
@@ -41,14 +37,14 @@ describe("floorHour", () => {
   it("truncates to the cycle the timestamp falls in", () => {
     assert.equal(
       floorHour(new Date("2025-05-15T18:47:31.500Z")).toISOString(),
-      "2025-05-15T18:00:00.000Z",
+      "2025-05-15T18:00:00.000Z"
     );
   });
 
   it("leaves an exact hour alone", () => {
     assert.equal(
       floorHour(new Date("2025-05-15T18:00:00Z")).toISOString(),
-      "2025-05-15T18:00:00.000Z",
+      "2025-05-15T18:00:00.000Z"
     );
   });
 });
@@ -61,7 +57,7 @@ describe("assertAt", () => {
   it("refuses the future", () => {
     assert.throws(
       () => assertAt(new Date(Date.now() + 3_600_000)),
-      /at least an hour old/,
+      /at least an hour old/
     );
   });
 
@@ -70,7 +66,7 @@ describe("assertAt", () => {
     // to happen rather than a replayable cycle.
     assert.throws(
       () => assertAt(new Date(Date.now() - 60_000)),
-      /at least an hour old/,
+      /at least an hour old/
     );
   });
 });
@@ -80,9 +76,9 @@ describe("archiveKeyTime", () => {
     assert.equal(
       archiveKeyTime(
         "CONUS/MergedBaseReflectivityQC_00.50/20250515/" +
-          "MRMS_MergedBaseReflectivityQC_00.50_20250515-181439.grib2.gz",
+          "MRMS_MergedBaseReflectivityQC_00.50_20250515-181439.grib2.gz"
       ),
-      "2025-05-15T18:14:39.000Z",
+      "2025-05-15T18:14:39.000Z"
     );
   });
 
@@ -104,7 +100,7 @@ describe("fetchRangesOneByOne", () => {
           status: 206,
           arrayBuffer: async () => new Uint8Array([asked.length]).buffer,
         } as unknown as Response;
-      },
+      }
     );
 
     const out = await fetchRangesOneByOne("http://x/f.grib2", [
@@ -128,7 +124,7 @@ describe("fetchRangesOneByOne", () => {
 
     await assert.rejects(
       () => fetchRangesOneByOne("http://x/f.grib2", [[0, 9]]),
-      /ignored the byte range .*expected 206/,
+      /ignored the byte range .*expected 206/
     );
   });
 });

@@ -13,12 +13,12 @@ import { forecast } from "../routers/forecast";
 // Services
 import {
   Hrrr,
-  CloudBaseStats,
   ContourFrame,
   ForecastMeta,
   SlwStats,
   Sounding,
 } from "../lib/services/forecast";
+import { CloudBaseStats } from "../lib/services/diagnostics";
 
 const meta: ForecastMeta = {
   run: "2026-07-17T00:00:00.000Z",

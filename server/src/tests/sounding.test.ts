@@ -5,13 +5,13 @@ import assert from "node:assert/strict";
 // Services
 import {
   isothermFt,
-  nearestCell,
   SCOUT_LADDER_MB,
   SOUNDING_LEVELS,
-} from "../lib/services/forecast";
+} from "../lib/services/profile";
+import { nearestCell } from "../lib/services/grid";
 
 // Types
-import type { SoundingLevel } from "../lib/services/forecast";
+import type { SoundingLevel } from "../lib/services/profile";
 
 /** A column, bottom up, the way the service assembles one. */
 const column = (pairs: [number, number][]): SoundingLevel[] =>

@@ -89,7 +89,7 @@ const NO_ECHO = -90;
  * Both sit below every contour level, so neither draws anything.
  */
 const BLOCK_NO_ECHO = -99;
-const BLOCK_NO_COVERAGE = -999;
+export const BLOCK_NO_COVERAGE = -999;
 
 const REFLECTIVITY = {
   property: "reflectivity",
@@ -102,6 +102,15 @@ const REFLECTIVITY = {
    */
   levels: [20, 30, 40, 50],
 } as const;
+
+/**
+ * The reflectivity at which a cloud counts as already raining, dBZ.
+ *
+ * The lowest contour the map draws, and the one the candidate join crosses a
+ * cell off at — so the disqualifier on the map and the disqualifier in the join
+ * are the same number and cannot drift apart.
+ */
+export const RAIN_DBZ = REFLECTIVITY.levels[0];
 
 /**
  * Two MRMS cycles. The mosaic refreshes every ~2 minutes and a build costs
@@ -137,7 +146,11 @@ export type RadarStats = {
   peakDbz: number | null;
 };
 
-type Scene = { frame: RadarFrame; stats: RadarStats };
+/**
+ * `grid` is the block-averaged mosaic the contours were traced from, kept
+ * because the candidate join reads it — see `reflectivityField`.
+ */
+type Scene = { frame: RadarFrame; stats: RadarStats; grid: Grid };
 
 export class RadarService {
   /** The block grid is fixed, so it is built once and reused for every scene. */
@@ -155,6 +168,20 @@ export class RadarService {
   /** The same build's summary. Asking for either warms both. */
   async reflectivityStats(at?: Date): Promise<RadarStats> {
     return (await this.scene(at)).stats;
+  }
+
+  /**
+   * The block grid the contours were traced from, for the candidate join.
+   *
+   * **On the mosaic's own grid, not HRRR's** — this is a regular lat/lon grid
+   * and HRRR's is Lambert, so the caller indexes into it with `blockIndex`
+   * rather than assuming the two arrays line up cell for cell.
+   */
+  async reflectivityField(
+    at?: Date
+  ): Promise<{ grid: Grid; validTime: string }> {
+    const scene = await this.scene(at);
+    return { grid: scene.grid, validTime: scene.frame.validTime };
   }
 
   private async scene(at?: Date): Promise<Scene> {
@@ -247,7 +274,7 @@ export class RadarService {
       throw new Error(
         `Nearest archived MRMS scene to ${at.toISOString()} is ` +
           `${Math.round(best.delta / 60_000)} min away — refusing to caption it ` +
-          `as that time`,
+          `as that time`
       );
     }
     return best.key;
@@ -255,7 +282,7 @@ export class RadarService {
 
   private async list(prefix: string): Promise<string[]> {
     const res = await fetch(
-      `${MRMS_ARCHIVE}/?list-type=2&prefix=${encodeURIComponent(prefix)}`,
+      `${MRMS_ARCHIVE}/?list-type=2&prefix=${encodeURIComponent(prefix)}`
     );
     if (!res.ok) throw new Error(`MRMS archive listing failed: ${res.status}`);
     const xml = await res.text();
@@ -278,7 +305,7 @@ export class RadarService {
           grid = blockAverage(values);
         },
       },
-      "mrms",
+      "mrms"
     );
 
     if (!grid) throw new Error("MRMS mosaic carried no message");
@@ -293,10 +320,11 @@ export class RadarService {
           grid,
           this.geo,
           REFLECTIVITY.property,
-          REFLECTIVITY.levels,
+          REFLECTIVITY.levels
         ),
       },
       stats: summarize(grid, this.geo, validTime),
+      grid,
     };
   }
 
@@ -322,7 +350,7 @@ export class RadarService {
       }
     }
     throw new Error(
-      `MRMS mosaic unreachable: ${last instanceof Error ? last.message : String(last)}`,
+      `MRMS mosaic unreachable: ${last instanceof Error ? last.message : String(last)}`
     );
   }
 }
@@ -401,6 +429,34 @@ export function blockGeo(nx = NX, ny = NY): Geo {
     }
   }
   return { nx: ox, ny: oy, lats, lons };
+}
+
+/**
+ * Index of the block a point falls in, or -1 outside the mosaic's box.
+ *
+ * The mosaic is a regular lat/lon grid, so this is arithmetic rather than the
+ * scan `nearestCell` has to do on HRRR's Lambert grid — which is what makes
+ * sampling the whole 118k-cell HRRR grid onto this one cheap enough to do on
+ * every candidate build.
+ *
+ * **Nearest block, and nothing between blocks.** The two grids are both ~12 km,
+ * so taking the block a cell's centre lands in resamples one grid onto another
+ * of the same spacing. Interpolating between blocks would invent structure the
+ * mosaic does not have, which is the rule `MEASUREMENTS.md` §3 sets.
+ *
+ * Rows are found in scan order — the mosaic runs north to south — and then
+ * flipped, because `blockAverage` stores them south-up to match HRRR.
+ */
+export function blockIndex(lat: number, lon: number, nx = NX, ny = NY): number {
+  const ox = Math.floor(nx / BLOCK);
+  const oy = Math.floor(ny / BLOCK);
+  const half = (BLOCK - 1) / 2;
+
+  const sj = Math.round((LAT0 - STEP * half - lat) / CELL_DEG);
+  const bi = Math.round((lon - LON0 - STEP * half) / CELL_DEG);
+  if (sj < 0 || sj >= oy || bi < 0 || bi >= ox) return -1;
+
+  return (oy - 1 - sj) * ox + bi;
 }
 
 /**

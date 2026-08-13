@@ -118,7 +118,7 @@ export const TOP_WARMEST_C = -CLOUD_TOP.levels[0];
  * imagery this replaced could never do — an infrared image paints warm clear
  * sky opaquely and buries whatever is underneath.
  */
-const CLEAR = -999;
+export const CLEAR = -999;
 
 /**
  * GOES pixels across one 12 km cell. The ABI pixel is ~2 km at nadir, so six of
@@ -160,7 +160,12 @@ export type CloudTopStats = {
   coldestTopC: number | null;
 };
 
-type Scene = { frame: CloudTopFrame; stats: CloudTopStats };
+/**
+ * `cells` is the resampled scene the bands were traced from: coldness at the
+ * cloud top on the 12 km grid, `CLEAR` where the satellite sees no cloud. It is
+ * kept because the candidate join reads it — see `topField`.
+ */
+type Scene = { frame: CloudTopFrame; stats: CloudTopStats; cells: Grid };
 
 /**
  * The slice of h5wasm this service uses.
@@ -195,7 +200,7 @@ let h5: Promise<H5Module> | null = null;
  */
 function hdf5(): Promise<H5Module> {
   h5 ??= import("h5wasm/node").then(
-    (m) => ((m as { default?: H5Module }).default ?? m) as unknown as H5Module,
+    (m) => ((m as { default?: H5Module }).default ?? m) as unknown as H5Module
   );
   return h5;
 }
@@ -214,6 +219,19 @@ export class CloudTopService {
   /** The same build's summary. Asking for either warms both. */
   async temperatureStats(at?: Date): Promise<CloudTopStats> {
     return (await this.scene(at)).stats;
+  }
+
+  /**
+   * The resampled scene the bands were traced from, for the candidate join.
+   *
+   * Coldness at the cloud top on the 12 km grid — `CLEAR` where the satellite
+   * sees nothing, so a single `>= 5` test asks both "is there cloud" and "does
+   * its top reach the seeding band". The scan's own time rides along, because a
+   * join is only as current as its slowest source and the panel reports it.
+   */
+  async topField(at?: Date): Promise<{ cells: Grid; validTime: string }> {
+    const scene = await this.scene(at);
+    return { cells: scene.cells, validTime: scene.frame.validTime };
   }
 
   private async scene(at?: Date): Promise<Scene> {
@@ -286,8 +304,8 @@ export class CloudTopService {
         ...(await this.list(
           `${PRODUCT}/${t.getUTCFullYear()}/` +
             `${String(dayOfYear(t)).padStart(3, "0")}/` +
-            `${String(t.getUTCHours()).padStart(2, "0")}/`,
-        )),
+            `${String(t.getUTCHours()).padStart(2, "0")}/`
+        ))
       );
     }
 
@@ -306,7 +324,7 @@ export class CloudTopService {
       throw new Error(
         `Nearest GOES scene to ${at.toISOString()} is ` +
           `${Math.round(best.delta / 60_000)} min away — refusing to caption it ` +
-          `as that time`,
+          `as that time`
       );
     }
     return best.key;
@@ -346,10 +364,11 @@ export class CloudTopService {
           cells,
           column.geo,
           CLOUD_TOP.property,
-          CLOUD_TOP.levels,
+          CLOUD_TOP.levels
         ),
       },
       stats: summarize(cells, validTime, profileRun),
+      cells,
     };
   }
 
@@ -377,7 +396,7 @@ export class CloudTopService {
 
   private async list(prefix: string): Promise<string[]> {
     const res = await fetch(
-      `${BUCKET}/?list-type=2&prefix=${encodeURIComponent(prefix)}`,
+      `${BUCKET}/?list-type=2&prefix=${encodeURIComponent(prefix)}`
     );
     if (!res.ok) throw new Error(`GOES listing failed: ${res.status}`);
     const xml = await res.text();
@@ -400,7 +419,7 @@ export class CloudTopService {
    * pixel-archaeology version of the mistake this layer exists to undo.
    */
   private async decode(
-    buffer: Buffer,
+    buffer: Buffer
   ): Promise<{ grid: AbiGrid; pressure: Float32Array }> {
     const mod = await hdf5();
     const { FS } = await mod.ready;
@@ -468,7 +487,7 @@ export class CloudTopService {
   private resample(
     grid: AbiGrid,
     pressure: Float32Array,
-    column: Column,
+    column: Column
   ): Float32Array {
     const { geo } = column;
     const out = new Float32Array(geo.lats.length).fill(CLEAR);
@@ -544,8 +563,8 @@ export function sceneTime(key: string): string {
       Number(hh),
       Number(mm),
       Number(ss),
-      Number(tenths) * 100,
-    ),
+      Number(tenths) * 100
+    )
   );
   t.setUTCDate(t.getUTCDate() + Number(doy) - 1);
   return t.toISOString();
@@ -564,7 +583,7 @@ export function dayOfYear(t: Date): number {
 export function summarize(
   grid: Grid,
   validTime: string,
-  profileRun: string,
+  profileRun: string
 ): CloudTopStats {
   const floor = CLOUD_TOP.levels[0];
   let cloudy = 0;

@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 // Services
-import { concatParts } from "../lib/services/forecast";
+import { concatParts } from "../lib/services/hrrr";
 
 const BOUNDARY = "SEP";
 const TYPE = `multipart/byteranges; boundary=${BOUNDARY}`;
@@ -59,7 +59,9 @@ describe("concatParts", () => {
   });
 
   it("keeps binary payloads byte-exact", () => {
-    const raw = Buffer.from([0x47, 0x52, 0x49, 0x42, 0x00, 0xff, 0x0d, 0x0a, 0x42]);
+    const raw = Buffer.from([
+      0x47, 0x52, 0x49, 0x42, 0x00, 0xff, 0x0d, 0x0a, 0x42,
+    ]);
     const framed = Buffer.concat([
       Buffer.from(`--${BOUNDARY}\r\nContent-Range: bytes 0-8/999\r\n\r\n`),
       raw,
@@ -80,7 +82,8 @@ describe("concatParts", () => {
 
   it("throws when the content type carries no boundary", () => {
     assert.throws(
-      () => concatParts(body([{ offset: 0, data: "AAA" }]), "multipart/byteranges"),
+      () =>
+        concatParts(body([{ offset: 0, data: "AAA" }]), "multipart/byteranges"),
       /without a boundary/
     );
   });
