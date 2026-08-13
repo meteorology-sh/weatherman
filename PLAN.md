@@ -101,7 +101,7 @@ All three services take an optional `at`, absent meaning live:
 `GET /forecast/liquid?hour=0&at=2025-05-15T18:00Z`, and likewise for
 `/cloudtop/temperature`, `/radar/reflectivity`, `/forecast/sounding` and the
 stats routes. A `/map/replay` page drives them from a calendar. The contract and
-the traps are documented in `CLAUDE.md` under "Historical replay"; what follows
+the traps are documented in `WEATHERMAN.md` under "Historical replay"; what follows
 here is the evidence the archives support it.
 
 **Archive sources, all verified reachable and keyless:**

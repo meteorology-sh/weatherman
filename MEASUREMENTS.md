@@ -2,7 +2,7 @@
 
 The standing constraints on any layer this app draws: the physics and the
 sampling limits that decide whether a proposed layer is honest at all.
-`CLAUDE.md` describes what exists and how it is built; **read this before adding
+`WEATHERMAN.md` describes what exists and what each layer claims; **read this before adding
 a data source**, because most of what follows rules things out.
 
 Product context and the C1–C7 criteria live in the system design at
