@@ -74,7 +74,12 @@ describe("CloudTop panel", () => {
   // A clear sky is a real answer. Reporting "0% of 0%" would read as a broken
   // feed rather than as a cloudless domain.
   it("says so plainly when there is no cloud at all", () => {
-    withStats({ cloudPct: 0, seedableTopPct: 0, seedableKm2: 0, coldestTopC: null });
+    withStats({
+      cloudPct: 0,
+      seedableTopPct: 0,
+      seedableKm2: 0,
+      coldestTopC: null,
+    });
 
     expect(screen.getByText(/sees no cloud anywhere/)).toBeTruthy();
   });

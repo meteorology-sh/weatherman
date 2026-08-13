@@ -24,7 +24,7 @@ describe("replay slice", () => {
   it("stores the chosen hour as an ISO string", () => {
     const state = reducer(
       initial,
-      replayActions.setAt("2025-05-15T18:00:00.000Z"),
+      replayActions.setAt("2025-05-15T18:00:00.000Z")
     );
     expect(state.at).toBe("2025-05-15T18:00:00.000Z");
   });
@@ -32,7 +32,7 @@ describe("replay slice", () => {
   it("keeps the store serializable — no Date ever enters it", () => {
     const state = reducer(
       initial,
-      replayActions.setAt("2025-05-15T18:00:00.000Z"),
+      replayActions.setAt("2025-05-15T18:00:00.000Z")
     );
     expect(typeof state.at).toBe("string");
   });
@@ -40,7 +40,7 @@ describe("replay slice", () => {
   it("clears back to live", () => {
     const chosen = reducer(
       initial,
-      replayActions.setAt("2025-05-15T18:00:00.000Z"),
+      replayActions.setAt("2025-05-15T18:00:00.000Z")
     );
     expect(reducer(chosen, replayActions.setAt(null)).at).toBe(null);
   });
@@ -55,14 +55,14 @@ describe("replay slice", () => {
   it("clears what was drawable when a new hour is asked for", () => {
     let state = reducer(
       initial,
-      replayActions.setAt("2025-05-15T18:00:00.000Z"),
+      replayActions.setAt("2025-05-15T18:00:00.000Z")
     );
     state = reducer(
       state,
       replayActions.setReady({
         at: "2025-05-15T18:00:00.000Z",
         stats: STATS,
-      }),
+      })
     );
     expect(state.ready).toBe("2025-05-15T18:00:00.000Z");
 

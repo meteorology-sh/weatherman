@@ -3,7 +3,7 @@ services:
     build:
       context: ./app
       dockerfile: Dockerfiles/Dockerfile.local
-    command: [ "yarn", "run", "dev" ]
+    command: ["yarn", "run", "dev"]
     environment:
       SERVER_ORIGIN: http://weatherman-server-service:3000
     volumes:
@@ -15,7 +15,7 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfiles/Dockerfile.local
-    command: [ "yarn", "run", "docker" ]
+    command: ["yarn", "run", "docker"]
     volumes:
       - ./server:/usr/src/server
       - /usr/src/server/node_modules

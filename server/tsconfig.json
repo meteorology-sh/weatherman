@@ -1,24 +1,24 @@
 {
-    "compilerOptions": {
-      "target": "ES6",
-      // Still CommonJS output — package.json has no "type": "module", so every
-      // static import compiles to require() exactly as before. node16 only
-      // makes TypeScript model Node's real module system, which is what keeps
-      // `await import()` a genuine dynamic import instead of downlevelling it
-      // to require(). h5wasm is ESM-only and require() cannot load it; see
-      // lib/services/cloudtop.ts.
-      "module": "node16",
-      "moduleResolution": "node16",
-      "strict": true,
-      "esModuleInterop": true,
-      "skipLibCheck": true,
-      "forceConsistentCasingInFileNames": true,
-      "rootDir": "./src",
-      "outDir": "./dist"
-    },
-    "include": ["src/**/*"],
-    "exclude": ["node_modules", "src/tests"],
-    "ts-node": {
-      "files": true
-    }
+  "compilerOptions": {
+    "target": "ES6",
+    // Still CommonJS output — package.json has no "type": "module", so every
+    // static import compiles to require() exactly as before. node16 only
+    // makes TypeScript model Node's real module system, which is what keeps
+    // `await import()` a genuine dynamic import instead of downlevelling it
+    // to require(). h5wasm is ESM-only and require() cannot load it; see
+    // lib/services/cloudtop.ts.
+    "module": "node16",
+    "moduleResolution": "node16",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "src/tests"],
+  "ts-node": {
+    "files": true
   }
+}

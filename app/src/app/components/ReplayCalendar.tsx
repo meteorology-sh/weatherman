@@ -70,8 +70,8 @@ export const ReplayCalendar = () => {
   const choose = (day: number, atHour: number) => {
     dispatch(
       replayActions.setAt(
-        new Date(Date.UTC(month.year, month.month, day, atHour)).toISOString(),
-      ),
+        new Date(Date.UTC(month.year, month.month, day, atHour)).toISOString()
+      )
     );
   };
 

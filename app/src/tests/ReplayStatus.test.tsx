@@ -33,7 +33,7 @@ describe("ReplayStatus", () => {
   it("reports the scan time each source actually answered with", () => {
     const store = createTestStore();
     store.dispatch(
-      replayActions.setReady({ at: "2025-05-15T18:00:00.000Z", stats: STATS }),
+      replayActions.setReady({ at: "2025-05-15T18:00:00.000Z", stats: STATS })
     );
     renderWithStore(<ReplayStatus />, store);
 

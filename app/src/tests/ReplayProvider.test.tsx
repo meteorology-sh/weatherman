@@ -62,7 +62,7 @@ describe("ReplayProvider", () => {
         }
         const body = url.startsWith("/cloudtop") ? cloudTop : liquid;
         return { ok: true, json: async () => body } as Response;
-      }),
+      })
     );
     const store = createTestStore();
 
@@ -87,17 +87,17 @@ describe("ReplayProvider", () => {
 
     await waitFor(() => expect(store.getState().replay.stats).not.toBe(null));
     expect(store.getState().replay.stats!.cloudTop.validTime).toBe(
-      "2025-05-15T18:01:17.900Z",
+      "2025-05-15T18:01:17.900Z"
     );
     expect(store.getState().replay.stats!.radar.validTime).toBe(
-      "2025-05-15T17:59:00.000Z",
+      "2025-05-15T17:59:00.000Z"
     );
   });
 
   it("reports a failure instead of leaving the spinner running", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => ({ ok: false, status: 500 }) as Response),
+      vi.fn(async () => ({ ok: false, status: 500 }) as Response)
     );
     const store = createTestStore();
 
@@ -124,7 +124,7 @@ describe("ReplayProvider", () => {
 
     const asked = fetchMock.mock.calls.map((call) => call[0] as string);
     expect(asked.some((url) => url.includes(encodeURIComponent(next)))).toBe(
-      true,
+      true
     );
   });
 });

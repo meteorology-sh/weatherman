@@ -327,8 +327,8 @@ export function RadarProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         dispatch(
           radarActions.setError(
-            error instanceof Error ? error.message : "Failed to load data",
-          ),
+            error instanceof Error ? error.message : "Failed to load data"
+          )
         );
       } finally {
         dispatch(radarActions.setLoading(false));

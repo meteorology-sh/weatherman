@@ -57,14 +57,14 @@ export function ReplayProvider({ children }: { children: React.ReactNode }) {
           replayActions.setReady({
             at: hour,
             stats: { cloudTop, liquid, radar },
-          }),
+          })
         );
       } catch (error) {
         if (!current) return;
         dispatch(
           replayActions.setError(
-            error instanceof Error ? error.message : "Failed to load data",
-          ),
+            error instanceof Error ? error.message : "Failed to load data"
+          )
         );
       } finally {
         if (current) dispatch(replayActions.setLoading(false));
