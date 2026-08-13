@@ -24,31 +24,49 @@ cosmetic:
   nodata — infrared paints warm clear sky opaquely and buries the basemap,
   while a 0%-cloud contour simply isn't drawn.
 - **`/map/candidate` — observed.** Four layers, and they are four different
-  kinds of claim. Bottom to top: GOES-East Band 13 imagery (_observed_ cloud
-  tops), the HRRR supercooled-liquid contours for the analysis hour
+  kinds of claim. Bottom to top: GOES-East cloud-top temperature (_observed_
+  cloud tops), the HRRR supercooled-liquid contours for the analysis hour
   (_modelled_ — the deliberate exception, and the sidebar says so), the MRMS
   radar mosaic (_measured_, and the only measurement on either map), and the
   icing PIREPs (_reported_ by aircraft). Clicking anywhere profiles that point's
   column. This is "what is the sky doing right now, and how high".
 
+  **There is no raster on either map any more.** The cloud-top layer was a GIBS
+  Band 13 image until 2026-08-12 and is now GeoJSON bands built from
+  `ABI-L2-ACHP2KMC`, for the reason the forecast entry above gives: an image has
+  no nodata, so it painted clear sky opaquely over the basemap.
+
 **The layers, and what each is for:**
 
-- **Cloud _shape_: GOES-East imagery.** NASA GIBS WMTS tiles of GOES-East ABI
-  `Band13` clean infrared (cloud-top brightness temperature). ~2 km native, new
-  scene every 10 minutes, no API key. Tiles go browser → GIBS directly, like
-  the basemap; they do not pass through our server. **This is the only raster
-  on either map**, and it is on notice: it lays an image over the basemap
-  instead of drawing a surface with real nodata, which is the pattern
-  everything else here deliberately avoids. Expect to revisit it.
+- **Cloud _shape_ and _top temperature_: GOES-East, decoded server-side.**
+  `ABI-L2-ACHP2KMC` — cloud-top **pressure**, CONUS, 2 km, 4.1 MB a scene, a new
+  scene every 5 minutes, keyless on `noaa-goes19`. It is NetCDF4/HDF5, read with
+  `h5wasm`, reprojected from the ABI fixed grid onto the same 12 km grid
+  everything else here contours on, and turned into a temperature using HRRR's
+  profile at that pressure.
+  **This is the one layer built from two sources**, and the split is deliberate:
+  `MEASUREMENTS.md` §5 records that HRRR "nails the thermodynamic profile and is
+  much shakier on cloud", so the satellite says *where the top is* and the model
+  says *how cold it is there*. That also makes it the only cloud layer that can
+  contradict the supercooled-liquid contours drawn over it.
+  Two things it does that the Band 13 raster it replaced could not. It has
+  **real nodata** — roughly half a scene has no cloud and simply is not drawn.
+  And it is **filtered to C2**: only tops at −5 °C or colder appear, because a
+  warmer top means the seeding band lies above the cloud entirely, which is
+  **[verified] 71% of all cloudy ground over a Texas year**. The bands are
+  **disjoint, not nested** — see `bandFeatures` in `contour.ts` for the
+  measurement behind that, and `MEASUREMENTS.md` §G for why there is no cold
+  cutoff.
 - **Cloud _phase and quantity_: HRRR.** Cloud cover and precipitation on the
   forecast map, supercooled liquid water and the point sounding on the
   candidate map — all decoded from GRIB2 server-side and contoured. See
   "Full-Stack Data Flow".
 - **Rain: MRMS.** The observed check on all of it.
 
-**Why the split:** imagery answers "what shape, where"; the model answers "how
-much, of what, at what temperature". Neither substitutes for the other, and no
-sampled field is ever interpolated past what it measured. (An earlier version
+**Why the split:** the satellite answers "what shape, where, and how cold on
+top"; the model answers "how much, of what, at what temperature _inside_".
+Neither substitutes for the other, and no sampled field is ever interpolated
+past what it measured. (An earlier version
 carried an Open-Meteo 3° grid — ~300 km between samples — drawn as scaled point
 markers. Cloud structure lives at 1–50 km, so that grid could never become a
 surface; it was removed once HRRR gave us a field that could. An earlier
@@ -149,9 +167,9 @@ app/src/
                            #   Pages:   Landing, Forecast, Candidate
                            #   Map:     Map
                            #   Panels:  ForecastLayers, CandidateLayers,
-                           #            Liquid, Radar, Sounding, Pireps,
-                           #            TimeSlider, Drawer
-                           #   Legends: Ramp, Band13Ramp, PirepRamp
+                           #            CloudTop, Liquid, Radar, Sounding,
+                           #            Pireps, TimeSlider, Drawer
+                           #   Legends: Ramp, CloudTopRamp, PirepRamp
                            #   Shared:  LayerToggle (switch + its legend)
     assets/
     index.css / App.css
@@ -159,7 +177,7 @@ app/src/
     client.ts              # Plain async fetch functions (PascalCase names)
     types.ts               # Shared data shapes — mirror server responses
     arcgis/                # Module-scope ArcGIS config objects
-      layers.ts            #   Band13Layer (WebTileLayer), the HRRR and MRMS
+      layers.ts            #   CandidateCloudTopLayer, the HRRR and MRMS
                            #   contour GeoJSONLayers, CandidatePirepLayer
                            #   (points)
       legends.ts           #   Legend data per layer (ramp, ticks, caveat)
@@ -168,6 +186,7 @@ app/src/
       StoreProvider.tsx    # Wraps children with the Redux <Provider>
       ForecastProvider.tsx # Data provider: HRRR run metadata
       CandidateProvider.tsx# Data provider: supercooled-liquid stats (app-wide)
+      CloudTopProvider.tsx # Data provider: GOES cloud-top stats (page-scoped)
       PirepProvider.tsx    # Data provider: icing-report stats (page-scoped)
       RadarProvider.tsx    # Data provider: radar scene stats (page-scoped)
       SoundingProvider.tsx # Data provider: point profile; refetches on click
@@ -175,7 +194,7 @@ app/src/
       store.ts             # Singleton store + AppStore/RootState/AppDispatch
       hooks.ts             # useAppDispatch/useAppSelector/useAppStore
       features/            # One slice per domain (forecast.ts, candidate.ts,
-                           #   pirep.ts, radar.ts, sounding.ts,
+                           #   cloudtop.ts, pirep.ts, radar.ts, sounding.ts,
                            #   interactions.ts)
   tests/                   # All test files (.test.ts / .test.tsx) + utils.tsx
 ```
@@ -303,8 +322,10 @@ don't reintroduce that.)
 contours; 19 of them would be ~27 MB, and `serializableCheck` deep-walks state
 on every dispatch. So `ForecastCloudsLayer` is pointed at
 `/forecast/clouds?hour=N` and fetches the frame itself — the store holds only
-the `hour`. Same reasoning as the GIBS carve-out: what the store carries is
-the _selection_, not the payload.
+the `hour`. Every contoured layer works this way — the cloud-top bands are
+~800 KB and go straight to `CandidateCloudTopLayer` too, while only the summary
+rides the store. What the store carries is the _selection_ and the _summary_,
+never the payload.
 
 `StoreProvider` wraps children with the react-redux `<Provider>`, passing the
 singleton store directly (no `useRef` — the `react-hooks/refs` lint rule
@@ -400,31 +421,35 @@ Component prop types are declared locally as `type PropsT = { ... }`.
   effect, and reacts to Redux state (layer visibility, `goTo` flights) in
   separate focused effects. Other components interact with the map only
   through Redux (e.g. dispatching coordinates or a `CloudLayerId`).
-- Both GOES layers are added to the map once and toggled via `.visible`, so
-  switching does not refetch tiles. Visibility is derived from the store in
-  one effect — never set `visible` from anywhere else.
+- Every layer is added to the map once and toggled via `.visible`, so switching
+  routes does not refetch. Visibility is derived from the store in one effect —
+  never set `visible` from anywhere else.
 
-### GIBS tile layers
+### Two shapes of polygon layer, and when to use which
 
-GIBS publishes each layer only to a fixed maximum zoom (its matrix set:
-`GoogleMapsCompatible_Level7` = zoom 0–7, `Level6` = 0–6). One level past that
-the endpoint returns **400**, not an empty tile. So every GOES layer must cap
-its `tileInfo` LODs to match its matrix set:
+Both are GeoJSON from our own server, and the difference is not cosmetic:
 
-```ts
-tileInfo: TileInfo.create({ size: 256, numLODs: 8 }), // Level7 -> LODs 0..7
-```
+- **Nested contours** (`features()` server-side, stacked `Ramp` in the panel).
+  Cloud cover, precipitation, supercooled liquid water, reflectivity. An area
+  meeting the top level is painted by every band, so the fills composite and
+  each one stays faint. Use this when the field's extremes are rare and "more"
+  genuinely means "more".
+- **Disjoint bands** (`bandFeatures()` server-side, unstacked ramp in the
+  panel). Cloud-top temperature. Exactly one band applies to a cell and nothing
+  composites, so each swatch is the literal fill and the legend reads them
+  straight.
 
-Past the last LOD ArcGIS stretches the deepest tiles instead of requesting
-ones that don't exist. `tests/layers.test.ts` pins each cap; if you add a GOES
-layer, check its matrix set in the capabilities document and pin it too:
-`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/1.0.0/WMTSCapabilities.xml`
-(5 MB; needs redirect-following).
+**Check the coverage of each level before choosing.** Cloud-top temperature was
+built as nested contours first and the levels covered 41.5%, 38.3%, 35.5% and
+32.0% of the grid — four rings almost on top of each other, painting a third of
+the map at full opacity. That field is bimodal (warm low cloud, or very cold
+cirrus, little between), which nesting cannot express. `PIREP_CLASSES` is the
+third shape: discrete classes for points rather than polygons.
 
-Legend colours must come from the layer's published GIBS colour map, linked in
-that layer's `<ows:Metadata>` — never eyeballed from a screenshot. Band13's is
-`Clean_Longwave_Infrared_Window_Band.xml` (brightness temperature in °C, -92
-to +57).
+**The opacity ramp is not always quiet-to-loud.** Cloud-top temperature runs
+backwards — warmest band loudest — because the warm end is the target and the
+cold end is cirrus covering most of the sky. `renderers.test.ts` pins that
+direction.
 
 ## Component Conventions
 
@@ -509,7 +534,10 @@ src/tests/
   pirep-slice.test.ts        # reducer cases
   radar-slice.test.ts        # reducer cases
   sounding-slice.test.ts     # reducer cases, incl. clearing on a new point
-  layers.test.ts             # GIBS URLs + LOD caps, PIREP + radar contracts
+  layers.test.ts             # layer URLs + schemas, PIREP + radar contracts
+  cloudtop-slice.test.ts     # reducer cases
+  CloudTopProvider.test.tsx  # provider → store integration
+  CloudTop.test.tsx          # sidebar stats, incl. the cloud-free scene
   legends.test.ts            # ramp anchors, tick + seeding-band positions
   renderers.test.ts          # BANDS contracts, stacked alpha, PIREP classes
   ForecastProvider.test.tsx  # provider → store integration
@@ -577,27 +605,61 @@ src/tests/
 | Tool       | Notes                                                        |
 | ---------- | ------------------------------------------------------------ |
 | Express    | 5 — routers per domain, JSON responses                       |
-| TypeScript | 6, `strict` — **CommonJS** (`module: commonjs`), unlike /app |
+| TypeScript | 6, `strict` — **CommonJS** (`module: node16`), unlike /app  |
 | ts-node    | Runs `src/` directly in dev via nodemon                      |
 | nodemon    | `nodemon.json` watches `src/**/*.ts`                         |
 
-Dependencies are intentionally minimal: `express`, `cors`, `dotenv` — nothing
-else. No ORM, no database, no framework layers. Use node built-ins
-(`fs/promises`, `path`) for IO. Adding a dependency requires a reason these
-can't cover.
+Dependencies are intentionally minimal: `express`, `cors`, `dotenv`, `h5wasm`.
+No ORM, no database, no framework layers. Use node built-ins (`fs/promises`,
+`path`) for IO.
+
+**Adding one is allowed, but it has to clear a bar**: a real reason the existing
+stack cannot cover it, a package that is actually maintained, and no redundancy
+with what is already installed. Bring evidence — last publish date,
+downloads/month, dependency count, whether it needs a native build — and verify
+it on real data rather than from its README. `h5wasm` is the worked example
+(`MEASUREMENTS.md` §G): NIST, zero dependencies, WASM so no native toolchain,
+and it earned its place by being the only reader that could get the attributes
+out of a GOES scene. `netcdf4` and `hdf5` were rejected for being last published
+in 2018; `jsfive` reads the same files but returned **no attributes at all**,
+which would have meant hardcoding the fill value and scale factor.
+
+**`h5wasm` is ESM-only, and this server is CommonJS.** That is why
+`tsconfig.json` sets `"module": "node16"` rather than `"commonjs"`: the output
+is still CommonJS (there is no `"type": "module"` in `package.json`, and every
+static import still compiles to `require()`), but `node16` stops TypeScript
+downlevelling `await import()` into `require()`, which cannot load an ESM-only
+package. `cloudtop.ts` loads it through a lazy dynamic import and declares the
+slice of its API it uses locally, so the package never appears in a static
+import position.
 
 **One system dependency: `libeccodes-tools`**, installed via `apt-get` in
 `Dockerfiles/Dockerfile.local`. `ForecastService` shells out to its
-`grib_get_data` to read HRRR GRIB2. It is deliberately _not_ an npm package —
-the npm list stays at three. Decoding GRIB2 by hand would be ~200 lines of
+`grib_get_data` to read HRRR GRIB2. It is deliberately _not_ an npm package.
+Decoding GRIB2 by hand would be ~200 lines of
 bit-unpacking we'd own; eccodes is ECMWF's own tool and is in Debian main.
 (wgrib2, the more famous equivalent, has **no Debian package at all** and
 would need a source build with gfortran.) Reasoning and alternatives:
 `MEASUREMENTS.md` §6.
 
-**If the forecast route 500s with `spawn grib_get_data ENOENT`, the image is
-stale — rebuild it** (`docker-compose up --build`). Source is bind-mounted so
-TypeScript changes hot-reload, but the apt layer does not.
+**Two stale-container failures, and they need different commands.** Source is
+bind-mounted, so TypeScript changes hot-reload; nothing else does.
+
+- **`spawn grib_get_data ENOENT`** — the apt layer is stale.
+  `docker-compose up --build` fixes it.
+- **`TS2307: Cannot find module '<pkg>'`** after adding an npm dependency —
+  `--build` is **not** enough. `docker-compose.yaml` masks `node_modules` with
+  an **anonymous volume** (`- /usr/src/server/node_modules`) so the container
+  keeps its own copy rather than the host's, and Compose _preserves anonymous
+  volumes when it recreates a container_. The image rebuilds with the new
+  package and then the stale volume is remounted straight over it. Use:
+
+  ```bash
+  docker-compose up --build --renew-anon-volumes
+  ```
+
+  (`docker-compose down -v` then `up --build` does the same thing.) This bit
+  after `h5wasm` was added for the cloud-top layer.
 
 Scripts: `yarn dev` (nodemon), `yarn docker` (nodemon -L, used in Compose),
 `yarn build` (tsc → `dist/`), `yarn start`.
@@ -608,15 +670,18 @@ Scripts: `yarn dev` (nodemon), `yarn docker` (nodemon -L, used in Compose),
 server/src/
   index.ts                 # App setup: middleware, router mounts, listen
   routers/                 # One Express router per URL prefix
-                           #   (forecast.ts → /forecast, pirep.ts → /pireps,
+                           #   (cloudtop.ts → /cloudtop, forecast.ts →
+                           #    /forecast, pirep.ts → /pireps,
                            #    radar.ts → /radar)
   lib/
     services/              # Data access classes + singleton exports
                            #   (forecast.ts → Hrrr, radar.ts → Mrms,
-                           #    pirep.ts → Pireps)
+                           #    pirep.ts → Pireps, cloudtop.ts → Goes)
                            # Shared infrastructure, no source of its own:
-                           #   contour.ts (marching squares + features()),
-                           #   grib.ts (eccodes, streaming values)
+                           #   contour.ts (marching squares + features()
+                           #     and bandFeatures()),
+                           #   grib.ts (eccodes, streaming values),
+                           #   abi.ts (GOES fixed-grid geolocation)
     data/                  # (optional) on-disk JSON datasets read by services
   tests/                   # All test files (.test.ts)
 ```
@@ -732,12 +797,14 @@ export const Mrms = new RadarService();
 
 `yarn test` runs `node --require ts-node/register --test src/tests/*.test.ts`.
 The server uses **node's built-in test runner, not Vitest** — it needs no
-transform beyond ts-node, and this keeps the dependency list at three. Do not
+transform beyond ts-node, and this keeps the dependency list short. Do not
 add Vitest or any other runner here; `/app` and `/server` differ on purpose,
 like their module systems.
 
 ```
 server/src/tests/
+  cloudtop-service.test.ts # ABI geolocation, pressure→temperature, bands
+  cloudtop-router.test.ts  # route → GeoJSON, both source times, 500s
   forecast-service.test.ts # marching squares (holes, edges), run discovery
   forecast-router.test.ts  # route → GeoJSON, hour passthrough, 500s
   sounding.test.ts         # isotherm interpolation, inversions, nearest cell
@@ -778,8 +845,9 @@ server/src/tests/
 
 - Import grouping comments apply here too (`// Express`, `// Middleware`,
   `// Routers`, `// Services`, `// Types`, `// Node`).
-- The server is CommonJS — do not add `"type": "module"` or ESM-only
-  dependencies.
+- The server emits CommonJS — do not add `"type": "module"`. An ESM-only
+  dependency is allowed but must be loaded through a lazy `await import()`; see
+  `cloudtop.ts` and the `"module": "node16"` note in the Stack section.
 - Same Prettier conventions as `/app`.
 
 ---
@@ -824,6 +892,22 @@ GET /forecast/meta → GetForecastMeta() → ForecastProvider → forecast slice
                    → TimeSlider selects `hour` → Map.tsx repoints the layer
 ```
 
+The cloud-top layer is the only one assembled from two sources, and it is the
+only one whose geometry is observed:
+
+```
+noaa-goes19 S3 listing → newest ABI-L2-ACHP2KMC scene (4.1 MB NetCDF4)
+             → h5wasm → cloud-top pressure + projection constants
+             → ABI fixed grid → HRRR's 12 km grid (abi.ts)
+             → Hrrr.column() supplies TMP at that pressure  [services/forecast.ts]
+             → mask to tops colder than -5 C, disjoint bands [services/cloudtop.ts]
+             → GET /cloudtop/temperature                     [routers/cloudtop.ts]
+             → CandidateCloudTopLayer.url                    [lib/arcgis/layers.ts]
+
+GET /cloudtop/temperature/stats → GetCloudTopStats() → CloudTopProvider
+                                → cloudtop slice → CloudTop panel
+```
+
 The radar layer is the same shape again, from a different kind of source: one
 gzipped GRIB2 message rather than byte ranges of a huge one.
 
@@ -858,12 +942,13 @@ off — so both use a plain 5-minute TTL, and the radar frame carries its own
 valid time so the sidebar can report the scene's age rather than implying it is
 live.
 
-Map **imagery** deliberately does not follow this path — tile layers stream
-browser → GIBS directly, exactly as the ArcGIS basemap does. The "third-party
-calls only on the server" rule exists for keys, CORS and caching; a keyless
-public tile service has none of those problems, and proxying every tile
-through Express would only add latency. Anything that returns **data** (JSON
-we parse, cache, or reshape) still goes through a service.
+**Nothing streams browser → third party any more except the basemap.** GIBS
+tiles used to, on the "it returns imagery, not data" carve-out. That carve-out
+is gone with the raster: the cloud-top layer returns *data* we parse, reproject,
+cache and reshape, so it goes through a service like everything else. If a
+future layer is genuinely just tiles, the old reasoning still applies — keys,
+CORS and caching are what the rule protects, and a keyless public tile service
+has none of those problems.
 
 **Proxy wiring:** the app always fetches relative paths, so every server route
 prefix must be registered in `server.proxy` in `app/vite.config.ts`. The proxy

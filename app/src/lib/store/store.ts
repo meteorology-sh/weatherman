@@ -1,5 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
 import candidateReducer from "./features/candidate";
+import cloudTopReducer from "./features/cloudtop";
 import interactionsReducer from "./features/interactions";
 import forecastReducer from "./features/forecast";
 import pirepReducer from "./features/pirep";
@@ -12,6 +13,7 @@ import soundingReducer from "./features/sounding";
 export const store = configureStore({
   reducer: {
     candidate: candidateReducer,
+    cloudtop: cloudTopReducer,
     interactions: interactionsReducer,
     forecast: forecastReducer,
     pirep: pirepReducer,

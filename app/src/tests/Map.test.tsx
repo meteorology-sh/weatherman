@@ -7,6 +7,7 @@ import { createTestStore, renderWithStore } from "./utils";
 import { interactionsActions } from "@/lib/store/features/interactions";
 import { forecastActions } from "@/lib/store/features/forecast";
 import { candidateActions } from "@/lib/store/features/candidate";
+import { cloudTopActions } from "@/lib/store/features/cloudtop";
 import { pirepActions } from "@/lib/store/features/pirep";
 import { radarActions } from "@/lib/store/features/radar";
 import { soundingActions } from "@/lib/store/features/sounding";
@@ -32,7 +33,7 @@ type FakeViewT = {
 // layers.test.ts covers how the real ones are built.
 const {
   arcgis,
-  band13,
+  cloudTopLayer,
   forecastLayer,
   precipLayer,
   liquidLayer,
@@ -44,7 +45,7 @@ const {
     maps: [] as FakeMapT[],
     views: [] as FakeViewT[],
   },
-  band13: { id: "band13-layer", visible: false },
+  cloudTopLayer: { id: "cloudtop-layer", visible: false },
   forecastLayer: {
     id: "forecast-layer",
     visible: false,
@@ -79,7 +80,7 @@ const {
 }));
 
 vi.mock("@/lib/arcgis/layers", () => ({
-  Band13Layer: band13,
+  CandidateCloudTopLayer: cloudTopLayer,
   ForecastCloudsLayer: forecastLayer,
   ForecastPrecipLayer: precipLayer,
   CandidateLiquidLayer: liquidLayer,
@@ -130,7 +131,7 @@ const view = () => arcgis.views[arcgis.views.length - 1];
 beforeEach(() => {
   arcgis.maps.length = 0;
   arcgis.views.length = 0;
-  band13.visible = false;
+  cloudTopLayer.visible = false;
   liquidLayer.visible = false;
   liquidLayer.refresh.mockClear();
   forecastLayer.visible = false;
@@ -168,7 +169,7 @@ describe("ArcGIS", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     expect(map().layers).toEqual([
-      band13,
+      cloudTopLayer,
       forecastLayer,
       precipLayer,
       liquidLayer,
@@ -206,31 +207,33 @@ describe("ArcGIS", () => {
 });
 
 describe("ArcGIS in candidate mode", () => {
-  it("shows the observed imagery and the modelled liquid water together", () => {
+  it("shows the observed cloud tops and the modelled liquid water together", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
-    expect(band13.visible).toBe(true);
+    expect(cloudTopLayer.visible).toBe(true);
     expect(liquidLayer.visible).toBe(true);
   });
 
   // The satellite shows the cloud top; the contours show what is inside it. The
-  // liquid has to sit above or it is buried by the imagery it explains.
-  it("draws the liquid water above the imagery it explains", () => {
+  // liquid has to sit above or it is buried by the cloud it explains.
+  it("draws the liquid water above the cloud tops it explains", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     const layers = map().layers ?? [];
-    expect(layers.indexOf(liquidLayer)).toBeGreaterThan(layers.indexOf(band13));
+    expect(layers.indexOf(liquidLayer)).toBeGreaterThan(
+      layers.indexOf(cloudTopLayer)
+    );
   });
 
-  it("hides the imagery when the operator turns it off", () => {
+  it("hides the cloud tops when the operator turns them off", () => {
     const store = createTestStore();
 
     renderWithStore(<ArcGIS mode="candidate" />, store);
     act(() => {
-      store.dispatch(candidateActions.setImagery(false));
+      store.dispatch(cloudTopActions.setVisible(false));
     });
 
-    expect(band13.visible).toBe(false);
+    expect(cloudTopLayer.visible).toBe(false);
     expect(liquidLayer.visible).toBe(true);
   });
 
@@ -243,7 +246,7 @@ describe("ArcGIS in candidate mode", () => {
     });
 
     expect(liquidLayer.visible).toBe(false);
-    expect(band13.visible).toBe(true);
+    expect(cloudTopLayer.visible).toBe(true);
   });
 
   it("hides the modelled forecast contours", () => {
@@ -392,10 +395,10 @@ describe("ArcGIS in forecast mode", () => {
     expect(forecastLayer.visible).toBe(true);
   });
 
-  it("hides the GOES imagery, which cannot forecast", () => {
+  it("hides the observed cloud tops, which cannot forecast", () => {
     renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
 
-    expect(band13.visible).toBe(false);
+    expect(cloudTopLayer.visible).toBe(false);
   });
 
   // The liquid layer is pinned to the analysis, so it would contradict the

@@ -70,6 +70,24 @@ export interface RadarStats {
   peakDbz: number | null;
 }
 
+/** Mirrors CloudTopStats in server/src/lib/services/cloudtop.ts */
+export interface CloudTopStats {
+  /** When the server last built the scene, ISO 8601. */
+  fetchedAt: string;
+  /** Start of the satellite scan, ISO 8601 — not when we fetched it. */
+  validTime: string;
+  /** HRRR run that supplied the temperatures, ISO 8601. */
+  profileRun: string;
+  /** Percent of the 12 km grid the satellite sees any cloud over. */
+  cloudPct: number;
+  /** Percent of the grid whose cloud top is at or below −5 °C. */
+  seedableTopPct: number;
+  /** Ground with a seedable top, km². */
+  seedableKm2: number;
+  /** Coldest cloud top on the grid, °C. Null when there is no cloud at all. */
+  coldestTopC: number | null;
+}
+
 /** Mirrors IcingStats in server/src/lib/services/pirep.ts */
 export interface IcingStats {
   /** When the server last pulled the feed, ISO 8601. */

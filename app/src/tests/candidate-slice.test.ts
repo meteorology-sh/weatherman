@@ -20,22 +20,12 @@ const stats: SlwStats = {
 };
 
 describe("candidate reducer", () => {
-  it("starts with both layers on", () => {
-    expect(initialState.imagery).toBe(true);
+  it("starts with the liquid layer on", () => {
     expect(initialState.liquid).toBe(true);
   });
 
   it("starts with no stats", () => {
     expect(initialState.stats).toBeUndefined();
-  });
-
-  it("toggles the imagery off", () => {
-    const state = candidateReducer(
-      initialState,
-      candidateActions.setImagery(false)
-    );
-
-    expect(state.imagery).toBe(false);
   });
 
   it("toggles the liquid layer off", () => {
@@ -47,13 +37,15 @@ describe("candidate reducer", () => {
     expect(state.liquid).toBe(false);
   });
 
-  it("leaves the other layer alone when one toggles", () => {
-    const state = candidateReducer(
+  it("leaves the stats alone when the layer toggles", () => {
+    const loaded = candidateReducer(
       initialState,
-      candidateActions.setLiquid(false)
+      candidateActions.setStats(stats)
     );
 
-    expect(state.imagery).toBe(true);
+    const state = candidateReducer(loaded, candidateActions.setLiquid(false));
+
+    expect(state.stats).toEqual(stats);
   });
 
   it("stores the stats", () => {

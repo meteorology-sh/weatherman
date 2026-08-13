@@ -1,6 +1,6 @@
 // ArcGIS
 import {
-  Band13Layer,
+  CandidateCloudTopLayer,
   ForecastCloudsLayer,
   ForecastPrecipLayer,
   CandidateLiquidLayer,
@@ -8,35 +8,29 @@ import {
   CandidatePirepLayer,
 } from "@/lib/arcgis/layers";
 
-describe("GOES imagery layer", () => {
-  it("points Band13 at the GIBS GOES-East Clean Infrared endpoint", () => {
-    expect(Band13Layer.urlTemplate).toBe(
-      "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/" +
-        "GOES-East_ABI_Band13_Clean_Infrared" +
-        "/default/default/GoogleMapsCompatible_Level6/{level}/{row}/{col}.png"
+describe("GOES cloud-top layer", () => {
+  it("reads the banded scene from our own server, not from GIBS", () => {
+    expect(CandidateCloudTopLayer.url).toBe("/cloudtop/temperature");
+  });
+
+  // The layer this replaced was a raster, and a raster has no nodata. Declaring
+  // the schema is what lets a clear scene come back as an empty collection
+  // without leaving the renderer with no field to match.
+  it("declares its schema, so a cloud-free scene still renders", () => {
+    expect(CandidateCloudTopLayer.geometryType).toBe("polygon");
+    expect(CandidateCloudTopLayer.fields.map((f) => f.name)).toContain(
+      "topColdnessC"
     );
   });
 
-  // GIBS publishes Band13 only to zoom 6. Requesting a deeper tile 400s, so the
-  // layer's LODs must stop where its matrix set does.
-  it("caps Band13 at the zoom level GIBS publishes (6)", () => {
-    const levels = Band13Layer.tileInfo.lods.map((lod) => lod.level);
-
-    expect(Math.max(...levels)).toBe(6);
-  });
-
-  // GIBS serves these from its epsg3857 endpoint, so the tiling scheme has to
-  // be Web Mercator or the imagery lands in the wrong place.
-  it("tiles in Web Mercator to match the basemap", () => {
-    expect(Band13Layer.tileInfo.spatialReference.isWebMercator).toBe(true);
-  });
-
-  it("credits NASA GIBS and NOAA", () => {
-    expect(Band13Layer.copyright).toBe("NASA GIBS / NOAA GOES-East");
+  it("credits both sources, because it is built from two", () => {
+    expect(CandidateCloudTopLayer.copyright).toBe(
+      "NOAA GOES-East / NOAA HRRR"
+    );
   });
 
   it("leaves visibility to the map, which drives it from the store", () => {
-    expect(Band13Layer.visible).toBe(false);
+    expect(CandidateCloudTopLayer.visible).toBe(false);
   });
 });
 

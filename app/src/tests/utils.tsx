@@ -5,6 +5,7 @@ import type { ReactElement, ReactNode } from "react";
 import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
 import candidateReducer from "@/lib/store/features/candidate";
+import cloudTopReducer from "@/lib/store/features/cloudtop";
 import interactionsReducer from "@/lib/store/features/interactions";
 import forecastReducer from "@/lib/store/features/forecast";
 import pirepReducer from "@/lib/store/features/pirep";
@@ -23,6 +24,7 @@ export function createTestStore() {
   return configureStore({
     reducer: {
       candidate: candidateReducer,
+      cloudtop: cloudTopReducer,
       interactions: interactionsReducer,
       forecast: forecastReducer,
       pirep: pirepReducer,

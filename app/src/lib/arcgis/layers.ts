@@ -1,11 +1,10 @@
 // ArcGIS
-import WebTileLayer from "@arcgis/core/layers/WebTileLayer";
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
-import TileInfo from "@arcgis/core/layers/support/TileInfo";
 import PopupTemplate from "@arcgis/core/PopupTemplate";
 import {
   forecastCloudRenderer,
   forecastPrecipRenderer,
+  candidateCloudTopRenderer,
   candidateLiquidRenderer,
   candidateRadarRenderer,
   candidatePirepRenderer,
@@ -13,6 +12,7 @@ import {
 
 // Client
 import {
+  CloudTopUrl,
   ForecastCloudsUrl,
   ForecastPrecipUrl,
   ForecastLiquidUrl,
@@ -20,47 +20,39 @@ import {
   IcingPirepsUrl,
 } from "@/lib/client";
 
-// NASA GIBS serves GOES ABI imagery as RESTful WMTS tiles: no API key, ~2km
-// native resolution, new imagery every 10 minutes. "default" in the {Style}
-// and {Time} slots resolves to the most recent scene.
-// Docs: https://nasa-gibs.github.io/gibs-api-docs/access-basics/
-const GIBS = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best";
-const COPYRIGHT = "NASA GIBS / NOAA GOES-East";
-
-function goesUrl(layer: string, matrixSet: string) {
-  return `${GIBS}/${layer}/default/default/${matrixSet}/{level}/{row}/{col}.png`;
-}
-
 /**
- * GIBS publishes each GOES layer to a fixed maximum zoom (Level7 = LODs 0-7,
- * Level6 = LODs 0-6). Capping tileInfo at that depth stops ArcGIS requesting
- * tiles that do not exist; past the last LOD it stretches the deepest tiles
- * rather than dropping the layer.
- */
-function goesTileInfo(numLODs: number) {
-  return TileInfo.create({ size: 256, numLODs });
-}
-
-/**
- * Cloud-top brightness temperature, identical day and night.
+ * Observed cloud tops, banded server-side from a GOES-East scene.
  *
- * The only GOES rendering we carry. GeoColor was dropped because it answers a
- * question this product does not ask: it is true colour by day and a different
- * IR shading by night, so it looks like a photograph and tells the operator
- * nothing about what is inside the cloud. Band 13 at least reports a
- * temperature, which is one step from the seeding band.
+ * **This replaced the last raster on either map**, and the reason is the reason
+ * the rest of these layers are vectors: an infrared image has no nodata. Band
+ * 13 painted warm clear sky opaquely and buried the basemap under it, so a map
+ * whose whole job is "where is there something worth flying to" spent most of
+ * its pixels on sky where there is nothing at all. These bands are simply not
+ * drawn where the satellite sees no cloud — **[verified] about half a scene** —
+ * and the basemap shows through.
  *
- * Starts hidden; Map.tsx drives visibility from the store so it is decided in
- * exactly one place.
+ * It is also filtered rather than merely redrawn. Only tops colder than −5 °C
+ * appear, which is criterion C2: a warmer top means the seeding band lies above
+ * the cloud entirely, so there is nothing inside it to seed. That is
+ * **[verified] 71% of all cloudy ground over a Texas year**, removed.
+ *
+ * The geometry comes from the satellite and the temperatures from HRRR's
+ * profile — see the server's `cloudtop.ts` for why that split runs the way it
+ * does. `fields` and `geometryType` are declared rather than inferred for the
+ * same reason as the precipitation layer: on a clear scene the collection is
+ * empty, and an empty one gives ArcGIS nothing to infer a schema from.
  */
-export const Band13Layer = new WebTileLayer({
-  title: "GOES-East Band 13 (Clean IR)",
-  urlTemplate: goesUrl(
-    "GOES-East_ABI_Band13_Clean_Infrared",
-    "GoogleMapsCompatible_Level6"
-  ),
-  tileInfo: goesTileInfo(7),
-  copyright: COPYRIGHT,
+export const CandidateCloudTopLayer = new GeoJSONLayer({
+  title: "GOES-East cloud-top temperature",
+  url: CloudTopUrl(),
+  copyright: "NOAA GOES-East / NOAA HRRR",
+  renderer: candidateCloudTopRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "topColdnessC", type: "double" },
+  ],
   visible: false,
 });
 

@@ -178,6 +178,73 @@ export const candidateRadarRenderer = new UniqueValueRenderer({
 });
 
 /**
+ * One cloud-top temperature band: the warm edge of the interval, in degrees
+ * below zero, and the fill painted for it.
+ *
+ * **These do not stack**, and that is the whole design. Every other polygon
+ * layer here nests — an area meeting the top level is painted by every band —
+ * because its field has rare extremes and "more" means "more". Cloud-top
+ * temperature is bimodal instead: warm low cloud, or very cold cirrus, with
+ * little between. **[verified] on a live GOES scene** the nested version
+ * covered 41.5%, 38.3%, 35.5% and 32.0% of the grid — four rings almost exactly
+ * on top of each other, painting a third of the map at full opacity.
+ *
+ * So exactly one band applies to a cell, each carries the colour it is actually
+ * drawn in, and the legend reads them straight — the same shape `PIREP_CLASSES`
+ * uses, for a different reason.
+ */
+export type CloudTopBand = {
+  /** Warm edge of the interval, °C below zero. Matches the server's property. */
+  readonly value: number;
+  /** Warm and cold edges as temperatures, for the legend. */
+  readonly fromC: number;
+  readonly toC: number | null;
+  readonly label: string;
+  readonly alpha: number;
+};
+
+/**
+ * Slate, deliberately colourless. This layer answers "where is cloud, and how
+ * cold is its top" — context for the two layers drawn over it, not a verdict.
+ * Amber is spent on modelled liquid water and cyan on observed rain; giving
+ * cloud shape a hue of its own would compete with both for attention it does
+ * not deserve.
+ */
+export const CLOUD_TOP_RGB = [148, 163, 184] as const;
+
+/**
+ * Mirrors CLOUD_TOP.levels in server/src/lib/services/cloudtop.ts.
+ *
+ * **The opacity ramp runs backwards from every other layer here, on purpose.**
+ * The warmest band is the loudest because it is the one a seeding operator is
+ * looking for: a top just below −5 °C is a shallow supercooled-topped cloud,
+ * the classic target. The coldest band is nearly invisible because
+ * **[verified] 54% of cloudy cells sit below −30 °C** — that is cirrus and
+ * anvil, it covers most of the sky, and painting it loudly would bury the thing
+ * worth finding under the thing that is merely everywhere.
+ *
+ * Nothing is discarded for being cold: the last band is open-ended and still
+ * drawn. See `MEASUREMENTS.md` §G for why there is no cold cutoff.
+ */
+export const CLOUD_TOP_BANDS: readonly CloudTopBand[] = [
+  { value: 5, fromC: -5, toC: -12, label: "−5 to −12", alpha: 0.3 },
+  { value: 12, fromC: -12, toC: -18, label: "−12 to −18", alpha: 0.22 },
+  { value: 18, fromC: -18, toC: -25, label: "−18 to −25", alpha: 0.14 },
+  { value: 25, fromC: -25, toC: null, label: "below −25", alpha: 0.07 },
+];
+
+export const candidateCloudTopRenderer = new UniqueValueRenderer({
+  field: "topColdnessC",
+  uniqueValueInfos: CLOUD_TOP_BANDS.map(({ value, alpha }) => ({
+    value,
+    symbol: new SimpleFillSymbol({
+      color: [...CLOUD_TOP_RGB, alpha],
+      outline: { width: 0 },
+    }),
+  })),
+});
+
+/**
  * One icing-PIREP class: a severity rank and the marker painted for it.
  *
  * Unlike every other layer here these do not stack — a PIREP is one aircraft at

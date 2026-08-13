@@ -1,11 +1,12 @@
 // Store
 import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
 import { candidateActions } from "@/lib/store/features/candidate";
+import { cloudTopActions } from "@/lib/store/features/cloudtop";
 import { radarActions } from "@/lib/store/features/radar";
 import { pirepActions } from "@/lib/store/features/pirep";
 
 // ArcGIS
-import { Band13Legend } from "@/lib/arcgis/legends";
+import { CloudTopLegend } from "@/lib/arcgis/legends";
 import {
   SLW_BANDS,
   SLW_LABELS,
@@ -19,12 +20,12 @@ import {
 // Components
 import { LayerToggle } from "./LayerToggle";
 import { Ramp } from "./Ramp";
-import { Band13Ramp } from "./Band13Ramp";
+import { CloudTopRamp } from "./CloudTopRamp";
 import { PirepRamp } from "./PirepRamp";
 
 export const CandidateLayers = () => {
   const dispatch = useAppDispatch();
-  const imagery = useAppSelector((state) => state.candidate.imagery);
+  const cloudTop = useAppSelector((state) => state.cloudtop.visible);
   const liquid = useAppSelector((state) => state.candidate.liquid);
   const radar = useAppSelector((state) => state.radar.visible);
   const pireps = useAppSelector((state) => state.pirep.visible);
@@ -34,13 +35,17 @@ export const CandidateLayers = () => {
     <div className="flex flex-col gap-4">
       <LayerToggle
         name="Cloud tops"
-        title={<>Cloud tops &middot; {Band13Legend.name}</>}
-        checked={imagery}
-        onChange={(on) => dispatch(candidateActions.setImagery(on))}
+        title={<>Cloud tops &middot; {CloudTopLegend.name}</>}
+        checked={cloudTop}
+        onChange={(on) => dispatch(cloudTopActions.setVisible(on))}
       >
-        <div className="text-xs opacity-60">{Band13Legend.summary}</div>
-        <Band13Ramp />
-        <div className="text-xs opacity-50">{Band13Legend.caveat}</div>
+        <div className="text-xs opacity-60">{CloudTopLegend.summary}</div>
+        <CloudTopRamp />
+        <div className="text-xs opacity-60">
+          °C at the cloud top &middot; warmest band is the shallow
+          supercooled-topped cloud worth finding; the faintest is cirrus.
+        </div>
+        <div className="text-xs opacity-50">{CloudTopLegend.caveat}</div>
       </LayerToggle>
 
       <LayerToggle

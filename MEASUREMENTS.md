@@ -5,9 +5,12 @@
 which, and each built entry carries a note on what shipping it actually meant.
 `CLAUDE.md` describes what exists; this file is the menu we pick from next.
 Findings marked **[verified]** were tested live against the real endpoint on
-**2026-07-16**; the PIREP figures in §D, and the MRMS, HRRR-profile and
-seeding-band figures in §A, §B and §C, were verified **2026-08-12**. The rest
-is reasoning.
+**2026-07-16**; the PIREP figures in §D, the MRMS, HRRR-profile and
+seeding-band figures in §A, §B and §C, and the cloud-top figures in §G were
+verified **2026-08-12**. §G's coverage figures come from a **24-case,
+year-round sample over Texas** (two days a month, 18z) rather than a single
+run — §G explains why that distinction changed the answer. The rest is
+reasoning.
 
 Product context and the C1–C7 criteria live in the system design at
 `/home/nathan/code/rainmaker/weatherman` (`docs/SENSING_STRATEGY.md`). This
@@ -43,10 +46,11 @@ That is `SENSING_STRATEGY` **C3 ∧ C4** (the temperature band ∧ the phase),
 gated by **C6** (not already precipitating). Everything below is scored on
 how much of that sentence it answers.
 
-The trap is that "cloud" and "seedable cloud" are almost unrelated. Our
-current GOES imagery answers _"is there a cloud and what shape is it"_ (C1,
-C2). It says nothing about phase or temperature _inside_ the cloud. **The
-gap between the map we have and the map we want is entirely C4.**
+The trap is that "cloud" and "seedable cloud" are almost unrelated. GOES
+answers _"is there a cloud, what shape is it, and how cold is its top"_ (C1,
+C2) — the top only. It says nothing about phase or temperature _inside_ the
+cloud. **The gap between the map we have and the map we want is entirely C4**,
+and it is why (B) exists and why (G) is filtered rather than decorative.
 
 ## 2. What actually sees supercooled liquid water
 
@@ -59,7 +63,7 @@ The honest hierarchy. Nothing free and national **measures** SLW:
 | **CIP** (FAA icing product)        | **fuses** model+sat+radar+PIREP  | 13–20 km, 1000 ft, hourly              | ⚠️ **no public API** [verified]                   | No        |
 | **Icing PIREPs**                   | **confirms** it, spot            | ~20 positive / 12 h / CONUS [verified] | ✅ free GeoJSON                                   | Yes       |
 | MODIS cloud phase / water path     | retrieves it, **cloud-top only** | 1 km, 2×/day                           | ✅ free (GIBS tiles)                              | Yes       |
-| GOES ABI (what we ship today)      | **cannot see it**                | 2 km, 10 min                           | ✅ free                                           | Yes       |
+| GOES ABI cloud-top temperature (G) | **cannot see it** — top only, C2 | 2 km, 5 min                            | ✅ free, NetCDF4 on S3                            | Yes       |
 
 **The conclusion that matters:** with no ground station we get _simulation +
 sparse confirmation_, never measurement. A national map can therefore honestly
@@ -324,6 +328,238 @@ built.
 See §4. Good for "is it worth towing the trailer to west Texas Thursday?", out
 to 16 days. **Cannot contribute to C4 at all.**
 
+### G. Cloud-top temperature — C2 (does the band lie inside the cloud at all?)
+
+**Built 2026-08-12 from the _observed_ source; one decision below is still
+open.** Raised when the Band 13 raster came up for removal: it was the last
+image on either map, and the replacement had to answer a question rather than
+paint a picture.
+
+**What shipped** (`/cloudtop/temperature`, on `/map/candidate`, replacing the
+Band 13 raster entirely):
+
+- **GOES-East `ABI-L2-ACHP2KMC`**, not HRRR's `PRES:cloud top`. The source
+  question below was decided for the observed feed: the geometry is a real
+  satellite retrieval, so the layer can contradict (B) rather than agree with it
+  by construction. HRRR still supplies the temperature at that pressure, which
+  is the split §5 argues for — the model is trusted for the profile and not for
+  the cloud.
+- **The mask is C2 only**: tops at −5 °C or colder, no cold cutoff. That is the
+  honest default while the cold-edge question stays open, and it is the one the
+  measurements below lean toward.
+- **Disjoint bands, not nested contours** — see the note at the end of this
+  entry, which is a finding from the build rather than from the survey.
+- **One new npm dependency, `h5wasm`**, and it earned it: `jsfive` reads the
+  same files but returned **no attributes at all**, which would have meant
+  hardcoding the fill value, the scale factor and the projection constants that
+  the file already carries. `netcdf4` and `hdf5` were last published in 2018.
+  h5wasm is ESM-only against a CommonJS server, which cost a `tsconfig` change
+  to `"module": "node16"` and a lazy dynamic import; `CLAUDE.md` records why.
+- **The HRRR profile grid now reads to 100 mb, not 300 mb.** Cloud tops sit far
+  higher than the seeding band does, and the old ceiling clamped **[verified]
+  47.6% of cloudy cells** to a single temperature. The sounding panel still
+  displays only 300 mb and below, so it is unchanged: build wide, display
+  narrow.
+
+`hrrr.tXXz.wrfsfcfXX.grib2` carries **`PRES:cloud top`** — one record,
+**[verified] 587,534 bytes**, and it is _missing_ where there is no cloud
+rather than carrying a sentinel. That is real nodata, which is the property the
+raster never had: **[verified] 77.57%** of CONUS (1,477,751 of 1,905,141
+points) has no value at all on the 12z analysis. Interpolating `TMP` at that
+pressure against the profile ladder (C) already caches turns it into
+cloud-top temperature for the price of one extra record.
+
+**What it adds over (B), measured rather than argued.** The obvious objection
+is that we already integrate `CLWMR` over the band, so a second temperature
+layer is a restatement. It is not. **[verified] 12z f00 over CONUS**,
+cross-tabulated against an SLW path integrated on the same ladder (50 mb
+layers, coarser than the service's 25 mb — the structure is the finding, not
+the magnitudes):
+
+|                                    | % of CONUS |
+| ---------------------------------- | ---------- |
+| Cloud top in −5…−18 °C             | 1.70       |
+| SLW ≥ 10 g/m²                      | 1.22       |
+| **Both**                           | **0.69**   |
+| SLW, but top outside the window    | 0.53       |
+| Top in window, but no modelled SLW | 1.02       |
+
+Only 56.4% of the ground where the model finds seedable liquid has a cloud top
+in that window. The two layers disagree about half the time, so whatever else
+is true, this is not (B) redrawn.
+
+**Then that number was re-measured properly and it did not hold.** The figures
+above are one summer afternoon over the whole country, and both halves of that
+are wrong for this product: the operation is **Texas**, and it runs **year
+round**. Redone over a Texas bounding box (**176,972 HRRR cells**, 9.3% of the
+CONUS grid) across **24 cases — two days a month for a year, 18z, noon CST,
+when sorties fly** — pooled over 4.2M cell-observations from the keyless HRRR
+archive:
+
+|                             | % of Texas |
+| --------------------------- | ---------- |
+| Cloudy                      | 16.3       |
+| Cloud top warmer than −5 °C | 11.5       |
+| SLW ≥ 10 g/m²               | 1.3        |
+
+**The single CONUS case overstated the −18 °C window's reach: 56.4% there,
+48.7% over a Texas year.** Texas is drier and its seeding opportunities are
+episodic — **10 of the 24 cases carried essentially no SLW at all** (under 200
+cells), and one case, 2025-11-20, carried 10.1% of the state on its own. Any
+figure here drawn from a single day is an accident of that day.
+
+**The warm edge is C2 and needs no new justification.** `SENSING_STRATEGY.md`
+already states it: _"the −5 to −12 °C band must physically lie between base and
+top. A shallow warm cloud never reaches it."_ A top warmer than −5 °C means the
+band is **above** the cloud, so there is nothing in it to seed — and that is not
+a rare edge case: **[verified] 11.5 of Texas' 16.3 cloudy percent, i.e. 71% of
+all cloudy cells pooled over the year**, are exactly that. Masking them off is
+the single biggest thing this layer does, and it is the criterion the project
+already holds.
+
+#### Open — the cold edge has no basis in the design document
+
+Everything above justifies a mask of "top colder than −5 °C". It does **not**
+justify an upper bound, and the −18 °C one proposed alongside it is borrowed
+from the SLW band, where it means something different: −18 °C is where the
+_supply of liquid worth converting_ thins out (§1). Applied to a cloud **top**
+it would have to mean something else entirely — that a top colder than −18 °C
+implies the cloud has glaciated enough aloft that seeding adds little.
+
+**That claim is nowhere in `SENSING_STRATEGY.md`.** The nearest things to it are
+**C1** (lightning marks a "mature, electrified, strongly-glaciated state" where
+"the supercooled window is closing") and **C6** ("seeding adds the most where the
+natural ice process is deficient") — both real, neither expressed as a cloud-top
+temperature threshold. Under a strict reading of **C2** there is no cold cutoff
+at all: a colder top just means the band is more fully enclosed by cloud, which
+is _better_, not worse.
+
+The measurement shows the choice is not academic — **a cold edge throws away
+about half the target ground, year round.** **[verified]** pooled over the 24
+Texas cases:
+
+| Cold edge      | Mask, % of Texas | SLW ground covered |
+| -------------- | ---------------- | ------------------ |
+| −18 °C         | 1.4              | **48.7%**          |
+| −25 °C         | 2.1              | 59.4%              |
+| −30 °C         | 2.6              | 65.1%              |
+| none (C2 only) | 4.8              | **92.7%**          |
+
+**And the damage is wildly unstable, which is the finding that matters.** Across
+the 14 cases with a usable SLW footprint (≥200 cells), the share of seedable
+ground the −18 °C edge keeps ranges from **14.2% to 82.7%** — a six-fold swing
+between days. −25 °C is no steadier (23.2% to 91.9%). On 2026-03-08 the −18 °C
+edge kept 14.2% of the SLW ground while C2 alone kept 95.7%: a deep-cloud day
+where nearly all the liquid sat under tops colder than the cutoff. On 2026-01-08
+the same edge kept 82.0%.
+
+A threshold whose consequence swings six-fold with the synoptic situation is not
+a threshold this data can calibrate. It can only be justified — or not — from
+outside.
+
+**What must be settled before building:** whether the marginal benefit of
+seeding really falls off below some cloud-top temperature, and if so what that
+temperature is. This is a claim about natural ice-nucleus activation
+out-competing AgI, and it needs a citation, not a plausible-sounding number
+picked from a table of coverage percentages. The figures above can say what a
+threshold _costs_ and how erratically it costs it; they cannot say whether it is
+real. **Note which way they lean, though:** C2 alone is both the simplest rule
+and the stable one, and every cold edge tested is expensive and inconsistent.
+The burden of proof sits on adding the cutoff, not on leaving it out.
+
+**Leads to check — none verified, none currently cited anywhere in this repo or
+in `SENSING_STRATEGY.md`:** the cloud-top-temperature "seeding window" from the
+1970s Colorado River Basin Pilot Project (Grant & Elliott is the name usually
+attached to it); the NRC's _Critical Issues in Weather Modification Research_
+(2003); the ASCE standard practice for precipitation-enhancement projects; WMO
+statements on weather modification; and Super & Boe on AgI in orographic cloud.
+**Do not cite any of these from this list** — it is a search plan, and each
+needs reading before it can carry a threshold. If the literature does not
+support a cold edge, the honest layer is C2 alone: mask at −5 °C and draw
+everything colder.
+
+#### Decided 2026-08-12 — observed, and what it changed
+
+The source decides what the layer _is_, not just where the bytes come from.
+
+- **HRRR `PRES:cloud top` (modelled).** Reuses byte-range subsetting, eccodes,
+  block averaging and marching squares; one 587 KB record; the profile ladder is
+  already cached. Nothing new to build and no new dependency. **But the same
+  model supplies both the liquid and the verdict on whether that liquid has
+  glaciated**, so this cannot falsify (B) — it is a second opinion from HRRR,
+  not a check on it. §5 already records that HRRR "nails the thermodynamic
+  profile and is much shakier on cloud", and this layer would inherit exactly
+  that weakness while sitting beside the layer that shares it.
+- **GOES-East `ABI-L2-ACHP2KMC` (observed) — the option this entry originally
+  missed.** Not the Band 13 brightness temperature and not the full-disk
+  temperature product, but **observed cloud-top _pressure_, CONUS, 2 km**:
+  **[verified] 4.1 MB a scene, one scene every 5 minutes**, keyless on
+  `noaa-goes19`. That is _the same variable_ `PRES:cloud top` gives us, so it is
+  a drop-in — identical `TMP`-ladder interpolation, identical contouring — and
+  it makes the cloud geometry an **observation that can falsify HRRR's cloud
+  field**, which is the role MRMS and the PIREPs play and the reason those two
+  layers earn their place. `SENSING_STRATEGY.md` §5 assigns cloud-top
+  temperature to GOES explicitly.
+
+  **[verified] by reading a real scene, not the documentation:** `PRES`, units
+  hPa, 1500 × 2500, `_FillValue` 65535 over **50.0% of the grid** — true nodata
+  again — scaling to a **91.9…1016.2 hPa** range, on the standard GOES-R ABI
+  fixed grid (geostationary, `sweep_angle_axis: x`, origin −75°). It also
+  **beats HRRR on freshness by an order of magnitude**, which matters on a map
+  whose whole claim is "right now": **[verified]** a scene scanned 00:51 UTC was
+  published by 00:55 and read at 00:58, against HRRR's hourly analysis posted
+  ~50 minutes after the hour.
+
+  Cost: **one new dependency and a reprojection.** The files are NetCDF4/HDF5.
+  `h5wasm` (NIST, **[verified]** published 2026-06-11, ~150k downloads/month,
+  **zero dependencies**, WASM so no native toolchain) reads them, and it is what
+  produced the figures above rather than being taken on trust. The alternatives
+  fail the bar: `netcdfjs` is healthy but NetCDF v3 classic only, and `netcdf4`
+  and `hdf5` were both last published in **2018** with a few hundred downloads a
+  month and need a native build. `jsfive` (same authors, pure JS) is the
+  fallback. Beyond the reader there is the ABI scan-angle → geodetic transform
+  and a resample onto the 12 km grid — arithmetic, but ours to own and test.
+
+**Taken: the observed route.** Independence and freshness were judged worth a
+dependency and a reprojection we maintain. A modelled layer is exact about a
+cloud that may not exist; an observed one is approximate about a cloud that
+does — and the candidate map's entire premise is "what is the sky doing right
+now". It also pairs with §5's own finding that HRRR "nails the thermodynamic
+profile and is much shakier on cloud": GOES supplies the cloud geometry, HRRR
+the temperature profile, each doing what it is good at.
+
+**What it cost, measured on the build rather than estimated:** one npm
+dependency, ~150 lines of ABI geolocation with its own test suite, and a cold
+build of ~38 s — almost all of it the HRRR profile grid, not the 4 MB scene.
+Warm, it is ~0 ms for five minutes. The modelled fallback is still cheap to
+reach if the feed fails: `PRES:cloud top` is the same variable on the same 12 km
+grid, so only the service's decode step would change.
+
+#### Caveat found in the data, either way
+
+**HRRR's `PRES:cloud top` reports one deck, not the highest.** **[verified]** on
+1,494 points the analysis puts in-band liquid _above_ the reported top — in
+**all 1,494**, never below — with a median gap of 26 mb and a maximum of 489 mb.
+Most of that is discretization, but the tail is genuine multi-layer cloud where
+the diagnostic describes a low deck and the seedable liquid is in a higher one.
+It is 0.35% of cloudy cells, small enough to build on and large enough to
+belong in a comment rather than a surprise. It is also the likely explanation
+for the cells that report a "top" warmer than −5 °C while still carrying in-band
+liquid. Whether GOES' retrieved cloud-top pressure has the same failure — it
+almost certainly does, since a passive radiometer sees the deck that is on top —
+has **not** been tested and should be, before the observed route is trusted over
+multi-layer cloud.
+
+**On seasons and geography, read the Texas year-round numbers, not the CONUS
+August ones.** This entry was first written from a single summer afternoon over
+the whole country, and both choices flattered the result — the −18 °C window's
+reach fell from 56.4% to 48.7% when it was re-measured over a Texas year. This
+product runs year round; **[verified]** 10 of 24 Texas cases carried no
+meaningful SLW at all, so any figure taken from one day is an accident of that
+day's weather. The archive makes this cheap to re-check (§5 has the two traps
+that make it not quite free), and a decision this file records should be
+re-measured the same way rather than argued from the nearest run.
+
 ### Rejected, with reasons
 
 | Candidate                          | Why not                                                                                                                                                                                                         |
@@ -408,6 +644,25 @@ thermodynamic profile and are much shakier on cloud. That asymmetry is why
 (C) is trustworthy, why (B) is a candidate-finder rather than a verdict, and
 why (D) belongs on the map.
 
+**The HRRR archive is not a drop-in for NOMADS, and both ways it differs fail
+quietly.** **[verified] 2026-08-12** against `noaa-hrrr-bdp-pds` on S3, which is
+keyless, goes back years, and is the only way to test this app's behaviour in a
+season other than the one you are standing in:
+
+- **S3 ignores multi-range requests.** Ask NOMADS for 16 byte ranges and it
+  returns `206` and a `multipart/byteranges` body — the trick §B is built on,
+  and the reason a frame costs ~930 KB of a 390 MB file. Ask S3 for the same
+  thing and it returns **`200 OK` with the entire 398 MB object**. Not a 206,
+  not a 416, not an error: the identical code path silently downloads the whole
+  file and then spends a quarter of an hour in `grib_filter` decoding all 708
+  records. Any archive fallback must issue **one request per range** and assert
+  `206`, because the failure mode is a working answer that costs 400× too much.
+- **The archive calls cloud mixing ratio `CLMR`; NOMADS calls it `CLWMR`.** Same
+  parameter, different `.idx` naming, and `pick()` throws `CLWMR at 300 mb not
+present in HRRR index` — which reads like a missing field rather than a
+  renamed one. eccodes' `shortName` is `clwmr` on both, so only the index lookup
+  needs to know.
+
 **Correlation length decides whether a field may be drawn as a surface.**
 The existing rule in `CLAUDE.md` ("do not render the grid as a continuous
 field") is not "never draw surfaces" — it is _don't draw structure finer than
@@ -425,6 +680,32 @@ HRRR's 3 km field is legitimate for SLW while a sampled version of it is not.
 **Ask "what is the correlation length" before drawing any new surface.**
 
 ## 6. Decisions
+
+**Open 2026-08-12 — the cloud-top temperature layer (§G), on two counts.**
+Agreed: the Band 13 raster goes once a replacement exists. Not agreed, and
+deliberately not settled by the coverage measurements in §G:
+
+1. **Whether the mask has a cold edge at all, and if so what justifies it.**
+   The warm edge (−5 °C) follows from **C2** in `SENSING_STRATEGY.md` and needs
+   nothing further. A cold edge is a _new_ criterion — that seeding's marginal
+   benefit falls off below some cloud-top temperature — and no version of it
+   appears in the design document. It needs literature, not a coverage table.
+   §G lists the search plan and marks it unread. What the year-round Texas
+   sample _can_ say is that every cold edge tested is expensive (−18 °C keeps
+   48.7% of seedable ground against C2-alone's 92.7%) and unstable (14.2%–82.7%
+   across days). That does not settle it, but it does put the burden of proof on
+   adding the cutoff rather than on omitting it.
+2. ~~Modelled or observed.~~ **Taken 2026-08-12 — observed**, GOES-East
+   `ABI-L2-ACHP2KMC`, so the layer can falsify (B) rather than agree with it by
+   construction. It is also ~10× fresher (5-minute scenes against an hourly
+   analysis posted 50 minutes late), which matters on a map whose premise is
+   "right now". Cost and fallback are in §G.
+
+The cold edge is recorded rather than resolved because picking it from the
+numbers alone would be inventing a criterion and then measuring it. The layer
+ships with no cold cutoff in the meantime, which is the honest default: it
+discards nothing, and adding a cutoff later is a one-line change to
+`CLOUD_TOP.levels`.
 
 **Taken 2026-08-12 — the seeding band is −5 to −18 °C, not −5 to −12 °C.**
 Reasoning and the live PIREP evidence are in §1. What it touches: the SLW

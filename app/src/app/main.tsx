@@ -15,6 +15,7 @@ import { RouterProvider } from "react-router/dom";
 // Providers
 import StoreProvider from "@/lib/context/StoreProvider.tsx";
 import { ForecastProvider } from "@/lib/context/ForecastProvider.tsx";
+import { CloudTopProvider } from "@/lib/context/CloudTopProvider.tsx";
 import { PirepProvider } from "@/lib/context/PirepProvider.tsx";
 import { RadarProvider } from "@/lib/context/RadarProvider.tsx";
 import { SoundingProvider } from "@/lib/context/SoundingProvider.tsx";
@@ -42,13 +43,15 @@ const router = createBrowserRouter([
       {
         path: "/map/candidate",
         element: (
-          <RadarProvider>
-            <PirepProvider>
-              <SoundingProvider>
-                <Candidate />
-              </SoundingProvider>
-            </PirepProvider>
-          </RadarProvider>
+          <CloudTopProvider>
+            <RadarProvider>
+              <PirepProvider>
+                <SoundingProvider>
+                  <Candidate />
+                </SoundingProvider>
+              </PirepProvider>
+            </RadarProvider>
+          </CloudTopProvider>
         ),
       },
     ],

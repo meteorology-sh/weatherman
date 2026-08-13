@@ -1,5 +1,6 @@
 // Types
 import type {
+  CloudTopStats,
   ForecastMeta,
   SlwStats,
   IcingStats,
@@ -90,6 +91,25 @@ export async function GetIcingStats(): Promise<IcingStats> {
     throw new Error(`Failed to fetch icing reports: ${res.status}`);
   }
   const stats: IcingStats = await res.json();
+  return stats;
+}
+
+/**
+ * Observed cloud tops, banded server-side from a GOES-East scene. No hour and
+ * no run, for the same reason the radar route has neither: this is whatever the
+ * satellite scanned a few minutes ago, and the frame carries its own scan time.
+ */
+export function CloudTopUrl(): string {
+  return "/cloudtop/temperature";
+}
+
+/** The same scene's summary. Asking for it also warms the server's build. */
+export async function GetCloudTopStats(): Promise<CloudTopStats> {
+  const res = await fetch("/cloudtop/temperature/stats");
+  if (!res.ok) {
+    throw new Error(`Failed to fetch cloud tops: ${res.status}`);
+  }
+  const stats: CloudTopStats = await res.json();
   return stats;
 }
 

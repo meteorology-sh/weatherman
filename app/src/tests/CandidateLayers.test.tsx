@@ -4,6 +4,7 @@ import { createTestStore, renderWithStore } from "./utils";
 
 // Store
 import { candidateActions } from "@/lib/store/features/candidate";
+import { cloudTopActions } from "@/lib/store/features/cloudtop";
 import { pirepActions } from "@/lib/store/features/pirep";
 import { radarActions } from "@/lib/store/features/radar";
 
@@ -20,24 +21,28 @@ import {
   soloColor,
   PIREP_CLASSES,
 } from "@/lib/arcgis/renderers";
-import { Band13Legend } from "@/lib/arcgis/legends";
+import { CLOUD_TOP_BANDS, CLOUD_TOP_RGB } from "@/lib/arcgis/renderers";
+import { CloudTopLegend } from "@/lib/arcgis/legends";
 
 // Components
 import { CandidateLayers } from "@/app/components/CandidateLayers";
 
 /**
- * One layer's ramp swatches. Band13's tick row is also `h-4`, so the selector
- * has to be narrower than it is on the forecast panel, which has no gradient
- * legend — and this panel now carries two ramps, so the swatches are picked out
- * by the class titles that layer paints rather than by position.
+ * One layer's ramp swatches. This panel carries several ramps, so the swatches
+ * are picked out by the class titles that layer paints rather than by position.
  */
 const swatches = (container: HTMLElement, titles: readonly string[]) =>
   Array.from(container.querySelectorAll<HTMLElement>("div.h-4.flex-1")).filter(
     (el) => titles.includes(el.title)
   );
 
-/** jsdom re-prints rgba() with spaces; compare the colour, not the spacing. */
-const rgba = (css: string) => css.replace(/\s+/g, "");
+/**
+ * jsdom re-prints rgba() with spaces and trims trailing zeros off the alpha
+ * (`0.300` -> `0.3`). Normalise both so the assertion compares the colour
+ * rather than its formatting.
+ */
+const rgba = (css: string) =>
+  css.replace(/\s+/g, "").replace(/(\.\d*?)0+\)/, "$1)").replace(/\.\)/, ")");
 
 describe("CandidateLayers", () => {
   it("shows a swatch for every liquid-water band", () => {
@@ -76,12 +81,12 @@ describe("CandidateLayers", () => {
     const store = createTestStore();
 
     renderWithStore(<CandidateLayers />, store);
-    const imagery = screen.getByLabelText("Cloud tops") as HTMLInputElement;
+    const cloudTop = screen.getByLabelText("Cloud tops") as HTMLInputElement;
     const liquid = screen.getByLabelText(
       "Supercooled liquid water"
     ) as HTMLInputElement;
 
-    expect(imagery.checked).toBe(true);
+    expect(cloudTop.checked).toBe(true);
     expect(liquid.checked).toBe(true);
 
     act(() => {
@@ -89,7 +94,7 @@ describe("CandidateLayers", () => {
     });
 
     expect(liquid.checked).toBe(false);
-    expect(imagery.checked).toBe(true);
+    expect(cloudTop.checked).toBe(true);
   });
 
   it("turns the liquid layer off when its toggle is clicked", () => {
@@ -116,28 +121,42 @@ describe("CandidateLayers", () => {
     expect(swatches(container, SLW_LABELS)).toHaveLength(0);
   });
 
-  it("hides the Band13 legend when the imagery is off", () => {
+  it("hides the cloud-top legend when the layer is off", () => {
     const store = createTestStore();
 
     renderWithStore(<CandidateLayers />, store);
     act(() => {
-      store.dispatch(candidateActions.setImagery(false));
+      store.dispatch(cloudTopActions.setVisible(false));
     });
 
-    expect(screen.queryByText(Band13Legend.summary)).toBeNull();
+    expect(screen.queryByText(CloudTopLegend.summary)).toBeNull();
   });
 
-  // Band13's ramp is the published GIBS colour map, and the bracket across it is
-  // the whole reason the layer is on this map rather than GeoColor.
-  it("brackets the seeding band on the Band13 ramp", () => {
+  // The cloud-top bands are disjoint, so each swatch is the literal fill the
+  // map paints rather than a composite of everything beneath it. Compositing
+  // them here would describe a map that does not exist.
+  it("paints each cloud-top swatch its own unstacked fill", () => {
     const { container } = renderWithStore(
       <CandidateLayers />,
       createTestStore()
     );
 
-    const bracket = container.querySelector<HTMLElement>("div.border-x-2");
-    expect(bracket).toBeTruthy();
-    expect(bracket!.style.left).toBe(`${Band13Legend.band.fromPercent}%`);
+    const warmest = container.querySelector<HTMLElement>(
+      `div[title="${CLOUD_TOP_BANDS[0].label} °C"]`
+    );
+    expect(warmest).toBeTruthy();
+    expect(rgba(warmest!.style.backgroundColor)).toBe(
+      rgba(soloColor(CLOUD_TOP_RGB, CLOUD_TOP_BANDS[0].alpha))
+    );
+  });
+
+  // The ramp runs backwards from every other layer here: the warmest band is
+  // the target and the coldest is cirrus covering most of the sky. If that ever
+  // inverts, the map buries the thing it exists to surface.
+  it("keeps the warmest cloud-top band the loudest", () => {
+    const alphas = CLOUD_TOP_BANDS.map((b) => b.alpha);
+
+    expect(alphas).toEqual([...alphas].sort((a, b) => b - a));
   });
 
   // Modelled data on the observed map is a real exception to this repo's

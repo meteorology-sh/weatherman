@@ -4,9 +4,13 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { SlwStats } from "@/lib/types";
 
 type CandidateState = {
-  /** GOES Band 13 imagery — the observed cloud tops, drawn under the contours. */
-  imagery: boolean;
-  /** HRRR supercooled liquid water contours, drawn over the imagery. */
+  /**
+   * HRRR supercooled liquid water contours, drawn over the observed cloud tops.
+   *
+   * The cloud-top layer used to live here too, as `imagery`, back when it was a
+   * GOES raster with no data behind it. It fetches and summarises a scene of
+   * its own now, so it has its own slice like every other data domain.
+   */
   liquid: boolean;
   /** Summary of the liquid layer. The geometry itself never enters the store. */
   stats: SlwStats | undefined;
@@ -15,7 +19,6 @@ type CandidateState = {
 };
 
 const initialState: CandidateState = {
-  imagery: true,
   liquid: true,
   stats: undefined,
   loading: false,
@@ -26,9 +29,6 @@ const candidateSlice = createSlice({
   name: "candidate",
   initialState,
   reducers: {
-    setImagery(state, action: PayloadAction<boolean>) {
-      state.imagery = action.payload;
-    },
     setLiquid(state, action: PayloadAction<boolean>) {
       state.liquid = action.payload;
     },

@@ -206,10 +206,27 @@ const SOUNDING = {
   metresToFeet: 3.28084,
 } as const;
 
-/** The levels the profile reads, bottom-inclusive: 300–1000 by 50, plus 1013.2. */
-export const SOUNDING_LEVELS: number[] = (() => {
+/**
+ * Ceiling of the grid the profile actually reads, well above the sounding's own.
+ *
+ * **Build wide, display narrow.** The sounding panel wants 300 mb because that
+ * is where a drone's target altitudes live and levels above it are noise on the
+ * readout. The cloud-top layer wants far more: **[verified] on a live GOES
+ * scene, 47.6% of cloudy 12 km cells had tops above 300 mb** — anvil and cirrus
+ * sit at 100–300 mb routinely. Reading only to 300 mb clamped every one of them
+ * to the same temperature and piled 52% of the grid into a single −40…−30 °C
+ * bin.
+ *
+ * So the grid is read to 100 mb and each consumer takes the slice it needs. The
+ * cost is 8 more records (~8 s on a cold build, once per run) and it is paid by
+ * whichever feature asks first.
+ */
+const PROFILE_MIN_MB = 100;
+
+/** Every level the profile grid holds: 100–1000 by 50, plus HRRR's lowest. */
+export const PROFILE_LEVELS: number[] = (() => {
   const out: number[] = [];
-  for (let mb = SOUNDING.minMb; mb <= SOUNDING.maxMb; mb += SOUNDING.stepMb) {
+  for (let mb = PROFILE_MIN_MB; mb <= SOUNDING.maxMb; mb += SOUNDING.stepMb) {
     out.push(mb);
   }
   // HRRR's lowest level is below 1000 mb and off the ladder; in a winter
@@ -217,6 +234,17 @@ export const SOUNDING_LEVELS: number[] = (() => {
   out.push(SURFACE_MB);
   return out;
 })();
+
+/**
+ * The levels the *sounding readout* shows: 300–1000 by 50, plus 1013.2.
+ *
+ * A subset of PROFILE_LEVELS, not a separate fetch. Everything above 300 mb is
+ * read into the grid and simply not displayed, so this panel is unchanged by
+ * the widening above.
+ */
+export const SOUNDING_LEVELS: number[] = PROFILE_LEVELS.filter(
+  (mb) => mb >= SOUNDING.minMb
+);
 
 /** Profile grids are ~12 MB an hour, so only the last few hours are kept. */
 const PROFILE_CACHE = 3;
@@ -304,6 +332,18 @@ export type Sounding = {
   topC: number;
   /** Every level read, bottom up. Small enough to show, and it is the evidence. */
   levels: SoundingLevel[];
+};
+
+/**
+ * The 12 km grid plus the one question another service needs to ask of HRRR's
+ * profile: how cold is it at this pressure, over this cell.
+ */
+export type Column = {
+  geo: Geo;
+  run: Date;
+  hour: number;
+  /** Temperature in °C at `mb` over grid cell `cell`. */
+  tempAt: (cell: number, mb: number) => number;
 };
 
 type IdxRow = { name: string; level: string; start: number; end: number };
@@ -395,12 +435,13 @@ export class ForecastService {
     const geo = this.geo!;
     const cell = nearestCell(geo, lat, lon);
 
-    const levels: SoundingLevel[] = profile.levels
-      .map((mb) => ({
-        mb,
-        tempC: profile.tempC.get(levelKey(mb))![cell],
-        heightFt: Math.round(profile.heightFt.get(levelKey(mb))![cell]),
-      }))
+    // The grid holds levels up to 100 mb for the cloud-top layer; the readout
+    // shows only the ones a drone flies in. See PROFILE_LEVELS.
+    const levels: SoundingLevel[] = SOUNDING_LEVELS.map((mb) => ({
+      mb,
+      tempC: profile.tempC.get(levelKey(mb))![cell],
+      heightFt: Math.round(profile.heightFt.get(levelKey(mb))![cell]),
+    }))
       // Bottom up, so a search for the lowest crossing walks it in order.
       .sort((a, b) => a.heightFt - b.heightFt);
 
@@ -425,6 +466,31 @@ export class ForecastService {
   /** The same build's summary. Shares the cache, so asking for either warms both. */
   async liquidStats(hour: number): Promise<SlwStats> {
     return (await this.seeding(hour)).stats;
+  }
+
+  /**
+   * The 12 km grid and a temperature lookup on it — what another service needs
+   * to turn a pressure into a temperature.
+   *
+   * This exists for the cloud-top layer, which gets its cloud *geometry* from
+   * GOES and has no thermodynamics of its own. §5 of `MEASUREMENTS.md` is the
+   * reason that split is the right way round: HRRR is trustworthy about the
+   * temperature profile and shaky about where the cloud is, so the satellite
+   * says where the top is and this says how cold it is there.
+   *
+   * It hands back the same `geo` every contoured layer here is drawn on, so a
+   * cloud-top contour and a supercooled-liquid contour are statements about the
+   * same 12 km boxes and can be read against each other.
+   */
+  async column(hour: number): Promise<Column> {
+    const profile = await this.profile(hour);
+    return {
+      geo: this.geo!,
+      run: profile.run,
+      hour,
+      tempAt: (cell: number, mb: number) =>
+        temperatureAtMb(profile.levels, profile.tempC, cell, mb),
+    };
   }
 
   /** The domain-wide profile grid every click on this hour is answered from. */
@@ -468,7 +534,7 @@ export class ForecastService {
   private async buildProfile(run: Date, hour: number): Promise<Profile> {
     const rows = await this.index(run, hour, "wrfprs");
     const url = this.gribUrl(run, hour, "wrfprs");
-    const levels = SOUNDING_LEVELS;
+    const levels = PROFILE_LEVELS;
 
     const grib = await this.fetchRanges(
       url,
@@ -975,6 +1041,41 @@ export function isothermFt(
     return Math.round(below.heightFt + f * (above.heightFt - below.heightFt));
   }
   return null;
+}
+
+/**
+ * Temperature at an arbitrary pressure over one cell, interpolated between the
+ * two profile levels that bracket it.
+ *
+ * **Both ends clamp rather than extrapolate**, and the top one is the case that
+ * matters. A cloud top above 300 mb — deep convection — is genuinely colder
+ * than the 300 mb air, so returning the 300 mb temperature *understates* how
+ * cold that top is. That is the safe direction to be wrong in: it can only move
+ * a top toward the warm end of the ramp, never invent a cold one, and a top
+ * that high is already past the coldest contour. Extrapolating up a lapse rate
+ * we did not read would be the unsafe direction.
+ *
+ * `levels` must run from low pressure to high, as `SOUNDING_LEVELS` does.
+ */
+export function temperatureAtMb(
+  levels: readonly number[],
+  tempC: Map<number, Float32Array>,
+  cell: number,
+  mb: number
+): number {
+  const at = (level: number) => tempC.get(levelKey(level))![cell];
+
+  const first = levels[0];
+  const last = levels[levels.length - 1];
+  if (mb <= first) return at(first);
+  if (mb >= last) return at(last);
+
+  let k = 0;
+  while (k < levels.length - 2 && levels[k + 1] < mb) k++;
+  const lo = levels[k];
+  const hi = levels[k + 1];
+  const f = (mb - lo) / (hi - lo);
+  return at(lo) + f * (at(hi) - at(lo));
 }
 
 /**

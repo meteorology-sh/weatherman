@@ -51,6 +51,54 @@ export function features(
 }
 
 /**
+ * One MultiPolygon per half-open interval `[edges[i], edges[i+1])`, the last one
+ * open-ended — **disjoint bands, not nested contours.**
+ *
+ * `features()` above is the right shape for a field whose extremes are rare and
+ * whose "more" nests naturally: cloud cover, precipitation rate, reflectivity,
+ * liquid water. Cloud-top temperature is not that field. **[verified] on a live
+ * GOES scene** the nested levels covered 41.5%, 38.3%, 35.5% and 32.0% of the
+ * grid — four rings almost exactly on top of each other, because cloud-top
+ * temperature over CONUS is bimodal: warm low cloud, or very cold cirrus, with
+ * little in between. Stacking those paints a third of the map at full opacity
+ * and tells the operator nothing about which third is interesting.
+ *
+ * Disjoint bands let each interval carry its own weight instead, the way
+ * `PIREP_CLASSES` do for reports: exactly one band applies to a cell, so the
+ * legend reads them straight rather than compositing them.
+ *
+ * Each feature's `property` is set to the band's lower edge, which is what the
+ * renderer matches on.
+ */
+export function bandFeatures(
+  grid: Grid,
+  geo: Geo,
+  property: string,
+  edges: readonly number[]
+): ContourFeature[] {
+  return edges
+    .map((lo, i) => {
+      const hi = edges[i + 1] ?? Infinity;
+      // polygons() thresholds internally, so a 0/1 mask contoured at 1 is
+      // exactly a marching-squares pass over {lo <= value < hi}.
+      const mask = new Float32Array(grid.values.length);
+      for (let k = 0; k < grid.values.length; k++) {
+        const v = grid.values[k];
+        mask[k] = v >= lo && v < hi ? 1 : 0;
+      }
+      return {
+        type: "Feature" as const,
+        properties: { [property]: lo },
+        geometry: {
+          type: "MultiPolygon" as const,
+          coordinates: polygons({ ...grid, values: mask }, geo, 1),
+        },
+      };
+    })
+    .filter((f) => f.geometry.coordinates.length > 0);
+}
+
+/**
  * Marching squares over {value >= level}, stitched into closed rings, with
  * holes nested inside the exterior that contains them (GeoJSON needs
  * [exterior, ...holes] or a clear patch inside a cloud mass renders as cloud).

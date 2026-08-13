@@ -1,5 +1,7 @@
 // Client
 import {
+  CloudTopUrl,
+  GetCloudTopStats,
   GetForecastMeta,
   GetLiquidStats,
   GetIcingStats,
@@ -196,6 +198,30 @@ describe("GetSounding", () => {
     );
     await expect(GetSounding(-98.58, 39.83, 0)).rejects.toThrow(
       "Failed to fetch the sounding: 500"
+    );
+  });
+});
+
+describe("cloud tops", () => {
+  // A scene has no run and no hour to ask for — the frame carries its own scan
+  // time, exactly like the radar mosaic.
+  it("points the layer at the banded scene with no parameters", () => {
+    expect(CloudTopUrl()).toBe("/cloudtop/temperature");
+  });
+
+  it("fetches the summary from its own route", async () => {
+    await GetCloudTopStats();
+
+    expect(fetch).toHaveBeenCalledWith("/cloudtop/temperature/stats");
+  });
+
+  it("throws on a non-OK response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 503, json: async () => ({}) }))
+    );
+    await expect(GetCloudTopStats()).rejects.toThrow(
+      "Failed to fetch cloud tops: 503"
     );
   });
 });

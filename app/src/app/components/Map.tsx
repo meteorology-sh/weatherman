@@ -15,7 +15,7 @@ import MapView from "@arcgis/core/views/MapView";
 import Extent from "@arcgis/core/geometry/Extent";
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils";
 import {
-  Band13Layer,
+  CandidateCloudTopLayer,
   ForecastCloudsLayer,
   ForecastPrecipLayer,
   CandidateLiquidLayer,
@@ -44,7 +44,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const coordinates = useAppSelector((state) => state.interactions.coordinates);
   const hour = useAppSelector((state) => state.forecast.hour);
   const precip = useAppSelector((state) => state.forecast.precip);
-  const imagery = useAppSelector((state) => state.candidate.imagery);
+  const cloudTop = useAppSelector((state) => state.cloudtop.visible);
   const liquid = useAppSelector((state) => state.candidate.liquid);
   const radar = useAppSelector((state) => state.radar.visible);
   const pireps = useAppSelector((state) => state.pirep.visible);
@@ -58,15 +58,15 @@ export const ArcGIS = ({ mode }: PropsT) => {
       const map = new Map({
         basemap: "dark-gray-vector",
         // Order is draw order. On the forecast map rain sits over cloud; on the
-        // candidate map the modelled liquid water sits over the observed
-        // imagery, because it is the more specific signal and covers far less
+        // candidate map the modelled liquid water sits over the observed cloud
+        // tops, because it is the more specific signal and covers far less
         // ground, and the observed radar sits over that — a candidate is only
         // disqualified by rain where the two overlap, so the disqualifier has to
         // be the layer you can see. The PIREPs go on top of everything: a dozen
         // markers cannot veil anything, and they are the only thing on the map
         // an aircraft actually measured.
         layers: [
-          Band13Layer,
+          CandidateCloudTopLayer,
           ForecastCloudsLayer,
           ForecastPrecipLayer,
           CandidateLiquidLayer,
@@ -102,8 +102,8 @@ export const ArcGIS = ({ mode }: PropsT) => {
 
   // Layer visibility is derived from the route's mode plus the store, in one
   // place. The forecast map is modelled contours; the candidate map is observed
-  // imagery plus the analysis of what is inside the cloud. Both stay on the map
-  // so switching re-uses what's loaded.
+  // cloud tops plus the analysis of what is inside the cloud. Both stay on the
+  // map so switching re-uses what's loaded.
   //
   // The precipitation layer hides before PRECIP_FIRST_HOUR rather than drawing
   // an empty frame: HRRR has no precipitation at the analysis, and a layer
@@ -111,13 +111,13 @@ export const ArcGIS = ({ mode }: PropsT) => {
   useEffect(() => {
     ForecastCloudsLayer.visible = forecasting;
     ForecastPrecipLayer.visible = raining && precip;
-    Band13Layer.visible = !forecasting && imagery;
+    CandidateCloudTopLayer.visible = !forecasting && cloudTop;
     CandidateLiquidLayer.visible = !forecasting && liquid;
     // Observations, so they never appear on the modelled map — the same rule
-    // that keeps the satellite imagery off it.
+    // that keeps the satellite cloud tops off it.
     CandidateRadarLayer.visible = !forecasting && radar;
     CandidatePirepLayer.visible = !forecasting && pireps;
-  }, [forecasting, raining, precip, imagery, liquid, radar, pireps]);
+  }, [forecasting, raining, precip, cloudTop, liquid, radar, pireps]);
 
   // Narrow the reports to the seeding band. A definitionExpression filters the
   // features already fetched rather than repointing the url, so toggling it

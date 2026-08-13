@@ -1,68 +1,35 @@
 // ArcGIS
-import {
-  BAND_LABEL,
-  BAND_WARMEST_C,
-  BAND_COLDEST_C,
-} from "@/lib/arcgis/renderers";
-import { Band13Legend } from "@/lib/arcgis/legends";
+import { BAND_LABEL, CLOUD_TOP_BANDS } from "@/lib/arcgis/renderers";
+import { CloudTopLegend, CLOUD_TOP_WARMEST_C } from "@/lib/arcgis/legends";
 
-/** Where a temperature should sit on a -90..+40 °C bar, as a percentage. */
-const expectedPercent = (celsius: number) => ((celsius + 90) / 130) * 100;
-
-describe("Band13 legend", () => {
+describe("cloud-top legend", () => {
   it("tells the operator what the layer leaves out", () => {
-    expect(Band13Legend.caveat.length).toBeGreaterThan(0);
+    expect(CloudTopLegend.caveat.length).toBeGreaterThan(0);
   });
 
-  // The bar is decoded against the imagery, so its ends must be the colours
-  // the GIBS colour map assigns to -90 °C and +40 °C.
-  it("anchors the ramp to the colour map's endpoints", () => {
-    expect(Band13Legend.gradient).toContain("rgb(140,13,135) 0.0%");
-    expect(Band13Legend.gradient).toContain("rgb(44,44,44) 100.0%");
+  // The layer shows the top; the seeding band is below it. Saying so is the
+  // whole reason this layer does not replace the liquid-water one.
+  it("names the band it cannot see into", () => {
+    expect(CloudTopLegend.caveat).toContain(BAND_LABEL);
   });
 
-  // Pinned against the band constants rather than literals: the bracket has to
-  // follow the band when it moves, and it did not the first time it moved.
-  it("brackets the seeding band at its cold edge", () => {
-    expect(Band13Legend.band.fromPercent).toBeCloseTo(
-      expectedPercent(BAND_COLDEST_C),
-      5
-    );
+  // The warm edge is criterion C2, not decoration: a top warmer than it means
+  // the seeding band is above the cloud entirely. Read from the bands rather
+  // than written twice, so the prose has to follow the mask when it moves.
+  it("takes its warm edge from the bands themselves", () => {
+    expect(CLOUD_TOP_WARMEST_C).toBe(CLOUD_TOP_BANDS[0].fromC);
   });
 
-  it("brackets the seeding band at its warm edge", () => {
-    expect(Band13Legend.band.toPercent).toBeCloseTo(
-      expectedPercent(BAND_WARMEST_C),
-      5
-    );
+  it("states the warm edge in the summary", () => {
+    expect(CloudTopLegend.summary).toContain(String(CLOUD_TOP_WARMEST_C));
   });
 
-  it("names the band it brackets in the caveat", () => {
-    expect(Band13Legend.caveat).toContain(BAND_LABEL);
+  // The layer's one claim over the raster it replaced.
+  it("says that nothing is drawn where there is no cloud", () => {
+    expect(CloudTopLegend.summary.toLowerCase()).toContain("no cloud");
   });
 
-  it("keeps the seeding bracket the right way round", () => {
-    expect(Band13Legend.band.fromPercent).toBeLessThan(
-      Band13Legend.band.toPercent
-    );
-  });
-
-  it("places every tick where its temperature falls on the ramp", () => {
-    expect(Band13Legend.ticks).toEqual([
-      { label: "-80°", percent: expectedPercent(-80) },
-      { label: "-60°", percent: expectedPercent(-60) },
-      { label: "-40°", percent: expectedPercent(-40) },
-      { label: "-20°", percent: expectedPercent(-20) },
-      { label: "0°", percent: expectedPercent(0) },
-      { label: "20°", percent: expectedPercent(20) },
-      { label: "40°", percent: expectedPercent(40) },
-    ]);
-  });
-
-  it("keeps every tick on the bar", () => {
-    for (const tick of Band13Legend.ticks) {
-      expect(tick.percent).toBeGreaterThanOrEqual(0);
-      expect(tick.percent).toBeLessThanOrEqual(100);
-    }
+  it("admits the temperature is modelled even though the shape is observed", () => {
+    expect(CloudTopLegend.caveat).toContain("HRRR");
   });
 });

@@ -1,5 +1,8 @@
 // ArcGIS
 import {
+  CLOUD_TOP_BANDS,
+  CLOUD_TOP_RGB,
+  candidateCloudTopRenderer,
   CLOUD_BANDS,
   PRECIP_BANDS,
   PRECIP_LABELS,
@@ -240,5 +243,48 @@ describe("PIREP_IN_BAND", () => {
   it("filters on the flag the server set, not on temperature", () => {
     expect(PIREP_IN_BAND).toBe("inBand = 1");
     expect(PIREP_IN_BAND).not.toContain("tempC");
+  });
+});
+
+describe("CLOUD_TOP_BANDS", () => {
+  // Disjoint, not nested: the intervals have to meet end to end with no gap and
+  // no overlap, or a cell falls into two bands or none.
+  it("tiles the temperature range without gaps or overlaps", () => {
+    for (let i = 0; i < CLOUD_TOP_BANDS.length - 1; i++) {
+      expect(CLOUD_TOP_BANDS[i].toC).toBe(CLOUD_TOP_BANDS[i + 1].fromC);
+    }
+  });
+
+  // Nothing is discarded for being cold. See MEASUREMENTS.md §G — there is no
+  // cold cutoff, and the open end is what says so.
+  it("leaves the coldest band open-ended", () => {
+    expect(CLOUD_TOP_BANDS[CLOUD_TOP_BANDS.length - 1].toC).toBeNull();
+  });
+
+  // The ramp runs loud-to-quiet, backwards from every other layer here: the
+  // warmest band is the target, and the coldest is cirrus over most of the sky.
+  it("fades as the tops get colder", () => {
+    const alphas = CLOUD_TOP_BANDS.map((band) => band.alpha);
+
+    expect(alphas).toEqual([...alphas].sort((a, b) => b - a));
+  });
+
+  // The band value is what the server writes on the feature; if the two drift,
+  // the renderer matches nothing and the layer paints as invisible.
+  it("keys each band on the coldness the server emits", () => {
+    expect(CLOUD_TOP_BANDS.map((band) => band.value)).toEqual([5, 12, 18, 25]);
+    expect(CLOUD_TOP_BANDS.map((band) => -band.fromC)).toEqual([5, 12, 18, 25]);
+  });
+
+  it("matches on the field the server writes", () => {
+    expect(candidateCloudTopRenderer.field).toBe("topColdnessC");
+  });
+
+  // Colourless on purpose: amber is spent on modelled liquid water and cyan on
+  // observed rain, and cloud shape must not compete with either.
+  it("stays grey so the layers above it keep their hues", () => {
+    const [r, g, b] = CLOUD_TOP_RGB;
+
+    expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeLessThan(50);
   });
 });

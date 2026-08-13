@@ -29,6 +29,15 @@ export default defineConfig({
     },
     cors: true,
     proxy: {
+      "/cloudtop": {
+        target: process.env.SERVER_ORIGIN || "http://localhost:3000",
+        changeOrigin: true,
+        // The satellite scene is only 4 MB, but a cold build waits on the same
+        // HRRR profile grid the sounding uses (~35 s) to turn cloud-top
+        // pressure into a temperature.
+        timeout: 120_000,
+        proxyTimeout: 120_000,
+      },
       "/forecast": {
         target: process.env.SERVER_ORIGIN || "http://localhost:3000",
         changeOrigin: true,
