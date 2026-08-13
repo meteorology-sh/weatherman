@@ -8,7 +8,6 @@ import { interactionsActions } from "@/lib/store/features/interactions";
 import { forecastActions } from "@/lib/store/features/forecast";
 import { candidateActions } from "@/lib/store/features/candidate";
 import { cloudTopActions } from "@/lib/store/features/cloudtop";
-import { pirepActions } from "@/lib/store/features/pirep";
 import { radarActions } from "@/lib/store/features/radar";
 import { soundingActions } from "@/lib/store/features/sounding";
 
@@ -38,7 +37,6 @@ const {
   precipLayer,
   liquidLayer,
   radarLayer,
-  pirepLayer,
   watch,
 } = vi.hoisted(() => ({
   arcgis: {
@@ -70,12 +68,6 @@ const {
     url: "",
     refresh: vi.fn(),
   },
-  pirepLayer: {
-    id: "pirep-layer",
-    visible: false,
-    definitionExpression: "",
-    refresh: vi.fn(),
-  },
   watch: vi.fn(() => ({ remove: vi.fn() })),
 }));
 
@@ -85,7 +77,6 @@ vi.mock("@/lib/arcgis/layers", () => ({
   ForecastPrecipLayer: precipLayer,
   CandidateLiquidLayer: liquidLayer,
   CandidateRadarLayer: radarLayer,
-  CandidatePirepLayer: pirepLayer,
 }));
 vi.mock("@arcgis/core/core/reactiveUtils", () => ({ watch }));
 vi.mock("@arcgis/core/Map", () => ({
@@ -140,9 +131,6 @@ beforeEach(() => {
   precipLayer.visible = false;
   precipLayer.url = "";
   precipLayer.refresh.mockClear();
-  pirepLayer.visible = false;
-  pirepLayer.definitionExpression = "";
-  pirepLayer.refresh.mockClear();
 });
 
 describe("ArcGIS", () => {
@@ -174,7 +162,6 @@ describe("ArcGIS", () => {
       precipLayer,
       liquidLayer,
       radarLayer,
-      pirepLayer,
     ]);
   });
 
@@ -283,15 +270,6 @@ describe("ArcGIS radar", () => {
     );
   });
 
-  it("keeps the reports above it, since a dozen markers veil nothing", () => {
-    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
-
-    const layers = map().layers ?? [];
-    expect(layers.indexOf(pirepLayer)).toBeGreaterThan(
-      layers.indexOf(radarLayer)
-    );
-  });
-
   it("hides it when the operator turns it off", () => {
     const store = createTestStore();
 
@@ -301,90 +279,6 @@ describe("ArcGIS radar", () => {
     });
 
     expect(radarLayer.visible).toBe(false);
-  });
-});
-
-describe("ArcGIS icing reports", () => {
-  it("draws the reports on the observed map", () => {
-    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
-
-    expect(pirepLayer.visible).toBe(true);
-  });
-
-  // Observations, so the same rule that keeps the satellite off the modelled
-  // map keeps these off it.
-  it("keeps them off the modelled map", () => {
-    renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
-
-    expect(pirepLayer.visible).toBe(false);
-  });
-
-  // A dozen markers cannot veil anything, and they are the only thing on the
-  // map an aircraft actually measured.
-  it("draws them above the model output they check", () => {
-    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
-
-    const layers = map().layers ?? [];
-    expect(layers.indexOf(pirepLayer)).toBeGreaterThan(
-      layers.indexOf(liquidLayer)
-    );
-  });
-
-  it("hides them when the operator turns them off", () => {
-    const store = createTestStore();
-
-    renderWithStore(<ArcGIS mode="candidate" />, store);
-    act(() => {
-      store.dispatch(pirepActions.setVisible(false));
-    });
-
-    expect(pirepLayer.visible).toBe(false);
-    expect(liquidLayer.visible).toBe(true);
-  });
-
-  it("shows every report until the operator narrows the band", () => {
-    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
-
-    expect(pirepLayer.definitionExpression).toBe("");
-  });
-
-  it("narrows to the seeding band on the flag the server set", () => {
-    const store = createTestStore();
-
-    renderWithStore(<ArcGIS mode="candidate" />, store);
-    act(() => {
-      store.dispatch(pirepActions.setBandOnly(true));
-    });
-
-    expect(pirepLayer.definitionExpression).toBe("inBand = 1");
-  });
-
-  // Filtering features already fetched, not repointing a url: toggling the band
-  // filter must not cost another pull of the feed.
-  it("filters what it already has rather than refetching", () => {
-    const store = createTestStore();
-
-    renderWithStore(<ArcGIS mode="candidate" />, store);
-    pirepLayer.refresh.mockClear();
-    act(() => {
-      store.dispatch(pirepActions.setBandOnly(true));
-    });
-
-    expect(pirepLayer.refresh).not.toHaveBeenCalled();
-  });
-
-  it("widens again when the filter comes off", () => {
-    const store = createTestStore();
-
-    renderWithStore(<ArcGIS mode="candidate" />, store);
-    act(() => {
-      store.dispatch(pirepActions.setBandOnly(true));
-    });
-    act(() => {
-      store.dispatch(pirepActions.setBandOnly(false));
-    });
-
-    expect(pirepLayer.definitionExpression).toBe("");
   });
 });
 

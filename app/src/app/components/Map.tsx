@@ -20,9 +20,8 @@ import {
   ForecastPrecipLayer,
   CandidateLiquidLayer,
   CandidateRadarLayer,
-  CandidatePirepLayer,
 } from "@/lib/arcgis/layers";
-import { PRECIP_FIRST_HOUR, PIREP_IN_BAND } from "@/lib/arcgis/renderers";
+import { PRECIP_FIRST_HOUR } from "@/lib/arcgis/renderers";
 
 // Types
 import type { ClickEvent } from "@arcgis/core/views/input/types";
@@ -47,8 +46,6 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const cloudTop = useAppSelector((state) => state.cloudtop.visible);
   const liquid = useAppSelector((state) => state.candidate.liquid);
   const radar = useAppSelector((state) => state.radar.visible);
-  const pireps = useAppSelector((state) => state.pirep.visible);
-  const bandOnly = useAppSelector((state) => state.pirep.bandOnly);
   const forecasting = mode === "forecast";
   const raining = forecasting && hour >= PRECIP_FIRST_HOUR;
 
@@ -62,16 +59,13 @@ export const ArcGIS = ({ mode }: PropsT) => {
         // tops, because it is the more specific signal and covers far less
         // ground, and the observed radar sits over that — a candidate is only
         // disqualified by rain where the two overlap, so the disqualifier has to
-        // be the layer you can see. The PIREPs go on top of everything: a dozen
-        // markers cannot veil anything, and they are the only thing on the map
-        // an aircraft actually measured.
+        // be the layer you can see.
         layers: [
           CandidateCloudTopLayer,
           ForecastCloudsLayer,
           ForecastPrecipLayer,
           CandidateLiquidLayer,
           CandidateRadarLayer,
-          CandidatePirepLayer,
         ],
       });
 
@@ -116,15 +110,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     // Observations, so they never appear on the modelled map — the same rule
     // that keeps the satellite cloud tops off it.
     CandidateRadarLayer.visible = !forecasting && radar;
-    CandidatePirepLayer.visible = !forecasting && pireps;
-  }, [forecasting, raining, precip, cloudTop, liquid, radar, pireps]);
-
-  // Narrow the reports to the seeding band. A definitionExpression filters the
-  // features already fetched rather than repointing the url, so toggling it
-  // costs nothing and the layer is pulled once per session.
-  useEffect(() => {
-    CandidatePirepLayer.definitionExpression = bandOnly ? PIREP_IN_BAND : "";
-  }, [bandOnly]);
+  }, [forecasting, raining, precip, cloudTop, liquid, radar]);
 
   // Point each forecast contour layer at the selected hour. Repointing the url
   // refetches; the frames are megabytes of geometry, so they never enter the

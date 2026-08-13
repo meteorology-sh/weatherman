@@ -3,7 +3,6 @@ import candidateReducer from "./features/candidate";
 import cloudTopReducer from "./features/cloudtop";
 import interactionsReducer from "./features/interactions";
 import forecastReducer from "./features/forecast";
-import pirepReducer from "./features/pirep";
 import radarReducer from "./features/radar";
 import soundingReducer from "./features/sounding";
 
@@ -16,7 +15,6 @@ export const store = configureStore({
     cloudtop: cloudTopReducer,
     interactions: interactionsReducer,
     forecast: forecastReducer,
-    pirep: pirepReducer,
     radar: radarReducer,
     sounding: soundingReducer,
   },

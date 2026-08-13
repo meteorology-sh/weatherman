@@ -87,21 +87,3 @@ export interface CloudTopStats {
   /** Coldest cloud top on the grid, °C. Null when there is no cloud at all. */
   coldestTopC: number | null;
 }
-
-/** Mirrors IcingStats in server/src/lib/services/pirep.ts */
-export interface IcingStats {
-  /** When the server last pulled the feed, ISO 8601. */
-  fetchedAt: string;
-  /** Hours of reports the window covers. */
-  windowHours: number;
-  /** PIREPs received in the window, icing or not. */
-  reports: number;
-  /** Reports carrying an icing field at all, including negative ones. */
-  icing: number;
-  /** Reports where an aircraft actually found ice. */
-  positive: number;
-  /** Positive reports whose temperature is in the −5..−12 °C band. */
-  inBand: number;
-  /** Observation time of the most recent positive report, or null. */
-  latest: string | null;
-}

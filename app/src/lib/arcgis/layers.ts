@@ -1,13 +1,11 @@
 // ArcGIS
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
-import PopupTemplate from "@arcgis/core/PopupTemplate";
 import {
   forecastCloudRenderer,
   forecastPrecipRenderer,
   candidateCloudTopRenderer,
   candidateLiquidRenderer,
   candidateRadarRenderer,
-  candidatePirepRenderer,
 } from "./renderers";
 
 // Client
@@ -17,7 +15,6 @@ import {
   ForecastPrecipUrl,
   ForecastLiquidUrl,
   RadarReflectivityUrl,
-  IcingPirepsUrl,
 } from "@/lib/client";
 
 /**
@@ -120,9 +117,9 @@ export const CandidateLiquidLayer = new GeoJSONLayer({
 
 /**
  * Observed reflectivity, contoured server-side from the MRMS national mosaic —
- * the only layer on either map that is measured rather than modelled or
- * reported, and the check on the liquid-water contours it is drawn over. A
- * candidate already raining itself out is one the model still paints amber.
+ * the only layer on either map that is measured rather than modelled, and the
+ * check on the liquid-water contours it is drawn over. A candidate already
+ * raining itself out is one the model still paints amber.
  *
  * Contours rather than NOAA's ready-made `MapImageLayer` of the same data. The
  * image would have been an afternoon's work, but it paints an opaque rectangle
@@ -136,61 +133,5 @@ export const CandidateRadarLayer = new GeoJSONLayer({
   url: RadarReflectivityUrl(),
   copyright: "NOAA / National Weather Service MRMS",
   renderer: candidateRadarRenderer,
-  visible: false,
-});
-
-/**
- * Icing reports filed by aircraft in the last 12 hours — the only observation of
- * supercooled liquid water available anywhere in this system, and the reason
- * this layer exists despite being a handful of points.
- *
- * Points, and points only. Every other layer here is a field we contoured
- * because its source sampled the country densely enough to justify it; this one
- * is ~20 positive reports over CONUS, hundreds of kilometres apart and
- * concentrated on airways. Interpolating that into a surface would draw an
- * icing map out of where airliners happen to fly. So the colour banding is
- * carried by the marker ramp instead, and each marker stays exactly where an
- * aircraft was.
- *
- * `fields` and `geometryType` are declared rather than inferred for the same
- * reason as the precipitation layer: on a quiet day the collection is empty, and
- * an empty one gives ArcGIS nothing to infer a schema from — which would leave
- * the renderer with no field to match and the band filter with nothing to query.
- */
-export const CandidatePirepLayer = new GeoJSONLayer({
-  title: "Icing PIREPs (12 h)",
-  url: IcingPirepsUrl(),
-  copyright: "NOAA Aviation Weather Center",
-  renderer: candidatePirepRenderer,
-  geometryType: "point",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "severity", type: "double" },
-    { name: "intensity", type: "string" },
-    { name: "iceType", type: "string" },
-    { name: "flightLevelFt", type: "double" },
-    { name: "tempC", type: "double" },
-    { name: "inBand", type: "double" },
-    { name: "obsTime", type: "string" },
-    { name: "obsLabel", type: "string" },
-    { name: "aircraft", type: "string" },
-    { name: "detail", type: "string" },
-    { name: "raw", type: "string" },
-  ],
-  // The raw report is the payload here. A decoded summary is easier to read, but
-  // an operator deciding whether to trust a confirmation wants the line the
-  // pilot actually filed.
-  //
-  // Every substitution is a field the server laid out, `detail` included: a
-  // template cannot skip an absent field, and a negative report routinely has no
-  // ice type and no temperature.
-  popupTemplate: new PopupTemplate({
-    title: "{intensity} icing",
-    content:
-      "<div>{obsLabel}</div>" +
-      "<div>{detail}</div>" +
-      "<div class='mt-2 font-mono text-xs'>{raw}</div>",
-  }),
   visible: false,
 });

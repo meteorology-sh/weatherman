@@ -8,7 +8,6 @@ import candidateReducer from "@/lib/store/features/candidate";
 import cloudTopReducer from "@/lib/store/features/cloudtop";
 import interactionsReducer from "@/lib/store/features/interactions";
 import forecastReducer from "@/lib/store/features/forecast";
-import pirepReducer from "@/lib/store/features/pirep";
 import radarReducer from "@/lib/store/features/radar";
 import soundingReducer from "@/lib/store/features/sounding";
 
@@ -27,7 +26,6 @@ export function createTestStore() {
       cloudtop: cloudTopReducer,
       interactions: interactionsReducer,
       forecast: forecastReducer,
-      pirep: pirepReducer,
       radar: radarReducer,
       sounding: soundingReducer,
     },

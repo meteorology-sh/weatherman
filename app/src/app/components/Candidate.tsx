@@ -8,7 +8,6 @@ import { CloudTop } from "./CloudTop";
 import { Liquid } from "./Liquid";
 import { Sounding } from "./Sounding";
 import { Radar } from "./Radar";
-import { Pireps } from "./Pireps";
 
 export const Candidate = () => {
   return (
@@ -27,8 +26,8 @@ export const Candidate = () => {
             <div className="collapse-content text-sm">
               <div className="prose">
                 <p>
-                  Four layers, and they are not the same kind of claim. The grey
-                  cloud tops are <em>observed</em> — a GOES-East scene from
+                  Three layers, and they are not the same kind of claim. The
+                  grey cloud tops are <em>observed</em> — a GOES-East scene from
                   minutes ago, showing where there is cloud and how cold its top
                   is, with nothing drawn where there is no cloud. Only tops at
                   −5 °C or colder appear: a warmer top means the seeding band
@@ -54,16 +53,6 @@ export const Candidate = () => {
                   though, so quiet air over a cloud says nothing about what is
                   inside it.
                 </p>
-                <p>
-                  The violet markers are the third kind of claim:{" "}
-                  <em>reported</em>. Each is an aircraft that flew through a
-                  point and told air traffic control what it found — rime ice is
-                  supercooled liquid freezing on the airframe, so a positive
-                  report is the one direct observation of the target on this
-                  map. A handful arrive a day, only along airways, so read them
-                  as spot-checks on the model rather than as a layer of their
-                  own.
-                </p>
               </div>
             </div>
           </div>
@@ -77,8 +66,6 @@ export const Candidate = () => {
         <Sounding />
         <div className="divider my-1" />
         <Radar />
-        <div className="divider my-1" />
-        <Pireps />
       </div>
       <div className="col-span-2">
         <ArcGIS mode="candidate" />

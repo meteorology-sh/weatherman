@@ -7,9 +7,8 @@ import { Goes } from "../lib/services/cloudtop";
 export const cloudtop = express.Router();
 
 // Observed cloud tops right now. No hour parameter, for the same reason the
-// radar and PIREP routes have none: this is a scene, not a forecast — there is
-// only ever the one the satellite just scanned, and it carries its own valid
-// time.
+// radar routes have none: this is a scene, not a forecast — there is only ever
+// the one the satellite just scanned, and it carries its own valid time.
 cloudtop.get("/temperature", async (req: Request, res: Response) => {
   try {
     const frame = await Goes.temperature();

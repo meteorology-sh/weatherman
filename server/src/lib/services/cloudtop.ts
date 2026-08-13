@@ -11,7 +11,7 @@
  * That makes it the only cloud layer here that can contradict the model. The
  * supercooled-liquid contours are HRRR's opinion; if the satellite sees no
  * cloud where those contours are amber, the operator learns something, which is
- * exactly the role MRMS and the icing PIREPs already play.
+ * exactly the role MRMS already plays.
  */
 
 // Services

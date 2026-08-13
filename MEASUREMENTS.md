@@ -61,7 +61,7 @@ The honest hierarchy. Nothing free and national **measures** SLW:
 | Microwave radiometer + depol lidar | **measures** it                  | point, continuous                      | ❌ needs the ground station (Tier B/C, +$90k–$1M) | No        |
 | **HRRR `CLWMR`**                   | **simulates** it                 | 3 km, hourly                           | ✅ free, GRIB2                                    | Yes       |
 | **CIP** (FAA icing product)        | **fuses** model+sat+radar+PIREP  | 13–20 km, 1000 ft, hourly              | ⚠️ **no public API** [verified]                   | No        |
-| **Icing PIREPs**                   | **confirms** it, spot            | ~20 positive / 12 h / CONUS [verified] | ✅ free GeoJSON                                   | Yes       |
+| **Icing PIREPs**                   | **confirms** it, spot            | ~20 positive / 12 h / CONUS [verified] | ✅ free GeoJSON                                   | Removed   |
 | MODIS cloud phase / water path     | retrieves it, **cloud-top only** | 1 km, 2×/day                           | ✅ free (GIBS tiles)                              | Yes       |
 | GOES ABI cloud-top temperature (G) | **cannot see it** — top only, C2 | 2 km, 5 min                            | ✅ free, NetCDF4 on S3                            | Yes       |
 
@@ -104,9 +104,11 @@ layer described above**, and that is the whole story of this entry:
   `MRMS_MergedBaseReflectivityQC.latest.grib2.gz` (**[verified]** 907 KB,
   keyless, single message, ~2 min cadence) through the same eccodes → marching
   squares path HRRR uses. Cost: ~9 s to build, 5-minute TTL, ~65 KB of GeoJSON.
-- **This is allowed where the PIREPs are not.** MRMS samples at 1 km; block
-  averaging to 12 km removes structure rather than inventing it. §5's rule
-  permits the surface, and the rule is the reason the two layers look different.
+- **This is allowed where a sparse feed would not be.** MRMS samples at 1 km;
+  block averaging to 12 km removes structure rather than inventing it. §5's rule
+  permits the surface. (The PIREPs, §D, were the counter-case until they were
+  removed — same map, opposite verdict, and the reason the two layers looked
+  different.)
 - **Averaged in reflectivity factor, not in dBZ.** dBZ is a logarithm — the mean
   of 20 and 50 dBZ is not 35 dBZ of weather. Points are converted to
   Z = 10^(dBZ/10), averaged, and converted back.
@@ -255,7 +257,7 @@ Open-Meteo**, which is the one thing this entry got wrong:
   **19,157–22,668 ft**. Both far
   above the design docs' 10,000–18,000 ft.
 
-### D. Icing PIREPs — C4 spot truth
+### D. Icing PIREPs — C4 spot truth — **built, then removed 2026-08-12**
 
 ```
 https://aviationweather.gov/api/data/pirep?format=geojson&types=ice&age=12&bbox=25,-125,50,-66
@@ -284,7 +286,12 @@ impact), in cloud 6,000–14,000 ft. C2 ∧ C3 ∧ C4 in one line, in July.
   confirmed it."
 
 **Built** (`/pireps/icing`, on `/map/candidate`), as an overlay and not a
-layer in the contour sense. What that meant in practice:
+layer in the contour sense — **and removed on 2026-08-12**, at the operator's
+request rather than for any fault in the source. Commit `90f63b7` is the last
+one that carries it, service through legend. The survey above stands: the feed
+is still keyless, still the only direct SLW observation available without a
+ground station, and still the answer if C4 confirmation is wanted back. What it
+did while it existed, and what a rebuild would have to keep:
 
 - **Points, never a surface.** ~20 positive reports over CONUS in 12 h,
   hundreds of km apart and only along airways: there is no sampling to
@@ -497,7 +504,7 @@ The source decides what the layer _is_, not just where the bytes come from.
   `noaa-goes19`. That is _the same variable_ `PRES:cloud top` gives us, so it is
   a drop-in — identical `TMP`-ladder interpolation, identical contouring — and
   it makes the cloud geometry an **observation that can falsify HRRR's cloud
-  field**, which is the role MRMS and the PIREPs play and the reason those two
+  field**, which is the role MRMS plays and the reason those two
   layers earn their place. `SENSING_STRATEGY.md` §5 assigns cloud-top
   temperature to GOES explicitly.
 

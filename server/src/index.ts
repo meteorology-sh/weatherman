@@ -7,7 +7,6 @@ import cors from "cors";
 // Routers
 import { cloudtop } from "./routers/cloudtop";
 import { forecast } from "./routers/forecast";
-import { pireps } from "./routers/pirep";
 import { radar } from "./routers/radar";
 
 // Types
@@ -21,7 +20,6 @@ app.use(cors());
 app.use(express.json());
 app.use("/cloudtop", cloudtop);
 app.use("/forecast", forecast);
-app.use("/pireps", pireps);
 app.use("/radar", radar);
 
 app.get("/healthcheck", (req: Request, res: Response) => {

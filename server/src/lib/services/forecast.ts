@@ -126,8 +126,8 @@ const SEEDING = {
    * what is there and let the operator judge, rather than pre-filter to what is
    * likeliest.
    *
-   * Both edges are read by the SLW integral, the sounding, and the PIREP band
-   * flag (mirrored in server/src/lib/services/pirep.ts), so they move together.
+   * Both edges are read by the SLW integral and the sounding, so they move
+   * together.
    */
   warmestC: -5,
   coldestC: -18,

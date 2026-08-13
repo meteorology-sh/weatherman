@@ -46,10 +46,6 @@ export default defineConfig({
         timeout: 120_000,
         proxyTimeout: 120_000,
       },
-      "/pireps": {
-        target: process.env.SERVER_ORIGIN || "http://localhost:3000",
-        changeOrigin: true,
-      },
       "/radar": {
         target: process.env.SERVER_ORIGIN || "http://localhost:3000",
         changeOrigin: true,

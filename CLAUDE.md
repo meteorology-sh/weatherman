@@ -23,13 +23,18 @@ cosmetic:
   output. Contours are used rather than a raster because a raster has no
   nodata — infrared paints warm clear sky opaquely and buries the basemap,
   while a 0%-cloud contour simply isn't drawn.
-- **`/map/candidate` — observed.** Four layers, and they are four different
+- **`/map/candidate` — observed.** Three layers, and they are three different
   kinds of claim. Bottom to top: GOES-East cloud-top temperature (_observed_
   cloud tops), the HRRR supercooled-liquid contours for the analysis hour
-  (_modelled_ — the deliberate exception, and the sidebar says so), the MRMS
-  radar mosaic (_measured_, and the only measurement on either map), and the
-  icing PIREPs (_reported_ by aircraft). Clicking anywhere profiles that point's
-  column. This is "what is the sky doing right now, and how high".
+  (_modelled_ — the deliberate exception, and the sidebar says so), and the MRMS
+  radar mosaic (_measured_, and the only measurement on either map). Clicking
+  anywhere profiles that point's column. This is "what is the sky doing right
+  now, and how high".
+
+  A fourth layer, the AWC icing PIREPs (_reported_ by aircraft), was removed on
+  2026-08-12. It was the app's only point layer and its only sparse source; see
+  the sparse-source note under "The rule is not 'never draw surfaces'" for what
+  its removal cost, and git history for the shape it had.
 
   **There is no raster on either map any more.** The cloud-top layer was a GIBS
   Band 13 image until 2026-08-12 and is now GeoJSON bands built from
@@ -81,14 +86,18 @@ height (~1000 km, synoptic) would be honest even on the coarse grid.
 Block-averaging 3 km → 12 km _removes_ structure and is fine; interpolating
 300 km → 12 km _invents_ it and is not. `MEASUREMENTS.md` §5 has the table.
 
-**Icing PIREPs are the other end of that rule**, and the reason the app has two
-kinds of GeoJSON layer. They are ~20 positive reports over the whole country in
-12 hours, hundreds of kilometres apart and only where aircraft fly, so there is
-no sampling to contour at all — the layer draws **points, and only points**, and
-carries its colour banding in a marker ramp instead of a fill. `PIREP_CLASSES`
-in `renderers.ts` and the `geometryType: "point"` assertion in `layers.test.ts`
-are what hold that line. If a future layer's source is sparse and irregular,
-copy this shape rather than the contour shape.
+**The other end of that rule has no live example any more.** Every layer now in
+the app is a contoured field, because every source now in the app samples
+densely enough to earn one. A source that does not — sparse, irregular, only
+where somebody happened to look — must draw **points, and only points**, with
+its colour banding in a marker ramp instead of a fill, and no interpolation
+between them. The icing PIREPs were that case (~20 positive reports over the
+whole country in 12 hours, hundreds of kilometres apart and only where aircraft
+fly) and were removed on 2026-08-12. Commit `90f63b7` is the last one that has
+them — `git show 90f63b7:app/src/lib/arcgis/renderers.ts` for `PIREP_CLASSES`
+and the marker renderer, and `:app/src/lib/services/pirep.ts` on the server side
+— if a future sparse layer needs the shape. Build it from the source's own
+sampling, not by adapting a contour layer.
 
 ## Guiding Principles
 
@@ -168,8 +177,8 @@ app/src/
                            #   Map:     Map
                            #   Panels:  ForecastLayers, CandidateLayers,
                            #            CloudTop, Liquid, Radar, Sounding,
-                           #            Pireps, TimeSlider, Drawer
-                           #   Legends: Ramp, CloudTopRamp, PirepRamp
+                           #            TimeSlider, Drawer
+                           #   Legends: Ramp, CloudTopRamp
                            #   Shared:  LayerToggle (switch + its legend)
     assets/
     index.css / App.css
@@ -178,23 +187,21 @@ app/src/
     types.ts               # Shared data shapes — mirror server responses
     arcgis/                # Module-scope ArcGIS config objects
       layers.ts            #   CandidateCloudTopLayer, the HRRR and MRMS
-                           #   contour GeoJSONLayers, CandidatePirepLayer
-                           #   (points)
+                           #   contour GeoJSONLayers
       legends.ts           #   Legend data per layer (ramp, ticks, caveat)
-      renderers.ts         #   Contour BANDS + PIREP_CLASSES + the renderers
+      renderers.ts         #   Contour BANDS + CLOUD_TOP_BANDS + the renderers
     context/
       StoreProvider.tsx    # Wraps children with the Redux <Provider>
       ForecastProvider.tsx # Data provider: HRRR run metadata
       CandidateProvider.tsx# Data provider: supercooled-liquid stats (app-wide)
       CloudTopProvider.tsx # Data provider: GOES cloud-top stats (page-scoped)
-      PirepProvider.tsx    # Data provider: icing-report stats (page-scoped)
       RadarProvider.tsx    # Data provider: radar scene stats (page-scoped)
       SoundingProvider.tsx # Data provider: point profile; refetches on click
     store/
       store.ts             # Singleton store + AppStore/RootState/AppDispatch
       hooks.ts             # useAppDispatch/useAppSelector/useAppStore
       features/            # One slice per domain (forecast.ts, candidate.ts,
-                           #   cloudtop.ts, pirep.ts, radar.ts, sounding.ts,
+                           #   cloudtop.ts, radar.ts, sounding.ts,
                            #   interactions.ts)
   tests/                   # All test files (.test.ts / .test.tsx) + utils.tsx
 ```
@@ -222,7 +229,7 @@ const router = createBrowserRouter([
         ),
       },
       // Page-scoped providers stack around the one route that needs them.
-      { path: "/map/candidate", element: /* Radar > Pirep > Sounding */ ... },
+      { path: "/map/candidate", element: /* CloudTop > Radar > Sounding */ ... },
     ],
   },
 ]);
@@ -443,8 +450,11 @@ Both are GeoJSON from our own server, and the difference is not cosmetic:
 built as nested contours first and the levels covered 41.5%, 38.3%, 35.5% and
 32.0% of the grid — four rings almost on top of each other, painting a third of
 the map at full opacity. That field is bimodal (warm low cloud, or very cold
-cirrus, little between), which nesting cannot express. `PIREP_CLASSES` is the
-third shape: discrete classes for points rather than polygons.
+cirrus, little between), which nesting cannot express.
+
+There was a third shape until 2026-08-12 — discrete classes for points rather
+than polygons, carried by the icing PIREPs' marker ramp. Nothing in the app
+needs it now; see the sparse-source note near the top for when it comes back.
 
 **The opacity ramp is not always quiet-to-loud.** Cloud-top temperature runs
 backwards — warmest band loudest — because the warm end is the target and the
@@ -531,26 +541,23 @@ src/tests/
   interactions-slice.test.ts # reducer cases
   forecast-slice.test.ts     # reducer cases
   candidate-slice.test.ts    # reducer cases
-  pirep-slice.test.ts        # reducer cases
   radar-slice.test.ts        # reducer cases
   sounding-slice.test.ts     # reducer cases, incl. clearing on a new point
-  layers.test.ts             # layer URLs + schemas, PIREP + radar contracts
+  layers.test.ts             # layer URLs + schemas, cloud-top + radar contracts
   cloudtop-slice.test.ts     # reducer cases
   CloudTopProvider.test.tsx  # provider → store integration
   CloudTop.test.tsx          # sidebar stats, incl. the cloud-free scene
   legends.test.ts            # ramp anchors, tick + seeding-band positions
-  renderers.test.ts          # BANDS contracts, stacked alpha, PIREP classes
+  renderers.test.ts          # BANDS contracts, stacked alpha, solo vs stacked
   ForecastProvider.test.tsx  # provider → store integration
   CandidateProvider.test.tsx # provider → store integration
-  PirepProvider.test.tsx     # provider → store integration
   RadarProvider.test.tsx     # provider → store integration
   SoundingProvider.test.tsx  # provider → store, incl. refetch on a new point
   ForecastLayers.test.tsx    # toggles + legend rendering
-  CandidateLayers.test.tsx   # toggles + all three kinds of legend
+  CandidateLayers.test.tsx   # toggles + both kinds of legend
   Liquid.test.tsx            # sidebar stats, incl. the "nothing to seed" case
   Radar.test.tsx             # sidebar stats, incl. coverage and a quiet scene
   Sounding.test.tsx          # altitudes, incl. below-ground and no-band cases
-  Pireps.test.tsx            # sidebar stats, incl. the empty-feed case
   TimeSlider.test.tsx        # slider range, valid-time arithmetic, states
   Map.test.tsx               # component integration per mode, ArcGIS faked
 ```
@@ -671,12 +678,11 @@ server/src/
   index.ts                 # App setup: middleware, router mounts, listen
   routers/                 # One Express router per URL prefix
                            #   (cloudtop.ts → /cloudtop, forecast.ts →
-                           #    /forecast, pirep.ts → /pireps,
-                           #    radar.ts → /radar)
+                           #    /forecast, radar.ts → /radar)
   lib/
     services/              # Data access classes + singleton exports
                            #   (forecast.ts → Hrrr, radar.ts → Mrms,
-                           #    pirep.ts → Pireps, cloudtop.ts → Goes)
+                           #    cloudtop.ts → Goes)
                            # Shared infrastructure, no source of its own:
                            #   contour.ts (marching squares + features()
                            #     and bandFeatures()),
@@ -686,9 +692,9 @@ server/src/
   tests/                   # All test files (.test.ts)
 ```
 
-Note the singleton names: `forecast.ts` exports `Hrrr` (the HRRR contours) and
-`pirep.ts` exports `Pireps` (the icing reports). The file is named for the
-source; the singleton is named for what it fetches.
+Note the singleton names: `forecast.ts` exports `Hrrr` (the HRRR contours),
+`radar.ts` exports `Mrms` and `cloudtop.ts` exports `Goes`. The file is named
+for the product; the singleton is named for the source it fetches from.
 
 ## Entry Point
 
@@ -809,8 +815,6 @@ server/src/tests/
   forecast-router.test.ts  # route → GeoJSON, hour passthrough, 500s
   sounding.test.ts         # isotherm interpolation, inversions, nearest cell
   multipart.test.ts        # byte-range reassembly, in file order
-  pirep-service.test.ts    # severity ranking, band flag, denominators, TTL
-  pirep-router.test.ts     # route → GeoJSON, /icing vs /icing/stats, 500s
   radar-service.test.ts    # dBZ averaged in Z, the two sentinels, row order
   radar-router.test.ts     # route → GeoJSON, scene time, 500s
 ```
@@ -827,9 +831,9 @@ server/src/tests/
 - Stub with the per-test mocker (`t.mock.method(globalThis, "fetch", ...)`) —
   it restores automatically at test end. `t.mock.timers.enable({ apis: ["Date"]
 })` + `tick()` drives cache-TTL expiry without real waits.
-- **Service tests construct a fresh instance** (`new PirepService()`) so the
+- **Service tests construct a fresh instance** (`new RadarService()`) so the
   singleton's cache can't leak across tests. Router tests are the exception:
-  they mock the singleton's method (`Hrrr`, `Mrms`, `Pireps`), since that is
+  they mock the singleton's method (`Hrrr`, `Mrms`, `Goes`), since that is
   what the router imports.
 - **Where a build needs eccodes and a 900 KB fixture, test the pure parts
   instead** — `blockAverage`, `summarize`, `isothermFt`, `nearestCell` and
@@ -854,27 +858,29 @@ server/src/tests/
 
 ## Full-Stack Data Flow
 
-The end-to-end pattern. **The icing PIREPs are the reference implementation** —
-a plain upstream JSON API with no decoding step, so every layer of the pattern
-is visible and none of it is buried in GRIB handling:
+The end-to-end pattern. **The radar mosaic is the reference implementation** —
+every layer of the pattern is visible in it, and its decode step is one gzipped
+GRIB2 message rather than the byte-range juggling the HRRR products need. (The
+icing PIREPs held this role until 2026-08-12 and were the better teaching
+example, being a plain upstream JSON API with no decode at all; commit
+`90f63b7` has them if you want that version.)
 
 ```
-AWC pirep API → PirepService (fetch, filter, rank, TTL cache) [lib/services/pirep.ts]
-             → express.Router GET /pireps/icing/stats         [routers/pirep.ts]
-             → Vite dev proxy (/pireps → server :3000)        [app/vite.config.ts]
-             → GetIcingStats() fetch                          [app/src/lib/client.ts]
-             → PirepProvider dispatches to Redux              [app/src/lib/context]
-             → Pireps selects via useAppSelector              [app/src/app/components]
+MRMS .latest.grib2.gz → RadarService (fetch, decode, contour, TTL cache) [lib/services/radar.ts]
+             → express.Router GET /radar/reflectivity/stats  [routers/radar.ts]
+             → Vite dev proxy (/radar → server :3000)        [app/vite.config.ts]
+             → GetRadarStats() fetch                         [app/src/lib/client.ts]
+             → RadarProvider dispatches to Redux             [app/src/lib/context]
+             → Radar selects via useAppSelector              [app/src/app/components]
 ```
 
-Its **geometry** takes the layer shortcut the contours take — one pull serves
-both, so `/pireps/icing` feeds `CandidatePirepLayer.url` directly and only the
-counts ride the full pattern above:
+Its **geometry** takes the shortcut every contoured layer takes — one build
+serves both, so `/radar/reflectivity` feeds `CandidateRadarLayer.url` directly
+and only the summary rides the full pattern above:
 
 ```
-GET /pireps/icing → CandidatePirepLayer.url  [lib/arcgis/layers.ts]
-                  → severity → marker class  [lib/arcgis/renderers.ts]
-                  → definitionExpression "inBand = 1" filters, never refetches
+GET /radar/reflectivity → CandidateRadarLayer.url    [lib/arcgis/layers.ts]
+                        → reflectivity → band fill   [lib/arcgis/renderers.ts]
 ```
 
 The forecast feature follows the same path with one deliberate deviation — the
@@ -908,8 +914,8 @@ GET /cloudtop/temperature/stats → GetCloudTopStats() → CloudTopProvider
                                 → cloudtop slice → CloudTop panel
 ```
 
-The radar layer is the same shape again, from a different kind of source: one
-gzipped GRIB2 message rather than byte ranges of a huge one.
+The decode inside that reference build, in full — one gzipped GRIB2 message
+rather than byte ranges of a huge one:
 
 ```
 MRMS .latest.grib2.gz → gunzip → grib_filter (eccodes), streamed
@@ -936,11 +942,10 @@ answered from the same cached grid in ~11 ms.
 run+hour never changes, so `ForecastService` caches frames forever and evicts
 only when the run rolls (~5 s cold, ~0 ms warm); profile grids are ~12 MB each,
 so only the last few hours are kept. Concurrent requests for the same build
-collapse onto one download. `PirepService` and `RadarService` are the opposite
-case — reports and scenes arrive continuously with no publication cycle to key
-off — so both use a plain 5-minute TTL, and the radar frame carries its own
-valid time so the sidebar can report the scene's age rather than implying it is
-live.
+collapse onto one download. `RadarService` and `CloudTopService` are the
+opposite case — scenes arrive continuously with no publication cycle to key
+off — so both use a plain 5-minute TTL, and each frame carries its own valid
+time so the sidebar can report the scene's age rather than implying it is live.
 
 **Nothing streams browser → third party any more except the basemap.** GIBS
 tiles used to, on the "it returns imagery, not data" carve-out. That carve-out
@@ -978,8 +983,8 @@ the prefix is part of finishing any feature that calls the server.
    early returns.
 9. **Tests** — cover the service (mock `fetch`; assert mapping + cache) and
    router in `server/src/tests/`, and the client transform, reducer cases, and
-   component behavior in `app/src/tests/`. The icing-PIREP and radar tests are
-   the reference for each layer.
+   component behavior in `app/src/tests/`. The radar tests are the reference for
+   each layer.
 10. **Run it** — start both services and drive the actual page before calling
     it done. The suites fake ArcGIS and the network, so they cannot tell you
     whether imagery painted, a URL 404s, or text is invisible against the

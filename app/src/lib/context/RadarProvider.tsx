@@ -11,7 +11,7 @@ import { GetRadarStats } from "@/lib/client";
 /**
  * Loads the radar scene's summary.
  *
- * Page-scoped, like PirepProvider. A cold build is ~9 s on the server and the
+ * Page-scoped, like CloudTopProvider. A cold build is ~9 s on the server and the
  * GeoJSONLayer triggers the same one, so asking here on entering the map warms
  * the cache the contours are about to come out of — but there is no reason to
  * pay for it on the landing page, since the scene is stale five minutes later

@@ -3,7 +3,6 @@ import type {
   CloudTopStats,
   ForecastMeta,
   SlwStats,
-  IcingStats,
   RadarStats,
   Sounding,
 } from "@/lib/types";
@@ -72,26 +71,6 @@ export async function GetSounding(
   }
   const sounding: Sounding = await res.json();
   return sounding;
-}
-
-/**
- * The icing-PIREP feature collection. Takes no parameters — this is an
- * observation feed, so there is only ever the last 12 hours of it, and the
- * server decides that window. Like the contour frames it goes straight to the
- * GeoJSONLayer rather than through Redux.
- */
-export function IcingPirepsUrl(): string {
-  return "/pireps/icing";
-}
-
-/** The same pull's summary, which is small enough for the store. */
-export async function GetIcingStats(): Promise<IcingStats> {
-  const res = await fetch("/pireps/icing/stats");
-  if (!res.ok) {
-    throw new Error(`Failed to fetch icing reports: ${res.status}`);
-  }
-  const stats: IcingStats = await res.json();
-  return stats;
 }
 
 /**

@@ -5,7 +5,6 @@ import { createTestStore, renderWithStore } from "./utils";
 // Store
 import { candidateActions } from "@/lib/store/features/candidate";
 import { cloudTopActions } from "@/lib/store/features/cloudtop";
-import { pirepActions } from "@/lib/store/features/pirep";
 import { radarActions } from "@/lib/store/features/radar";
 
 // ArcGIS
@@ -19,7 +18,6 @@ import {
   BAND_LABEL,
   stackedColor,
   soloColor,
-  PIREP_CLASSES,
 } from "@/lib/arcgis/renderers";
 import { CLOUD_TOP_BANDS, CLOUD_TOP_RGB } from "@/lib/arcgis/renderers";
 import { CloudTopLegend } from "@/lib/arcgis/legends";
@@ -168,17 +166,6 @@ describe("CandidateLayers", () => {
   });
 });
 
-/** PIREP legend markers: circles, sized per class, not the flex-1 ramp swatches. */
-const markers = (container: HTMLElement) =>
-  Array.from(container.querySelectorAll<HTMLElement>("div.rounded-full"));
-
-/** A colour as the DOM would store it, so comparisons are not about spacing. */
-const asCss = (value: string) => {
-  const el = document.createElement("div");
-  el.style.backgroundColor = value;
-  return el.style.backgroundColor;
-};
-
 describe("CandidateLayers radar", () => {
   it("shows a swatch for every reflectivity band", () => {
     const { container } = renderWithStore(
@@ -258,99 +245,5 @@ describe("CandidateLayers radar", () => {
     });
 
     expect(swatches(container, SLW_LABELS)).toHaveLength(SLW_BANDS.length);
-  });
-});
-
-describe("CandidateLayers icing reports", () => {
-  it("shows a marker for every icing class", () => {
-    const { container } = renderWithStore(
-      <CandidateLayers />,
-      createTestStore()
-    );
-
-    expect(markers(container)).toHaveLength(PIREP_CLASSES.length);
-  });
-
-  // These markers do not stack, so the legend reads each class straight. A
-  // composited swatch here would describe a map nobody draws.
-  it("paints each marker the colour the map paints it", () => {
-    const { container } = renderWithStore(
-      <CandidateLayers />,
-      createTestStore()
-    );
-
-    // Compared through the DOM's own parser: it rewrites `rgba(…,1)` as `rgb(…)`
-    // and re-spaces the rest, so a string comparison would fail on formatting.
-    expect(markers(container).map((m) => m.style.backgroundColor)).toEqual(
-      PIREP_CLASSES.map((c) => asCss(soloColor(c.rgb, c.alpha)))
-    );
-  });
-
-  // Size is half the encoding; a legend that ignored it would explain half the
-  // ramp.
-  it("sizes each marker the way the map sizes it", () => {
-    const { container } = renderWithStore(
-      <CandidateLayers />,
-      createTestStore()
-    );
-
-    expect(markers(container).map((m) => m.style.width)).toEqual(
-      PIREP_CLASSES.map((c) => `${c.size}px`)
-    );
-  });
-
-  it("names the classes a pilot files", () => {
-    renderWithStore(<CandidateLayers />, createTestStore());
-
-    expect(screen.getByText("moderate")).toBeTruthy();
-    expect(screen.getByText("severe")).toBeTruthy();
-  });
-
-  // A grey marker is an aircraft that found nothing. If the panel never says
-  // so, it reads as a weak hit.
-  it("explains what a negative report means", () => {
-    renderWithStore(<CandidateLayers />, createTestStore());
-
-    expect(screen.getByText(/found no ice/)).toBeTruthy();
-  });
-
-  // The rule this layer exists under: sparse points may not become a surface.
-  it("says the gaps mean nobody looked", () => {
-    renderWithStore(<CandidateLayers />, createTestStore());
-
-    expect(screen.getByText(/nobody looked/)).toBeTruthy();
-  });
-
-  it("turns the reports off when its toggle is clicked", () => {
-    const store = createTestStore();
-
-    renderWithStore(<CandidateLayers />, store);
-    act(() => {
-      (screen.getByLabelText("Icing reports") as HTMLElement).click();
-    });
-
-    expect(store.getState().pirep.visible).toBe(false);
-  });
-
-  it("hides the icing legend when the layer is off", () => {
-    const store = createTestStore();
-
-    const { container } = renderWithStore(<CandidateLayers />, store);
-    act(() => {
-      store.dispatch(pirepActions.setVisible(false));
-    });
-
-    expect(markers(container)).toHaveLength(0);
-  });
-
-  it("narrows to the seeding band when asked", () => {
-    const store = createTestStore();
-
-    renderWithStore(<CandidateLayers />, store);
-    act(() => {
-      (screen.getByLabelText("Seeding band only") as HTMLElement).click();
-    });
-
-    expect(store.getState().pirep.bandOnly).toBe(true);
   });
 });

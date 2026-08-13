@@ -7,8 +7,8 @@ import { Mrms } from "../lib/services/radar";
 export const radar = express.Router();
 
 // Observed reflectivity right now. No hour parameter, for the same reason the
-// PIREP routes have none: this is a scene, not a forecast — there is only ever
-// the mosaic that exists, and it carries its own valid time.
+// cloud-top routes have none: this is a scene, not a forecast — there is only
+// ever the mosaic that exists, and it carries its own valid time.
 radar.get("/reflectivity", async (req: Request, res: Response) => {
   try {
     const frame = await Mrms.reflectivity();

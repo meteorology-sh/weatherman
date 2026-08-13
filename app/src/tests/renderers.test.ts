@@ -15,12 +15,6 @@ import {
   soloColor,
   CLOUD_RGB,
   PRECIP_RGB,
-  SLW_RGB,
-  PIREP_RGB,
-  PIREP_NEG_RGB,
-  PIREP_CLASSES,
-  PIREP_COLORS,
-  PIREP_IN_BAND,
 } from "@/lib/arcgis/renderers";
 
 describe("CLOUD_BANDS", () => {
@@ -178,52 +172,16 @@ describe("stackedColor", () => {
   });
 });
 
-describe("PIREP_CLASSES", () => {
-  // Mirrors SEVERITY in server/src/lib/services/pirep.ts. The server ranks the
-  // filed code; this decides how each rank is drawn, and a rank with no class
-  // would render as an unstyled default marker.
-  it("has a class for every rank the server can emit", () => {
-    expect(PIREP_CLASSES.map((c) => c.value)).toEqual([0, 1, 2, 3, 4]);
-  });
-
-  it("reserves rank 0 for a report of no ice", () => {
-    expect(PIREP_CLASSES[0].label).toBe("none");
-  });
-
-  it("gets more opaque and larger with worse icing", () => {
-    const alphas = PIREP_CLASSES.map((c) => c.alpha);
-    const sizes = PIREP_CLASSES.map((c) => c.size);
-
-    expect([...alphas].sort((a, b) => a - b)).toEqual(alphas);
-    expect([...sizes].sort((a, b) => a - b)).toEqual(sizes);
-  });
-
-  // A negative report is evidence, but not evidence of liquid water. If it
-  // shared the positive hue it would read as a hit at a glance.
-  it("paints a negative report in a different hue from every positive one", () => {
-    expect(PIREP_CLASSES[0].rgb).toEqual(PIREP_NEG_RGB);
-    for (const found of PIREP_CLASSES.slice(1)) {
-      expect(found.rgb).toEqual(PIREP_RGB);
-    }
-  });
-
-  // The candidate map already spends amber on modelled liquid water. A report
-  // is the opposite kind of claim and has to be told apart from it.
-  it("gives reports a hue the modelled liquid water never takes", () => {
-    expect(PIREP_RGB).not.toEqual(SLW_RGB);
-  });
-});
-
 describe("soloColor", () => {
-  // PIREP markers do not stack — one aircraft, one point, one class — so the
-  // legend must read each class straight rather than compositing it.
-  it("is the class's own alpha, not a running composite", () => {
-    expect(soloColor(PIREP_RGB, 0.55)).toBe("rgba(167,139,250,0.550)");
+  // The cloud-top bands are disjoint — exactly one applies to a cell — so the
+  // legend must read each band straight rather than compositing it.
+  it("is the band's own alpha, not a running composite", () => {
+    expect(soloColor(CLOUD_TOP_RGB, 0.3)).toBe("rgba(148,163,184,0.300)");
   });
 
-  it("gives the legend the colour each marker is actually painted", () => {
-    expect(PIREP_COLORS).toEqual(
-      PIREP_CLASSES.map((c) => soloColor(c.rgb, c.alpha))
+  it("gives the legend the colour each band is actually painted", () => {
+    expect(soloColor(CLOUD_TOP_RGB, CLOUD_TOP_BANDS[0].alpha)).toContain(
+      String(CLOUD_TOP_BANDS[0].alpha)
     );
   });
 
@@ -233,16 +191,6 @@ describe("soloColor", () => {
     expect(soloColor(CLOUD_RGB, 0.1)).not.toBe(
       stackedColor(CLOUD_BANDS, CLOUD_RGB, 2)
     );
-  });
-});
-
-describe("PIREP_IN_BAND", () => {
-  // The server already decides band membership per report, including that an
-  // unknown temperature is not in band. Re-deriving it here from tempC would
-  // silently disagree with the count in the sidebar.
-  it("filters on the flag the server set, not on temperature", () => {
-    expect(PIREP_IN_BAND).toBe("inBand = 1");
-    expect(PIREP_IN_BAND).not.toContain("tempC");
   });
 });
 

@@ -4,14 +4,12 @@ import {
   GetCloudTopStats,
   GetForecastMeta,
   GetLiquidStats,
-  GetIcingStats,
   GetRadarStats,
   GetSounding,
   RadarReflectivityUrl,
   ForecastCloudsUrl,
   ForecastPrecipUrl,
   ForecastLiquidUrl,
-  IcingPirepsUrl,
 } from "@/lib/client";
 
 // Types
@@ -110,36 +108,6 @@ describe("ForecastLiquidUrl", () => {
   // separate routes: the geometry never enters the store.
   it("asks a different route than the stats", () => {
     expect(ForecastLiquidUrl(0)).not.toBe("/forecast/liquid/stats?hour=0");
-  });
-});
-
-describe("IcingPirepsUrl", () => {
-  it("builds a relative url so the proxy routes it", () => {
-    expect(IcingPirepsUrl()).toBe("/pireps/icing");
-  });
-
-  // An observation feed has no forecast hour to ask for. If a query string ever
-  // appears here, ArcGIS will strip it into customParameters and the layer's
-  // url will stop being the whole story.
-  it("takes no parameters, because there is only one window", () => {
-    expect(IcingPirepsUrl()).not.toContain("?");
-  });
-});
-
-describe("GetIcingStats", () => {
-  it("fetches the relative server route", async () => {
-    await GetIcingStats();
-    expect(fetch).toHaveBeenCalledWith("/pireps/icing/stats");
-  });
-
-  it("throws on a non-OK response", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => ({ ok: false, status: 503, json: async () => ({}) }))
-    );
-    await expect(GetIcingStats()).rejects.toThrow(
-      "Failed to fetch icing reports: 503"
-    );
   });
 });
 

@@ -63,9 +63,9 @@ export function features(
  * little in between. Stacking those paints a third of the map at full opacity
  * and tells the operator nothing about which third is interesting.
  *
- * Disjoint bands let each interval carry its own weight instead, the way
- * `PIREP_CLASSES` do for reports: exactly one band applies to a cell, so the
- * legend reads them straight rather than compositing them.
+ * Disjoint bands let each interval carry its own weight instead: exactly one
+ * band applies to a cell, so the legend reads them straight rather than
+ * compositing them.
  *
  * Each feature's `property` is set to the band's lower edge, which is what the
  * renderer matches on.

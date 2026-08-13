@@ -3,7 +3,6 @@ import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
 import { candidateActions } from "@/lib/store/features/candidate";
 import { cloudTopActions } from "@/lib/store/features/cloudtop";
 import { radarActions } from "@/lib/store/features/radar";
-import { pirepActions } from "@/lib/store/features/pirep";
 
 // ArcGIS
 import { CloudTopLegend } from "@/lib/arcgis/legends";
@@ -21,15 +20,12 @@ import {
 import { LayerToggle } from "./LayerToggle";
 import { Ramp } from "./Ramp";
 import { CloudTopRamp } from "./CloudTopRamp";
-import { PirepRamp } from "./PirepRamp";
 
 export const CandidateLayers = () => {
   const dispatch = useAppDispatch();
   const cloudTop = useAppSelector((state) => state.cloudtop.visible);
   const liquid = useAppSelector((state) => state.candidate.liquid);
   const radar = useAppSelector((state) => state.radar.visible);
-  const pireps = useAppSelector((state) => state.pirep.visible);
-  const bandOnly = useAppSelector((state) => state.pirep.bandOnly);
 
   return (
     <div className="flex flex-col gap-4">
@@ -92,38 +88,6 @@ export const CandidateLayers = () => {
           this one" on the map. Radar is a mask, though, not a detector: it sees
           the water that is already falling, so quiet air over a cloud is no
           evidence about what is inside it.
-        </div>
-      </LayerToggle>
-
-      <LayerToggle
-        name="Icing reports"
-        title="Icing reports · 12 h"
-        checked={pireps}
-        onChange={(on) => dispatch(pirepActions.setVisible(on))}
-      >
-        <PirepRamp />
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            className="toggle toggle-xs"
-            checked={bandOnly}
-            aria-label="Seeding band only"
-            onChange={(e) =>
-              dispatch(pirepActions.setBandOnly(e.target.checked))
-            }
-          />
-          <span className="text-xs">Seeding band only</span>
-        </label>
-        <div className="text-xs opacity-60">
-          What pilots reported &middot; grey means an aircraft flew through and
-          found no ice.
-        </div>
-        <div className="text-xs opacity-50">
-          Observed, and the only direct evidence of supercooled liquid water on
-          this map — rime ice is liquid freezing on impact. Points, not a
-          surface: these are a few reports a day, hundreds of kilometres apart
-          and only where aircraft fly, so the gaps between them mean nobody
-          looked, not that there is nothing there.
         </div>
       </LayerToggle>
     </div>
