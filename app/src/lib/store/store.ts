@@ -6,9 +6,9 @@ import forecastReducer from "./features/forecast";
 import radarReducer from "./features/radar";
 import soundingReducer from "./features/sounding";
 
-// ArcGIS layer instances used to live in the store, which forced
-// serializableCheck off. They are module-scope singletons in lib/arcgis/ now
-// and the store holds only plain data, so the check is back on.
+// ArcGIS layer instances are module-scope singletons in lib/arcgis/, never
+// store state: putting one here forces serializableCheck off. The store holds
+// only plain data, so the check stays on.
 export const store = configureStore({
   reducer: {
     candidate: candidateReducer,

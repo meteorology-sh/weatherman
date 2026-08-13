@@ -48,8 +48,8 @@ export const PRECIP_BANDS: readonly Band[] = [
  * The seeding band, mirroring SEEDING in server/src/lib/services/forecast.ts.
  *
  * Every caption, legend bracket and readout that names the band reads it from
- * here. It was −5 to −12 °C until 2026-08-12; widening it meant touching eight
- * hardcoded strings, which is how it came to live in one place.
+ * here. Keep it that way — the band moves, and a hardcoded copy of it goes
+ * stale silently.
  *
  * −5 °C is a physical threshold (AgI barely nucleates ice above it). −18 °C is
  * a judgement about where supercooled liquid stops being worth looking for —
@@ -184,9 +184,9 @@ export const candidateRadarRenderer = new UniqueValueRenderer({
  * layer here nests — an area meeting the top level is painted by every band —
  * because its field has rare extremes and "more" means "more". Cloud-top
  * temperature is bimodal instead: warm low cloud, or very cold cirrus, with
- * little between. **[verified] on a live GOES scene** the nested version
- * covered 41.5%, 38.3%, 35.5% and 32.0% of the grid — four rings almost exactly
- * on top of each other, painting a third of the map at full opacity.
+ * little between. Nested levels there cover nearly the same ground as each
+ * other — four rings almost exactly on top of each other, painting a third of
+ * the map at full opacity.
  *
  * So exactly one band applies to a cell, each carries the colour it is actually
  * drawn in, and the legend reads them straight rather than compositing them.
@@ -216,13 +216,13 @@ export const CLOUD_TOP_RGB = [148, 163, 184] as const;
  * **The opacity ramp runs backwards from every other layer here, on purpose.**
  * The warmest band is the loudest because it is the one a seeding operator is
  * looking for: a top just below −5 °C is a shallow supercooled-topped cloud,
- * the classic target. The coldest band is nearly invisible because
- * **[verified] 54% of cloudy cells sit below −30 °C** — that is cirrus and
- * anvil, it covers most of the sky, and painting it loudly would bury the thing
- * worth finding under the thing that is merely everywhere.
+ * the classic target. The coldest band is nearly invisible because most cloudy
+ * ground sits there — that is cirrus and anvil, it covers most of the sky, and
+ * painting it loudly would bury the thing worth finding under the thing that is
+ * merely everywhere.
  *
  * Nothing is discarded for being cold: the last band is open-ended and still
- * drawn. See `MEASUREMENTS.md` §G for why there is no cold cutoff.
+ * drawn. See `MEASUREMENTS.md` §4 for why there is no cold cutoff.
  */
 export const CLOUD_TOP_BANDS: readonly CloudTopBand[] = [
   { value: 5, fromC: -5, toC: -12, label: "−5 to −12", alpha: 0.3 },

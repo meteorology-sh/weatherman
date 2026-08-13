@@ -75,25 +75,20 @@ const CLOUD_TOP = {
    * −5 °C is criterion **C2** from `SENSING_STRATEGY.md`: "the band must
    * physically lie between base and top. A shallow warm cloud never reaches
    * it." A top warmer than −5 °C means the seeding band is *above* the cloud,
-   * so there is nothing inside it to seed — and **[verified] that is 71% of all
-   * cloudy ground over a Texas year**. Masking those off is what this layer is
-   * for.
+   * so there is nothing inside it to seed, and that describes most cloudy
+   * ground over a Texas year. Masking those off is what this layer is for.
    *
-   * −12, −18 and −25 °C are **reference isotherms, not gates**, and they are
-   * deliberately the numbers this project already argues about: −12 was the
-   * seeding band's old cold edge, −18 is its current one. Nothing is discarded
-   * for being colder than any of them — the coldest band is open-ended and
-   * still drawn, just drawn faintly, because **[verified] 54% of cloudy cells
-   * sit below −30 °C** and painting cirrus as loudly as a seedable top would
-   * bury the thing the operator is looking for.
+   * −12, −18 and −25 °C are **reference isotherms, not gates** — −18 °C is the
+   * seeding band's cold edge, and the others bracket it. Nothing is discarded
+   * for being colder than any of them: the coldest band is open-ended and still
+   * drawn, just drawn faintly, because most cloudy ground sits there and
+   * painting cirrus as loudly as a seedable top would bury the thing the
+   * operator is looking for.
    *
-   * There is **no cold cutoff**, and that is a decision rather than an
-   * omission. A cutoff would be a claim that seeding stops paying below some
-   * cloud-top temperature; no version of that claim appears in
-   * `SENSING_STRATEGY.md`, and the year-round Texas sample showed every
-   * candidate cutoff is expensive (−18 °C keeps 48.7% of seedable ground where
-   * this rule keeps 92.7%) and unstable (14.2%–82.7% across days). See
-   * `MEASUREMENTS.md` §G, which holds that decision open pending literature.
+   * There is **no cold cutoff.** A cutoff would be a claim that seeding stops
+   * paying below some cloud-top temperature, and no version of that claim
+   * appears in `SENSING_STRATEGY.md`. It needs a citation, not a coverage
+   * table — see `MEASUREMENTS.md` §4.
    */
   levels: [5, 12, 18, 25],
 } as const;
@@ -120,7 +115,7 @@ const CLEAR = -999;
  * footprint grows away from the sub-satellite point, so over CONUS this window
  * covers somewhat more than 12 km and the block mean is slightly smoother than
  * the grid. Smoothing removes structure; it never invents any, which is the
- * same rule §5 applies to every other block average here.
+ * same rule §3 applies to every other block average here.
  */
 const WINDOW = 6;
 

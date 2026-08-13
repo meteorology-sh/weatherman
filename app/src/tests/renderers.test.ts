@@ -203,7 +203,7 @@ describe("CLOUD_TOP_BANDS", () => {
     }
   });
 
-  // Nothing is discarded for being cold. See MEASUREMENTS.md §G — there is no
+  // Nothing is discarded for being cold. See MEASUREMENTS.md §4 — there is no
   // cold cutoff, and the open end is what says so.
   it("leaves the coldest band open-ended", () => {
     expect(CLOUD_TOP_BANDS[CLOUD_TOP_BANDS.length - 1].toC).toBeNull();

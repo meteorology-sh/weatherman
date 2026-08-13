@@ -20,9 +20,7 @@ cosmetic:
 - **`/map/forecast` — modelled.** HRRR cloud cover, contoured server-side into
   nested GeoJSON polygons, with a slider stepping f00–f18. **Satellites cannot
   forecast**, so nothing observed can appear here; this map is entirely model
-  output. Contours are used rather than a raster because a raster has no
-  nodata — infrared paints warm clear sky opaquely and buries the basemap,
-  while a 0%-cloud contour simply isn't drawn.
+  output.
 - **`/map/candidate` — observed.** Three layers, and they are three different
   kinds of claim. Bottom to top: GOES-East cloud-top temperature (_observed_
   cloud tops), the HRRR supercooled-liquid contours for the analysis hour
@@ -31,15 +29,9 @@ cosmetic:
   anywhere profiles that point's column. This is "what is the sky doing right
   now, and how high".
 
-  A fourth layer, the AWC icing PIREPs (_reported_ by aircraft), was removed on
-  2026-08-12. It was the app's only point layer and its only sparse source; see
-  the sparse-source note under "The rule is not 'never draw surfaces'" for what
-  its removal cost, and git history for the shape it had.
-
-  **There is no raster on either map any more.** The cloud-top layer was a GIBS
-  Band 13 image until 2026-08-12 and is now GeoJSON bands built from
-  `ABI-L2-ACHP2KMC`, for the reason the forecast entry above gives: an image has
-  no nodata, so it painted clear sky opaquely over the basemap.
+  **There is no raster on either map, and none may be added.** An image has no
+  nodata: it paints clear sky opaquely and buries the basemap. Every layer is
+  GeoJSON from our own server.
 
 **The layers, and what each is for:**
 
@@ -50,18 +42,16 @@ cosmetic:
   everything else here contours on, and turned into a temperature using HRRR's
   profile at that pressure.
   **This is the one layer built from two sources**, and the split is deliberate:
-  `MEASUREMENTS.md` §5 records that HRRR "nails the thermodynamic profile and is
-  much shakier on cloud", so the satellite says *where the top is* and the model
-  says *how cold it is there*. That also makes it the only cloud layer that can
-  contradict the supercooled-liquid contours drawn over it.
-  Two things it does that the Band 13 raster it replaced could not. It has
-  **real nodata** — roughly half a scene has no cloud and simply is not drawn.
+  HRRR nails the thermodynamic profile and is much shakier on cloud, so the
+  satellite says *where the top is* and the model says *how cold it is there*.
+  That also makes it the only cloud layer that can contradict the
+  supercooled-liquid contours drawn over it.
+  It has **real nodata** — where the satellite sees no cloud, nothing is drawn.
   And it is **filtered to C2**: only tops at −5 °C or colder appear, because a
-  warmer top means the seeding band lies above the cloud entirely, which is
-  **[verified] 71% of all cloudy ground over a Texas year**. The bands are
-  **disjoint, not nested** — see `bandFeatures` in `contour.ts` for the
-  measurement behind that, and `MEASUREMENTS.md` §G for why there is no cold
-  cutoff.
+  warmer top means the seeding band lies above the cloud entirely, which
+  accounts for most cloudy ground over a Texas year. The bands are **disjoint,
+  not nested** — see `bandFeatures` in `contour.ts`, and `MEASUREMENTS.md` §4
+  for why there is no cold cutoff.
 - **Cloud _phase and quantity_: HRRR.** Cloud cover and precipitation on the
   forecast map, supercooled liquid water and the point sounding on the
   candidate map — all decoded from GRIB2 server-side and contoured. See
@@ -70,13 +60,8 @@ cosmetic:
 
 **Why the split:** the satellite answers "what shape, where, and how cold on
 top"; the model answers "how much, of what, at what temperature _inside_".
-Neither substitutes for the other, and no sampled field is ever interpolated
-past what it measured. (An earlier version
-carried an Open-Meteo 3° grid — ~300 km between samples — drawn as scaled point
-markers. Cloud structure lives at 1–50 km, so that grid could never become a
-surface; it was removed once HRRR gave us a field that could. An earlier
-"supply chain explorer" example was removed as dead code too — see git
-history.)
+Neither substitutes for the other, and **no sampled field is ever interpolated
+past what it measured.**
 
 **The rule is not "never draw surfaces"** — it is _don't draw structure finer
 than your sampling_. Compare the variable's correlation length to the sample
@@ -84,20 +69,13 @@ spacing before drawing any new field: cloud shape (1–50 km) may not be
 contoured from a 3° grid, but HRRR's native 3 km cloud cover may, and isotherm
 height (~1000 km, synoptic) would be honest even on the coarse grid.
 Block-averaging 3 km → 12 km _removes_ structure and is fine; interpolating
-300 km → 12 km _invents_ it and is not. `MEASUREMENTS.md` §5 has the table.
+300 km → 12 km _invents_ it and is not. `MEASUREMENTS.md` §3 has the table.
 
-**The other end of that rule has no live example any more.** Every layer now in
-the app is a contoured field, because every source now in the app samples
-densely enough to earn one. A source that does not — sparse, irregular, only
-where somebody happened to look — must draw **points, and only points**, with
-its colour banding in a marker ramp instead of a fill, and no interpolation
-between them. The icing PIREPs were that case (~20 positive reports over the
-whole country in 12 hours, hundreds of kilometres apart and only where aircraft
-fly) and were removed on 2026-08-12. Commit `90f63b7` is the last one that has
-them — `git show 90f63b7:app/src/lib/arcgis/renderers.ts` for `PIREP_CLASSES`
-and the marker renderer, and `:app/src/lib/services/pirep.ts` on the server side
-— if a future sparse layer needs the shape. Build it from the source's own
-sampling, not by adapting a contour layer.
+**A source too sparse to pass that test is drawn as points, and only points** —
+colour banding in a marker ramp instead of a fill, each marker where the
+observation was, and nothing interpolated between them. Every layer currently in
+the app is a contoured field, so there is no in-repo example to copy; build the
+point shape from the source's own sampling rather than adapting a contour layer.
 
 ## Guiding Principles
 
@@ -119,13 +97,13 @@ weatherman/
   app/                       # React SPA (Vite dev server, port 5173)
   server/                    # Express API (ts-node/nodemon, port 3000)
   docker-compose.yaml        # Runs both services with bind mounts + HMR
-  MEASUREMENTS.md            # Candidate data sources for future layers
+  MEASUREMENTS.md            # Physics and sampling limits on any layer
 ```
 
-`MEASUREMENTS.md` is a **decision document, not a description of the code** —
-it surveys the free national feeds against the seedability criteria and
-records which layers we might build next. Read it before adding a data
-source; it already documents which ones are dead ends and why.
+`MEASUREMENTS.md` holds the **standing constraints**, not a description of the
+code: what the free national feeds can and cannot answer, and the sampling rule
+that decides whether a proposed layer is honest at all. Read it before adding a
+data source — most of it rules things out.
 
 ## Running the App
 
@@ -321,9 +299,8 @@ export type AppDispatch = AppStore["dispatch"];
 The store holds **only plain, serializable data** — RTK's `serializableCheck`
 is on, at its default. ArcGIS objects must never go in it: layers are
 module-scope singletons in `lib/arcgis/layers.ts`, and the store holds the
-`CloudLayerId` string naming which one is active. (An earlier version put a
-`GeoJSONLayer` in the store and had to disable `serializableCheck` for it;
-don't reintroduce that.)
+`CloudLayerId` string naming which one is active. Putting a `GeoJSONLayer` in
+the store forces `serializableCheck` off, which is not an acceptable trade.
 
 **Bulk geometry stays out of the store too.** A forecast frame is ~1.4 MB of
 contours; 19 of them would be ~27 MB, and `serializableCheck` deep-walks state
@@ -446,15 +423,15 @@ Both are GeoJSON from our own server, and the difference is not cosmetic:
   composites, so each swatch is the literal fill and the legend reads them
   straight.
 
-**Check the coverage of each level before choosing.** Cloud-top temperature was
-built as nested contours first and the levels covered 41.5%, 38.3%, 35.5% and
-32.0% of the grid — four rings almost on top of each other, painting a third of
-the map at full opacity. That field is bimodal (warm low cloud, or very cold
-cirrus, little between), which nesting cannot express.
+**Check the coverage of each level before choosing.** Nesting only works where
+the extremes are rare. If every level covers a similar share of the grid, the
+bands are four rings almost on top of each other and paint a third of the map at
+full opacity. Cloud-top temperature is bimodal — warm low cloud, or very cold
+cirrus, little between — which nesting cannot express, so it uses disjoint
+bands.
 
-There was a third shape until 2026-08-12 — discrete classes for points rather
-than polygons, carried by the icing PIREPs' marker ramp. Nothing in the app
-needs it now; see the sparse-source note near the top for when it comes back.
+A third shape exists for sparse point sources: discrete classes on a marker
+ramp. Nothing in the app needs it now — see the sparse-source rule near the top.
 
 **The opacity ramp is not always quiet-to-loud.** Cloud-top temperature runs
 backwards — warmest band loudest — because the warm end is the target and the
@@ -589,7 +566,7 @@ src/tests/
   that only reads the caption passes even when the bracket is drawn in the
   wrong place — `legends.test.ts` pins the percentages instead, and pins them
   against `BAND_WARMEST_C`/`BAND_COLDEST_C` rather than literals so the bracket
-  has to follow the band when it moves. It did not, the first time it moved.
+  has to follow the band when it moves.
 - ESLint has no underscore-ignore rule; an unused mock parameter is an error.
   Put the signature in `vi.fn`'s type argument instead:
   `vi.fn<(blob: Blob) => string>(() => "blob:mock")`.
@@ -624,12 +601,11 @@ No ORM, no database, no framework layers. Use node built-ins (`fs/promises`,
 stack cannot cover it, a package that is actually maintained, and no redundancy
 with what is already installed. Bring evidence — last publish date,
 downloads/month, dependency count, whether it needs a native build — and verify
-it on real data rather than from its README. `h5wasm` is the worked example
-(`MEASUREMENTS.md` §G): NIST, zero dependencies, WASM so no native toolchain,
-and it earned its place by being the only reader that could get the attributes
-out of a GOES scene. `netcdf4` and `hdf5` were rejected for being last published
-in 2018; `jsfive` reads the same files but returned **no attributes at all**,
-which would have meant hardcoding the fill value and scale factor.
+it on real data rather than from its README. `h5wasm` is the worked example:
+NIST, zero dependencies, WASM so no native toolchain, and it is the only HDF5
+reader that surfaces a GOES scene's **attributes** — without them the fill
+value, scale factor and projection constants would have to be hardcoded against
+a file that already carries them.
 
 **`h5wasm` is ESM-only, and this server is CommonJS.** That is why
 `tsconfig.json` sets `"module": "node16"` rather than `"commonjs"`: the output
@@ -643,11 +619,11 @@ import position.
 **One system dependency: `libeccodes-tools`**, installed via `apt-get` in
 `Dockerfiles/Dockerfile.local`. `ForecastService` shells out to its
 `grib_get_data` to read HRRR GRIB2. It is deliberately _not_ an npm package.
-Decoding GRIB2 by hand would be ~200 lines of
-bit-unpacking we'd own; eccodes is ECMWF's own tool and is in Debian main.
-(wgrib2, the more famous equivalent, has **no Debian package at all** and
-would need a source build with gfortran.) Reasoning and alternatives:
-`MEASUREMENTS.md` §6.
+Decoding GRIB2 by hand would be ~200 lines of bit-unpacking we'd own; eccodes is
+ECMWF's own tool and is in Debian main. `grib_get_data` also returns lat/lon per
+point for HRRR's **Lambert Conformal** grid, so the service does no projection
+maths. wgrib2, the more famous equivalent, has **no Debian package at all** and
+would need a gcc/gfortran source build in the `node` image.
 
 **Two stale-container failures, and they need different commands.** Source is
 bind-mounted, so TypeScript changes hot-reload; nothing else does.
@@ -860,10 +836,7 @@ server/src/tests/
 
 The end-to-end pattern. **The radar mosaic is the reference implementation** —
 every layer of the pattern is visible in it, and its decode step is one gzipped
-GRIB2 message rather than the byte-range juggling the HRRR products need. (The
-icing PIREPs held this role until 2026-08-12 and were the better teaching
-example, being a plain upstream JSON API with no decode at all; commit
-`90f63b7` has them if you want that version.)
+GRIB2 message rather than the byte-range juggling the HRRR products need.
 
 ```
 MRMS .latest.grib2.gz → RadarService (fetch, decode, contour, TTL cache) [lib/services/radar.ts]
@@ -947,12 +920,10 @@ opposite case — scenes arrive continuously with no publication cycle to key
 off — so both use a plain 5-minute TTL, and each frame carries its own valid
 time so the sidebar can report the scene's age rather than implying it is live.
 
-**Nothing streams browser → third party any more except the basemap.** GIBS
-tiles used to, on the "it returns imagery, not data" carve-out. That carve-out
-is gone with the raster: the cloud-top layer returns *data* we parse, reproject,
-cache and reshape, so it goes through a service like everything else. If a
-future layer is genuinely just tiles, the old reasoning still applies — keys,
-CORS and caching are what the rule protects, and a keyless public tile service
+**Nothing streams browser → third party except the basemap.** Everything else
+returns *data* we parse, reproject, cache and reshape, so it goes through a
+service. If a future layer is genuinely just tiles, the rule relaxes — keys,
+CORS and caching are what it protects, and a keyless public tile service
 has none of those problems.
 
 **Proxy wiring:** the app always fetches relative paths, so every server route
@@ -987,8 +958,8 @@ the prefix is part of finishing any feature that calls the server.
    each layer.
 10. **Run it** — start both services and drive the actual page before calling
     it done. The suites fake ArcGIS and the network, so they cannot tell you
-    whether imagery painted, a URL 404s, or text is invisible against the
-    background. Every one of those has bitten this feature.
+    whether a layer painted, a URL 404s, or text is invisible against the
+    background.
 
 ## Ecosystem Defaults That Do Not Apply Here
 

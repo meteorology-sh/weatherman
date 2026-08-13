@@ -7,9 +7,8 @@ type CandidateState = {
   /**
    * HRRR supercooled liquid water contours, drawn over the observed cloud tops.
    *
-   * The cloud-top layer used to live here too, as `imagery`, back when it was a
-   * GOES raster with no data behind it. It fetches and summarises a scene of
-   * its own now, so it has its own slice like every other data domain.
+   * Cloud tops have their own slice: this one covers a single data domain, and
+   * anything that fetches and summarises a scene of its own gets its own.
    */
   liquid: boolean;
   /** Summary of the liquid layer. The geometry itself never enters the store. */

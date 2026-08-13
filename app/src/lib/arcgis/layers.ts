@@ -20,18 +20,16 @@ import {
 /**
  * Observed cloud tops, banded server-side from a GOES-East scene.
  *
- * **This replaced the last raster on either map**, and the reason is the reason
- * the rest of these layers are vectors: an infrared image has no nodata. Band
- * 13 painted warm clear sky opaquely and buried the basemap under it, so a map
- * whose whole job is "where is there something worth flying to" spent most of
- * its pixels on sky where there is nothing at all. These bands are simply not
- * drawn where the satellite sees no cloud — **[verified] about half a scene** —
- * and the basemap shows through.
+ * **Vector, not imagery**, for the reason the rest of these layers are vectors:
+ * an infrared image has no nodata. It paints warm clear sky opaquely and buries
+ * the basemap, so a map whose whole job is "where is there something worth
+ * flying to" spends most of its pixels on sky where there is nothing at all.
+ * These bands are simply not drawn where the satellite sees no cloud — roughly
+ * half a scene — and the basemap shows through.
  *
- * It is also filtered rather than merely redrawn. Only tops colder than −5 °C
- * appear, which is criterion C2: a warmer top means the seeding band lies above
- * the cloud entirely, so there is nothing inside it to seed. That is
- * **[verified] 71% of all cloudy ground over a Texas year**, removed.
+ * It is also filtered. Only tops colder than −5 °C appear, which is criterion
+ * C2: a warmer top means the seeding band lies above the cloud entirely, so
+ * there is nothing inside it to seed. That removes most cloudy ground.
  *
  * The geometry comes from the satellite and the temperatures from HRRR's
  * profile — see the server's `cloudtop.ts` for why that split runs the way it

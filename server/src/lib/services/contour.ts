@@ -56,12 +56,11 @@ export function features(
  *
  * `features()` above is the right shape for a field whose extremes are rare and
  * whose "more" nests naturally: cloud cover, precipitation rate, reflectivity,
- * liquid water. Cloud-top temperature is not that field. **[verified] on a live
- * GOES scene** the nested levels covered 41.5%, 38.3%, 35.5% and 32.0% of the
- * grid — four rings almost exactly on top of each other, because cloud-top
- * temperature over CONUS is bimodal: warm low cloud, or very cold cirrus, with
- * little in between. Stacking those paints a third of the map at full opacity
- * and tells the operator nothing about which third is interesting.
+ * liquid water. Cloud-top temperature is not that field — it is bimodal, warm
+ * low cloud or very cold cirrus with little in between, so nested levels all
+ * cover a similar share of the grid and land almost exactly on top of each
+ * other. Stacking those paints a third of the map at full opacity and tells the
+ * operator nothing about which third is interesting.
  *
  * Disjoint bands let each interval carry its own weight instead: exactly one
  * band applies to a cell, so the legend reads them straight rather than

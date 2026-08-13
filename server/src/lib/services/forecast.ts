@@ -118,13 +118,11 @@ const SEEDING = {
    * keeps working to roughly −20 °C; what falls off below about −12 °C is not
    * the seeding agent but the *supply* — natural ice nuclei activate and take
    * the liquid first, so there is progressively less of it to find. −12 °C is
-   * where the literature puts the point of diminishing returns, and this
-   * product used it until 2026-08-12. It was tightened deliberately and it cut
-   * both ways: it kept the map focused on the richest band, and it also
-   * discarded real supercooled liquid at −13 to −18 °C that AgI would convert.
-   * Widened on the principle that a tool for *finding* candidates should show
-   * what is there and let the operator judge, rather than pre-filter to what is
-   * likeliest.
+   * where the literature puts the point of diminishing returns, and stopping
+   * there would discard real supercooled liquid at −13 to −18 °C that AgI would
+   * convert. The edge sits at −18 °C on the principle that a tool for *finding*
+   * candidates shows what is there and lets the operator judge, rather than
+   * pre-filtering to what is likeliest.
    *
    * Both edges are read by the SLW integral and the sounding, so they move
    * together.
@@ -211,11 +209,10 @@ const SOUNDING = {
  *
  * **Build wide, display narrow.** The sounding panel wants 300 mb because that
  * is where a drone's target altitudes live and levels above it are noise on the
- * readout. The cloud-top layer wants far more: **[verified] on a live GOES
- * scene, 47.6% of cloudy 12 km cells had tops above 300 mb** — anvil and cirrus
- * sit at 100–300 mb routinely. Reading only to 300 mb clamped every one of them
- * to the same temperature and piled 52% of the grid into a single −40…−30 °C
- * bin.
+ * readout. The cloud-top layer wants far more: anvil and cirrus sit at
+ * 100–300 mb routinely, and roughly half of all cloudy 12 km cells have tops
+ * above 300 mb. A 300 mb ceiling clamps every one of them to the same
+ * temperature and piles most of the grid into a single bin.
  *
  * So the grid is read to 100 mb and each consumer takes the slice it needs. The
  * cost is 8 more records (~8 s on a cold build, once per run) and it is paid by
