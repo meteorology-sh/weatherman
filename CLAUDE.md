@@ -8,17 +8,74 @@ in `/app` and an Express API in `/server`, orchestrated with Docker Compose.
 **Product context:** Weatherman is the operator-facing software for a
 field-deployable cloud-seeding weather station (part of the Rainmaker project).
 The station fuses local sensor data with free national feeds (NEXRAD, GOES,
-HRRR) into a single *seedability* verdict — is there supercooled liquid water
-in the −5 to −12 °C band worth sending a drone to, and did seeding work? The
+HRRR) into a single _seedability_ verdict — is there supercooled liquid water
+in the seeding band worth sending a drone to, and did seeding work? The
 system design lives outside this repo at `/home/nathan/code/rainmaker/weatherman`
 (see its `README.md` and `docs/`). This web app will become the operator
 dashboard for that station.
 
-**Current example feature:** a geospatial "supply chain explorer" — the server
-reads company records from JSON on disk and serves them at `/geo/companies`;
-the app renders them as an interactive ArcGIS map with search. It is not fully
-wired end-to-end yet, but it is the reference implementation of the full-stack
-data pattern all future features should follow.
+**The two maps.** The app has two map routes, and the split is editorial, not
+cosmetic:
+
+- **`/map/forecast` — modelled.** HRRR cloud cover, contoured server-side into
+  nested GeoJSON polygons, with a slider stepping f00–f18. **Satellites cannot
+  forecast**, so nothing observed can appear here; this map is entirely model
+  output.
+- **`/map/candidate` — observed.** Three layers, and they are three different
+  kinds of claim. Bottom to top: GOES-East cloud-top temperature (_observed_
+  cloud tops), the HRRR supercooled-liquid contours for the analysis hour
+  (_modelled_ — the deliberate exception, and the sidebar says so), and the MRMS
+  radar mosaic (_measured_, and the only measurement on either map). Clicking
+  anywhere profiles that point's column. This is "what is the sky doing right
+  now, and how high".
+
+  **There is no raster on either map, and none may be added.** An image has no
+  nodata: it paints clear sky opaquely and buries the basemap. Every layer is
+  GeoJSON from our own server.
+
+**The layers, and what each is for:**
+
+- **Cloud _shape_ and _top temperature_: GOES-East, decoded server-side.**
+  `ABI-L2-ACHP2KMC` — cloud-top **pressure**, CONUS, 2 km, 4.1 MB a scene, a new
+  scene every 5 minutes, keyless on `noaa-goes19`. It is NetCDF4/HDF5, read with
+  `h5wasm`, reprojected from the ABI fixed grid onto the same 12 km grid
+  everything else here contours on, and turned into a temperature using HRRR's
+  profile at that pressure.
+  **This is the one layer built from two sources**, and the split is deliberate:
+  HRRR nails the thermodynamic profile and is much shakier on cloud, so the
+  satellite says *where the top is* and the model says *how cold it is there*.
+  That also makes it the only cloud layer that can contradict the
+  supercooled-liquid contours drawn over it.
+  It has **real nodata** — where the satellite sees no cloud, nothing is drawn.
+  And it is **filtered to C2**: only tops at −5 °C or colder appear, because a
+  warmer top means the seeding band lies above the cloud entirely, which
+  accounts for most cloudy ground over a Texas year. The bands are **disjoint,
+  not nested** — see `bandFeatures` in `contour.ts`, and `MEASUREMENTS.md` §4
+  for why there is no cold cutoff.
+- **Cloud _phase and quantity_: HRRR.** Cloud cover and precipitation on the
+  forecast map, supercooled liquid water and the point sounding on the
+  candidate map — all decoded from GRIB2 server-side and contoured. See
+  "Full-Stack Data Flow".
+- **Rain: MRMS.** The observed check on all of it.
+
+**Why the split:** the satellite answers "what shape, where, and how cold on
+top"; the model answers "how much, of what, at what temperature _inside_".
+Neither substitutes for the other, and **no sampled field is ever interpolated
+past what it measured.**
+
+**The rule is not "never draw surfaces"** — it is _don't draw structure finer
+than your sampling_. Compare the variable's correlation length to the sample
+spacing before drawing any new field: cloud shape (1–50 km) may not be
+contoured from a 3° grid, but HRRR's native 3 km cloud cover may, and isotherm
+height (~1000 km, synoptic) would be honest even on the coarse grid.
+Block-averaging 3 km → 12 km _removes_ structure and is fine; interpolating
+300 km → 12 km _invents_ it and is not. `MEASUREMENTS.md` §3 has the table.
+
+**A source too sparse to pass that test is drawn as points, and only points** —
+colour banding in a marker ramp instead of a fill, each marker where the
+observation was, and nothing interpolated between them. Every layer currently in
+the app is a contoured field, so there is no in-repo example to copy; build the
+point shape from the source's own sampling rather than adapting a contour layer.
 
 ## Guiding Principles
 
@@ -40,7 +97,13 @@ weatherman/
   app/                       # React SPA (Vite dev server, port 5173)
   server/                    # Express API (ts-node/nodemon, port 3000)
   docker-compose.yaml        # Runs both services with bind mounts + HMR
+  MEASUREMENTS.md            # Physics and sampling limits on any layer
 ```
+
+`MEASUREMENTS.md` holds the **standing constraints**, not a description of the
+code: what the free national feeds can and cannot answer, and the sampling rule
+that decides whether a proposed layer is honest at all. Read it before adding a
+data source — most of it rules things out.
 
 ## Running the App
 
@@ -65,17 +128,17 @@ checks.
 
 ## Stack
 
-| Tool          | Version | Notes                                                          |
-| ------------- | ------- | -------------------------------------------------------------- |
-| React         | 19      | StrictMode always on                                            |
-| TypeScript    | 6       | `strict`, `noUnusedLocals`, `noUnusedParameters`                |
-| Vite          | 8       | Path alias `@` → `src/`; dev proxy routes API calls to server   |
-| React Router  | 7       | `createBrowserRouter`, data router                              |
-| Redux Toolkit | 2       | `configureStore` + `createSlice`                                |
-| ArcGIS SDK    | 5       | `@arcgis/core` ES modules only — never `esri-loader`            |
-| Tailwind CSS  | 4       | Vite plugin — no `tailwind.config.js`                           |
-| DaisyUI       | 5       | Semantic component classes + theme tokens                       |
-| Vitest        | 4       | In devDependencies; tests go in `src/tests/` when added         |
+| Tool          | Version | Notes                                                         |
+| ------------- | ------- | ------------------------------------------------------------- |
+| React         | 19      | StrictMode always on                                          |
+| TypeScript    | 6       | `strict`, `noUnusedLocals`, `noUnusedParameters`              |
+| Vite          | 8       | Path alias `@` → `src/`; dev proxy routes API calls to server |
+| React Router  | 7       | `createBrowserRouter`, data router                            |
+| Redux Toolkit | 2       | `configureStore` + `createSlice`                              |
+| ArcGIS SDK    | 5       | `@arcgis/core` ES modules only — never `esri-loader`          |
+| Tailwind CSS  | 4       | Vite plugin — no `tailwind.config.js`                         |
+| DaisyUI       | 5       | Semantic component classes + theme tokens                     |
+| Vitest        | 4       | + React Testing Library; all tests in `src/tests/`            |
 
 `/app` is an ES module package (`"type": "module"`).
 
@@ -88,24 +151,37 @@ app/src/
     main.tsx               # Entry: router config + provider composition
     layout/                # Chrome components (Navigation)
     components/            # Route pages + feature components
-                           #   (Landing, Interface, Map, Explorer, Drawer)
+                           #   Pages:   Landing, Forecast, Candidate
+                           #   Map:     Map
+                           #   Panels:  ForecastLayers, CandidateLayers,
+                           #            CloudTop, Liquid, Radar, Sounding,
+                           #            TimeSlider, Drawer
+                           #   Legends: Ramp, CloudTopRamp
+                           #   Shared:  LayerToggle (switch + its legend)
     assets/
     index.css / App.css
   lib/                     # Infrastructure — not UI
     client.ts              # Plain async fetch functions (PascalCase names)
     types.ts               # Shared data shapes — mirror server responses
     arcgis/                # Module-scope ArcGIS config objects
-      renderers.ts         #   UniqueValueRenderer / SimpleRenderer instances
-      labels.ts            #   LabelClass instances
-      templates.ts         #   PopupTemplate instances
+      layers.ts            #   CandidateCloudTopLayer, the HRRR and MRMS
+                           #   contour GeoJSONLayers
+      legends.ts           #   Legend data per layer (ramp, ticks, caveat)
+      renderers.ts         #   Contour BANDS + CLOUD_TOP_BANDS + the renderers
     context/
       StoreProvider.tsx    # Wraps children with the Redux <Provider>
-      PointProvider.tsx    # Data provider: fetches → dispatches to Redux
+      ForecastProvider.tsx # Data provider: HRRR run metadata
+      CandidateProvider.tsx# Data provider: supercooled-liquid stats (app-wide)
+      CloudTopProvider.tsx # Data provider: GOES cloud-top stats (page-scoped)
+      RadarProvider.tsx    # Data provider: radar scene stats (page-scoped)
+      SoundingProvider.tsx # Data provider: point profile; refetches on click
     store/
       store.ts             # Singleton store + AppStore/RootState/AppDispatch
       hooks.ts             # useAppDispatch/useAppSelector/useAppStore
-      features/            # One slice per domain (arcgis.ts, interactions.ts)
-  tests/                   # All test files (.test.ts / .test.tsx)
+      features/            # One slice per domain (forecast.ts, candidate.ts,
+                           #   cloudtop.ts, radar.ts, sounding.ts,
+                           #   interactions.ts)
+  tests/                   # All test files (.test.ts / .test.tsx) + utils.tsx
 ```
 
 ## Bootstrapping & Provider Composition
@@ -121,7 +197,17 @@ const router = createBrowserRouter([
     element: <App />, // layout shell
     children: [
       { path: "/", element: <LandingPage /> },
-      { path: "/map", element: <Interface /> },
+      // Page-scoped data: the provider wraps just this route's element.
+      {
+        path: "/map/forecast",
+        element: (
+          <ForecastProvider>
+            <Forecast />
+          </ForecastProvider>
+        ),
+      },
+      // Page-scoped providers stack around the one route that needs them.
+      { path: "/map/candidate", element: /* CloudTop > Radar > Sounding */ ... },
     ],
   },
 ]);
@@ -138,6 +224,10 @@ createRoot(document.getElementById("root")!).render(
 - `StoreProvider` is always the outermost application wrapper.
 - Add new routes as children of the root `App` entry; each route's page
   component lives in `app/components/`.
+- **Page routes live under `/map/…`; server prefixes live at the root.** The
+  dev proxy forwards every `/forecast*` request to Express, so a _page_ at
+  `/forecast` gets swallowed by the API and the browser renders Express's
+  "Cannot GET /forecast". Keep the two namespaces apart.
 - `App.tsx` is only for layout chrome (navigation, wrappers) plus data
   providers that child routes need. It renders `<Outlet />` for child routes.
 
@@ -147,30 +237,30 @@ A data provider fetches external data and syncs it into Redux. It **wraps its
 children** and renders no UI of its own:
 
 ```tsx
-// lib/context/PointProvider.tsx
-export function PointProvider({ children }: { children: React.ReactNode }) {
-  const metadata = useAppSelector((state) => state.maps.PointMetadata);
+// lib/context/RadarProvider.tsx
+export function RadarProvider({ children }: { children: React.ReactNode }) {
+  const stats = useAppSelector((state) => state.radar.stats);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
     async function load() {
       try {
-        dispatch(mapActions.setLoading(true));
-        const [layer, metadata, companies] = await GetCompanies();
-        dispatch(mapActions.PointLayers(layer));
-        dispatch(mapActions.PointMetadata(metadata));
-        dispatch(mapActions.setCompanies(companies));
+        dispatch(radarActions.setLoading(true));
+        const stats = await GetRadarStats();
+        dispatch(radarActions.setStats(stats));
       } catch (error) {
-        dispatch(mapActions.setError(
-          error instanceof Error ? error.message : "Failed to load data"
-        ));
+        dispatch(
+          radarActions.setError(
+            error instanceof Error ? error.message : "Failed to load data"
+          )
+        );
       } finally {
-        dispatch(mapActions.setLoading(false));
+        dispatch(radarActions.setLoading(false));
       }
     }
 
-    if (!metadata) load(); // guard: skip if already loaded
-  }, [metadata, dispatch]);
+    if (!stats) load(); // guard: skip if already loaded
+  }, [stats, dispatch]);
 
   return <>{children}</>;
 }
@@ -198,9 +288,7 @@ never written by hand**:
 ```ts
 // lib/store/store.ts
 export const store = configureStore({
-  reducer: { maps: mapsReducer, interactions: interactionsReducer },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({ serializableCheck: false }),
+  reducer: { weather: weatherReducer, interactions: interactionsReducer },
 });
 
 export type AppStore = typeof store;
@@ -208,11 +296,24 @@ export type RootState = ReturnType<AppStore["getState"]>;
 export type AppDispatch = AppStore["dispatch"];
 ```
 
-`serializableCheck` is disabled **only** because ArcGIS layer instances live in
-the store. Keep everything else in the store plain and serializable.
+The store holds **only plain, serializable data** — RTK's `serializableCheck`
+is on, at its default. ArcGIS objects must never go in it: layers are
+module-scope singletons in `lib/arcgis/layers.ts`, and the store holds the
+`CloudLayerId` string naming which one is active. Putting a `GeoJSONLayer` in
+the store forces `serializableCheck` off, which is not an acceptable trade.
 
-`StoreProvider` wraps children with the react-redux `<Provider>` (holding the
-instance in a `useRef`).
+**Bulk geometry stays out of the store too.** A forecast frame is ~1.4 MB of
+contours; 19 of them would be ~27 MB, and `serializableCheck` deep-walks state
+on every dispatch. So `ForecastCloudsLayer` is pointed at
+`/forecast/clouds?hour=N` and fetches the frame itself — the store holds only
+the `hour`. Every contoured layer works this way — the cloud-top bands are
+~800 KB and go straight to `CandidateCloudTopLayer` too, while only the summary
+rides the store. What the store carries is the _selection_ and the _summary_,
+never the payload.
+
+`StoreProvider` wraps children with the react-redux `<Provider>`, passing the
+singleton store directly (no `useRef` — the `react-hooks/refs` lint rule
+forbids reading refs during render).
 
 ### Typed hooks
 
@@ -247,7 +348,7 @@ const interactionsSlice = createSlice({
 });
 
 export const interactionsActions = interactionsSlice.actions; // named export
-export default interactionsSlice.reducer;                     // default export
+export default interactionsSlice.reducer; // default export
 ```
 
 - State shape is an explicit named type (`XxxState`), not inferred.
@@ -263,43 +364,79 @@ not hooks**, named in `PascalCase`:
 
 ```ts
 // lib/client.ts
-export async function GetCompanies(): Promise<[...]> {
-  const res = await fetch("/geo/companies");
+export async function GetRadarStats(): Promise<RadarStats> {
+  const res = await fetch("/radar/reflectivity/stats");
   if (!res.ok) {
-    throw new Error(`Failed to fetch companies: ${res.status}`);
+    throw new Error(`Failed to fetch radar mosaic: ${res.status}`);
   }
-  const companies: CompanyPin[] = await res.json();
-  // ...transform (build GeoJSON, construct ArcGIS layer)...
-  return [layer, geojson, companies];
+  const stats: RadarStats = await res.json();
+  return stats;
 }
 ```
 
 - Use `fetch` directly (no axios); use `URLSearchParams` for query strings.
-- **Fetch relative paths** (`/geo/...`) — never hardcode the server origin.
+- **Fetch relative paths** (`/radar/...`) — never hardcode the server origin.
   The Vite dev proxy (and eventually the production reverse proxy) routes the
   prefix to the Express server.
 - **Throw on non-OK responses**; the calling provider catches and dispatches
   the error state.
-- Transformation from API response to app-ready objects (GeoJSON assembly,
-  ArcGIS layer construction) belongs here, not in components or providers.
+- Any transformation from API response to app-ready objects belongs here, not
+  in components or providers. Most functions here need none — the services
+  already return app-ready shapes — but `GetSounding` is the exception worth
+  copying: the app holds a point as `[lon, lat]` because that is what an ArcGIS
+  click hands back, and the server takes `lat`/`lon`, so the swap happens here,
+  once, rather than at every call site.
 
 ## Types
 
 Shared data shapes live in `lib/types.ts`. Shapes returned by the server
-(e.g. `CompanyPin`) **must mirror the server's types field-for-field** — there
+(e.g. `RadarStats`) **must mirror the server's types field-for-field** — there
 is no shared package, so the contract is maintained by hand on both sides.
 Component prop types are declared locally as `type PropsT = { ... }`.
 
 ## ArcGIS
 
 - Import from `@arcgis/core` ES modules only. Do not use `esri-loader`.
-- Static map configuration — renderers, label classes, popup templates — lives
-  in `lib/arcgis/` as module-scope instances, one file per kind.
+- Static map configuration — layer instances, legend data (and renderers,
+  popup templates etc. if markers ever return) — lives in `lib/arcgis/` as
+  module-scope instances, one file per kind.
 - Exactly one component (`components/Map.tsx`) touches the imperative ArcGIS
-  API. It holds `Map`/`MapView`/layer instances in refs, initializes the view
-  once in a mount effect, and reacts to Redux state (layer swaps, `goTo`
-  flights) in separate focused effects. Other components interact with the map
-  only through Redux (e.g. dispatching coordinates).
+  API. It holds `Map`/`MapView` in refs, initializes the view once in a mount
+  effect, and reacts to Redux state (layer visibility, `goTo` flights) in
+  separate focused effects. Other components interact with the map only
+  through Redux (e.g. dispatching coordinates or a `CloudLayerId`).
+- Every layer is added to the map once and toggled via `.visible`, so switching
+  routes does not refetch. Visibility is derived from the store in one effect —
+  never set `visible` from anywhere else.
+
+### Two shapes of polygon layer, and when to use which
+
+Both are GeoJSON from our own server, and the difference is not cosmetic:
+
+- **Nested contours** (`features()` server-side, stacked `Ramp` in the panel).
+  Cloud cover, precipitation, supercooled liquid water, reflectivity. An area
+  meeting the top level is painted by every band, so the fills composite and
+  each one stays faint. Use this when the field's extremes are rare and "more"
+  genuinely means "more".
+- **Disjoint bands** (`bandFeatures()` server-side, unstacked ramp in the
+  panel). Cloud-top temperature. Exactly one band applies to a cell and nothing
+  composites, so each swatch is the literal fill and the legend reads them
+  straight.
+
+**Check the coverage of each level before choosing.** Nesting only works where
+the extremes are rare. If every level covers a similar share of the grid, the
+bands are four rings almost on top of each other and paint a third of the map at
+full opacity. Cloud-top temperature is bimodal — warm low cloud, or very cold
+cirrus, little between — which nesting cannot express, so it uses disjoint
+bands.
+
+A third shape exists for sparse point sources: discrete classes on a marker
+ramp. Nothing in the app needs it now — see the sparse-source rule near the top.
+
+**The opacity ramp is not always quiet-to-loud.** Cloud-top temperature runs
+backwards — warmest band loudest — because the warm end is the target and the
+cold end is cirrus covering most of the sky. `renderers.test.ts` pins that
+direction.
 
 ## Component Conventions
 
@@ -307,9 +444,9 @@ Component prop types are declared locally as `type PropsT = { ... }`.
 loading/error/empty states at the top level:**
 
 ```tsx
-export const Explorer = () => {
-  const loading = useAppSelector((state) => state.maps.loading);
-  const error = useAppSelector((state) => state.maps.error);
+export const Clouds = () => {
+  const loading = useAppSelector((state) => state.weather.loading);
+  const error = useAppSelector((state) => state.weather.error);
 
   if (loading) return <span className="loading loading-spinner" />;
   if (error) return <div className="text-error p-4">{error}</div>;
@@ -353,19 +490,86 @@ same-folder imports use relative paths.
 - Layout uses Tailwind utility classes (`grid`, `flex`, `h-full`, `p-4`).
 - Prose blocks use `@tailwindcss/typography`'s `prose` class.
 
+**The app is dark, and the theme is pinned to it** in `src/app/index.css`:
+
+```css
+@plugin "daisyui/index.js" {
+  themes: dark --default;
+}
+```
+
+This is load-bearing. The chrome hardcodes `bg-black` and the ArcGIS dark
+theme is imported, so if DaisyUI falls back to its light default,
+`text-base-content` resolves to dark text painted onto black and the sidebar
+becomes unreadable. Don't remove the pin, and don't "fix" contrast by
+hardcoding text colours on top of it — that just hides the theme break.
+
 ## Testing — Vitest
 
-Vitest is in devDependencies; no tests exist yet. When adding them:
+`yarn test` (watch) / `yarn vitest run` (once). Config lives in the `test`
+block of `vite.config.ts` (`environment: "jsdom"`, `globals: true`) — globals
+are on, so `describe`/`it`/`expect`/`vi` need no import. `vitest/globals` is in
+`tsconfig.app.json`'s `types`.
+
+```
+src/tests/
+  utils.tsx                  # createTestStore() + renderWithStore() helper
+  client.test.ts             # fetch + throw-on-non-OK, one block per route
+  interactions-slice.test.ts # reducer cases
+  forecast-slice.test.ts     # reducer cases
+  candidate-slice.test.ts    # reducer cases
+  radar-slice.test.ts        # reducer cases
+  sounding-slice.test.ts     # reducer cases, incl. clearing on a new point
+  layers.test.ts             # layer URLs + schemas, cloud-top + radar contracts
+  cloudtop-slice.test.ts     # reducer cases
+  CloudTopProvider.test.tsx  # provider → store integration
+  CloudTop.test.tsx          # sidebar stats, incl. the cloud-free scene
+  legends.test.ts            # ramp anchors, tick + seeding-band positions
+  renderers.test.ts          # BANDS contracts, stacked alpha, solo vs stacked
+  ForecastProvider.test.tsx  # provider → store integration
+  CandidateProvider.test.tsx # provider → store integration
+  RadarProvider.test.tsx     # provider → store integration
+  SoundingProvider.test.tsx  # provider → store, incl. refetch on a new point
+  ForecastLayers.test.tsx    # toggles + legend rendering
+  CandidateLayers.test.tsx   # toggles + both kinds of legend
+  Liquid.test.tsx            # sidebar stats, incl. the "nothing to seed" case
+  Radar.test.tsx             # sidebar stats, incl. coverage and a quiet scene
+  Sounding.test.tsx          # altitudes, incl. below-ground and no-band cases
+  TimeSlider.test.tsx        # slider range, valid-time arithmetic, states
+  Map.test.tsx               # component integration per mode, ArcGIS faked
+```
 
 - All tests go in `src/tests/` with the `.test.ts` / `.test.tsx` suffix — do
-  not co-locate tests next to source files.
-- Add a `"test": "vitest"` script and the vitest config block (`environment:
-  "jsdom"`, `globals: true`) inside `vite.config.ts` with the first test.
+  not co-locate tests next to source files. Non-test helpers live there too
+  (`utils.tsx`); Vitest's default `include` only picks up `*.test.*`.
 - Priorities (testing trophy): pure logic and data transforms first (client
   transform functions, selectors), then Redux reducer cases (call the reducer
   directly — don't mount a store), then component integration tests with
   React Testing Library as the app grows.
 - Each `it` tests exactly one behavior.
+- **Never test against the singleton store** — `createTestStore()` in
+  `tests/utils.tsx` builds a fresh one per test (mirroring `store.ts`'s
+  config) so state can't leak between tests. `renderWithStore(ui, store)`
+  wraps it in a `<Provider>` via RTL's `wrapper` option (so `rerender` keeps
+  the provider) and returns the store for assertions.
+- Components read the store, so **drive them through it**: dispatch real
+  actions and assert on rendered output or on resulting state. Dispatches
+  after `render` must be wrapped in `act()` or React won't flush the effects.
+- Assert with plain `expect` — `@testing-library/jest-dom` is not installed
+  (`expect(container.innerHTML).toBe("")`, not `toBeEmptyDOMElement()`).
+- Fake `@arcgis/core` modules with `vi.mock` — the real ones need a WebGL
+  context. `Map.test.tsx` shows the pattern: fake classes that record their
+  instances via `vi.hoisted`, asserted through spied `goTo` and `visible`
+  flags. It fakes `@/lib/arcgis/layers` too; `layers.test.ts` covers the real
+  layer objects, which construct fine in jsdom.
+- **Assert the numbers a legend is derived from, not just its labels.** A test
+  that only reads the caption passes even when the bracket is drawn in the
+  wrong place — `legends.test.ts` pins the percentages instead, and pins them
+  against `BAND_WARMEST_C`/`BAND_COLDEST_C` rather than literals so the bracket
+  has to follow the band when it moves.
+- ESLint has no underscore-ignore rule; an unused mock parameter is an error.
+  Put the signature in `vi.fn`'s type argument instead:
+  `vi.fn<(blob: Blob) => string>(() => "blob:mock")`.
 
 ## ESLint & Prettier
 
@@ -385,14 +589,60 @@ Vitest is in devDependencies; no tests exist yet. When adding them:
 | Tool       | Notes                                                        |
 | ---------- | ------------------------------------------------------------ |
 | Express    | 5 — routers per domain, JSON responses                       |
-| TypeScript | 6, `strict` — **CommonJS** (`module: commonjs`), unlike /app |
+| TypeScript | 6, `strict` — **CommonJS** (`module: node16`), unlike /app  |
 | ts-node    | Runs `src/` directly in dev via nodemon                      |
 | nodemon    | `nodemon.json` watches `src/**/*.ts`                         |
 
-Dependencies are intentionally minimal: `express`, `cors`, `dotenv` — nothing
-else. No ORM, no database, no framework layers. Use node built-ins
-(`fs/promises`, `path`) for IO. Adding a dependency requires a reason these
-can't cover.
+Dependencies are intentionally minimal: `express`, `cors`, `dotenv`, `h5wasm`.
+No ORM, no database, no framework layers. Use node built-ins (`fs/promises`,
+`path`) for IO.
+
+**Adding one is allowed, but it has to clear a bar**: a real reason the existing
+stack cannot cover it, a package that is actually maintained, and no redundancy
+with what is already installed. Bring evidence — last publish date,
+downloads/month, dependency count, whether it needs a native build — and verify
+it on real data rather than from its README. `h5wasm` is the worked example:
+NIST, zero dependencies, WASM so no native toolchain, and it is the only HDF5
+reader that surfaces a GOES scene's **attributes** — without them the fill
+value, scale factor and projection constants would have to be hardcoded against
+a file that already carries them.
+
+**`h5wasm` is ESM-only, and this server is CommonJS.** That is why
+`tsconfig.json` sets `"module": "node16"` rather than `"commonjs"`: the output
+is still CommonJS (there is no `"type": "module"` in `package.json`, and every
+static import still compiles to `require()`), but `node16` stops TypeScript
+downlevelling `await import()` into `require()`, which cannot load an ESM-only
+package. `cloudtop.ts` loads it through a lazy dynamic import and declares the
+slice of its API it uses locally, so the package never appears in a static
+import position.
+
+**One system dependency: `libeccodes-tools`**, installed via `apt-get` in
+`Dockerfiles/Dockerfile.local`. `ForecastService` shells out to its
+`grib_get_data` to read HRRR GRIB2. It is deliberately _not_ an npm package.
+Decoding GRIB2 by hand would be ~200 lines of bit-unpacking we'd own; eccodes is
+ECMWF's own tool and is in Debian main. `grib_get_data` also returns lat/lon per
+point for HRRR's **Lambert Conformal** grid, so the service does no projection
+maths. wgrib2, the more famous equivalent, has **no Debian package at all** and
+would need a gcc/gfortran source build in the `node` image.
+
+**Two stale-container failures, and they need different commands.** Source is
+bind-mounted, so TypeScript changes hot-reload; nothing else does.
+
+- **`spawn grib_get_data ENOENT`** — the apt layer is stale.
+  `docker-compose up --build` fixes it.
+- **`TS2307: Cannot find module '<pkg>'`** after adding an npm dependency —
+  `--build` is **not** enough. `docker-compose.yaml` masks `node_modules` with
+  an **anonymous volume** (`- /usr/src/server/node_modules`) so the container
+  keeps its own copy rather than the host's, and Compose _preserves anonymous
+  volumes when it recreates a container_. The image rebuilds with the new
+  package and then the stale volume is remounted straight over it. Use:
+
+  ```bash
+  docker-compose up --build --renew-anon-volumes
+  ```
+
+  (`docker-compose down -v` then `up --build` does the same thing.) This bit
+  after `h5wasm` was added for the cloud-top layer.
 
 Scripts: `yarn dev` (nodemon), `yarn docker` (nodemon -L, used in Compose),
 `yarn build` (tsc → `dist/`), `yarn start`.
@@ -402,11 +652,25 @@ Scripts: `yarn dev` (nodemon), `yarn docker` (nodemon -L, used in Compose),
 ```
 server/src/
   index.ts                 # App setup: middleware, router mounts, listen
-  routers/                 # One Express router per URL prefix (geo.ts)
+  routers/                 # One Express router per URL prefix
+                           #   (cloudtop.ts → /cloudtop, forecast.ts →
+                           #    /forecast, radar.ts → /radar)
   lib/
-    services/              # Data access classes + singleton exports (disk.ts)
-    data/                  # On-disk JSON datasets read by services
+    services/              # Data access classes + singleton exports
+                           #   (forecast.ts → Hrrr, radar.ts → Mrms,
+                           #    cloudtop.ts → Goes)
+                           # Shared infrastructure, no source of its own:
+                           #   contour.ts (marching squares + features()
+                           #     and bandFeatures()),
+                           #   grib.ts (eccodes, streaming values),
+                           #   abi.ts (GOES fixed-grid geolocation)
+    data/                  # (optional) on-disk JSON datasets read by services
+  tests/                   # All test files (.test.ts)
 ```
+
+Note the singleton names: `forecast.ts` exports `Hrrr` (the HRRR contours),
+`radar.ts` exports `Mrms` and `cloudtop.ts` exports `Goes`. The file is named
+for the product; the singleton is named for the source it fetches from.
 
 ## Entry Point
 
@@ -420,7 +684,7 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use("/geo", geo);
+app.use("/radar", radar);
 
 app.get("/healthcheck", (req: Request, res: Response) => {
   res.send("Hello, world!");
@@ -440,22 +704,25 @@ One router file per URL prefix in `src/routers/`, exporting a **named**
 `express.Router()` that `index.ts` mounts:
 
 ```ts
-// server/src/routers/geo.ts
-export const geo = express.Router();
+// server/src/routers/radar.ts
+export const radar = express.Router();
 
-geo.get("/companies", async (req: Request, res: Response) => {
+radar.get("/reflectivity", async (req: Request, res: Response) => {
   try {
-    const companies = await DataStore.companies();
-    res.send(companies);
+    const frame = await Mrms.reflectivity();
+    res.send(frame);
   } catch (error) {
-    res.status(500).json({ error: error });
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
   }
 });
 ```
 
 - Handlers are thin: call a service method, send the result.
-- Every async handler wraps its body in `try/catch` and returns
-  `res.status(500).json({ error })` on failure — never let a rejection escape.
+- Every async handler wraps its body in `try/catch` and returns a 500 on
+  failure — never let a rejection escape. Serialize `error.message` (a raw
+  `Error` JSON-serializes to `{}`).
 - No data access or business logic in routers — that lives in services.
 
 ## Services
@@ -465,65 +732,212 @@ instance export** (the class carries the logic; the singleton carries the
 cache):
 
 ```ts
-// server/src/lib/services/disk.ts
-export class DataService {
-  private readonly dataPath: string;
-  private companyCache: CompanyPin[] | null = null;
+// server/src/lib/services/radar.ts
+export class RadarService {
+  private cache: { scene: Scene; fetchedAt: number } | null = null;
 
-  async read<T = unknown>(filename: string): Promise<T> { ... }
+  async reflectivity(): Promise<RadarFrame> {
+    return (await this.scene()).frame;
+  }
 
-  async companies(): Promise<CompanyPin[]> {
-    if (this.companyCache) return this.companyCache;
-    // ...read + join JSON files, populate cache...
+  /** The same build's summary. Asking for either warms both. */
+  async reflectivityStats(): Promise<RadarStats> {
+    return (await this.scene()).stats;
+  }
+
+  private async scene(): Promise<Scene> {
+    if (this.cache && Date.now() - this.cache.fetchedAt < CACHE_TTL_MS) {
+      return this.cache.scene;
+    }
+    // ...fetch, decode, contour, populate cache...
   }
 }
 
-export const DataStore = new DataService();
+export const Mrms = new RadarService();
 ```
 
-- Methods return typed, app-ready shapes — joining, parsing, and null-safety
-  happen here, not in routers.
-- Cache expensive reads in a private field; return the cache on repeat calls.
-- Response-shape interfaces (e.g. `CompanyPin`) are declared and exported from
-  the service file, and must stay in sync with the copy in
+- Methods return typed, app-ready shapes — upstream fetching, parsing, and
+  null-safety happen here, not in routers.
+- Third-party API calls happen **only on the server**, inside a service —
+  never from the browser (keys, CORS, and caching all live here). Use the
+  global `fetch`.
+- Cache in a private field; return the cache on repeat calls. Data keyed by a
+  publication cycle caches forever and evicts when the cycle rolls (a given HRRR
+  run+hour never changes); a continuous feed caches with a TTL matched to how
+  fast it moves and to what a build costs (MRMS refreshes every ~2 min, a build
+  is ~9 s → 5-min TTL).
+- **One build, several answers.** Where a frame and its summary come from the
+  same decode, expose both as methods over one cached build rather than
+  fetching twice — see `RadarService` above and `Hrrr.liquid`/`liquidStats`.
+- Response-shape interfaces (e.g. `RadarStats`) are declared and exported
+  from the service file, and must stay in sync with the copy in
   `app/src/lib/types.ts`.
 - New data domains get a new method on an existing service, or a new
   class + singleton pair in a new file when the underlying source differs.
 
+## Testing — `node:test`
+
+`yarn test` runs `node --require ts-node/register --test src/tests/*.test.ts`.
+The server uses **node's built-in test runner, not Vitest** — it needs no
+transform beyond ts-node, and this keeps the dependency list short. Do not
+add Vitest or any other runner here; `/app` and `/server` differ on purpose,
+like their module systems.
+
+```
+server/src/tests/
+  cloudtop-service.test.ts # ABI geolocation, pressure→temperature, bands
+  cloudtop-router.test.ts  # route → GeoJSON, both source times, 500s
+  forecast-service.test.ts # marching squares (holes, edges), run discovery
+  forecast-router.test.ts  # route → GeoJSON, hour passthrough, 500s
+  sounding.test.ts         # isotherm interpolation, inversions, nearest cell
+  multipart.test.ts        # byte-range reassembly, in file order
+  radar-service.test.ts    # dBZ averaged in Z, the two sentinels, row order
+  radar-router.test.ts     # route → GeoJSON, scene time, 500s
+```
+
+- `forecast-service.test.ts` drives `polygons()` with hand-built grids (a solid
+  blob, a donut, disjoint blobs, a blob flush against the edge) rather than
+  real GRIB — the contouring is pure and needs no network or eccodes. Assert
+  _geometry_, not ring counts: that a donut yields **one polygon with two
+  rings** is the thing that breaks, and it renders as solid cloud when it does.
+
+- `node:test` has no globals: import `describe`/`it` from `node:test` and
+  `assert` from `node:assert/strict`. Assert with `assert.deepEqual` /
+  `assert.equal` / `assert.rejects`.
+- Stub with the per-test mocker (`t.mock.method(globalThis, "fetch", ...)`) —
+  it restores automatically at test end. `t.mock.timers.enable({ apis: ["Date"]
+})` + `tick()` drives cache-TTL expiry without real waits.
+- **Service tests construct a fresh instance** (`new RadarService()`) so the
+  singleton's cache can't leak across tests. Router tests are the exception:
+  they mock the singleton's method (`Hrrr`, `Mrms`, `Goes`), since that is
+  what the router imports.
+- **Where a build needs eccodes and a 900 KB fixture, test the pure parts
+  instead** — `blockAverage`, `summarize`, `isothermFt`, `nearestCell` and
+  `sceneTime` are exported for exactly that reason, and they are where the
+  reasoning lives. Don't commit GRIB fixtures to get at the wrapper around
+  them.
+- Third-party APIs are never hit for real — always mock `fetch`.
+- Router tests bind a throwaway Express app to port 0 (an OS-assigned free
+  port), mount just the router under test, and drive it with real `fetch`.
+  Close the server in `after`.
+
 ## Server Conventions
 
 - Import grouping comments apply here too (`// Express`, `// Middleware`,
-  `// Routers`, `// Services`, `// Types`).
-- The server is CommonJS — do not add `"type": "module"` or ESM-only
-  dependencies.
+  `// Routers`, `// Services`, `// Types`, `// Node`).
+- The server emits CommonJS — do not add `"type": "module"`. An ESM-only
+  dependency is allowed but must be loaded through a lazy `await import()`; see
+  `cloudtop.ts` and the `"module": "node16"` note in the Stack section.
 - Same Prettier conventions as `/app`.
 
 ---
 
 ## Full-Stack Data Flow
 
-The end-to-end pattern, using the existing feature as the reference:
+The end-to-end pattern. **The radar mosaic is the reference implementation** —
+every layer of the pattern is visible in it, and its decode step is one gzipped
+GRIB2 message rather than the byte-range juggling the HRRR products need.
 
 ```
-JSON on disk → DataService (read, join, cache)        [server/src/lib/services]
-            → express.Router GET /geo/companies        [server/src/routers]
-            → Vite dev proxy (/geo → server :3000)     [app/vite.config.ts]
-            → GetCompanies() fetch + transform         [app/src/lib/client.ts]
-            → PointProvider dispatches to Redux        [app/src/lib/context]
-            → components select via useAppSelector     [app/src/app/components]
+MRMS .latest.grib2.gz → RadarService (fetch, decode, contour, TTL cache) [lib/services/radar.ts]
+             → express.Router GET /radar/reflectivity/stats  [routers/radar.ts]
+             → Vite dev proxy (/radar → server :3000)        [app/vite.config.ts]
+             → GetRadarStats() fetch                         [app/src/lib/client.ts]
+             → RadarProvider dispatches to Redux             [app/src/lib/context]
+             → Radar selects via useAppSelector              [app/src/app/components]
 ```
+
+Its **geometry** takes the shortcut every contoured layer takes — one build
+serves both, so `/radar/reflectivity` feeds `CandidateRadarLayer.url` directly
+and only the summary rides the full pattern above:
+
+```
+GET /radar/reflectivity → CandidateRadarLayer.url    [lib/arcgis/layers.ts]
+                        → reflectivity → band fill   [lib/arcgis/renderers.ts]
+```
+
+The forecast feature follows the same path with one deliberate deviation — the
+frames are too big for the store, so only the _metadata_ rides the full
+pattern and the geometry goes straight to the layer:
+
+```
+NOMADS HRRR .idx → byte-range GRIB2 subset (~930 KB of a 390 MB file)
+             → grib_get_data (eccodes) → block-average 3 km → 12 km
+             → marching squares + hole nesting            [lib/services/forecast.ts]
+             → GET /forecast/clouds?hour=N                [routers/forecast.ts]
+             → ForecastCloudsLayer.url                    [lib/arcgis/layers.ts]
+
+GET /forecast/meta → GetForecastMeta() → ForecastProvider → forecast slice
+                   → TimeSlider selects `hour` → Map.tsx repoints the layer
+```
+
+The cloud-top layer is the only one assembled from two sources, and it is the
+only one whose geometry is observed:
+
+```
+noaa-goes19 S3 listing → newest ABI-L2-ACHP2KMC scene (4.1 MB NetCDF4)
+             → h5wasm → cloud-top pressure + projection constants
+             → ABI fixed grid → HRRR's 12 km grid (abi.ts)
+             → Hrrr.column() supplies TMP at that pressure  [services/forecast.ts]
+             → mask to tops colder than -5 C, disjoint bands [services/cloudtop.ts]
+             → GET /cloudtop/temperature                     [routers/cloudtop.ts]
+             → CandidateCloudTopLayer.url                    [lib/arcgis/layers.ts]
+
+GET /cloudtop/temperature/stats → GetCloudTopStats() → CloudTopProvider
+                                → cloudtop slice → CloudTop panel
+```
+
+The decode inside that reference build, in full — one gzipped GRIB2 message
+rather than byte ranges of a huge one:
+
+```
+MRMS .latest.grib2.gz → gunzip → grib_filter (eccodes), streamed
+             → block-average 1 km → 12 km, in Z not dBZ
+             → marching squares                          [lib/services/radar.ts]
+             → GET /radar/reflectivity                   [routers/radar.ts]
+             → CandidateRadarLayer.url                   [lib/arcgis/layers.ts]
+```
+
+The point sounding is the one HRRR product small enough to ride the whole
+pattern into the store — it is a dozen levels over one point, not a field:
+
+```
+GET /forecast/sounding?lat&lon&hour → Hrrr.sounding()     [lib/services/forecast.ts]
+             → GetSounding() → SoundingProvider → sounding slice
+             → Sounding panel; Map.tsx dispatches setPoint on click
+```
+
+That build is a _national_ profile grid (TMP+HGT, 50 mb, 400–1000 mb) rather
+than a point query, so the first click pays ~25 s and every later one is
+answered from the same cached grid in ~11 ms.
+
+**Cache policy follows the source's own cycle, not a habit.** A given HRRR
+run+hour never changes, so `ForecastService` caches frames forever and evicts
+only when the run rolls (~5 s cold, ~0 ms warm); profile grids are ~12 MB each,
+so only the last few hours are kept. Concurrent requests for the same build
+collapse onto one download. `RadarService` and `CloudTopService` are the
+opposite case — scenes arrive continuously with no publication cycle to key
+off — so both use a plain 5-minute TTL, and each frame carries its own valid
+time so the sidebar can report the scene's age rather than implying it is live.
+
+**Nothing streams browser → third party except the basemap.** Everything else
+returns *data* we parse, reproject, cache and reshape, so it goes through a
+service. If a future layer is genuinely just tiles, the rule relaxes — keys,
+CORS and caching are what it protects, and a keyless public tile service
+has none of those problems.
 
 **Proxy wiring:** the app always fetches relative paths, so every server route
-prefix must be registered in `server.proxy` in `app/vite.config.ts`, targeting
-the Express server (`http://localhost:3000` locally;
-`http://weatherman-server-service:3000` inside Compose). The proxy map is
-currently empty — wiring it is part of finishing any feature that calls the
-server.
+prefix must be registered in `server.proxy` in `app/vite.config.ts`. The proxy
+target comes from the `SERVER_ORIGIN` env var (default
+`http://localhost:3000`; `docker-compose.yaml` sets it to
+`http://weatherman-server-service:3000` for the app container). Registering
+the prefix is part of finishing any feature that calls the server.
 
 ## Adding a Feature — Checklist
 
 1. **Service** — add a typed method (or new service class + singleton) under
-   `server/src/lib/services/`; put source data under `server/src/lib/data/`.
+   `server/src/lib/services/` that fetches the upstream API (or reads on-disk
+   JSON placed under `server/src/lib/data/`).
 2. **Router** — add a router in `server/src/routers/` (or extend one); mount
    its prefix in `server/src/index.ts`.
 3. **Proxy** — register the route prefix in `server.proxy` in
@@ -538,6 +952,14 @@ server.
 8. **Route + Component** — add the route in `main.tsx` and the page under
    `app/components/`; read from the store with `useAppSelector`, guard with
    early returns.
+9. **Tests** — cover the service (mock `fetch`; assert mapping + cache) and
+   router in `server/src/tests/`, and the client transform, reducer cases, and
+   component behavior in `app/src/tests/`. The radar tests are the reference for
+   each layer.
+10. **Run it** — start both services and drive the actual page before calling
+    it done. The suites fake ArcGIS and the network, so they cannot tell you
+    whether a layer painted, a URL 404s, or text is invisible against the
+    background.
 
 ## Ecosystem Defaults That Do Not Apply Here
 
@@ -551,7 +973,11 @@ does it this way:
   `react-redux` directly.
 - **No `enum`, no `namespace`.** Use `type` unions and plain objects.
 - **`@arcgis/core` ES modules, not `esri-loader`.**
-- **No database.** The server reads JSON from disk through cached services —
-  don't introduce persistence layers until the data outgrows this.
+- **No database.** The server reads upstream APIs (and on-disk JSON) through
+  cached services — don't introduce persistence layers until the data
+  outgrows this.
 - **Split module systems.** `/app` is ESM, `/server` is CommonJS — don't
   "harmonize" them.
+- **Split test runners.** `/app` uses Vitest (it already has the Vite
+  pipeline), `/server` uses the built-in `node:test` (it needs no bundler).
+  Don't "harmonize" these either.

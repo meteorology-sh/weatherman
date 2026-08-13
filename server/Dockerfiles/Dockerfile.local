@@ -1,7 +1,15 @@
 FROM node:latest
 
+# ECMWF's eccodes provides grib_get_data, which reads HRRR's Lambert grid and
+# hands back lat/lon per point — so the forecast service never does projection
+# maths itself. wgrib2 has no Debian package; eccodes is in main.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libeccodes-tools \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /usr/src/server
 
 COPY . .
 
+RUN npm install -g yarn
 RUN yarn

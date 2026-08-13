@@ -3,7 +3,11 @@ import express, { Request, Response } from "express";
 
 // Middleware
 import cors from "cors";
-import { geo } from "./routers/geo";
+
+// Routers
+import { cloudtop } from "./routers/cloudtop";
+import { forecast } from "./routers/forecast";
+import { radar } from "./routers/radar";
 
 // Types
 import { Express } from "express";
@@ -14,7 +18,9 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use("/geo", geo);
+app.use("/cloudtop", cloudtop);
+app.use("/forecast", forecast);
+app.use("/radar", radar);
 
 app.get("/healthcheck", (req: Request, res: Response) => {
   res.send("Hello, world!");

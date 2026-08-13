@@ -50,10 +50,18 @@ export const Drawer = () => {
           <br />
           <Link
             to={{
-              pathname: "/map",
+              pathname: "/map/forecast",
             }}
           >
-            <button className="btn btn-sm w-full">Map</button>
+            <button className="btn btn-sm w-full">Forecast</button>
+          </Link>
+          <br />
+          <Link
+            to={{
+              pathname: "/map/candidate",
+            }}
+          >
+            <button className="btn btn-sm w-full">Candidates</button>
           </Link>
         </div>
       </div>

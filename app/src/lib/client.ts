@@ -1,54 +1,112 @@
-import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
-import { CompanyRenderer } from "@/lib/arcgis/renderers";
-import { CompanyPopupTemplate } from "@/lib/arcgis/templates";
-import { CompanyLabels } from "@/lib/arcgis/labels";
-import type { CompanyPin, PointI, GeoJSON } from "@/lib/types";
+// Types
+import type {
+  CloudTopStats,
+  ForecastMeta,
+  SlwStats,
+  RadarStats,
+  Sounding,
+} from "@/lib/types";
 
-export async function GetCompanies(): Promise<
-  [GeoJSONLayer, GeoJSON<PointI>, CompanyPin[]]
-> {
-  const res = await fetch("/geo/companies");
+export async function GetForecastMeta(): Promise<ForecastMeta> {
+  const res = await fetch("/forecast/meta");
   if (!res.ok) {
-    throw new Error(`Failed to fetch companies: ${res.status}`);
+    throw new Error(`Failed to fetch forecast metadata: ${res.status}`);
   }
-  const companies: CompanyPin[] = await res.json();
+  const meta: ForecastMeta = await res.json();
+  return meta;
+}
 
-  // Build GeoJSON FeatureCollection from companies with valid coordinates
-  const features: PointI[] = companies
-    .filter((c) => c.lat != null && c.lon != null)
-    .map((c) => ({
-      type: "Feature" as const,
-      id: c.id,
-      geometry: {
-        type: "Point" as const,
-        coordinates: [c.lon!, c.lat!] as [number, number],
-      },
-      properties: {
-        id: c.id,
-        name: c.name,
-        category: c.category,
-        city: c.city,
-        state: c.state,
-        url: c.url,
-      },
-    }));
+/**
+ * The URL of a forecast frame. The contours are megabytes of geometry, so the
+ * GeoJSONLayer fetches these itself rather than routing them through Redux —
+ * the same reasoning that keeps GIBS tiles out of the store.
+ */
+export function ForecastCloudsUrl(hour: number): string {
+  return `/forecast/clouds?${new URLSearchParams({ hour: String(hour) })}`;
+}
 
-  const geojson: GeoJSON<PointI> = { type: "FeatureCollection", features };
+export function ForecastPrecipUrl(hour: number): string {
+  return `/forecast/precip?${new URLSearchParams({ hour: String(hour) })}`;
+}
 
-  // Build ArcGIS GeoJSONLayer from blob URL
-  const blob = new Blob([JSON.stringify(geojson)], {
-    type: "application/json",
+export function ForecastLiquidUrl(hour: number): string {
+  return `/forecast/liquid?${new URLSearchParams({ hour: String(hour) })}`;
+}
+
+/**
+ * Summary of the supercooled-liquid layer. Small enough for the store, unlike
+ * the frame it summarises — and asking for it warms the server's build of that
+ * frame, which is why the provider fetches it on landing rather than on the map.
+ */
+export async function GetLiquidStats(hour: number): Promise<SlwStats> {
+  const res = await fetch(
+    `/forecast/liquid/stats?${new URLSearchParams({ hour: String(hour) })}`
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to fetch liquid water stats: ${res.status}`);
+  }
+  const stats: SlwStats = await res.json();
+  return stats;
+}
+
+/**
+ * The vertical profile over one point: where 0, −5 and −12 °C sit, in feet.
+ *
+ * Small enough for the store, unlike everything else HRRR serves here — it is
+ * one column of a dozen levels, not a national field.
+ */
+export async function GetSounding(
+  lon: number,
+  lat: number,
+  hour: number
+): Promise<Sounding> {
+  const query = new URLSearchParams({
+    lat: String(lat),
+    lon: String(lon),
+    hour: String(hour),
   });
-  const url = URL.createObjectURL(blob);
+  const res = await fetch(`/forecast/sounding?${query}`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch the sounding: ${res.status}`);
+  }
+  const sounding: Sounding = await res.json();
+  return sounding;
+}
 
-  const layer = new GeoJSONLayer({
-    url,
-    renderer: CompanyRenderer,
-    popupTemplate: CompanyPopupTemplate,
-    labelingInfo: [CompanyLabels],
-    minScale: 5000000, // Hide when zoomed out beyond 1:5,000,000 scale
-    maxScale: 0,
-  });
+/**
+ * Observed cloud tops, banded server-side from a GOES-East scene. No hour and
+ * no run, for the same reason the radar route has neither: this is whatever the
+ * satellite scanned a few minutes ago, and the frame carries its own scan time.
+ */
+export function CloudTopUrl(): string {
+  return "/cloudtop/temperature";
+}
 
-  return [layer, geojson, companies];
+/** The same scene's summary. Asking for it also warms the server's build. */
+export async function GetCloudTopStats(): Promise<CloudTopStats> {
+  const res = await fetch("/cloudtop/temperature/stats");
+  if (!res.ok) {
+    throw new Error(`Failed to fetch cloud tops: ${res.status}`);
+  }
+  const stats: CloudTopStats = await res.json();
+  return stats;
+}
+
+/**
+ * Observed reflectivity, contoured server-side from the MRMS mosaic. No hour
+ * and no run: a radar scene is whatever the network saw a few minutes ago, and
+ * the frame carries its own valid time.
+ */
+export function RadarReflectivityUrl(): string {
+  return "/radar/reflectivity";
+}
+
+/** The same scene's summary. Asking for it also warms the server's build. */
+export async function GetRadarStats(): Promise<RadarStats> {
+  const res = await fetch("/radar/reflectivity/stats");
+  if (!res.ok) {
+    throw new Error(`Failed to fetch radar mosaic: ${res.status}`);
+  }
+  const stats: RadarStats = await res.json();
+  return stats;
 }

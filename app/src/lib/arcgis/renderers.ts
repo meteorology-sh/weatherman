@@ -1,45 +1,271 @@
-import SimpleRenderer from "@arcgis/core/renderers/SimpleRenderer";
+// ArcGIS
 import UniqueValueRenderer from "@arcgis/core/renderers/UniqueValueRenderer";
-import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol";
-import SimpleLineSymbol from "@arcgis/core/symbols/SimpleLineSymbol";
+import SimpleFillSymbol from "@arcgis/core/symbols/SimpleFillSymbol";
 
-const outline = new SimpleLineSymbol({ color: [50, 50, 50, 0.6], width: 0.5 });
+/**
+ * One contour level and the fill painted for it. The server emits one nested
+ * MultiPolygon per level, so they stack: an area meeting the top level is
+ * painted by every band, an area meeting only the first by one. Keeping each
+ * fill faint lets the stacking do the shading and keeps the basemap readable
+ * underneath, which is the whole reason these are vectors rather than a raster.
+ */
+type Band = { readonly value: number; readonly alpha: number };
 
-function marker(color: number[]): SimpleMarkerSymbol {
-  return new SimpleMarkerSymbol({
-    style: "circle",
-    color,
-    size: 5,
-    outline,
-  });
-}
+/**
+ * Cloud-cover isopleths, percent. Must stay in step with FIELDS.clouds.levels in
+ * server/src/lib/services/forecast.ts — the server decides which contours exist
+ * and this decides how they are painted. Overcast tops out near 47% opacity,
+ * not 100%.
+ *
+ * There is deliberately no 10% band: on a normal day ~65% of the country has
+ * at least 10% cloud, so drawing it veils the map for no information.
+ */
+export const CLOUD_BANDS: readonly Band[] = [
+  { value: 30, alpha: 0.1 },
+  { value: 50, alpha: 0.13 },
+  { value: 70, alpha: 0.16 },
+  { value: 90, alpha: 0.2 },
+];
 
-export const CompanyRenderer = new UniqueValueRenderer({
-  field: "category",
-  defaultSymbol: marker([120, 120, 120, 0.7]),
-  defaultLabel: "Other",
-  uniqueValueInfos: [
-    { value: "Manufacturing", symbol: marker([30, 100, 200, 0.7]), label: "Manufacturing" },
-    { value: "CNC Machining", symbol: marker([0, 150, 80, 0.7]), label: "CNC Machining" },
-    { value: "Electronics", symbol: marker([180, 60, 200, 0.7]), label: "Electronics" },
-    { value: "Metal Manufacturing", symbol: marker([200, 120, 30, 0.7]), label: "Metal Manufacturing" },
-    { value: "Foundry / Casting", symbol: marker([160, 80, 20, 0.7]), label: "Foundry / Casting" },
-    { value: "Injection Molding", symbol: marker([0, 180, 180, 0.7]), label: "Injection Molding" },
-    { value: "Semiconductor Fab", symbol: marker([220, 40, 40, 0.7]), label: "Semiconductor Fab" },
-    { value: "Tool and Die Manufacturing", symbol: marker([100, 60, 160, 0.7]), label: "Tool and Die" },
-    { value: "Welding / Brazing", symbol: marker([200, 160, 0, 0.7]), label: "Welding / Brazing" },
-    { value: "Textiles", symbol: marker([230, 100, 150, 0.7]), label: "Textiles" },
-    { value: "Manufacturing Automation", symbol: marker([60, 60, 200, 0.7]), label: "Manufacturing Automation" },
-    { value: "Manufacturing Software", symbol: marker([100, 180, 220, 0.7]), label: "Manufacturing Software" },
-    { value: "Freight / Shipping", symbol: marker([140, 140, 60, 0.7]), label: "Freight / Shipping" },
-  ],
+/**
+ * Precipitation-rate isopleths, mm/hr, mirroring FIELDS.precip.levels. The NWS
+ * intensity classes: trace, light, moderate, heavy.
+ *
+ * These run more opaque than the cloud bands and it is still the same strategy.
+ * Rain covers ~2% of the country against cloud's ~65%, so the veiling risk that
+ * caps the cloud ramp does not apply — and where it is raining is the strongest
+ * "do not seed here" signal on the map. Heavy rain tops out near 60% opacity,
+ * so the basemap still reads through the worst cell on the map.
+ */
+export const PRECIP_BANDS: readonly Band[] = [
+  { value: 0.1, alpha: 0.15 },
+  { value: 0.5, alpha: 0.18 },
+  { value: 2.5, alpha: 0.22 },
+  { value: 7.6, alpha: 0.26 },
+];
+
+/**
+ * The seeding band, mirroring SEEDING in server/src/lib/services/forecast.ts.
+ *
+ * Every caption, legend bracket and readout that names the band reads it from
+ * here. Keep it that way — the band moves, and a hardcoded copy of it goes
+ * stale silently.
+ *
+ * −5 °C is a physical threshold (AgI barely nucleates ice above it). −18 °C is
+ * a judgement about where supercooled liquid stops being worth looking for —
+ * see the server's note for what that choice trades.
+ */
+export const BAND_WARMEST_C = -5;
+export const BAND_COLDEST_C = -18;
+
+/** The band in the app's own typography, e.g. "−5 to −18 °C". */
+export const BAND_LABEL = `${BAND_WARMEST_C} to ${BAND_COLDEST_C} °C`.replace(
+  /-/g,
+  "−"
+);
+
+/**
+ * Supercooled liquid water path in the seeding band, g/m^2, mirroring
+ * SEEDING.levels in server/src/lib/services/forecast.ts. This is the seedability
+ * signal itself, so unlike the other two layers the bands mean "worth flying
+ * to", not "how much weather".
+ *
+ * Drawn over GOES Band 13 imagery rather than the basemap, which is a darker
+ * backdrop than either forecast layer gets — hence the slightly stronger fills.
+ * The top band still lands near 60% opacity, so cloud-top structure reads
+ * through the richest cell on the map.
+ */
+export const SLW_BANDS: readonly Band[] = [
+  { value: 10, alpha: 0.15 },
+  { value: 50, alpha: 0.18 },
+  { value: 150, alpha: 0.22 },
+  { value: 400, alpha: 0.26 },
+];
+
+/**
+ * Observed reflectivity, dBZ, mirroring REFLECTIVITY.levels in
+ * server/src/lib/services/radar.ts. The NWS intensity classes: light, moderate,
+ * heavy, and the top band where a summer cell is producing hail.
+ *
+ * Same alphas as the liquid-water bands because they share the candidate map and
+ * are drawn over the same imagery — and because the two are meant to be read
+ * *against* each other. Amber with cyan through it is a candidate that is
+ * already raining itself out, which is the one combination on this map that says
+ * "not this one".
+ */
+export const RADAR_BANDS: readonly Band[] = [
+  { value: 20, alpha: 0.15 },
+  { value: 30, alpha: 0.18 },
+  { value: 40, alpha: 0.22 },
+  { value: 50, alpha: 0.26 },
+];
+
+/**
+ * First forecast hour with precipitation. Mirrors FIELDS.precip.firstHour on the
+ * server: HRRR diagnoses PRATE by integrating a timestep forward, so the
+ * analysis carries none and the layer has nothing to draw at f00.
+ *
+ * Supercooled liquid water has no equivalent: a mixing ratio is a state the
+ * analysis holds, so CLWMR is real at f00 and the candidate map can show it for
+ * "right now".
+ */
+export const PRECIP_FIRST_HOUR = 1;
+
+/**
+ * Fill colours. Cloud is the neutral veil; rain is the one thing drawn on top
+ * of it, so it gets a hue cloud can never be confused for. One hue per layer,
+ * shaded by the stacking — a multi-hue ramp cannot work here, because a heavy
+ * cell is painted by all four bands at once and the hues would blend.
+ *
+ * Liquid water is amber because it shares the candidate map with Band 13, whose
+ * published GIBS ramp already spends cyan and green on cloud-top temperature.
+ */
+export const CLOUD_RGB = [255, 255, 255] as const;
+export const PRECIP_RGB = [34, 211, 238] as const;
+export const SLW_RGB = [251, 191, 36] as const;
+
+/**
+ * Radar reflectivity is painted the same cyan as forecast precipitation,
+ * deliberately: it is the same quantity, and the two never share a map. On
+ * `/map/forecast` cyan is what the model says will fall; on `/map/candidate` it
+ * is what a radar just watched fall. Giving observed rain its own hue would
+ * imply it is a different variable.
+ */
+export const RADAR_RGB = PRECIP_RGB;
+
+/**
+ * Alpha of the first n bands painted over each other. Fills composite
+ * multiplicatively, so a legend has to as well or it misreports the map.
+ */
+export const stackedAlpha = (bands: readonly Band[], n: number) =>
+  1 - bands.slice(0, n).reduce((acc, b) => acc * (1 - b.alpha), 1);
+
+/** `rgba(...)` for the first n bands stacked — what the map actually paints. */
+export const stackedColor = (
+  bands: readonly Band[],
+  rgb: readonly number[],
+  n: number
+) => `rgba(${rgb.join(",")},${stackedAlpha(bands, n).toFixed(3)})`;
+
+const fills = (bands: readonly Band[], rgb: readonly number[]) =>
+  bands.map(({ value, alpha }) => ({
+    value,
+    symbol: new SimpleFillSymbol({
+      color: [...rgb, alpha],
+      outline: { width: 0 },
+    }),
+  }));
+
+export const forecastCloudRenderer = new UniqueValueRenderer({
+  field: "cloudCover",
+  uniqueValueInfos: fills(CLOUD_BANDS, CLOUD_RGB),
 });
 
-export const ClusterRenderer = new SimpleRenderer({
-  symbol: new SimpleMarkerSymbol({
-    style: "circle",
-    color: [30, 100, 200, 0.6],
-    size: 12,
-    outline: new SimpleLineSymbol({ color: [255, 255, 255, 0.8], width: 1 }),
-  }),
+export const forecastPrecipRenderer = new UniqueValueRenderer({
+  field: "precipRate",
+  uniqueValueInfos: fills(PRECIP_BANDS, PRECIP_RGB),
 });
+
+export const candidateLiquidRenderer = new UniqueValueRenderer({
+  field: "slwPath",
+  uniqueValueInfos: fills(SLW_BANDS, SLW_RGB),
+});
+
+export const candidateRadarRenderer = new UniqueValueRenderer({
+  field: "reflectivity",
+  uniqueValueInfos: fills(RADAR_BANDS, RADAR_RGB),
+});
+
+/**
+ * One cloud-top temperature band: the warm edge of the interval, in degrees
+ * below zero, and the fill painted for it.
+ *
+ * **These do not stack**, and that is the whole design. Every other polygon
+ * layer here nests — an area meeting the top level is painted by every band —
+ * because its field has rare extremes and "more" means "more". Cloud-top
+ * temperature is bimodal instead: warm low cloud, or very cold cirrus, with
+ * little between. Nested levels there cover nearly the same ground as each
+ * other — four rings almost exactly on top of each other, painting a third of
+ * the map at full opacity.
+ *
+ * So exactly one band applies to a cell, each carries the colour it is actually
+ * drawn in, and the legend reads them straight rather than compositing them.
+ */
+export type CloudTopBand = {
+  /** Warm edge of the interval, °C below zero. Matches the server's property. */
+  readonly value: number;
+  /** Warm and cold edges as temperatures, for the legend. */
+  readonly fromC: number;
+  readonly toC: number | null;
+  readonly label: string;
+  readonly alpha: number;
+};
+
+/**
+ * Slate, deliberately colourless. This layer answers "where is cloud, and how
+ * cold is its top" — context for the two layers drawn over it, not a verdict.
+ * Amber is spent on modelled liquid water and cyan on observed rain; giving
+ * cloud shape a hue of its own would compete with both for attention it does
+ * not deserve.
+ */
+export const CLOUD_TOP_RGB = [148, 163, 184] as const;
+
+/**
+ * Mirrors CLOUD_TOP.levels in server/src/lib/services/cloudtop.ts.
+ *
+ * **The opacity ramp runs backwards from every other layer here, on purpose.**
+ * The warmest band is the loudest because it is the one a seeding operator is
+ * looking for: a top just below −5 °C is a shallow supercooled-topped cloud,
+ * the classic target. The coldest band is nearly invisible because most cloudy
+ * ground sits there — that is cirrus and anvil, it covers most of the sky, and
+ * painting it loudly would bury the thing worth finding under the thing that is
+ * merely everywhere.
+ *
+ * Nothing is discarded for being cold: the last band is open-ended and still
+ * drawn. See `MEASUREMENTS.md` §4 for why there is no cold cutoff.
+ */
+export const CLOUD_TOP_BANDS: readonly CloudTopBand[] = [
+  { value: 5, fromC: -5, toC: -12, label: "−5 to −12", alpha: 0.3 },
+  { value: 12, fromC: -12, toC: -18, label: "−12 to −18", alpha: 0.22 },
+  { value: 18, fromC: -18, toC: -25, label: "−18 to −25", alpha: 0.14 },
+  { value: 25, fromC: -25, toC: null, label: "below −25", alpha: 0.07 },
+];
+
+export const candidateCloudTopRenderer = new UniqueValueRenderer({
+  field: "topColdnessC",
+  uniqueValueInfos: CLOUD_TOP_BANDS.map(({ value, alpha }) => ({
+    value,
+    symbol: new SimpleFillSymbol({
+      color: [...CLOUD_TOP_RGB, alpha],
+      outline: { width: 0 },
+    }),
+  })),
+});
+
+/**
+ * `rgba(...)` for one unstacked band — what a single swatch is painted.
+ *
+ * The stacked layers cannot use this: their fills composite, so a legend has to
+ * ask `stackedColor` what the map actually ends up painting. Only the disjoint
+ * cloud-top bands are drawn one-for-one like this.
+ */
+export const soloColor = (rgb: readonly number[], alpha: number) =>
+  `rgba(${rgb.join(",")},${alpha.toFixed(3)})`;
+
+/** The words an operator reads, not the raw number. Parallel to PRECIP_BANDS. */
+export const PRECIP_LABELS = ["trace", "light", "moderate", "heavy"] as const;
+
+/**
+ * Parallel to SLW_BANDS. These are seeding judgements, not measurements: a cloud
+ * carrying under ~50 g/m^2 of supercooled liquid is not worth a sortie, and the
+ * top band is where the classic glaciogenic-seeding literature puts a strong
+ * target.
+ */
+export const SLW_LABELS = ["trace", "marginal", "good", "prime"] as const;
+
+/**
+ * Parallel to RADAR_BANDS. The NWS reflectivity classes, in the words an
+ * operator reads: 20 dBZ is drizzle you could fly through, 50 is a cell with
+ * hail in it.
+ */
+export const RADAR_LABELS = ["light", "moderate", "heavy", "intense"] as const;
