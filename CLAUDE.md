@@ -14,8 +14,8 @@ system design lives outside this repo at `/home/nathan/code/rainmaker/weatherman
 (see its `README.md` and `docs/`). This web app will become the operator
 dashboard for that station.
 
-**The two maps.** The app has two map routes, and the split is editorial, not
-cosmetic:
+**The three map routes.** Two of them differ editorially, not cosmetically; the
+third is the same layers at a different hour:
 
 - **`/map/forecast` — modelled.** HRRR cloud cover, contoured server-side into
   nested GeoJSON polygons, with a slider stepping f00–f18. **Satellites cannot
@@ -29,8 +29,31 @@ cosmetic:
   anywhere profiles that point's column. This is "what is the sky doing right
   now, and how high".
 
-  **There is no raster on either map, and none may be added.** An image has no
-  nodata: it paints clear sky opaquely and buries the basemap. Every layer is
+- **`/map/replay` — the candidate map at an hour you pick.** The same three
+  layers, rebuilt from that hour's own sources: the HRRR cycle initialised then,
+  and the satellite and radar scans nearest it. The left panel is a calendar and
+  nothing else — no stats blocks, because a replay with four unjoined readouts is
+  the candidate map with a different clock on it, and the panel is being kept
+  clear for the candidate field that will earn it.
+
+  **Nothing is drawn until every source has answered.** The three take 10 s to
+  40 s and do not finish together, so revealing each as it landed put two dates
+  on the map at once. `ReplayProvider` awaits all three _stats_ routes — which
+  build the same cached scenes the geometry routes serve — and only then does
+  the store's `ready` move and the layers point at the hour. Picking a date
+  clears `ready`, which blanks the map immediately rather than leaving the old
+  hour under a new date. Warming the three in parallel takes ~43 s against ~87 s
+  sequentially, and the geometry that follows is cache-warm (<0.5 s each), which
+  is what makes the layers appear together.
+
+  **Its layers are separate ArcGIS instances**, not the candidate map's pointed at
+  a date. Sharing them would leave a 2025 url on the live map, and the bug would
+  read as a caching failure rather than a shared object. The live candidate layers
+  are explicitly hidden in replay mode for the same reason: showing today's scene
+  under a past date is the one thing this page must never do.
+
+  **There is no raster on any of these maps, and none may be added.** An image has
+  no nodata: it paints clear sky opaquely and buries the basemap. Every layer is
   GeoJSON from our own server.
 
 **The layers, and what each is for:**
@@ -43,7 +66,7 @@ cosmetic:
   profile at that pressure.
   **This is the one layer built from two sources**, and the split is deliberate:
   HRRR nails the thermodynamic profile and is much shakier on cloud, so the
-  satellite says *where the top is* and the model says *how cold it is there*.
+  satellite says _where the top is_ and the model says _how cold it is there_.
   That also makes it the only cloud layer that can contradict the
   supercooled-liquid contours drawn over it.
   It has **real nodata** — where the satellite sees no cloud, nothing is drawn.
@@ -151,9 +174,11 @@ app/src/
     main.tsx               # Entry: router config + provider composition
     layout/                # Chrome components (Navigation)
     components/            # Route pages + feature components
-                           #   Pages:   Landing, Forecast, Candidate
+                           #   Pages:   Landing, Forecast, Candidate, Replay
                            #   Map:     Map
                            #   Panels:  ForecastLayers, CandidateLayers,
+                           #            ReplayLayers, ReplayCalendar,
+                           #            ReplayStatus,
                            #            CloudTop, Liquid, Radar, Sounding,
                            #            TimeSlider, Drawer
                            #   Legends: Ramp, CloudTopRamp
@@ -165,7 +190,7 @@ app/src/
     types.ts               # Shared data shapes — mirror server responses
     arcgis/                # Module-scope ArcGIS config objects
       layers.ts            #   CandidateCloudTopLayer, the HRRR and MRMS
-                           #   contour GeoJSONLayers
+                           #   contour GeoJSONLayers, and the Replay* trio
       legends.ts           #   Legend data per layer (ramp, ticks, caveat)
       renderers.ts         #   Contour BANDS + CLOUD_TOP_BANDS + the renderers
     context/
@@ -175,12 +200,14 @@ app/src/
       CloudTopProvider.tsx # Data provider: GOES cloud-top stats (page-scoped)
       RadarProvider.tsx    # Data provider: radar scene stats (page-scoped)
       SoundingProvider.tsx # Data provider: point profile; refetches on click
+      ReplayProvider.tsx   # Data provider: warms all three replayed sources
+                           #   before the map may draw any of them
     store/
       store.ts             # Singleton store + AppStore/RootState/AppDispatch
       hooks.ts             # useAppDispatch/useAppSelector/useAppStore
       features/            # One slice per domain (forecast.ts, candidate.ts,
-                           #   cloudtop.ts, radar.ts, sounding.ts,
-                           #   interactions.ts)
+                           #   cloudtop.ts, radar.ts, replay.ts,
+                           #   sounding.ts, interactions.ts)
   tests/                   # All test files (.test.ts / .test.tsx) + utils.tsx
 ```
 
@@ -208,6 +235,9 @@ const router = createBrowserRouter([
       },
       // Page-scoped providers stack around the one route that needs them.
       { path: "/map/candidate", element: /* CloudTop > Radar > Sounding */ ... },
+      // No provider: the replay page holds its chosen hour in the store and
+      // its layers fetch their own geometry, so there is nothing to warm.
+      { path: "/map/replay", element: <Replay /> },
     ],
   },
 ]);
@@ -251,8 +281,8 @@ export function RadarProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         dispatch(
           radarActions.setError(
-            error instanceof Error ? error.message : "Failed to load data"
-          )
+            error instanceof Error ? error.message : "Failed to load data",
+          ),
         );
       } finally {
         dispatch(radarActions.setLoading(false));
@@ -537,6 +567,10 @@ src/tests/
   Sounding.test.tsx          # altitudes, incl. below-ground and no-band cases
   TimeSlider.test.tsx        # slider range, valid-time arithmetic, states
   Map.test.tsx               # component integration per mode, ArcGIS faked
+  replay-slice.test.ts       # reducer cases, incl. blanking on a new hour
+  ReplayCalendar.test.tsx    # month grid, UTC arithmetic, disabled bounds
+  ReplayProvider.test.tsx    # provider → store, incl. the all-three gate
+  ReplayStatus.test.tsx      # spinner, error, and the scan times that drew
 ```
 
 - All tests go in `src/tests/` with the `.test.ts` / `.test.tsx` suffix — do
@@ -586,12 +620,12 @@ src/tests/
 
 ## Stack
 
-| Tool       | Notes                                                        |
-| ---------- | ------------------------------------------------------------ |
-| Express    | 5 — routers per domain, JSON responses                       |
-| TypeScript | 6, `strict` — **CommonJS** (`module: node16`), unlike /app  |
-| ts-node    | Runs `src/` directly in dev via nodemon                      |
-| nodemon    | `nodemon.json` watches `src/**/*.ts`                         |
+| Tool       | Notes                                                      |
+| ---------- | ---------------------------------------------------------- |
+| Express    | 5 — routers per domain, JSON responses                     |
+| TypeScript | 6, `strict` — **CommonJS** (`module: node16`), unlike /app |
+| ts-node    | Runs `src/` directly in dev via nodemon                    |
+| nodemon    | `nodemon.json` watches `src/**/*.ts`                       |
 
 Dependencies are intentionally minimal: `express`, `cors`, `dotenv`, `h5wasm`.
 No ORM, no database, no framework layers. Use node built-ins (`fs/promises`,
@@ -775,6 +809,46 @@ export const Mrms = new RadarService();
 - New data domains get a new method on an existing service, or a new
   class + singleton pair in a new file when the underlying source differs.
 
+## Historical replay — the `at` parameter
+
+Every data route takes an optional `at` (ISO 8601). **Absent means live**, and a
+request without it takes exactly the code path it took before replay existed —
+the live map is never routed through a historical branch to get today's weather.
+`parseAt` in `lib/services/replay.ts` is the one place it is read.
+
+`at` names the **HRRR cycle**, not the valid time: `?at=2025-05-15T18:00:00Z`
+is the 18z run, and `hour` still selects f00–f18 within it. The scene-based
+services resolve it differently — they list the archive and take the nearest
+scan, refusing anything more than 30 minutes away rather than captioning an
+unrelated scene with the time that was asked for.
+
+Each source has its own keyless archive, all verified reachable:
+
+| Source    | Archive                                                           |
+| --------- | ----------------------------------------------------------------- |
+| HRRR      | `noaa-hrrr-bdp-pds`, same path shape as NOMADS after the base     |
+| GOES-East | `noaa-goes19`, already date-keyed by `/YYYY/DDD/HH/`              |
+| MRMS      | `noaa-mrms-pds`, `CONUS/MergedBaseReflectivityQC_00.50/YYYYMMDD/` |
+
+**Three traps, and all three fail quietly:**
+
+- **S3 ignores multi-range requests.** NOMADS answers 16 ranges with a `206` and
+  a multipart body; S3 returns **`200` and the entire ~398 MB object** — not a
+  416, not an error. The result decodes correctly and costs 400× too much, which
+  is why `fetchRangesOneByOne` issues one request per range and **asserts 206**.
+  The `Origin` on a `Cycle` is what selects that path, so it cannot be forgotten.
+- **The archive names cloud mixing ratio `CLMR`; NOMADS names it `CLWMR`.** Only
+  the `.idx` lookup sees it — eccodes reports `clwmr` on both — and it throws as
+  though the field were missing rather than renamed. `CLWMR_NAME` keys it by
+  origin.
+- **GOES-19 became GOES-East in April 2025.** Earlier dates need `noaa-goes16`,
+  so the calendar floors at 2025-04-07 rather than half-drawing a map.
+
+**Cache policy splits by origin.** Live frames are evicted when the run rolls; a
+replayed run never rolls, so evicting against it would throw away the live map's
+frames the moment someone opened a historical date. Archive entries are capped by
+count instead, and the two coexist.
+
 ## Testing — `node:test`
 
 `yarn test` runs `node --require ts-node/register --test src/tests/*.test.ts`.
@@ -793,6 +867,7 @@ server/src/tests/
   multipart.test.ts        # byte-range reassembly, in file order
   radar-service.test.ts    # dBZ averaged in Z, the two sentinels, row order
   radar-router.test.ts     # route → GeoJSON, scene time, 500s
+  replay.test.ts           # `at` parsing, cycle resolution, the 206 assertion
 ```
 
 - `forecast-service.test.ts` drives `polygons()` with hand-built grids (a solid
@@ -921,7 +996,7 @@ off — so both use a plain 5-minute TTL, and each frame carries its own valid
 time so the sidebar can report the scene's age rather than implying it is live.
 
 **Nothing streams browser → third party except the basemap.** Everything else
-returns *data* we parse, reproject, cache and reshape, so it goes through a
+returns _data_ we parse, reproject, cache and reshape, so it goes through a
 service. If a future layer is genuinely just tiles, the rule relaxes — keys,
 CORS and caching are what it protects, and a keyless public tile service
 has none of those problems.

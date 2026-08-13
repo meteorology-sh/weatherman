@@ -38,10 +38,13 @@ export function ForecastLiquidUrl(hour: number): string {
  * the frame it summarises — and asking for it warms the server's build of that
  * frame, which is why the provider fetches it on landing rather than on the map.
  */
-export async function GetLiquidStats(hour: number): Promise<SlwStats> {
-  const res = await fetch(
-    `/forecast/liquid/stats?${new URLSearchParams({ hour: String(hour) })}`
-  );
+export async function GetLiquidStats(
+  hour: number,
+  at?: string,
+): Promise<SlwStats> {
+  const query = new URLSearchParams({ hour: String(hour) });
+  if (at) query.set("at", at);
+  const res = await fetch(`/forecast/liquid/stats?${query}`);
   if (!res.ok) {
     throw new Error(`Failed to fetch liquid water stats: ${res.status}`);
   }
@@ -58,7 +61,7 @@ export async function GetLiquidStats(hour: number): Promise<SlwStats> {
 export async function GetSounding(
   lon: number,
   lat: number,
-  hour: number
+  hour: number,
 ): Promise<Sounding> {
   const query = new URLSearchParams({
     lat: String(lat),
@@ -82,9 +85,32 @@ export function CloudTopUrl(): string {
   return "/cloudtop/temperature";
 }
 
+/**
+ * The same three layers, at a past hour.
+ *
+ * `at` names the HRRR cycle and the scene to replay. Every route takes it and
+ * every route treats its absence as "live", so these builders exist to keep the
+ * parameter spelled one way rather than to reach different endpoints.
+ */
+export function ReplayCloudTopUrl(at: string): string {
+  return `/cloudtop/temperature?${new URLSearchParams({ at })}`;
+}
+
+export function ReplayLiquidUrl(at: string, hour = 0): string {
+  return `/forecast/liquid?${new URLSearchParams({ hour: String(hour), at })}`;
+}
+
+export function ReplayRadarUrl(at: string): string {
+  return `/radar/reflectivity?${new URLSearchParams({ at })}`;
+}
+
 /** The same scene's summary. Asking for it also warms the server's build. */
-export async function GetCloudTopStats(): Promise<CloudTopStats> {
-  const res = await fetch("/cloudtop/temperature/stats");
+export async function GetCloudTopStats(at?: string): Promise<CloudTopStats> {
+  const res = await fetch(
+    at
+      ? `/cloudtop/temperature/stats?${new URLSearchParams({ at })}`
+      : "/cloudtop/temperature/stats",
+  );
   if (!res.ok) {
     throw new Error(`Failed to fetch cloud tops: ${res.status}`);
   }
@@ -102,8 +128,12 @@ export function RadarReflectivityUrl(): string {
 }
 
 /** The same scene's summary. Asking for it also warms the server's build. */
-export async function GetRadarStats(): Promise<RadarStats> {
-  const res = await fetch("/radar/reflectivity/stats");
+export async function GetRadarStats(at?: string): Promise<RadarStats> {
+  const res = await fetch(
+    at
+      ? `/radar/reflectivity/stats?${new URLSearchParams({ at })}`
+      : "/radar/reflectivity/stats",
+  );
   if (!res.ok) {
     throw new Error(`Failed to fetch radar mosaic: ${res.status}`);
   }

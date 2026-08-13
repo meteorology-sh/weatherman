@@ -18,6 +18,63 @@ import {
 } from "@/lib/client";
 
 /**
+ * The replay map's three layers.
+ *
+ * Separate instances rather than repointing the live ones, and that is not
+ * duplication for its own sake. Every layer here is added to the map once and
+ * toggled with `.visible` so switching routes does not refetch — which only
+ * holds if a layer's `url` means one thing. Pointing `CandidateRadarLayer` at a
+ * date would make the candidate map show 2025 the next time it was opened, and
+ * the bug would look like a caching failure rather than a shared object.
+ *
+ * They start with no `url`: the page opens with no date chosen, and a layer
+ * built against "now" would fetch a frame nobody asked for. `Map.tsx` points
+ * them once a date is picked.
+ *
+ * `fields` and `geometryType` are declared for the same reason the precipitation
+ * layer declares them — these start empty, and an empty FeatureCollection gives
+ * ArcGIS nothing to infer a schema from.
+ */
+export const ReplayCloudTopLayer = new GeoJSONLayer({
+  title: "GOES-East cloud-top temperature (replay)",
+  copyright: "NOAA GOES-East / NOAA HRRR",
+  renderer: candidateCloudTopRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "topColdnessC", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayLiquidLayer = new GeoJSONLayer({
+  title: "HRRR supercooled liquid water (replay)",
+  copyright: "NOAA HRRR",
+  renderer: candidateLiquidRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "slwPath", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayRadarLayer = new GeoJSONLayer({
+  title: "MRMS base reflectivity (replay)",
+  copyright: "NOAA / National Weather Service MRMS",
+  renderer: candidateRadarRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "reflectivity", type: "double" },
+  ],
+  visible: false,
+});
+
+/**
  * Observed cloud tops, banded server-side from a GOES-East scene.
  *
  * **Vector, not imagery**, for the reason the rest of these layers are vectors:

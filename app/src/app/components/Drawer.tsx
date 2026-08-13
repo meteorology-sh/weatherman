@@ -63,6 +63,14 @@ export const Drawer = () => {
           >
             <button className="btn btn-sm w-full">Candidates</button>
           </Link>
+          <br />
+          <Link
+            to={{
+              pathname: "/map/replay",
+            }}
+          >
+            <button className="btn btn-sm w-full">Replay</button>
+          </Link>
         </div>
       </div>
     </>

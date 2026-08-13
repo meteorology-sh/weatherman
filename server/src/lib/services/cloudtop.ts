@@ -47,6 +47,19 @@ const PRODUCT = "ABI-L2-ACHP2KMC";
 const CACHE_TTL_MS = 5 * 60_000;
 
 /**
+ * How far from the requested time a replayed scan may sit.
+ *
+ * ABI scans CONUS every 5 minutes, so the nearest scene is normally a couple of
+ * minutes away. A larger gap means a gap in the record, and answering with the
+ * closest thing would caption an unrelated scan with the time that was asked
+ * for. Wider than the radar's tolerance because the cadence is slower.
+ */
+const SCENE_TOLERANCE_MS = 30 * 60_000;
+
+/** Replayed scenes never change, so a handful are kept keyed by their S3 key. */
+const ARCHIVE_CACHE = 8;
+
+/**
  * The analysis hour. The candidate map is "right now", and `CandidateLiquidLayer`
  * is pinned the same way for the same reason.
  */
@@ -159,10 +172,16 @@ type Scene = { frame: CloudTopFrame; stats: CloudTopStats };
  * and obvious.
  */
 type H5Attr = { value: unknown };
-type H5Dataset = { shape: number[]; value: ArrayLike<number>; attrs: Record<string, H5Attr> };
+type H5Dataset = {
+  shape: number[];
+  value: ArrayLike<number>;
+  attrs: Record<string, H5Attr>;
+};
 type H5File = { get(name: string): H5Dataset; close(): void };
 type H5Module = {
-  ready: Promise<{ FS: { writeFile(p: string, d: Uint8Array): void; unlink(p: string): void } }>;
+  ready: Promise<{
+    FS: { writeFile(p: string, d: Uint8Array): void; unlink(p: string): void };
+  }>;
   File: new (name: string, mode: string) => H5File;
 };
 
@@ -176,7 +195,7 @@ let h5: Promise<H5Module> | null = null;
  */
 function hdf5(): Promise<H5Module> {
   h5 ??= import("h5wasm/node").then(
-    (m) => ((m as { default?: H5Module }).default ?? m) as unknown as H5Module
+    (m) => ((m as { default?: H5Module }).default ?? m) as unknown as H5Module,
   );
   return h5;
 }
@@ -184,17 +203,22 @@ function hdf5(): Promise<H5Module> {
 export class CloudTopService {
   private cache: { scene: Scene; fetchedAt: number } | null = null;
   private inflight: Promise<Scene> | null = null;
+  /** Replayed scenes, keyed by the S3 key they were built from. */
+  private archive = new Map<string, Scene>();
+  private archiveInflight = new Map<string, Promise<Scene>>();
 
-  async temperature(): Promise<CloudTopFrame> {
-    return (await this.scene()).frame;
+  async temperature(at?: Date): Promise<CloudTopFrame> {
+    return (await this.scene(at)).frame;
   }
 
   /** The same build's summary. Asking for either warms both. */
-  async temperatureStats(): Promise<CloudTopStats> {
-    return (await this.scene()).stats;
+  async temperatureStats(at?: Date): Promise<CloudTopStats> {
+    return (await this.scene(at)).stats;
   }
 
-  private async scene(): Promise<Scene> {
+  private async scene(at?: Date): Promise<Scene> {
+    if (at) return this.replay(at);
+
     if (this.cache && Date.now() - this.cache.fetchedAt < CACHE_TTL_MS) {
       return this.cache.scene;
     }
@@ -215,13 +239,90 @@ export class CloudTopService {
     return work;
   }
 
-  private async build(): Promise<Scene> {
-    const key = await this.latestKey();
+  /**
+   * A past scene. Keyed by the S3 object rather than the requested time, so
+   * neighbouring requests share one build, and cached without a TTL because a
+   * scan from last May will not be rescanned.
+   */
+  private async replay(at: Date): Promise<Scene> {
+    const key = await this.keyAt(at);
+
+    const cached = this.archive.get(key);
+    if (cached) return cached;
+
+    const running = this.archiveInflight.get(key);
+    if (running) return running;
+
+    const work = this.build(key, at)
+      .then((scene) => {
+        this.archive.set(key, scene);
+        while (this.archive.size > ARCHIVE_CACHE) {
+          this.archive.delete(this.archive.keys().next().value!);
+        }
+        return scene;
+      })
+      .finally(() => this.archiveInflight.delete(key));
+
+    this.archiveInflight.set(key, work);
+    return work;
+  }
+
+  /**
+   * The scene nearest `at`.
+   *
+   * The listing prefix is already hour-resolved, so this lists the hour and the
+   * one before it — a scan starting at 13:56 is the nearest neighbour of 14:00
+   * and lives under the previous hour's prefix.
+   */
+  private async keyAt(at: Date): Promise<string> {
+    if (Number.isNaN(at.getTime())) {
+      throw new Error("`at` must be an ISO 8601 timestamp");
+    }
+    const want = at.getTime();
+    const keys: string[] = [];
+    for (const offset of [-1, 0]) {
+      const t = new Date(want + offset * 3_600_000);
+      keys.push(
+        ...(await this.list(
+          `${PRODUCT}/${t.getUTCFullYear()}/` +
+            `${String(dayOfYear(t)).padStart(3, "0")}/` +
+            `${String(t.getUTCHours()).padStart(2, "0")}/`,
+        )),
+      );
+    }
+
+    let best: { key: string; delta: number } | null = null;
+    for (const key of keys) {
+      const t = Date.parse(sceneTime(key));
+      if (Number.isNaN(t)) continue;
+      const delta = Math.abs(t - want);
+      if (!best || delta < best.delta) best = { key, delta };
+    }
+
+    if (!best) {
+      throw new Error(`No archived GOES scene near ${at.toISOString()}`);
+    }
+    if (best.delta > SCENE_TOLERANCE_MS) {
+      throw new Error(
+        `Nearest GOES scene to ${at.toISOString()} is ` +
+          `${Math.round(best.delta / 60_000)} min away — refusing to caption it ` +
+          `as that time`,
+      );
+    }
+    return best.key;
+  }
+
+  private async build(key?: string, at?: Date): Promise<Scene> {
+    const sceneKey = key ?? (await this.latestKey());
     // The profile is the slow half on a cold run, and it does not depend on the
     // scene, so the two go together rather than in sequence.
+    //
+    // `at` travels with it: a replayed scene has to be given the temperatures
+    // from *that* day's run, or the geometry would be historical and the
+    // temperatures painted onto it would be today's.
     const [buffer, column] = await Promise.all([
-      this.download(key),
-      Hrrr.column(ANALYSIS_HOUR),
+      this.download(sceneKey),
+      Hrrr.column(ANALYSIS_HOUR, at),
     ]);
 
     const { grid, pressure } = await this.decode(buffer);
@@ -233,7 +334,7 @@ export class CloudTopService {
       values,
     };
 
-    const validTime = sceneTime(key);
+    const validTime = sceneTime(sceneKey);
     const profileRun = column.run.toISOString();
 
     return {
@@ -245,7 +346,7 @@ export class CloudTopService {
           cells,
           column.geo,
           CLOUD_TOP.property,
-          CLOUD_TOP.levels
+          CLOUD_TOP.levels,
         ),
       },
       stats: summarize(cells, validTime, profileRun),
@@ -276,7 +377,7 @@ export class CloudTopService {
 
   private async list(prefix: string): Promise<string[]> {
     const res = await fetch(
-      `${BUCKET}/?list-type=2&prefix=${encodeURIComponent(prefix)}`
+      `${BUCKET}/?list-type=2&prefix=${encodeURIComponent(prefix)}`,
     );
     if (!res.ok) throw new Error(`GOES listing failed: ${res.status}`);
     const xml = await res.text();
@@ -299,7 +400,7 @@ export class CloudTopService {
    * pixel-archaeology version of the mistake this layer exists to undo.
    */
   private async decode(
-    buffer: Buffer
+    buffer: Buffer,
   ): Promise<{ grid: AbiGrid; pressure: Float32Array }> {
     const mod = await hdf5();
     const { FS } = await mod.ready;
@@ -367,7 +468,7 @@ export class CloudTopService {
   private resample(
     grid: AbiGrid,
     pressure: Float32Array,
-    column: Column
+    column: Column,
   ): Float32Array {
     const { geo } = column;
     const out = new Float32Array(geo.lats.length).fill(CLEAR);
@@ -436,7 +537,15 @@ export function sceneTime(key: string): string {
   if (!m) throw new Error(`Unparseable GOES scene name: ${key}`);
   const [, year, doy, hh, mm, ss, tenths] = m;
   const t = new Date(
-    Date.UTC(Number(year), 0, 1, Number(hh), Number(mm), Number(ss), Number(tenths) * 100)
+    Date.UTC(
+      Number(year),
+      0,
+      1,
+      Number(hh),
+      Number(mm),
+      Number(ss),
+      Number(tenths) * 100,
+    ),
   );
   t.setUTCDate(t.getUTCDate() + Number(doy) - 1);
   return t.toISOString();
@@ -455,7 +564,7 @@ export function dayOfYear(t: Date): number {
 export function summarize(
   grid: Grid,
   validTime: string,
-  profileRun: string
+  profileRun: string,
 ): CloudTopStats {
   const floor = CLOUD_TOP.levels[0];
   let cloudy = 0;

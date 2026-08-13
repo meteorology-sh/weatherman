@@ -16,6 +16,59 @@ const execFileAsync = promisify(execFile);
 
 const HRRR = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod";
 
+/**
+ * The keyless HRRR archive, and the only way to run this app in a season other
+ * than the one you are standing in. NOMADS keeps roughly two days; this goes
+ * back years, which is what a corpus of real Texas seeding days needs.
+ *
+ * The path *after* the base is identical to NOMADS', so `gribUrl` differs by one
+ * string. Everything else about the archive differs in ways that fail quietly —
+ * see `fetchRanges` and `CLWMR_NAME`.
+ */
+const HRRR_ARCHIVE = "https://noaa-hrrr-bdp-pds.s3.amazonaws.com";
+
+/**
+ * Where a cycle's files come from. Not a preference — the two origins need
+ * different request shapes and different field names, so the choice has to
+ * travel with the run rather than being read from a flag at the bottom.
+ */
+export type Origin = "nomads" | "archive";
+
+/** A resolved HRRR cycle: which run, and where its files live. */
+export type Cycle = { run: Date; origin: Origin };
+
+/**
+ * Cloud water mixing ratio is named differently by the two origins.
+ *
+ * Same parameter, same eccodes `shortName` (`clwmr`) once decoded — only the
+ * `.idx` lookup sees the difference, and it fails as though the field were
+ * missing rather than renamed. Confirmed against a 2025-05-15 archive index.
+ */
+const CLWMR_NAME: Record<Origin, string> = {
+  nomads: "CLWMR",
+  archive: "CLMR",
+};
+
+/**
+ * How many replayed builds to keep.
+ *
+ * Live frames are evicted when the run rolls, which is the right policy for a
+ * feed that moves. A replayed run never rolls, so its entries would otherwise
+ * live forever and a long session walking a season would grow without bound.
+ */
+const ARCHIVE_CACHE = 8;
+
+/**
+ * How recent a replayed cycle may be.
+ *
+ * The archive is mirrored promptly — measured on 2026-08-13, the 05z index was
+ * already there at 06:27 UTC — so this is not an archive-lag allowance. It is
+ * just the cycle's own publication delay: HRRR posts ~50 min after the hour, so
+ * asking for a cycle less than an hour old gets a 404 that reads like a bug.
+ * Live requests omit `at` and discover the newest published run instead.
+ */
+const ARCHIVE_LAG_MS = 60 * 60_000;
+
 /** HRRR CONUS is a fixed Lambert grid; these never change between runs. */
 const NX = 1799;
 const NY = 1059;
@@ -240,7 +293,7 @@ export const PROFILE_LEVELS: number[] = (() => {
  * the widening above.
  */
 export const SOUNDING_LEVELS: number[] = PROFILE_LEVELS.filter(
-  (mb) => mb >= SOUNDING.minMb
+  (mb) => mb >= SOUNDING.minMb,
 );
 
 /** Profile grids are ~12 MB an hour, so only the last few hours are kept. */
@@ -385,12 +438,13 @@ export class ForecastService {
           now.getUTCFullYear(),
           now.getUTCMonth(),
           now.getUTCDate(),
-          now.getUTCHours() - back
-        )
+          now.getUTCHours() - back,
+        ),
       );
-      const res = await fetch(this.idxUrl(run, 0, "wrfsfc"), {
-        method: "HEAD",
-      });
+      const res = await fetch(
+        this.idxUrl({ run, origin: "nomads" }, 0, "wrfsfc"),
+        { method: "HEAD" },
+      );
       if (res.ok) {
         this.runCache = { run, checkedAt: Date.now() };
         return run;
@@ -399,25 +453,39 @@ export class ForecastService {
     throw new Error("No published HRRR run found in the last 6 cycles");
   }
 
-  async meta(): Promise<ForecastMeta> {
-    const run = await this.latestRun();
+  /**
+   * Resolve which cycle to read, and from where.
+   *
+   * `at` names the **run**, not the valid time: a replayed request asks for the
+   * cycle initialised at that hour, and `hour` still selects f00–f18 within it,
+   * exactly as the live map does. Absent `at` is the live path and behaves
+   * identically to before this existed.
+   */
+  private async cycle(at?: Date): Promise<Cycle> {
+    if (!at) return { run: await this.latestRun(), origin: "nomads" };
+    assertAt(at);
+    return { run: floorHour(at), origin: "archive" };
+  }
+
+  async meta(at?: Date): Promise<ForecastMeta> {
+    const { run } = await this.cycle(at);
     return {
       run: run.toISOString(),
       hours: Array.from({ length: FORECAST_HOURS + 1 }, (_, i) => i),
     };
   }
 
-  async clouds(hour: number): Promise<ContourFrame> {
-    return this.contours("clouds", hour);
+  async clouds(hour: number, at?: Date): Promise<ContourFrame> {
+    return this.contours("clouds", hour, at);
   }
 
-  async precip(hour: number): Promise<ContourFrame> {
-    return this.contours("precip", hour);
+  async precip(hour: number, at?: Date): Promise<ContourFrame> {
+    return this.contours("precip", hour, at);
   }
 
   /** Supercooled liquid water contours for the seeding band. */
-  async liquid(hour: number): Promise<ContourFrame> {
-    return (await this.seeding(hour)).frame;
+  async liquid(hour: number, at?: Date): Promise<ContourFrame> {
+    return (await this.seeding(hour, at)).frame;
   }
 
   /**
@@ -426,9 +494,14 @@ export class ForecastService {
    * The point is snapped to the 12 km cell the contours are drawn on, so this
    * readout and the amber on the map are answers about the same box.
    */
-  async sounding(lat: number, lon: number, hour: number): Promise<Sounding> {
+  async sounding(
+    lat: number,
+    lon: number,
+    hour: number,
+    at?: Date,
+  ): Promise<Sounding> {
     this.assertPoint(lat, lon);
-    const profile = await this.profile(hour);
+    const profile = await this.profile(hour, at);
     const geo = this.geo!;
     const cell = nearestCell(geo, lat, lon);
 
@@ -446,7 +519,7 @@ export class ForecastService {
       run: profile.run.toISOString(),
       hour,
       validTime: new Date(
-        profile.run.getTime() + hour * 3_600_000
+        profile.run.getTime() + hour * 3_600_000,
       ).toISOString(),
       lat: Math.round(geo.lats[cell] * 100) / 100,
       lon: Math.round(geo.lons[cell] * 100) / 100,
@@ -461,8 +534,8 @@ export class ForecastService {
   }
 
   /** The same build's summary. Shares the cache, so asking for either warms both. */
-  async liquidStats(hour: number): Promise<SlwStats> {
-    return (await this.seeding(hour)).stats;
+  async liquidStats(hour: number, at?: Date): Promise<SlwStats> {
+    return (await this.seeding(hour, at)).stats;
   }
 
   /**
@@ -479,8 +552,8 @@ export class ForecastService {
    * cloud-top contour and a supercooled-liquid contour are statements about the
    * same 12 km boxes and can be read against each other.
    */
-  async column(hour: number): Promise<Column> {
-    const profile = await this.profile(hour);
+  async column(hour: number, at?: Date): Promise<Column> {
+    const profile = await this.profile(hour, at);
     return {
       geo: this.geo!,
       run: profile.run,
@@ -491,11 +564,11 @@ export class ForecastService {
   }
 
   /** The domain-wide profile grid every click on this hour is answered from. */
-  private async profile(hour: number): Promise<Profile> {
+  private async profile(hour: number, at?: Date): Promise<Profile> {
     this.assertHour(hour);
 
-    const run = await this.latestRun();
-    const key = `${run.toISOString()}:profile:${hour}`;
+    const cycle = await this.cycle(at);
+    const key = `${cycle.run.toISOString()}:profile:${hour}`;
 
     const cached = this.profiles.get(key);
     if (cached) return cached;
@@ -503,7 +576,7 @@ export class ForecastService {
     const running = this.profileInflight.get(key);
     if (running) return running;
 
-    const work = this.buildProfile(run, hour)
+    const work = this.buildProfile(cycle, hour)
       .then((built) => {
         this.profiles.set(key, built);
         // ~12 MB each, so the map is capped rather than left to grow across the
@@ -511,7 +584,7 @@ export class ForecastService {
         while (this.profiles.size > PROFILE_CACHE) {
           this.profiles.delete(this.profiles.keys().next().value!);
         }
-        this.evictOldRuns(run);
+        this.evictOldRuns(cycle);
         return built;
       })
       .finally(() => this.profileInflight.delete(key));
@@ -528,16 +601,17 @@ export class ForecastService {
    * fields from two products are being assembled and guessing at the order would
    * silently swap temperature for altitude.
    */
-  private async buildProfile(run: Date, hour: number): Promise<Profile> {
-    const rows = await this.index(run, hour, "wrfprs");
-    const url = this.gribUrl(run, hour, "wrfprs");
+  private async buildProfile(cycle: Cycle, hour: number): Promise<Profile> {
+    const rows = await this.index(cycle, hour, "wrfprs");
+    const url = this.gribUrl(cycle, hour, "wrfprs");
     const levels = PROFILE_LEVELS;
 
     const grib = await this.fetchRanges(
       url,
       levels.flatMap((mb) =>
-        ["TMP", "HGT"].map((name) => pick(rows, name, `${mbLabel(mb)} mb`))
-      )
+        ["TMP", "HGT"].map((name) => pick(rows, name, `${mbLabel(mb)} mb`)),
+      ),
+      cycle.origin,
     );
 
     const tempC = new Map<number, Float32Array>();
@@ -555,7 +629,7 @@ export class ForecastService {
       if (name === "gh") {
         heightFt.set(
           levelKey(level),
-          blockAverage(values, SOUNDING.metresToFeet).values
+          blockAverage(values, SOUNDING.metresToFeet).values,
         );
       }
     });
@@ -569,12 +643,12 @@ export class ForecastService {
     await this.ensureGeo(grib);
 
     return {
-      run,
+      run: cycle.run,
       hour,
       levels,
       tempC,
       heightFt,
-      surfaceFt: await this.terrain(run, hour),
+      surfaceFt: await this.terrain(cycle, hour),
     };
   }
 
@@ -585,11 +659,13 @@ export class ForecastService {
    * missing, so without this a freezing level in Colorado reads as a real
    * altitude when it is 2,000 ft inside a mountain.
    */
-  private async terrain(run: Date, hour: number): Promise<Float32Array> {
-    const rows = await this.index(run, hour, "wrfsfc");
-    const grib = await this.fetchRanges(this.gribUrl(run, hour, "wrfsfc"), [
-      pick(rows, "HGT", "surface"),
-    ]);
+  private async terrain(cycle: Cycle, hour: number): Promise<Float32Array> {
+    const rows = await this.index(cycle, hour, "wrfsfc");
+    const grib = await this.fetchRanges(
+      this.gribUrl(cycle, hour, "wrfsfc"),
+      [pick(rows, "HGT", "surface")],
+      cycle.origin,
+    );
 
     let surface: Float32Array | null = null;
     await this.eachMessage(grib, (_name, _level, values) => {
@@ -599,18 +675,22 @@ export class ForecastService {
     return surface;
   }
 
-  private async contours(field: FieldId, hour: number): Promise<ContourFrame> {
+  private async contours(
+    field: FieldId,
+    hour: number,
+    at?: Date,
+  ): Promise<ContourFrame> {
     this.assertHour(hour);
 
-    const run = await this.latestRun();
+    const cycle = await this.cycle(at);
     const spec = FIELDS[field];
 
     // The model does not diagnose this field yet (see FIELDS.precip.firstHour).
     // Answer honestly with an empty frame rather than downloading a record we
     // already know decodes to zeros.
-    if (hour < spec.firstHour) return frame(run, hour, []);
+    if (hour < spec.firstHour) return frame(cycle.run, hour, []);
 
-    const key = `${run.toISOString()}:${field}:${hour}`;
+    const key = `${cycle.run.toISOString()}:${field}:${hour}`;
 
     const cached = this.frames.get(key);
     if (cached) return cached;
@@ -619,10 +699,10 @@ export class ForecastService {
     const running = this.inflight.get(key);
     if (running) return running;
 
-    const work = this.build(run, hour, spec)
+    const work = this.build(cycle, hour, spec)
       .then((built) => {
         this.frames.set(key, built);
-        this.evictOldRuns(run);
+        this.evictOldRuns(cycle);
         return built;
       })
       .finally(() => this.inflight.delete(key));
@@ -631,11 +711,11 @@ export class ForecastService {
     return work;
   }
 
-  private async seeding(hour: number): Promise<Slw> {
+  private async seeding(hour: number, at?: Date): Promise<Slw> {
     this.assertHour(hour);
 
-    const run = await this.latestRun();
-    const key = `${run.toISOString()}:slw:${hour}`;
+    const cycle = await this.cycle(at);
+    const key = `${cycle.run.toISOString()}:slw:${hour}`;
 
     const cached = this.slw.get(key);
     if (cached) return cached;
@@ -643,10 +723,10 @@ export class ForecastService {
     const running = this.slwInflight.get(key);
     if (running) return running;
 
-    const work = this.buildSeeding(run, hour)
+    const work = this.buildSeeding(cycle, hour)
       .then((built) => {
         this.slw.set(key, built);
-        this.evictOldRuns(run);
+        this.evictOldRuns(cycle);
         return built;
       })
       .finally(() => this.slwInflight.delete(key));
@@ -675,8 +755,22 @@ export class ForecastService {
     }
   }
 
-  private evictOldRuns(current: Date) {
-    const keep = current.toISOString();
+  /**
+   * Drop everything from a run that is no longer current.
+   *
+   * **Live builds only.** A replayed run never rolls, so evicting against it
+   * would throw away the live map's frames the moment someone opened a
+   * historical date — and evicting *it* on the next live build would throw away
+   * the replay. The two caches coexist instead: live entries are evicted by run,
+   * archive entries are capped by count.
+   */
+  private evictOldRuns(cycle: Cycle) {
+    if (cycle.origin === "archive") {
+      cap(this.frames, ARCHIVE_CACHE);
+      cap(this.slw, ARCHIVE_CACHE);
+      return;
+    }
+    const keep = cycle.run.toISOString();
     for (const key of this.frames.keys()) {
       if (!key.startsWith(keep)) this.frames.delete(key);
     }
@@ -685,15 +779,17 @@ export class ForecastService {
     }
   }
 
-  private idxUrl(run: Date, hour: number, product: Product) {
-    return `${this.gribUrl(run, hour, product)}.idx`;
+  private idxUrl(cycle: Cycle, hour: number, product: Product) {
+    return `${this.gribUrl(cycle, hour, product)}.idx`;
   }
 
-  private gribUrl(run: Date, hour: number, product: Product) {
+  private gribUrl(cycle: Cycle, hour: number, product: Product) {
+    const { run, origin } = cycle;
     const d = run.toISOString().slice(0, 10).replace(/-/g, "");
     const cc = String(run.getUTCHours()).padStart(2, "0");
     const fh = String(hour).padStart(2, "0");
-    return `${HRRR}/hrrr.${d}/conus/hrrr.t${cc}z.${product}f${fh}.grib2`;
+    const base = origin === "archive" ? HRRR_ARCHIVE : HRRR;
+    return `${base}/hrrr.${d}/conus/hrrr.t${cc}z.${product}f${fh}.grib2`;
   }
 
   /**
@@ -702,11 +798,11 @@ export class ForecastService {
    * select it must say so rather than requesting an open range on a 430 MB file.
    */
   private async index(
-    run: Date,
+    cycle: Cycle,
     hour: number,
-    product: Product
+    product: Product,
   ): Promise<IdxRow[]> {
-    const res = await fetch(this.idxUrl(run, hour, product));
+    const res = await fetch(this.idxUrl(cycle, hour, product));
     if (!res.ok) {
       throw new Error(`HRRR index unavailable: ${res.status}`);
     }
@@ -724,13 +820,13 @@ export class ForecastService {
 
   /** Byte range of one field's record. */
   private async range(
-    run: Date,
+    cycle: Cycle,
     hour: number,
-    grib: FieldSpec["grib"]
+    grib: FieldSpec["grib"],
   ): Promise<[number, number]> {
-    const rows = await this.index(run, hour, "wrfsfc");
+    const rows = await this.index(cycle, hour, "wrfsfc");
     const row = rows.find(
-      (r) => r.name === grib.name && r.level === grib.level
+      (r) => r.name === grib.name && r.level === grib.level,
     );
     if (!row) throw new Error(`${grib.name} not present in HRRR index`);
     if (!Number.isFinite(row.end)) {
@@ -749,8 +845,11 @@ export class ForecastService {
    */
   private async fetchRanges(
     url: string,
-    ranges: [number, number][]
+    ranges: [number, number][],
+    origin: Origin = "nomads",
   ): Promise<Buffer> {
+    if (origin === "archive") return fetchRangesOneByOne(url, ranges);
+
     const res = await fetch(url, {
       headers: {
         Range: `bytes=${ranges.map(([a, b]) => `${a}-${b}`).join(",")}`,
@@ -766,26 +865,32 @@ export class ForecastService {
   }
 
   private async build(
-    run: Date,
+    cycle: Cycle,
     hour: number,
-    spec: FieldSpec
+    spec: FieldSpec,
   ): Promise<ContourFrame> {
-    const [start, end] = await this.range(run, hour, spec.grib);
-    const grib = await this.fetchRanges(this.gribUrl(run, hour, "wrfsfc"), [
-      [start, end],
-    ]);
+    const [start, end] = await this.range(cycle, hour, spec.grib);
+    const grib = await this.fetchRanges(
+      this.gribUrl(cycle, hour, "wrfsfc"),
+      [[start, end]],
+      cycle.origin,
+    );
 
     const { grid, geo } = await this.decode(grib, spec);
     if (!this.geo) this.geo = geo;
 
-    return frame(run, hour, this.features(grid, spec.property, spec.levels));
+    return frame(
+      cycle.run,
+      hour,
+      this.features(grid, spec.property, spec.levels),
+    );
   }
 
   /** One nested MultiPolygon per level, against the grid built by ensureGeo. */
   private features(
     grid: Grid,
     property: string,
-    levels: readonly number[]
+    levels: readonly number[],
   ): ContourFeature[] {
     return features(grid, this.geo!, property, levels);
   }
@@ -798,7 +903,7 @@ export class ForecastService {
    */
   private async decode(
     grib: Buffer,
-    spec: FieldSpec
+    spec: FieldSpec,
   ): Promise<{ grid: Grid; geo: Geo }> {
     const dir = await mkdtemp(join(tmpdir(), "hrrr-"));
     const file = join(dir, `${spec.grib.name.toLowerCase()}.grib2`);
@@ -807,7 +912,7 @@ export class ForecastService {
       const { stdout } = await execFileAsync(
         "grib_get_data",
         ["-m", String(MISSING), file],
-        { maxBuffer: 256 * 1024 * 1024 }
+        { maxBuffer: 256 * 1024 * 1024 },
       );
       return accumulate(stdout, spec.scale);
     } finally {
@@ -822,13 +927,14 @@ export class ForecastService {
    * levels to read; TMP at those levels still decides band membership per point,
    * so nothing here depends on a lapse-rate assumption.
    */
-  private async buildSeeding(run: Date, hour: number): Promise<Slw> {
-    const rows = await this.index(run, hour, "wrfprs");
-    const url = this.gribUrl(run, hour, "wrfprs");
+  private async buildSeeding(cycle: Cycle, hour: number): Promise<Slw> {
+    const { run, origin } = cycle;
+    const rows = await this.index(cycle, hour, "wrfprs");
+    const url = this.gribUrl(cycle, hour, "wrfprs");
 
-    const window = await this.scout(rows, url);
+    const window = await this.scout(rows, url, origin);
     if (!window) {
-      // No point in the domain is between -5 and -12 C at any level.
+      // No point in the domain is between -5 and -18 C at any level.
       return {
         frame: frame(run, hour, []),
         stats: emptyStats(run, hour),
@@ -836,10 +942,14 @@ export class ForecastService {
     }
 
     const levels = pressureLevels(window.topMb, window.baseMb);
+    // The archive names cloud mixing ratio CLMR where NOMADS names it CLWMR.
+    // eccodes calls it `clwmr` on both, so only this lookup needs to know.
     const wanted = levels.flatMap((mb) =>
-      ["TMP", "CLWMR"].map((name) => pick(rows, name, `${mbLabel(mb)} mb`))
+      ["TMP", CLWMR_NAME[origin]].map((name) =>
+        pick(rows, name, `${mbLabel(mb)} mb`),
+      ),
     );
-    const grib = await this.fetchRanges(url, wanted);
+    const grib = await this.fetchRanges(url, wanted, origin);
 
     // kg/m^2 at the native 3 km grid; block-averaged to 12 km after.
     const path = new Float32Array(POINTS);
@@ -883,7 +993,7 @@ export class ForecastService {
       frame: frame(
         run,
         hour,
-        this.features(grid, SEEDING.property, SEEDING.levels)
+        this.features(grid, SEEDING.property, SEEDING.levels),
       ),
       stats: stats(run, hour, grid, topMb, baseMb),
     };
@@ -900,11 +1010,13 @@ export class ForecastService {
    */
   private async scout(
     rows: IdxRow[],
-    url: string
+    url: string,
+    origin: Origin,
   ): Promise<{ topMb: number; baseMb: number } | null> {
     const grib = await this.fetchRanges(
       url,
-      SCOUT_LADDER_MB.map((mb) => pick(rows, "TMP", `${mb} mb`))
+      SCOUT_LADDER_MB.map((mb) => pick(rows, "TMP", `${mb} mb`)),
+      origin,
     );
 
     const seen: { mb: number; min: number; max: number }[] = [];
@@ -921,7 +1033,7 @@ export class ForecastService {
     seen.sort((a, b) => a.mb - b.mb);
 
     const touching = seen.filter(
-      (s) => s.max >= SEEDING.coldestC && s.min <= SEEDING.warmestC
+      (s) => s.max >= SEEDING.coldestC && s.min <= SEEDING.warmestC,
     );
     if (touching.length === 0) return null;
 
@@ -948,7 +1060,7 @@ export class ForecastService {
       const { stdout } = await execFileAsync(
         "grib_get_data",
         ["-m", String(MISSING), "-w", "count=1", file],
-        { maxBuffer: 256 * 1024 * 1024 }
+        { maxBuffer: 256 * 1024 * 1024 },
       );
       this.geo = accumulate(stdout, 1).geo;
     } finally {
@@ -964,7 +1076,7 @@ export class ForecastService {
    */
   private eachMessage(
     grib: Buffer,
-    onMessage: (name: string, level: number, values: Float32Array) => void
+    onMessage: (name: string, level: number, values: Float32Array) => void,
   ): Promise<void> {
     return eachMessage(
       grib,
@@ -974,9 +1086,80 @@ export class ForecastService {
         onMessage: ([name, level], values) =>
           onMessage(name, Number(level), values),
       },
-      "hrrr-msg"
+      "hrrr-msg",
     );
   }
+}
+
+/**
+ * Fetch byte ranges from the archive, **one request per range**, asserting that
+ * each comes back `206`.
+ *
+ * This is not a stylistic difference from the NOMADS path. **S3 ignores
+ * multi-range requests**: it answers a 16-range header with `200 OK` and the
+ * entire ~398 MB object, not a `416` and not an error. The identical code path
+ * would silently download 400x too much and then decode all 708 records, and
+ * the result would be *correct* — which is exactly why it has to be caught here
+ * rather than noticed later. Asserting `206` turns a silent cost into a loud
+ * failure.
+ *
+ * GRIB2 records are self-contained, so the parts concatenate into a valid
+ * multi-message file in the order requested, the same as the multipart path.
+ */
+export async function fetchRangesOneByOne(
+  url: string,
+  ranges: [number, number][],
+): Promise<Buffer> {
+  const parts: Buffer[] = [];
+  for (const [start, end] of ranges) {
+    const res = await fetch(url, {
+      headers: { Range: `bytes=${start}-${end}` },
+    });
+    if (res.status !== 206) {
+      throw new Error(
+        `HRRR archive ignored the byte range (got ${res.status}, expected 206) — ` +
+          `refusing to download the whole object`,
+      );
+    }
+    parts.push(Buffer.from(await res.arrayBuffer()));
+  }
+  return Buffer.concat(parts);
+}
+
+/** The cycle a replayed timestamp names: its hour, truncated. */
+export function floorHour(at: Date): Date {
+  return new Date(
+    Date.UTC(
+      at.getUTCFullYear(),
+      at.getUTCMonth(),
+      at.getUTCDate(),
+      at.getUTCHours(),
+    ),
+  );
+}
+
+/**
+ * The archive holds published cycles only.
+ *
+ * A future timestamp has no files at all, and the newest cycles are still on
+ * NOMADS rather than mirrored — asking the archive for the last couple of hours
+ * gets a 404 that reads like a bug. Refuse both plainly instead.
+ */
+export function assertAt(at: Date) {
+  if (Number.isNaN(at.getTime())) {
+    throw new Error("`at` must be an ISO 8601 timestamp");
+  }
+  if (Date.now() - at.getTime() < ARCHIVE_LAG_MS) {
+    throw new Error(
+      "`at` must name a cycle at least an hour old — HRRR posts ~50 min after " +
+        "the hour. Omit `at` for the current run.",
+    );
+  }
+}
+
+/** Drop oldest insertions until the map is within `limit`. */
+function cap<V>(map: Map<string, V>, limit: number) {
+  while (map.size > limit) map.delete(map.keys().next().value!);
 }
 
 /** Byte range of a named record, or a clear failure naming what is missing. */
@@ -1025,7 +1208,7 @@ export function nearestCell(geo: Geo, lat: number, lon: number): number {
  */
 export function isothermFt(
   levels: readonly SoundingLevel[],
-  targetC: number
+  targetC: number,
 ): number | null {
   for (let i = 0; i < levels.length - 1; i++) {
     const below = levels[i];
@@ -1058,7 +1241,7 @@ export function temperatureAtMb(
   levels: readonly number[],
   tempC: Map<number, Float32Array>,
   cell: number,
-  mb: number
+  mb: number,
 ): number {
   const at = (level: number) => tempC.get(levelKey(level))![cell];
 
@@ -1104,7 +1287,7 @@ const levelKey = (mb: number) => Math.round(mb);
 function frame(
   run: Date,
   hour: number,
-  features: ContourFeature[]
+  features: ContourFeature[],
 ): ContourFrame {
   return {
     type: "FeatureCollection",
@@ -1133,7 +1316,7 @@ function stats(
   hour: number,
   grid: Grid,
   bandTopMb: number | null,
-  bandBaseMb: number | null
+  bandBaseMb: number | null,
 ): SlwStats {
   const floor = SEEDING.levels[0];
   let seedable = 0;
@@ -1212,7 +1395,7 @@ export function blockAverage(
   values: Float32Array,
   scale: number,
   nx = NX,
-  ny = NY
+  ny = NY,
 ): Grid {
   const ox = Math.floor(nx / BLOCK);
   const oy = Math.floor(ny / BLOCK);
@@ -1243,7 +1426,7 @@ export function accumulate(
   text: string,
   scale: number,
   nx = NX,
-  ny = NY
+  ny = NY,
 ): { grid: Grid; geo: Geo } {
   const ox = Math.floor(nx / BLOCK);
   const oy = Math.floor(ny / BLOCK);

@@ -3,12 +3,13 @@ import express, { Request, Response } from "express";
 
 // Services
 import { Hrrr } from "../lib/services/forecast";
+import { parseAt } from "../lib/services/replay";
 
 export const forecast = express.Router();
 
 forecast.get("/meta", async (req: Request, res: Response) => {
   try {
-    const meta = await Hrrr.meta();
+    const meta = await Hrrr.meta(parseAt(req.query.at));
     res.send(meta);
   } catch (error) {
     res
@@ -20,7 +21,7 @@ forecast.get("/meta", async (req: Request, res: Response) => {
 forecast.get("/clouds", async (req: Request, res: Response) => {
   try {
     const hour = Number(req.query.hour ?? 0);
-    const frame = await Hrrr.clouds(hour);
+    const frame = await Hrrr.clouds(hour, parseAt(req.query.at));
     res.send(frame);
   } catch (error) {
     res
@@ -32,7 +33,7 @@ forecast.get("/clouds", async (req: Request, res: Response) => {
 forecast.get("/precip", async (req: Request, res: Response) => {
   try {
     const hour = Number(req.query.hour ?? 0);
-    const frame = await Hrrr.precip(hour);
+    const frame = await Hrrr.precip(hour, parseAt(req.query.at));
     res.send(frame);
   } catch (error) {
     res
@@ -47,7 +48,7 @@ forecast.get("/precip", async (req: Request, res: Response) => {
 forecast.get("/liquid", async (req: Request, res: Response) => {
   try {
     const hour = Number(req.query.hour ?? 0);
-    const frame = await Hrrr.liquid(hour);
+    const frame = await Hrrr.liquid(hour, parseAt(req.query.at));
     res.send(frame);
   } catch (error) {
     res
@@ -59,7 +60,7 @@ forecast.get("/liquid", async (req: Request, res: Response) => {
 forecast.get("/liquid/stats", async (req: Request, res: Response) => {
   try {
     const hour = Number(req.query.hour ?? 0);
-    const stats = await Hrrr.liquidStats(hour);
+    const stats = await Hrrr.liquidStats(hour, parseAt(req.query.at));
     res.send(stats);
   } catch (error) {
     res
@@ -77,7 +78,8 @@ forecast.get("/sounding", async (req: Request, res: Response) => {
     const sounding = await Hrrr.sounding(
       Number(req.query.lat),
       Number(req.query.lon),
-      hour
+      hour,
+      parseAt(req.query.at),
     );
     res.send(sounding);
   } catch (error) {

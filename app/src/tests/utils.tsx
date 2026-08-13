@@ -9,6 +9,7 @@ import cloudTopReducer from "@/lib/store/features/cloudtop";
 import interactionsReducer from "@/lib/store/features/interactions";
 import forecastReducer from "@/lib/store/features/forecast";
 import radarReducer from "@/lib/store/features/radar";
+import replayReducer from "@/lib/store/features/replay";
 import soundingReducer from "@/lib/store/features/sounding";
 
 // Testing
@@ -27,6 +28,7 @@ export function createTestStore() {
       interactions: interactionsReducer,
       forecast: forecastReducer,
       radar: radarReducer,
+      replay: replayReducer,
       sounding: soundingReducer,
     },
   });
@@ -38,7 +40,7 @@ export function createTestStore() {
  */
 export function renderWithStore(
   ui: ReactElement,
-  store: ReturnType<typeof createTestStore> = createTestStore()
+  store: ReturnType<typeof createTestStore> = createTestStore(),
 ) {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <Provider store={store}>{children}</Provider>

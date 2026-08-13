@@ -34,15 +34,15 @@ Measured from the HRRR archive (`noaa-hrrr-bdp-pds`), analysis hour, 18z, over t
 Texas box (lat 25.5–36.6, lon −106.7…−93.4; **176,972 HRRR cells**). Isotherm
 heights interpolated per cell from `TMP`/`HGT` at 350–900 mb, lowest crossing:
 
-| Date (18z) | −5 °C median | p10 | p90 | −18 °C median | Season |
-| --- | ---: | ---: | ---: | ---: | --- |
-| 2025-03-15 | **10,122 ft** | 8,267 | 16,395 | 16,819 | before season |
-| 2025-04-15 | **16,117 ft** | 14,479 | 17,243 | 21,417 | rainy — season opens |
-| 2025-05-15 | **17,268 ft** | 15,260 | 18,238 | 22,976 | rainy — peak |
-| 2025-06-15 | **18,215 ft** | 17,601 | 19,266 | 24,606 | rainy — peak |
-| 2025-08-13 | **19,065 ft** | 18,359 | 19,553 | 25,796 | peak summer (dry) |
-| 2025-09-15 | **18,344 ft** | 17,304 | 19,098 | 24,442 | rainy — secondary |
-| 2025-10-15 | **18,959 ft** | 18,339 | 19,612 | 25,217 | late |
+| Date (18z) |  −5 °C median |    p10 |    p90 | −18 °C median | Season               |
+| ---------- | ------------: | -----: | -----: | ------------: | -------------------- |
+| 2025-03-15 | **10,122 ft** |  8,267 | 16,395 |        16,819 | before season        |
+| 2025-04-15 | **16,117 ft** | 14,479 | 17,243 |        21,417 | rainy — season opens |
+| 2025-05-15 | **17,268 ft** | 15,260 | 18,238 |        22,976 | rainy — peak         |
+| 2025-06-15 | **18,215 ft** | 17,601 | 19,266 |        24,606 | rainy — peak         |
+| 2025-08-13 | **19,065 ft** | 18,359 | 19,553 |        25,796 | peak summer (dry)    |
+| 2025-09-15 | **18,344 ft** | 17,304 | 19,098 |        24,442 | rainy — secondary    |
+| 2025-10-15 | **18,959 ft** | 18,339 | 19,612 |        25,217 | late                 |
 
 Seven single days at one hour — **an illustration of the seasonal cycle, not a
 climatology.** Building the real one is Phase 5.
@@ -72,19 +72,19 @@ bimodal Texas rainfall pattern intersected with the TDLR permitted season.
 
 ## 2. Reconciliation — what the app shows vs. what Texas actually seeds
 
-| Texas operational practice | What the app has today | Gap |
-| --- | --- | --- |
-| Targets **convective clouds with base 4,000–12,000 ft** | No cloud base at all | **C2** — the primary selection variable is absent |
-| Requires **vertical depth past the freezing level** | Cloud top only; depth never computed | **C2** — depth needs base + top |
-| Seeds **growing turrets with cloud-base inflow** | Static column snapshot | **C1** — no vigour, no growth, no tendency |
-| Cloud-top seeding temp normally **−5 to −10 °C** | −5 °C filter, open-ended cold | admits cirrus-topped systems alongside young turrets |
-| Season **April 1 – September 30** | No season awareness | benign, but corpus and calibration must respect it |
-| **Excludes severe storms** (TDLR) | No severe screen | **C7** — no CAPE, no storm motion, no lightning |
-| Judged by a **field meteorologist on the day** | Three layers, fused by eye | **the join** — no single candidate field |
+| Texas operational practice                              | What the app has today               | Gap                                                  |
+| ------------------------------------------------------- | ------------------------------------ | ---------------------------------------------------- |
+| Targets **convective clouds with base 4,000–12,000 ft** | No cloud base at all                 | **C2** — the primary selection variable is absent    |
+| Requires **vertical depth past the freezing level**     | Cloud top only; depth never computed | **C2** — depth needs base + top                      |
+| Seeds **growing turrets with cloud-base inflow**        | Static column snapshot               | **C1** — no vigour, no growth, no tendency           |
+| Cloud-top seeding temp normally **−5 to −10 °C**        | −5 °C filter, open-ended cold        | admits cirrus-topped systems alongside young turrets |
+| Season **April 1 – September 30**                       | No season awareness                  | benign, but corpus and calibration must respect it   |
+| **Excludes severe storms** (TDLR)                       | No severe screen                     | **C7** — no CAPE, no storm motion, no lightning      |
+| Judged by a **field meteorologist on the day**          | Three layers, fused by eye           | **the join** — no single candidate field             |
 
-**The reconciliation, in one line:** the app answers *"is there modelled liquid in
-the band over this point"*; Texas practice asks *"which growing turret, with a base
-I can fly up through, should this aircraft seed in the next 30 minutes"*.
+**The reconciliation, in one line:** the app answers _"is there modelled liquid in
+the band over this point"_; Texas practice asks _"which growing turret, with a base
+I can fly up through, should this aircraft seed in the next 30 minutes"_.
 
 The good news, established below: **most of the missing variables are already in a
 file the app downloads on every build.**
@@ -93,25 +93,24 @@ file the app downloads on every build.**
 
 ## 3. Phases
 
-### Phase 0 — Historical replay ("time travel")
+### Phase 0 — Historical replay ("time travel") — **built**
 
-**Nothing else in this plan is testable without it.** Every service is pinned to
-the present: `ForecastService.latestRun()` walks back from `now`, `RadarService`
-fetches a `.latest` alias, `CloudTopService` lists the newest scene.
+**Nothing else in this plan is testable without it**, which is why it went first.
 
-**Change:** thread an optional valid time through all three services and their
-routers — `GET /forecast/liquid?at=2025-05-15T18:00Z`, and likewise for
-`/cloudtop/temperature` and `/radar/reflectivity`. Absent `at` keeps today's
-behaviour exactly. Cache keys gain the resolved time; the "latest" path keeps its
-existing eviction, and replayed builds key forever since a past hour never changes.
+All three services take an optional `at`, absent meaning live:
+`GET /forecast/liquid?hour=0&at=2025-05-15T18:00Z`, and likewise for
+`/cloudtop/temperature`, `/radar/reflectivity`, `/forecast/sounding` and the
+stats routes. A `/map/replay` page drives them from a calendar. The contract and
+the traps are documented in `CLAUDE.md` under "Historical replay"; what follows
+here is the evidence the archives support it.
 
 **Archive sources, all verified reachable and keyless:**
 
-| Source | Archive | Verified |
-| --- | --- | --- |
-| HRRR | `noaa-hrrr-bdp-pds` → `hrrr.YYYYMMDD/conus/hrrr.tHHz.wrfprsf00.grib2` | idx 200; 12 MB of ranged records pulled in 10 s |
-| GOES-East | `noaa-goes19` → `<PRODUCT>/YYYY/DDD/HH/` | scenes present for 2025-05-15 |
-| MRMS | `noaa-mrms-pds` → `CONUS/MergedBaseReflectivityQC_00.50/YYYYMMDD/` | **same product the app already uses**, dated path; back to 2020 |
+| Source    | Archive                                                               | Verified                                                        |
+| --------- | --------------------------------------------------------------------- | --------------------------------------------------------------- |
+| HRRR      | `noaa-hrrr-bdp-pds` → `hrrr.YYYYMMDD/conus/hrrr.tHHz.wrfprsf00.grib2` | idx 200; 12 MB of ranged records pulled in 10 s                 |
+| GOES-East | `noaa-goes19` → `<PRODUCT>/YYYY/DDD/HH/`                              | scenes present for 2025-05-15                                   |
+| MRMS      | `noaa-mrms-pds` → `CONUS/MergedBaseReflectivityQC_00.50/YYYYMMDD/`    | **same product the app already uses**, dated path; back to 2020 |
 
 **Verified traps — all three fail quietly:**
 
@@ -128,9 +127,11 @@ existing eviction, and replayed builds key forever since a past hour never chang
   `noaa-goes16`.** Simplest resolution: restrict the corpus to the 2025 and 2026
   seasons and keep one satellite.
 
-**Tests:** `forecast-service.test.ts` — a replayed run resolves the right key and
-never re-derives "latest"; a mocked multi-range response returning `200` must
-throw rather than decode.
+**Tests:** `server/src/tests/replay.test.ts` covers `at` parsing, cycle
+truncation, the publication-lag guard, MRMS key-time parsing, and the 206
+assertion (a mocked `200` must throw rather than decode).
+`app/src/tests/ReplayCalendar.test.tsx` and the replay cases in `Map.test.tsx`
+cover the picker and the layer wiring.
 
 ---
 
@@ -139,15 +140,15 @@ throw rather than decode.
 The single best effort-to-value step. The app fetches `wrfsfcf00`/`f01+` for `TCDC`
 and `PRATE` already. That same file carries, verified in the 2025-05-15 index:
 
-| Record | Criterion | Note |
-| --- | --- | --- |
-| `HGT:cloud base` | **C2** | 2.38 MB record; the missing selection variable |
-| `HGT:cloud top`, `PRES:cloud top` | C2 | sparse — see below |
-| `CAPE:surface`, `CAPE:180-0 mb above ground` | **C1** | convective vigour proxy |
-| `USTM`/`VSTM:0-6000 m` | **C7** | storm motion vector — the steering product |
-| `LTNG:entire atmosphere` | C1, C7 | electrification |
-| `VIL:entire atmosphere` | C5 | independent cross-check on the SLW integral |
-| `RETOP:cloud top` | C1 | radar echo top |
+| Record                                       | Criterion | Note                                           |
+| -------------------------------------------- | --------- | ---------------------------------------------- |
+| `HGT:cloud base`                             | **C2**    | 2.38 MB record; the missing selection variable |
+| `HGT:cloud top`, `PRES:cloud top`            | C2        | sparse — see below                             |
+| `CAPE:surface`, `CAPE:180-0 mb above ground` | **C1**    | convective vigour proxy                        |
+| `USTM`/`VSTM:0-6000 m`                       | **C7**    | storm motion vector — the steering product     |
+| `LTNG:entire atmosphere`                     | C1, C7    | electrification                                |
+| `VIL:entire atmosphere`                      | C5        | independent cross-check on the SLW integral    |
+| `RETOP:cloud top`                            | C1        | radar echo top                                 |
 
 **Measured on 2025-05-15 18z over Texas** (`grib_get_data`, Texas box):
 
@@ -243,7 +244,7 @@ coverage table** — so ship the fields and defer the cutoffs to Phase 5.
 smaller than the cloud-top-pressure scene already ingested), same bucket, same
 `abi.ts` reprojection, decodes with the installed `h5wasm`. **No new dependency.**
 
-It is **cloud-top phase only** and is therefore an *observed constraint on* C4, not
+It is **cloud-top phase only** and is therefore an _observed constraint on_ C4, not
 a solution to it. Its job is to flag disagreement: cells where HRRR says in-band
 liquid and the satellite says the top is glaciated. `INVESTIGATION.md` measured
 model/satellite agreement at 88.3%; this makes the 11.7% visible instead of
@@ -271,17 +272,17 @@ not automate scraping them):
 
 **Corpus design:**
 
-| Class | Selection | Expected result |
-| --- | --- | --- |
-| **Positive** | ~15 logged seeding days, spread across April–June and September, sampled at the seeding hour | candidate field non-empty inside the target counties |
-| **Negative — clear** | ~10 days with no cloud over the district | field empty |
-| **Negative — wrong season** | ~5 mid-July/August days at peak heat | band high; little or no in-band liquid |
-| **Negative — already raining** | ~5 days with widespread MRMS echo over the district | C6 suppresses most candidate area |
-| **Suspension window** | the July 2025 TDLR suspension days | records what the app would have shown; **not** scored as a seedability label |
+| Class                          | Selection                                                                                    | Expected result                                                              |
+| ------------------------------ | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **Positive**                   | ~15 logged seeding days, spread across April–June and September, sampled at the seeding hour | candidate field non-empty inside the target counties                         |
+| **Negative — clear**           | ~10 days with no cloud over the district                                                     | field empty                                                                  |
+| **Negative — wrong season**    | ~5 mid-July/August days at peak heat                                                         | band high; little or no in-band liquid                                       |
+| **Negative — already raining** | ~5 days with widespread MRMS echo over the district                                          | C6 suppresses most candidate area                                            |
+| **Suspension window**          | the July 2025 TDLR suspension days                                                           | records what the app would have shown; **not** scored as a seedability label |
 
 **Scoring honesty — the label is weak, and the corpus must not pretend otherwise.**
-A logged seeding day says *an operator judged some cloud seedable somewhere in the
-district within some window*. It does **not** say a given 12 km cell at a given hour
+A logged seeding day says _an operator judged some cloud seedable somewhere in the
+district within some window_. It does **not** say a given 12 km cell at a given hour
 was seedable. So:
 
 - Score at **district-day** resolution, not cell-hour.
@@ -315,7 +316,7 @@ Replaces every single-run figure quoted anywhere in the repo.
   ramp decision; band-base distribution by month (the proper version of §1's table);
   how often C2 depth is satisfiable at all.
 - **Calibrate only what the data can settle.** Coverage figures say what a threshold
-  *costs*, never whether it is physically real. The −5 °C warm edge stays fixed
+  _costs_, never whether it is physically real. The −5 °C warm edge stays fixed
   (physics); the SLW levels and any C1/C7 cutoffs are chosen for legibility and
   documented as judgements with their cost, not dressed as physical constants.
 
@@ -409,6 +410,6 @@ about real-world seedability can be made.
 Unchanged by this plan and worth restating, because no phase above closes it:
 **nothing free and national measures supercooled liquid water in the vertical.**
 Radar cannot see it, satellite sees the top only, CIP publishes no API. Phases 1–3
-sharpen *where to look* and add observed constraints at cloud top and cloud base;
-the phase and quantity of liquid *inside* the −5…−18 °C band remains HRRR's
+sharpen _where to look_ and add observed constraints at cloud top and cloud base;
+the phase and quantity of liquid _inside_ the −5…−18 °C band remains HRRR's
 simulation until a ground station measures it.

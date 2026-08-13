@@ -7,6 +7,7 @@ import { App } from "./App.tsx";
 import { LandingPage } from "./components/Landing.tsx";
 import { Candidate } from "./components/Candidate.tsx";
 import { Forecast } from "./components/Forecast.tsx";
+import { Replay } from "./components/Replay.tsx";
 
 // Router
 import { createBrowserRouter } from "react-router";
@@ -18,6 +19,7 @@ import { ForecastProvider } from "@/lib/context/ForecastProvider.tsx";
 import { CloudTopProvider } from "@/lib/context/CloudTopProvider.tsx";
 import { RadarProvider } from "@/lib/context/RadarProvider.tsx";
 import { SoundingProvider } from "@/lib/context/SoundingProvider.tsx";
+import { ReplayProvider } from "@/lib/context/ReplayProvider.tsx";
 
 const router = createBrowserRouter([
   {
@@ -39,6 +41,16 @@ const router = createBrowserRouter([
       // Page-scoped: the radar scene and the satellite scene both go stale in
       // minutes, so unlike the seeding-band build there is nothing worth
       // warming from the landing page.
+      // Page-scoped: the provider warms all three sources for the chosen hour
+      // before the map is allowed to draw any of them.
+      {
+        path: "/map/replay",
+        element: (
+          <ReplayProvider>
+            <Replay />
+          </ReplayProvider>
+        ),
+      },
       {
         path: "/map/candidate",
         element: (
@@ -61,5 +73,5 @@ createRoot(document.getElementById("root")!).render(
       {" "}
       <RouterProvider router={router} />{" "}
     </StoreProvider>{" "}
-  </StrictMode>
+  </StrictMode>,
 );

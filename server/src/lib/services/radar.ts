@@ -22,6 +22,30 @@ const MRMS =
   "MRMS_MergedBaseReflectivityQC.latest.grib2.gz";
 
 /**
+ * The same product, dated, for replaying a past scene.
+ *
+ * `.latest` is an alias with no history behind it, so a historical request has
+ * to name the scene. The bucket keeps a key roughly every two minutes back to
+ * 2020 under `CONUS/<product>/YYYYMMDD/`, and the scene time is in the filename
+ * — which is what lets `sceneAt` pick the nearest one without downloading any.
+ */
+const MRMS_ARCHIVE = "https://noaa-mrms-pds.s3.amazonaws.com";
+const MRMS_PRODUCT = "MergedBaseReflectivityQC_00.50";
+
+/**
+ * How far from the requested time a scene may sit before we refuse it.
+ *
+ * The mosaic arrives every ~2 minutes, so the nearest key is normally seconds
+ * away. A gap of more than half an hour means the feed was down, and answering
+ * with whatever is closest would silently caption an old scene with the time
+ * that was asked for.
+ */
+const SCENE_TOLERANCE_MS = 30 * 60_000;
+
+/** Replayed scenes never change, so a handful are kept keyed by their time. */
+const ARCHIVE_CACHE = 8;
+
+/**
  * The mosaic grid: 0.01 degrees, north-to-south, west-to-east, fixed for every
  * scene. Regular lat/lon, so the geometry is arithmetic — we never pay for
  * eccodes' geo iterator here the way the HRRR Lambert grid forces us to.
@@ -120,17 +144,22 @@ export class RadarService {
   private geo: Geo | null = null;
   private cache: { scene: Scene; fetchedAt: number } | null = null;
   private inflight: Promise<Scene> | null = null;
+  /** Replayed scenes, keyed by the archive key they were built from. */
+  private archive = new Map<string, Scene>();
+  private archiveInflight = new Map<string, Promise<Scene>>();
 
-  async reflectivity(): Promise<RadarFrame> {
-    return (await this.scene()).frame;
+  async reflectivity(at?: Date): Promise<RadarFrame> {
+    return (await this.scene(at)).frame;
   }
 
   /** The same build's summary. Asking for either warms both. */
-  async reflectivityStats(): Promise<RadarStats> {
-    return (await this.scene()).stats;
+  async reflectivityStats(at?: Date): Promise<RadarStats> {
+    return (await this.scene(at)).stats;
   }
 
-  private async scene(): Promise<Scene> {
+  private async scene(at?: Date): Promise<Scene> {
+    if (at) return this.replay(at);
+
     if (this.cache && Date.now() - this.cache.fetchedAt < CACHE_TTL_MS) {
       return this.cache.scene;
     }
@@ -151,8 +180,90 @@ export class RadarService {
     return work;
   }
 
-  private async build(): Promise<Scene> {
-    const grib = await gunzipAsync(await this.download());
+  /**
+   * A past scene, keyed by the archive object it comes from rather than by the
+   * time that was asked for — two requests a minute apart resolve to the same
+   * key and share one build, and the frame still reports the scan's own time.
+   *
+   * No TTL: a scene from 2025 is not going to change.
+   */
+  private async replay(at: Date): Promise<Scene> {
+    const key = await this.sceneAt(at);
+
+    const cached = this.archive.get(key);
+    if (cached) return cached;
+
+    const running = this.archiveInflight.get(key);
+    if (running) return running;
+
+    const work = this.build(key)
+      .then((scene) => {
+        this.archive.set(key, scene);
+        while (this.archive.size > ARCHIVE_CACHE) {
+          this.archive.delete(this.archive.keys().next().value!);
+        }
+        return scene;
+      })
+      .finally(() => this.archiveInflight.delete(key));
+
+    this.archiveInflight.set(key, work);
+    return work;
+  }
+
+  /**
+   * The archived key nearest `at`.
+   *
+   * Listed by hour rather than by day: a day holds ~720 keys and a listing is
+   * capped at 1000, so an hour-wide prefix keeps it to one page. The hour either
+   * side is listed too, because the nearest scene to 14:00:30 may well be the
+   * 13:59 one.
+   */
+  private async sceneAt(at: Date): Promise<string> {
+    if (Number.isNaN(at.getTime())) {
+      throw new Error("`at` must be an ISO 8601 timestamp");
+    }
+    const want = at.getTime();
+    const keys: string[] = [];
+    for (const offset of [-1, 0, 1]) {
+      const t = new Date(want + offset * 3_600_000);
+      const day = t.toISOString().slice(0, 10).replace(/-/g, "");
+      const hh = String(t.getUTCHours()).padStart(2, "0");
+      const prefix = `CONUS/${MRMS_PRODUCT}/${day}/MRMS_${MRMS_PRODUCT}_${day}-${hh}`;
+      keys.push(...(await this.list(prefix)));
+    }
+
+    let best: { key: string; delta: number } | null = null;
+    for (const key of keys) {
+      const t = Date.parse(archiveKeyTime(key));
+      if (Number.isNaN(t)) continue;
+      const delta = Math.abs(t - want);
+      if (!best || delta < best.delta) best = { key, delta };
+    }
+
+    if (!best) {
+      throw new Error(`No archived MRMS scene near ${at.toISOString()}`);
+    }
+    if (best.delta > SCENE_TOLERANCE_MS) {
+      throw new Error(
+        `Nearest archived MRMS scene to ${at.toISOString()} is ` +
+          `${Math.round(best.delta / 60_000)} min away — refusing to caption it ` +
+          `as that time`,
+      );
+    }
+    return best.key;
+  }
+
+  private async list(prefix: string): Promise<string[]> {
+    const res = await fetch(
+      `${MRMS_ARCHIVE}/?list-type=2&prefix=${encodeURIComponent(prefix)}`,
+    );
+    if (!res.ok) throw new Error(`MRMS archive listing failed: ${res.status}`);
+    const xml = await res.text();
+    return Array.from(xml.matchAll(/<Key>([^<]+)<\/Key>/g)).map((m) => m[1]);
+  }
+
+  private async build(key?: string): Promise<Scene> {
+    const grib = await gunzipAsync(await this.download(key));
 
     let grid: Grid | null = null;
     let validTime = "";
@@ -167,7 +278,7 @@ export class RadarService {
           grid = blockAverage(values);
         },
       },
-      "mrms"
+      "mrms",
     );
 
     if (!grid) throw new Error("MRMS mosaic carried no message");
@@ -182,7 +293,7 @@ export class RadarService {
           grid,
           this.geo,
           REFLECTIVITY.property,
-          REFLECTIVITY.levels
+          REFLECTIVITY.levels,
         ),
       },
       stats: summarize(grid, this.geo, validTime),
@@ -198,11 +309,12 @@ export class RadarService {
    * under a megabyte and replaced every two minutes, so a second attempt costs
    * a second and turns an intermittent 500 into a working map.
    */
-  private async download(): Promise<Buffer> {
+  private async download(key?: string): Promise<Buffer> {
+    const url = key ? `${MRMS_ARCHIVE}/${key}` : MRMS;
     let last: unknown;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const res = await fetch(MRMS);
+        const res = await fetch(url);
         if (!res.ok) throw new Error(`MRMS mosaic unavailable: ${res.status}`);
         return Buffer.from(await res.arrayBuffer());
       } catch (error) {
@@ -210,7 +322,7 @@ export class RadarService {
       }
     }
     throw new Error(
-      `MRMS mosaic unreachable: ${last instanceof Error ? last.message : String(last)}`
+      `MRMS mosaic unreachable: ${last instanceof Error ? last.message : String(last)}`,
     );
   }
 }
@@ -357,6 +469,25 @@ export function sceneTime(date: string, time: string): string {
     throw new Error(`MRMS scene time unreadable: ${date} ${time}`);
   }
   return iso;
+}
+
+/**
+ * Scan time embedded in an archive key, as ISO 8601.
+ *
+ * Keys look like
+ * `.../20250515/MRMS_MergedBaseReflectivityQC_00.50_20250515-181439.grib2.gz`,
+ * so the time is `YYYYMMDD-HHMMSS` before the extension. This is only used to
+ * *choose* a key — the frame's own `validTime` still comes from the decoded
+ * message, so a mislabelled filename cannot caption the map.
+ */
+export function archiveKeyTime(key: string): string {
+  const m = key.match(/_(\d{8})-(\d{6})\./);
+  if (!m) return "";
+  const [, d, t] = m;
+  return (
+    `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}` +
+    `T${t.slice(0, 2)}:${t.slice(2, 4)}:${t.slice(4, 6)}.000Z`
+  );
 }
 
 export const Mrms = new RadarService();

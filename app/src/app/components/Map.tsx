@@ -7,7 +7,13 @@ import { forecastActions } from "@/lib/store/features/forecast";
 import { soundingActions } from "@/lib/store/features/sounding";
 
 // Client
-import { ForecastCloudsUrl, ForecastPrecipUrl } from "@/lib/client";
+import {
+  ForecastCloudsUrl,
+  ForecastPrecipUrl,
+  ReplayCloudTopUrl,
+  ReplayLiquidUrl,
+  ReplayRadarUrl,
+} from "@/lib/client";
 
 // ArcGIS
 import Map from "@arcgis/core/Map";
@@ -20,6 +26,9 @@ import {
   ForecastPrecipLayer,
   CandidateLiquidLayer,
   CandidateRadarLayer,
+  ReplayCloudTopLayer,
+  ReplayLiquidLayer,
+  ReplayRadarLayer,
 } from "@/lib/arcgis/layers";
 import { PRECIP_FIRST_HOUR } from "@/lib/arcgis/renderers";
 
@@ -38,6 +47,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const viewRef = useRef<MapView | null>(null);
   const drawnCloudUrl = useRef<string | null>(null);
   const drawnPrecipUrl = useRef<string | null>(null);
+  const drawnReplayAt = useRef<string | null>(null);
 
   const dispatch = useAppDispatch();
   const coordinates = useAppSelector((state) => state.interactions.coordinates);
@@ -46,7 +56,12 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const cloudTop = useAppSelector((state) => state.cloudtop.visible);
   const liquid = useAppSelector((state) => state.candidate.liquid);
   const radar = useAppSelector((state) => state.radar.visible);
+  const ready = useAppSelector((state) => state.replay.ready);
+  const replayCloudTop = useAppSelector((state) => state.replay.cloudTop);
+  const replayLiquid = useAppSelector((state) => state.replay.liquid);
+  const replayRadar = useAppSelector((state) => state.replay.radar);
   const forecasting = mode === "forecast";
+  const replaying = mode === "replay";
   const raining = forecasting && hour >= PRECIP_FIRST_HOUR;
 
   // Initialize the map once
@@ -102,15 +117,41 @@ export const ArcGIS = ({ mode }: PropsT) => {
   // The precipitation layer hides before PRECIP_FIRST_HOUR rather than drawing
   // an empty frame: HRRR has no precipitation at the analysis, and a layer
   // that's on but blank reads as "no rain" instead of "not modelled yet".
+  // The candidate layers are pinned to "now", so they stay off while replaying
+  // — showing today's scene under a 2025 date is the one thing this page must
+  // never do, and it would look like a slow load rather than a wrong answer.
+  const candidating = mode === "candidate";
+
   useEffect(() => {
     ForecastCloudsLayer.visible = forecasting;
     ForecastPrecipLayer.visible = raining && precip;
-    CandidateCloudTopLayer.visible = !forecasting && cloudTop;
-    CandidateLiquidLayer.visible = !forecasting && liquid;
+    CandidateCloudTopLayer.visible = candidating && cloudTop;
+    CandidateLiquidLayer.visible = candidating && liquid;
     // Observations, so they never appear on the modelled map — the same rule
     // that keeps the satellite cloud tops off it.
-    CandidateRadarLayer.visible = !forecasting && radar;
-  }, [forecasting, raining, precip, cloudTop, liquid, radar]);
+    CandidateRadarLayer.visible = candidating && radar;
+    // Gated on `ready`, not on the hour that was asked for. `setAt` clears
+    // `ready`, so picking a date blanks the map immediately and it stays blank
+    // until every source has answered — the three take 10 s to 40 s and finish
+    // apart, and revealing each as it landed showed two dates at once.
+    const drawable = replaying && ready !== null;
+    ReplayCloudTopLayer.visible = drawable && replayCloudTop;
+    ReplayLiquidLayer.visible = drawable && replayLiquid;
+    ReplayRadarLayer.visible = drawable && replayRadar;
+  }, [
+    forecasting,
+    candidating,
+    replaying,
+    raining,
+    precip,
+    cloudTop,
+    liquid,
+    radar,
+    ready,
+    replayCloudTop,
+    replayLiquid,
+    replayRadar,
+  ]);
 
   // Point each forecast contour layer at the selected hour. Repointing the url
   // refetches; the frames are megabytes of geometry, so they never enter the
@@ -137,6 +178,42 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ForecastPrecipLayer.refresh();
   }, [precipUrl]);
 
+  // Point the replay layers at the hour that is ready to draw.
+  //
+  // Keyed on `ready` rather than `at` so the fetch happens against a server
+  // build that is already warm: ReplayProvider has just awaited the same three
+  // builds through their stats routes, so these requests are answered from the
+  // server's cache in seconds rather than each paying for its own decode. That
+  // is the difference between the three layers landing together and landing a
+  // minute apart.
+  //
+  // They are added to the map here rather than in the mount effect because they
+  // are constructed without a url: a GeoJSONLayer with nowhere to fetch from
+  // fails to load, and the page opens with no date chosen. So they join the map
+  // the first time an hour is ready, and are repointed after that. The
+  // `drawnReplayAt` guard keeps StrictMode's double-invoked effect from
+  // refetching the same frames.
+  useEffect(() => {
+    const at = ready;
+    if (at === null || drawnReplayAt.current === at) return;
+    drawnReplayAt.current = at;
+
+    ReplayCloudTopLayer.url = ReplayCloudTopUrl(at);
+    ReplayLiquidLayer.url = ReplayLiquidUrl(at);
+    ReplayRadarLayer.url = ReplayRadarUrl(at);
+
+    const map = mapRef.current;
+    if (map && !map.layers.includes(ReplayCloudTopLayer)) {
+      // Draw order matches the candidate map: modelled liquid over observed
+      // tops, measured radar over both.
+      map.addMany([ReplayCloudTopLayer, ReplayLiquidLayer, ReplayRadarLayer]);
+      return; // A layer added with a url fetches on load; refreshing would double it.
+    }
+    ReplayCloudTopLayer.refresh();
+    ReplayLiquidLayer.refresh();
+    ReplayRadarLayer.refresh();
+  }, [ready]);
+
   // Surface "still drawing" so the slider can say so rather than looking stuck.
   useEffect(() => {
     if (mode !== "forecast" || !viewRef.current) return;
@@ -148,7 +225,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
       .then((layerView) => {
         handle = reactiveUtils.watch(
           () => layerView.updating,
-          (updating) => dispatch(forecastActions.setDrawing(updating))
+          (updating) => dispatch(forecastActions.setDrawing(updating)),
         );
       })
       .catch(() => {
@@ -176,7 +253,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
         soundingActions.setPoint([
           Math.round(longitude * 100) / 100,
           Math.round(latitude * 100) / 100,
-        ])
+        ]),
       );
     });
 

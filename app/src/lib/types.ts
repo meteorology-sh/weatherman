@@ -1,5 +1,8 @@
-/** Which map a route is showing. Forecast is modelled; candidate is observed. */
-export type MapMode = "forecast" | "candidate";
+/**
+ * Which map a route is showing. Forecast is modelled; candidate is observed;
+ * replay is the candidate set at a past hour rather than at this one.
+ */
+export type MapMode = "forecast" | "candidate" | "replay";
 
 /** Mirrors ForecastMeta in server/src/lib/services/forecast.ts */
 export interface ForecastMeta {

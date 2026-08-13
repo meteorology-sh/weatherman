@@ -4,6 +4,7 @@ import cloudTopReducer from "./features/cloudtop";
 import interactionsReducer from "./features/interactions";
 import forecastReducer from "./features/forecast";
 import radarReducer from "./features/radar";
+import replayReducer from "./features/replay";
 import soundingReducer from "./features/sounding";
 
 // ArcGIS layer instances are module-scope singletons in lib/arcgis/, never
@@ -16,6 +17,7 @@ export const store = configureStore({
     interactions: interactionsReducer,
     forecast: forecastReducer,
     radar: radarReducer,
+    replay: replayReducer,
     sounding: soundingReducer,
   },
 });

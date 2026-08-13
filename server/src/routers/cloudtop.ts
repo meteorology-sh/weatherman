@@ -3,6 +3,7 @@ import express, { Request, Response } from "express";
 
 // Services
 import { Goes } from "../lib/services/cloudtop";
+import { parseAt } from "../lib/services/replay";
 
 export const cloudtop = express.Router();
 
@@ -11,7 +12,7 @@ export const cloudtop = express.Router();
 // the one the satellite just scanned, and it carries its own valid time.
 cloudtop.get("/temperature", async (req: Request, res: Response) => {
   try {
-    const frame = await Goes.temperature();
+    const frame = await Goes.temperature(parseAt(req.query.at));
     res.send(frame);
   } catch (error) {
     res
@@ -22,7 +23,7 @@ cloudtop.get("/temperature", async (req: Request, res: Response) => {
 
 cloudtop.get("/temperature/stats", async (req: Request, res: Response) => {
   try {
-    const stats = await Goes.temperatureStats();
+    const stats = await Goes.temperatureStats(parseAt(req.query.at));
     res.send(stats);
   } catch (error) {
     res
