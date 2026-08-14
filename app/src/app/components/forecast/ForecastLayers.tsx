@@ -14,7 +14,7 @@ import {
 } from "@/lib/arcgis/bands";
 
 // Components
-import { LayerAbout } from "@/app/components/panel/LayerAbout";
+import { LayerDefinitions } from "@/app/components/panel/LayerDefinitions";
 import { LayerToggle } from "@/app/components/panel/LayerToggle";
 import { Ramp } from "@/app/components/panel/Ramp";
 
@@ -35,7 +35,7 @@ export const ForecastLayers = () => {
           rgb={CLOUD_RGB}
           captions={CLOUD_BANDS.map((band) => `${band.value}%`)}
         />
-        <LayerAbout legend={CloudCoverLegend} />
+        <LayerDefinitions legend={CloudCoverLegend} />
       </div>
 
       <LayerToggle

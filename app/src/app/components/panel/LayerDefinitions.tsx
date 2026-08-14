@@ -12,12 +12,10 @@ type PropsT = { legend: LayerLegend };
  * operator reads every time; behind a collapse the switches stay a list and
  * the explanation is one click away.
  */
-export const LayerAbout = ({ legend }: PropsT) => (
+export const LayerDefinitions = ({ legend }: PropsT) => (
   <div className="collapse collapse-arrow bg-base-200 border-base-300 border">
     <input type="checkbox" aria-label={`About ${legend.name}`} />
-    <div className="collapse-title text-xs font-semibold">
-      What this measures
-    </div>
+    <div className="collapse-title text-xs font-semibold">Definitions</div>
     <div className="collapse-content flex flex-col gap-2 text-xs">
       <div>{legend.about}</div>
       <div>{legend.caveat}</div>

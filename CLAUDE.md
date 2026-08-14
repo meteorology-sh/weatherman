@@ -343,7 +343,7 @@ says what the layer measures; the case is the only shorthand allowed.
 candidate map and the replay map draw the same layers at different hours, so
 descriptions that differed between them would be describing the same layer two
 ways. `about` says what the thing is and how it is made; `caveat` says what it
-does not tell you. Both are rendered by `LayerAbout` in a DaisyUI collapse under
+does not tell you. Both are rendered by `LayerDefinitions` in a DaisyUI collapse under
 the switch — printed inline they bury the ramp, which is the part read every
 time.
 

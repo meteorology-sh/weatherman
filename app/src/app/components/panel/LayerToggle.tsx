@@ -2,7 +2,7 @@
 import type { LayerLegend } from "@/lib/arcgis/legends";
 
 // Components
-import { LayerAbout } from "./LayerAbout";
+import { LayerDefinitions } from "./LayerDefinitions";
 
 type PropsT = {
   legend: LayerLegend;
@@ -39,7 +39,7 @@ export const LayerToggle = ({
     {checked && (
       <>
         {children}
-        <LayerAbout legend={legend} />
+        <LayerDefinitions legend={legend} />
       </>
     )}
   </div>

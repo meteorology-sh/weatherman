@@ -35,7 +35,7 @@ export const BASE_WINDOW_LABEL = `${BASE_WINDOW_FT[0].toLocaleString(
 )}–${BASE_WINDOW_FT[1].toLocaleString("en-US")} ft`;
 
 export const CloudBaseLegend: LayerLegend = {
-  name: "CLOUD_BASE",
+  name: "CLOUD BASE",
   source: "NOAA HRRR",
   about:
     "The height of the bottom of the lowest cloud deck, in feet MSL. HRRR " +
@@ -54,7 +54,7 @@ export const CloudBaseLegend: LayerLegend = {
 };
 
 export const CloudTopLegend: LayerLegend = {
-  name: "CLOUD_TOPS",
+  name: "CLOUD TOPS",
   source: "NOAA GOES-East + NOAA HRRR",
   about:
     "The temperature at the top of the cloud, in °C. GOES-East scans " +
@@ -73,7 +73,7 @@ export const CloudTopLegend: LayerLegend = {
 };
 
 export const LiquidLegend: LayerLegend = {
-  name: "SUPERCOOLED_LIQUID_WATER",
+  name: "SUPERCOOLED LIQUID_WATER",
   source: "NOAA HRRR",
   about:
     "Liquid water colder than freezing, in g/m² — the water silver iodide " +
@@ -88,7 +88,7 @@ export const LiquidLegend: LayerLegend = {
 };
 
 export const RadarLegend: LayerLegend = {
-  name: "RADAR_REFLECTIVITY",
+  name: "RADAR REFLECTIVITY",
   source: "NOAA MRMS",
   about:
     "How hard it is raining, in dBZ. MRMS merges every NEXRAD radar into one " +
@@ -103,7 +103,7 @@ export const RadarLegend: LayerLegend = {
 };
 
 export const CandidateLegend: LayerLegend = {
-  name: "SEEDING_OPPORTUNITY",
+  name: "SEEDING OPPORTUNITY",
   source: "NOAA HRRR + NOAA GOES-East + NOAA MRMS",
   about:
     "Supercooled liquid water in the cells that pass every test at once: the " +
@@ -121,7 +121,7 @@ export const CandidateLegend: LayerLegend = {
 };
 
 export const CloudCoverLegend: LayerLegend = {
-  name: "CLOUD_COVER",
+  name: "CLOUD COVER",
   source: "NOAA HRRR",
   about:
     "The share of sky HRRR fills with cloud in each cell, in percent, at the " +
