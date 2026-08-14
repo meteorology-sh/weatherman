@@ -38,8 +38,8 @@ export const CandidateLayers = () => {
   return (
     <div className="flex flex-col gap-4">
       <LayerToggle
-        name="Candidate field"
-        title={<>Candidate field &middot; every test passed</>}
+        name="Seeding opportunity"
+        title={<>Seeding opportunity &middot; all four conditions met</>}
         checked={field}
         onChange={(on) => dispatch(seedabilityActions.setVisible(on))}
       >
@@ -57,7 +57,7 @@ export const CandidateLayers = () => {
         <div className="text-xs opacity-50">
           The other four layers are its inputs. Leave the amber on to read them
           together: amber with no green over it is liquid this field rejected,
-          and the panel below says which test rejected it.
+          and the panel below says which condition ruled it out.
         </div>
       </LayerToggle>
 

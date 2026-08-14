@@ -52,7 +52,7 @@ const swatches = (container: HTMLElement, layer: string) => {
 /** The switch names the panel renders, as the accessible names they are. */
 const LIQUID = "Supercooled liquid water";
 const RADAR = "Radar";
-const FIELD = "Candidate field";
+const FIELD = "Seeding opportunity";
 
 /**
  * jsdom re-prints rgba() with spaces and trims trailing zeros off the alpha

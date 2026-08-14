@@ -40,7 +40,7 @@ export const Rejections = ({ stats }: PropsT) => {
     <div className="flex flex-col gap-1">
       <div className="text-xs opacity-70">
         Of {km2.format(stats.liquidKm2)} km² holding in-band liquid,{" "}
-        {km2.format(stats.candidateKm2)} km² passed. Removed by:
+        {km2.format(stats.candidateKm2)} km² met all four. Ruled out by:
       </div>
       {rows
         .filter(([, value]) => value > 0)

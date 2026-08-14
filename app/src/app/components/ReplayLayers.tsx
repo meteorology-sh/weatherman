@@ -36,8 +36,8 @@ export const ReplayLayers = () => {
   return (
     <div className="flex flex-col gap-4">
       <LayerToggle
-        name="Candidate field"
-        title={<>Candidate field &middot; every test passed</>}
+        name="Seeding opportunity"
+        title={<>Seeding opportunity &middot; all four conditions met</>}
         checked={field}
         onChange={(on) => dispatch(replayActions.setField(on))}
       >

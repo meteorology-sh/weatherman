@@ -90,7 +90,7 @@ export const ReplayRadarLayer = new GeoJSONLayer({
  * observed cloud top, and a satellite cannot forecast. Nothing repoints this.
  */
 export const CandidateFieldLayer = new GeoJSONLayer({
-  title: "Candidate field",
+  title: "Seeding opportunity",
   url: CandidateFieldUrl(),
   copyright: "NOAA HRRR / NOAA GOES-East / NOAA MRMS",
   renderer: candidateFieldRenderer,
@@ -105,7 +105,7 @@ export const CandidateFieldLayer = new GeoJSONLayer({
 
 /** The same field at a replayed hour. See ReplayCloudTopLayer for why separate. */
 export const ReplayFieldLayer = new GeoJSONLayer({
-  title: "Candidate field (replay)",
+  title: "Seeding opportunity (replay)",
   copyright: "NOAA HRRR / NOAA GOES-East / NOAA MRMS",
   renderer: candidateFieldRenderer,
   geometryType: "polygon",

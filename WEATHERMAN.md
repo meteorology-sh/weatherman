@@ -55,9 +55,9 @@ and the sidebar says so. The radar mosaic is the only measurement on either map.
 Clicking anywhere profiles that point's column and reads that cell's convective
 diagnostics.
 
-**The candidate field is the answer the other four are inputs to**, drawn over
+**The seeding-opportunity layer is the answer the other four are inputs to**, drawn over
 all of them. Leaving the amber on reads the two together: amber with no green
-over it is liquid the join rejected, and the panel says which test rejected it.
+over it is liquid the join rejected, and the panel says which condition ruled it out.
 
 **Cloud base sits at the bottom because it is the question asked first** — can an
 aircraft climb into this cloud at all — and the layers above are answers about a
@@ -68,7 +68,7 @@ switched on by default lands on ones an operator already reads.
 
 Its layers, rebuilt from that hour's own sources: the HRRR cycle initialised
 then, and the satellite and radar scans nearest it. The left panel is a calendar,
-what actually loaded, and the candidate field's summary — the one readout that
+what actually loaded, and the seeding-opportunity summary — the one readout that
 says something about the hour as a whole rather than about one unjoined source.
 
 **Nothing is drawn until every source has answered.** The sources take 10 s to
@@ -155,7 +155,7 @@ satellite. The rest of the file's diagnostics — CAPE, storm motion, lightning,
 vertically integrated liquid, echo top — ride the same build as **attributes on
 that point readout, and nothing gates on them.**
 
-### The candidate field — the join
+### Seeding opportunity — the join
 
 Every layer above, asked at once, per 12 km cell. A cell is a candidate where
 all four hold:
@@ -326,7 +326,7 @@ One hue per claim, and they cannot be swapped without the map lying:
 | Violet  | cloud base                 |
 | Amber   | modelled liquid water      |
 | Cyan    | rain, modelled or measured |
-| Emerald | the candidate field        |
+| Emerald | seeding opportunity        |
 
 Cyan is the same on both maps deliberately: it is the same quantity, and the two
 never share a map. On `/map/forecast` it is what the model says will fall; on

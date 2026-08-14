@@ -44,11 +44,11 @@ export const CandidateField = () => {
   if (stats.coveragePct === 0) {
     return (
       <div className="flex flex-col gap-2 p-4">
-        <h3 className="font-semibold">Candidate field</h3>
+        <h3 className="font-semibold">Seeding opportunity</h3>
         <div className="alert alert-warning alert-soft p-2 text-xs">
           <span>
-            Nothing in the domain passes every test at this hour. Not a failed
-            build — the sky is not offering a target.
+            Nothing in the domain meets all four conditions at this hour. Not a
+            failed build — the sky is not offering a target.
           </span>
         </div>
         <Rejections stats={stats} />
@@ -58,7 +58,7 @@ export const CandidateField = () => {
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      <h3 className="font-semibold">Candidate field</h3>
+      <h3 className="font-semibold">Seeding opportunity</h3>
 
       <div className="stats stats-vertical bg-base-200">
         <div className="stat py-2">
@@ -67,7 +67,7 @@ export const CandidateField = () => {
             {km2.format(stats.candidateKm2)} km²
           </div>
           <div className="stat-desc">
-            {stats.coveragePct}% of the domain &middot; every test passed
+            {stats.coveragePct}% of the domain &middot; all four conditions met
           </div>
         </div>
         <div className="stat py-2">
@@ -89,7 +89,7 @@ export const CandidateField = () => {
               {ft.format(stats.medianBandBaseFt)} ft
             </div>
             <div className="stat-desc">
-              {stats.reachablePct}% below a {ft.format(stats.ceilingFt)} ft
+              {stats.reachablePct}% below an {ft.format(stats.ceilingFt)} ft
               ceiling
             </div>
           </div>

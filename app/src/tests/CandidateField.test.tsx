@@ -71,7 +71,7 @@ describe("CandidateField", () => {
     show();
 
     expect(screen.getByText(/17,100 ft/)).toBeTruthy();
-    expect(screen.getByText(/72\.9% below a 18,000 ft ceiling/)).toBeTruthy();
+    expect(screen.getByText(/72\.9% below an 18,000 ft ceiling/)).toBeTruthy();
   });
 
   // A blank green layer over an amber one reads as a broken build unless the
