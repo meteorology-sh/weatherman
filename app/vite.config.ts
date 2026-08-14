@@ -29,6 +29,15 @@ export default defineConfig({
     },
     cors: true,
     proxy: {
+      "/candidate": {
+        target: process.env.SERVER_ORIGIN || "http://localhost:3000",
+        changeOrigin: true,
+        // The join waits on all five sources. Each is cached independently, so
+        // a warm map answers instantly, but a cold build pays the slowest of
+        // them plus the profile grid the satellite half needs.
+        timeout: 180_000,
+        proxyTimeout: 180_000,
+      },
       "/cloudtop": {
         target: process.env.SERVER_ORIGIN || "http://localhost:3000",
         changeOrigin: true,
