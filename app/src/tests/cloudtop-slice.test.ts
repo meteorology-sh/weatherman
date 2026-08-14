@@ -19,10 +19,10 @@ const stats: CloudTopStats = {
 };
 
 describe("cloudtop reducer", () => {
-  // It is the base layer the other three are read against, so it starts on for
-  // the same reason the radar layer does.
-  it("starts visible", () => {
-    expect(initialState.visible).toBe(true);
+  // The widest fill on the map, so switched on by default it is the one most
+  // likely to bury the answer drawn over it.
+  it("starts hidden", () => {
+    expect(initialState.visible).toBe(false);
   });
 
   it("starts with no stats", () => {

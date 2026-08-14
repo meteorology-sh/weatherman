@@ -7,10 +7,8 @@ type CloudBaseState = {
   /**
    * HRRR cloud base on the candidate map.
    *
-   * **Off by default**, unlike the other three. It is the newest claim on a map
-   * whose editorial line is that its layers are read against each other, and a
-   * fourth fill switched on by default would land on top of the three an
-   * operator already reads without being asked for.
+   * Off on arrival, like every layer but the candidate field. The map opens on
+   * its answer and the operator adds the inputs they want to check it against.
    */
   visible: boolean;
   /** Summary of the field. The bands themselves never enter the store. */

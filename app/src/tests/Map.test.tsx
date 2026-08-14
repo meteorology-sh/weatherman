@@ -131,8 +131,26 @@ describe("ArcGIS", () => {
 });
 
 describe("ArcGIS in candidate mode", () => {
-  it("shows the observed cloud tops and the modelled liquid water together", () => {
+  // The map opens on the candidate field alone. Every input to it starts off,
+  // so a layer on screen is one the operator asked for.
+  it("opens with the inputs off and the answer on", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    expect(fieldLayer.visible).toBe(true);
+    expect(cloudTopLayer.visible).toBe(false);
+    expect(liquidLayer.visible).toBe(false);
+    expect(radarLayer.visible).toBe(false);
+    expect(cloudBaseLayer.visible).toBe(false);
+  });
+
+  it("shows the observed cloud tops and the modelled liquid water together", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      store.dispatch(cloudTopActions.setVisible(true));
+      store.dispatch(candidateActions.setLiquid(true));
+    });
 
     expect(cloudTopLayer.visible).toBe(true);
     expect(liquidLayer.visible).toBe(true);
@@ -154,6 +172,10 @@ describe("ArcGIS in candidate mode", () => {
 
     renderWithStore(<ArcGIS mode="candidate" />, store);
     act(() => {
+      store.dispatch(cloudTopActions.setVisible(true));
+      store.dispatch(candidateActions.setLiquid(true));
+    });
+    act(() => {
       store.dispatch(cloudTopActions.setVisible(false));
     });
 
@@ -165,6 +187,10 @@ describe("ArcGIS in candidate mode", () => {
     const store = createTestStore();
 
     renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      store.dispatch(cloudTopActions.setVisible(true));
+      store.dispatch(candidateActions.setLiquid(true));
+    });
     act(() => {
       store.dispatch(candidateActions.setLiquid(false));
     });
@@ -180,8 +206,6 @@ describe("ArcGIS in candidate mode", () => {
     expect(precipLayer.visible).toBe(false);
   });
 
-  // The newest layer on the map, and the only one that starts off: a fourth
-  // fill switched on by default lands on three an operator already reads.
   it("leaves the cloud base off until it is asked for", () => {
     const store = createTestStore();
 
@@ -212,7 +236,12 @@ describe("ArcGIS in candidate mode", () => {
 
 describe("ArcGIS radar", () => {
   it("draws the mosaic on the observed map", () => {
-    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      store.dispatch(radarActions.setVisible(true));
+    });
 
     expect(radarLayer.visible).toBe(true);
   });

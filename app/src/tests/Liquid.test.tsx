@@ -22,8 +22,19 @@ const stats: SlwStats = {
   bandBaseMb: 700,
 };
 
-const withStats = (over: Partial<SlwStats> = {}) => {
+/**
+ * A store with the layer switched on. The map opens on the candidate field
+ * alone, so every readout below is about a layer the operator has asked for —
+ * switching it on is the precondition, not the thing under test.
+ */
+const shown = () => {
   const store = createTestStore();
+  store.dispatch(candidateActions.setLiquid(true));
+  return store;
+};
+
+const withStats = (over: Partial<SlwStats> = {}) => {
+  const store = shown();
   const { container } = renderWithStore(<Liquid />, store);
   act(() => {
     store.dispatch(candidateActions.setStats({ ...stats, ...over }));
@@ -33,13 +44,24 @@ const withStats = (over: Partial<SlwStats> = {}) => {
 
 describe("Liquid", () => {
   it("renders nothing before the stats arrive", () => {
-    const { container } = renderWithStore(<Liquid />, createTestStore());
+    const { container } = renderWithStore(<Liquid />, shown());
+
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("renders nothing while the layer is off", () => {
+    const store = createTestStore();
+
+    const { container } = renderWithStore(<Liquid />, store);
+    act(() => {
+      store.dispatch(candidateActions.setStats(stats));
+    });
 
     expect(container.innerHTML).toBe("");
   });
 
   it("shows a spinner while the server integrates", () => {
-    const store = createTestStore();
+    const store = shown();
 
     const { container } = renderWithStore(<Liquid />, store);
     act(() => {
@@ -50,7 +72,7 @@ describe("Liquid", () => {
   });
 
   it("shows the error when the build fails", () => {
-    const store = createTestStore();
+    const store = shown();
 
     renderWithStore(<Liquid />, store);
     act(() => {

@@ -21,8 +21,19 @@ const stats: CloudTopStats = {
   coldestTopC: -68.4,
 };
 
-const withStats = (over: Partial<CloudTopStats> = {}) => {
+/**
+ * A store with the layer switched on. The map opens on the candidate field
+ * alone, so every readout below is about a layer the operator has asked for —
+ * switching it on is the precondition, not the thing under test.
+ */
+const shown = () => {
   const store = createTestStore();
+  store.dispatch(cloudTopActions.setVisible(true));
+  return store;
+};
+
+const withStats = (over: Partial<CloudTopStats> = {}) => {
+  const store = shown();
   renderWithStore(<CloudTop />, store);
   act(() => {
     store.dispatch(cloudTopActions.setStats({ ...stats, ...over }));
@@ -85,7 +96,7 @@ describe("CloudTop panel", () => {
   });
 
   it("renders nothing while the layer is switched off", () => {
-    const store = createTestStore();
+    const store = shown();
     const { container } = renderWithStore(<CloudTop />, store);
 
     act(() => {
@@ -96,8 +107,19 @@ describe("CloudTop panel", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  it("shows the error instead of the numbers", () => {
+  it("renders nothing until the layer is switched on", () => {
     const store = createTestStore();
+    const { container } = renderWithStore(<CloudTop />, store);
+
+    act(() => {
+      store.dispatch(cloudTopActions.setStats(stats));
+    });
+
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("shows the error instead of the numbers", () => {
+    const store = shown();
     renderWithStore(<CloudTop />, store);
 
     act(() => {
@@ -108,7 +130,7 @@ describe("CloudTop panel", () => {
   });
 
   it("shows a spinner while it loads", () => {
-    const store = createTestStore();
+    const store = shown();
     renderWithStore(<CloudTop />, store);
 
     act(() => {

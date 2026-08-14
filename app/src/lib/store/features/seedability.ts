@@ -19,9 +19,9 @@ type SeedabilityState = {
 };
 
 /**
- * **On by default**, unlike cloud base. This is the answer the map exists to
- * give, and it covers a fraction of the ground the other layers do, so it lands
- * on top of them rather than burying them.
+ * **The only layer on by default.** This is the answer the map exists to give,
+ * so the map opens on it alone: every input to it starts off, and the operator
+ * switches on the ones they want to check the answer against.
  */
 const initialState: SeedabilityState = {
   visible: true,

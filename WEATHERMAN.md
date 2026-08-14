@@ -56,13 +56,14 @@ Clicking anywhere profiles that point's column and reads that cell's convective
 diagnostics.
 
 **The seeding-opportunity layer is the answer the other four are inputs to**, drawn over
-all of them. Leaving the amber on reads the two together: amber with no green
-over it is liquid the join rejected, and the panel says which condition ruled it out.
+all of them. It is the only layer that starts on: the map opens on its answer,
+and the operator switches on whichever inputs they want to check it against.
+Switching the amber back on reads the two together — amber with no green over it
+is liquid the join rejected, and the panel says which condition ruled it out.
 
 **Cloud base sits at the bottom because it is the question asked first** — can an
 aircraft climb into this cloud at all — and the layers above are answers about a
-cloud you can reach. It is the only layer here that starts hidden: an extra fill
-switched on by default lands on ones an operator already reads.
+cloud you can reach.
 
 ### `/map/replay` — the candidate map at an hour you pick
 

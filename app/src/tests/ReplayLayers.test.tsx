@@ -61,19 +61,24 @@ describe("ReplayLayers", () => {
 
     renderWithStore(<ReplayLayers />, store);
     const radar = screen.getByLabelText(RadarLegend.name) as HTMLInputElement;
-    expect(radar.checked).toBe(true);
+    expect(radar.checked).toBe(false);
 
     act(() => {
-      store.dispatch(replayActions.setRadar(false));
+      store.dispatch(replayActions.setRadar(true));
     });
 
-    expect(radar.checked).toBe(false);
+    expect(radar.checked).toBe(true);
   });
 
   // Both maps read one set of legends, so the same layer cannot end up
   // described one way live and another way in the archive.
   it("explains a layer with the same words the candidate map uses", () => {
-    renderWithStore(<ReplayLayers />, createTestStore());
+    const store = createTestStore();
+
+    renderWithStore(<ReplayLayers />, store);
+    act(() => {
+      store.dispatch(replayActions.setCloudTop(true));
+    });
 
     expect(screen.getByText(CloudTopLegend.summary)).toBeTruthy();
   });
@@ -82,6 +87,9 @@ describe("ReplayLayers", () => {
     const store = createTestStore();
 
     renderWithStore(<ReplayLayers />, store);
+    act(() => {
+      store.dispatch(replayActions.setCloudTop(true));
+    });
     act(() => {
       store.dispatch(replayActions.setCloudTop(false));
     });

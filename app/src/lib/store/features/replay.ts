@@ -62,12 +62,13 @@ const initialState: ReplayState = {
   loading: false,
   error: null,
   stats: null,
-  // Off on arrival, like the candidate map's: an extra fill switched on by
-  // default lands on the ones an operator already reads.
+  // The candidate field alone, like the candidate map: the page opens on its
+  // answer and the operator switches on the inputs they want to check it
+  // against.
   cloudBase: false,
-  cloudTop: true,
-  liquid: true,
-  radar: true,
+  cloudTop: false,
+  liquid: false,
+  radar: false,
   field: true,
 };
 

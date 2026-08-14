@@ -51,6 +51,19 @@ describe("ArcGIS in replay mode", () => {
   const ready = (at: string) =>
     replayActions.setReady({ at, stats: replayStats });
 
+  /**
+   * Switch on the three layers whose reveal is under test.
+   *
+   * The page opens on the candidate field alone, so these start off. Every test
+   * below is about the `ready` gate — whether the three appear together — and
+   * asking for them is the precondition for that, not part of it.
+   */
+  const askFor = (store: ReturnType<typeof createTestStore>) => {
+    store.dispatch(replayActions.setCloudTop(true));
+    store.dispatch(replayActions.setLiquid(true));
+    store.dispatch(replayActions.setRadar(true));
+  };
+
   it("draws nothing until an hour is picked", () => {
     renderWithStore(<ArcGIS mode="replay" />, createTestStore());
 
@@ -75,6 +88,7 @@ describe("ArcGIS in replay mode", () => {
 
   it("blanks the map again when a new hour is picked", () => {
     const store = createTestStore();
+    askFor(store);
     renderWithStore(<ArcGIS mode="replay" />, store);
     act(() => {
       store.dispatch(replayActions.setAt(AT));
@@ -93,6 +107,7 @@ describe("ArcGIS in replay mode", () => {
 
   it("reveals all three together once every source has answered", () => {
     const store = createTestStore();
+    askFor(store);
     renderWithStore(<ArcGIS mode="replay" />, store);
     act(() => {
       store.dispatch(replayActions.setAt(AT));
@@ -221,6 +236,7 @@ describe("ArcGIS in replay mode", () => {
 
   it("hides a replay layer the operator turns off", () => {
     const store = createTestStore();
+    askFor(store);
     renderWithStore(<ArcGIS mode="replay" />, store);
     act(() => {
       store.dispatch(ready(AT));

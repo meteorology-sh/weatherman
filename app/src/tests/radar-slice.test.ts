@@ -16,9 +16,10 @@ const stats: RadarStats = {
 const initial = reducer(undefined, { type: "@@INIT" });
 
 describe("radar slice", () => {
-  // A disqualifier the operator has to remember to switch on is not one.
-  it("starts with the mosaic drawn", () => {
-    expect(initial.visible).toBe(true);
+  // The join has already applied the rain test, so the answer layer never
+  // offers a raining cell. This layer shows where that happened, on request.
+  it("starts with the mosaic hidden", () => {
+    expect(initial.visible).toBe(false);
   });
 
   it("starts with no stats and no error", () => {

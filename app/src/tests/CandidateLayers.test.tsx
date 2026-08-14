@@ -71,6 +71,22 @@ const rgba = (css: string) =>
     .replace(/(\.\d*?)0+\)/, "$1)")
     .replace(/\.\)/, ")");
 
+/**
+ * A store with the input layers switched on.
+ *
+ * The map opens on the candidate field alone, so a ramp is only on screen for a
+ * layer the operator has asked for. Switching them on is the precondition for
+ * reading a ramp at all, not the thing under test. Cloud base is left off — the
+ * block below switches it on itself, and needs somewhere to start.
+ */
+const allOn = () => {
+  const store = createTestStore();
+  store.dispatch(candidateActions.setLiquid(true));
+  store.dispatch(cloudTopActions.setVisible(true));
+  store.dispatch(radarActions.setVisible(true));
+  return store;
+};
+
 describe("CandidateLayers", () => {
   it("shows a swatch for every candidate band", () => {
     const { container } = renderWithStore(
@@ -91,10 +107,7 @@ describe("CandidateLayers", () => {
   });
 
   it("shows a swatch for every liquid-water band", () => {
-    const { container } = renderWithStore(
-      <CandidateLayers />,
-      createTestStore()
-    );
+    const { container } = renderWithStore(<CandidateLayers />, allOn());
 
     expect(swatches(container, LIQUID)).toHaveLength(SLW_BANDS.length);
   });
@@ -102,10 +115,7 @@ describe("CandidateLayers", () => {
   // The swatch has to be the colour the map paints, not a hand-picked one, or
   // the legend quietly stops describing the map.
   it("paints each swatch the colour the map composites", () => {
-    const { container } = renderWithStore(
-      <CandidateLayers />,
-      createTestStore()
-    );
+    const { container } = renderWithStore(<CandidateLayers />, allOn());
 
     const richest = swatches(container, LIQUID)[SLW_BANDS.length - 1];
     expect(rgba(richest.style.backgroundColor)).toBe(
@@ -114,10 +124,7 @@ describe("CandidateLayers", () => {
   });
 
   it("labels the liquid bands in g/m² over the seeding band", () => {
-    const { container } = renderWithStore(
-      <CandidateLayers />,
-      createTestStore()
-    );
+    const { container } = renderWithStore(<CandidateLayers />, allOn());
 
     // Scoped to the liquid switch: the candidate ramp carries the same levels,
     // so an unscoped lookup for "400" matches both.
@@ -140,19 +147,30 @@ describe("CandidateLayers", () => {
     ) as HTMLInputElement;
     const liquid = screen.getByLabelText(LiquidLegend.name) as HTMLInputElement;
 
-    expect(cloudTop.checked).toBe(true);
-    expect(liquid.checked).toBe(true);
+    expect(cloudTop.checked).toBe(false);
+    expect(liquid.checked).toBe(false);
 
     act(() => {
-      store.dispatch(candidateActions.setLiquid(false));
+      store.dispatch(candidateActions.setLiquid(true));
     });
 
-    expect(liquid.checked).toBe(false);
-    expect(cloudTop.checked).toBe(true);
+    expect(liquid.checked).toBe(true);
+    expect(cloudTop.checked).toBe(false);
   });
 
-  it("turns the liquid layer off when its toggle is clicked", () => {
+  it("turns the liquid layer on when its toggle is clicked", () => {
     const store = createTestStore();
+
+    renderWithStore(<CandidateLayers />, store);
+    act(() => {
+      (screen.getByLabelText(LiquidLegend.name) as HTMLElement).click();
+    });
+
+    expect(store.getState().candidate.liquid).toBe(true);
+  });
+
+  it("turns the liquid layer off again when its toggle is clicked twice", () => {
+    const store = allOn();
 
     renderWithStore(<CandidateLayers />, store);
     act(() => {
@@ -163,7 +181,7 @@ describe("CandidateLayers", () => {
   });
 
   it("hides the liquid ramp when the layer is off", () => {
-    const store = createTestStore();
+    const store = allOn();
 
     const { container } = renderWithStore(<CandidateLayers />, store);
     act(() => {
@@ -174,7 +192,7 @@ describe("CandidateLayers", () => {
   });
 
   it("hides the cloud-top legend when the layer is off", () => {
-    const store = createTestStore();
+    const store = allOn();
 
     renderWithStore(<CandidateLayers />, store);
     act(() => {
@@ -188,10 +206,7 @@ describe("CandidateLayers", () => {
   // map paints rather than a composite of everything beneath it. Compositing
   // them here would describe a map that does not exist.
   it("paints each cloud-top swatch its own unstacked fill", () => {
-    const { container } = renderWithStore(
-      <CandidateLayers />,
-      createTestStore()
-    );
+    const { container } = renderWithStore(<CandidateLayers />, allOn());
 
     const warmest = container.querySelector<HTMLElement>(
       `div[title="${CLOUD_TOP_BANDS[0].label} °C"]`
@@ -220,7 +235,7 @@ describe("CandidateLayers cloud base", () => {
     ).filter((el) => el.title.endsWith("ft MSL"));
 
   const withLayer = () => {
-    const store = createTestStore();
+    const store = allOn();
     const { container } = renderWithStore(<CandidateLayers />, store);
     act(() => {
       store.dispatch(cloudBaseActions.setVisible(true));
@@ -230,10 +245,7 @@ describe("CandidateLayers cloud base", () => {
 
   // It starts off, so nothing about it should be on screen until asked for.
   it("hides its ramp until the layer is switched on", () => {
-    const { container } = renderWithStore(
-      <CandidateLayers />,
-      createTestStore()
-    );
+    const { container } = renderWithStore(<CandidateLayers />, allOn());
 
     expect(bases(container)).toHaveLength(0);
   });
@@ -312,19 +324,13 @@ describe("CandidateLayers cloud base", () => {
 
 describe("CandidateLayers radar", () => {
   it("shows a swatch for every reflectivity band", () => {
-    const { container } = renderWithStore(
-      <CandidateLayers />,
-      createTestStore()
-    );
+    const { container } = renderWithStore(<CandidateLayers />, allOn());
 
     expect(swatches(container, RADAR)).toHaveLength(RADAR_BANDS.length);
   });
 
   it("paints each swatch the colour the map composites", () => {
-    const { container } = renderWithStore(
-      <CandidateLayers />,
-      createTestStore()
-    );
+    const { container } = renderWithStore(<CandidateLayers />, allOn());
 
     const hardest = swatches(container, RADAR)[RADAR_BANDS.length - 1];
     expect(rgba(hardest.style.backgroundColor)).toBe(
@@ -333,10 +339,7 @@ describe("CandidateLayers radar", () => {
   });
 
   it("labels the bands in dBZ", () => {
-    const { container } = renderWithStore(
-      <CandidateLayers />,
-      createTestStore()
-    );
+    const { container } = renderWithStore(<CandidateLayers />, allOn());
     const section = container
       .querySelector(`input[aria-label="${RADAR}"]`)
       ?.closest("div.flex.flex-col.gap-2") as HTMLElement;
@@ -348,8 +351,19 @@ describe("CandidateLayers radar", () => {
     expect(within(section).getAllByText(/dBZ/).length).toBeGreaterThan(0);
   });
 
-  it("turns the mosaic off when its toggle is clicked", () => {
+  it("turns the mosaic on when its toggle is clicked", () => {
     const store = createTestStore();
+
+    renderWithStore(<CandidateLayers />, store);
+    act(() => {
+      (screen.getByLabelText(RadarLegend.name) as HTMLElement).click();
+    });
+
+    expect(store.getState().radar.visible).toBe(true);
+  });
+
+  it("turns the mosaic off again when its toggle is clicked twice", () => {
+    const store = allOn();
 
     renderWithStore(<CandidateLayers />, store);
     act(() => {
@@ -360,7 +374,7 @@ describe("CandidateLayers radar", () => {
   });
 
   it("hides the radar ramp when the layer is off", () => {
-    const store = createTestStore();
+    const store = allOn();
 
     const { container } = renderWithStore(<CandidateLayers />, store);
     act(() => {
@@ -372,7 +386,7 @@ describe("CandidateLayers radar", () => {
 
   // Two ramps in one panel: switching one off must not take the other with it.
   it("leaves the liquid ramp alone when the radar is off", () => {
-    const store = createTestStore();
+    const store = allOn();
 
     const { container } = renderWithStore(<CandidateLayers />, store);
     act(() => {
