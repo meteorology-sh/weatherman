@@ -92,16 +92,23 @@ const CLOUD_TOP = {
    * ground over a Texas year. Masking those off is what this layer is for.
    *
    * −12, −18 and −25 °C are **reference isotherms, not gates** — −18 °C is the
-   * seeding band's cold edge, and the others bracket it. Nothing is discarded
-   * for being colder than any of them: the coldest band is open-ended and still
-   * drawn, just drawn faintly, because most cloudy ground sits there and
-   * painting cirrus as loudly as a seedable top would bury the thing the
-   * operator is looking for.
+   * seeding band's cold edge, and the others bracket it. The bands drawn from
+   * them fade as they get colder, and the reason is the ice: silver iodide only
+   * does something in a cloud that still holds liquid, natural ice-nucleating
+   * particles are scarce at warm subzero temperatures and common well below
+   * them, so a colder top is likelier to have frozen on its own and spent the
+   * water seeding would have converted.
    *
-   * There is **no cold cutoff.** A cutoff would be a claim that seeding stops
-   * paying below some cloud-top temperature, and no version of that claim
-   * appears in `SENSING_STRATEGY.md`. It needs a citation, not a coverage
-   * table — see `MEASUREMENTS.md` §4.
+   * There is **no cold cutoff**, and the fade is not one. A cutoff would be a
+   * claim that seeding stops paying below some cloud-top temperature; what the
+   * physics supports is a gradual fall-off with no edge in it. It also cuts
+   * both ways — a colder top means the band is more fully enclosed by the cloud
+   * — and cloud-top temperature is the coldest part of a cloud rather than a
+   * summary of it, so a vigorous cell with a very cold anvil can still carry
+   * liquid in the band. Nothing is discarded for being cold: the coldest band
+   * is open-ended and still drawn. Neither this layer nor the supercooled-liquid
+   * one observes phase — that layer is the model's opinion about the right
+   * variable, not a measurement of it. See `MEASUREMENTS.md` §2 and §4.
    */
   levels: [5, 12, 18, 25],
 } as const;

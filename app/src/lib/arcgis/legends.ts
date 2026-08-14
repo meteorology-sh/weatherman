@@ -93,12 +93,35 @@ export const CloudTopLegend: LayerLegend = {
       "cloud-top pressure every 5 minutes at 2 km; the server puts that on " +
       "the 12 km grid and reads each pressure as a temperature from HRRR's " +
       "profile at that height.",
+    `Tops warmer than ${CLOUD_TOP_WARMEST_C} °C are left out, and that is the ` +
+      "only thing this layer excludes: a top that warm puts the whole seeding " +
+      "band above the cloud, so there is nothing inside it to seed.",
+    "Below that edge the bands fade as they get colder, and the reason is the " +
+      "ice. Silver iodide only does something in a cloud that still holds " +
+      "liquid water. Natural ice-forming particles are scarce in the warmest " +
+      "part of the subzero range and common well below it, so the colder a " +
+      "top is, the likelier that cloud has already frozen on its own — and a " +
+      "cloud that has frozen has already spent the water seeding would have " +
+      "converted. The brightest band is where the liquid is most likely still " +
+      "there to work with.",
+    "That is a preference and not a test, so nothing is dropped for being " +
+      "cold and the coldest band stays on the map. It cuts both ways: a " +
+      `colder top also means more of the ${BAND_LABEL} band sits inside the ` +
+      "cloud rather than above it. And this reads the coldest part of a cloud " +
+      "rather than summarising it, so a vigorous cell with a very cold anvil " +
+      "can still be carrying liquid lower down. A faint band here under bright " +
+      "supercooled liquid water contours is that case, not a contradiction — " +
+      "prefer the layer that is about the liquid, and read it as the model's " +
+      "estimate rather than a measurement. Nothing here measures the phase of " +
+      "a cloud directly.",
     "The top of the cloud, not the liquid inside it — the " +
       `${BAND_LABEL} band sits below the top and this cannot see into it. ` +
-      `Tops warmer than ${CLOUD_TOP_WARMEST_C} °C are left out because the ` +
-      "seeding band is then above the cloud entirely. The shape is observed " +
-      "but the temperature comes from HRRR, so a cloud the model has " +
-      "misplaced vertically will read the wrong temperature.",
+      "It is built from two sources doing separate jobs: the satellite gives " +
+      "the cloud's outline and the pressure at its top, and HRRR gives the " +
+      "temperature at that pressure. So the cloud is where the satellite says " +
+      "it is, but the number in °C is the model's — and where HRRR has the " +
+      "temperature profile wrong, a correctly placed cloud is labelled with " +
+      "the wrong temperature.",
   ],
 };
 

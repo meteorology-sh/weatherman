@@ -226,6 +226,19 @@ describe("CLOUD_TOP_BANDS", () => {
     expect(alphas).toEqual([...alphas].sort((a, b) => b - a));
   });
 
+  // These bands do not composite, so the alphas written here are the only
+  // separation the layer gets — a nested layer's four fills land on the map
+  // ~0.15 apart for free, from stacking, while these land exactly where they
+  // are written. Slate over a dark basemap has almost no hue to help either, so
+  // a narrower step reads as one flat wash rather than four bands.
+  it("separates each band enough to be read as its own", () => {
+    const alphas = CLOUD_TOP_BANDS.map((band) => band.alpha);
+
+    for (let i = 0; i < alphas.length - 1; i++) {
+      expect(alphas[i] - alphas[i + 1]).toBeGreaterThanOrEqual(0.12);
+    }
+  });
+
   // The band value is what the server writes on the feature; if the two drift,
   // the renderer matches nothing and the layer paints as invisible.
   it("keys each band on the coldness the server emits", () => {

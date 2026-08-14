@@ -214,22 +214,38 @@ export const CLOUD_TOP_RGB = [148, 163, 184] as const;
 /**
  * Mirrors CLOUD_TOP.levels in server/src/lib/services/goes/cloudtop.ts.
  *
- * **The opacity ramp runs backwards from every other layer here, on purpose.**
- * The warmest band is the loudest because it is the one a seeding operator is
- * looking for: a top just below −5 °C is a shallow supercooled-topped cloud,
- * the classic target. The coldest band is nearly invisible because most cloudy
- * ground sits there — that is cirrus and anvil, it covers most of the sky, and
- * painting it loudly would bury the thing worth finding under the thing that is
- * merely everywhere.
+ * **The opacity ramp runs backwards from every other layer here, on purpose,
+ * and the reason is the ice.** Silver iodide only does something in a cloud
+ * that still holds liquid. Natural ice-nucleating particles are scarce at warm
+ * subzero temperatures and common well below them, so the colder a top is, the
+ * likelier that cloud has already frozen on its own — and a cloud that has
+ * frozen has already spent the water seeding would have converted. The warmest
+ * band is the loudest because that is where the liquid is most likely still
+ * there to work with.
  *
- * Nothing is discarded for being cold: the last band is open-ended and still
- * drawn. See `MEASUREMENTS.md` §4 for why there is no cold cutoff.
+ * **This is a preference, not a test.** A colder top also means the seeding
+ * band is more fully enclosed by the cloud, which cuts the other way, and
+ * cloud-top temperature is the coldest part of a cloud rather than a summary of
+ * it — a vigorous cell with a −60 °C anvil can carry liquid in the band. So
+ * nothing is discarded for being cold and the last band is open-ended and still
+ * drawn. Neither this layer nor the liquid one observes phase; the liquid layer
+ * is at least about the liquid, and it is the model's opinion rather than a
+ * measurement. See `MEASUREMENTS.md` §4 for the citation and for why there is
+ * no cold cutoff.
+ *
+ * **The steps are wide because these bands do not stack.** The nested layers
+ * get their separation for free — their fills composite, so four alphas of 0.15
+ * to 0.26 land on the map as 0.15, 0.30, 0.46, 0.60. A disjoint band is painted
+ * at the alpha written here and nothing else, so the alphas have to carry the
+ * whole spread themselves. Slate is nearly colourless over a dark basemap, so
+ * anything narrower separates the four bands by a few points of grey and the
+ * layer reads as one flat wash.
  */
 export const CLOUD_TOP_BANDS: readonly CloudTopBand[] = [
-  { value: 5, fromC: -5, toC: -12, label: "−5 to −12", alpha: 0.3 },
-  { value: 12, fromC: -12, toC: -18, label: "−12 to −18", alpha: 0.22 },
-  { value: 18, fromC: -18, toC: -25, label: "−18 to −25", alpha: 0.14 },
-  { value: 25, fromC: -25, toC: null, label: "below −25", alpha: 0.07 },
+  { value: 5, fromC: -5, toC: -12, label: "−5 to −12", alpha: 0.65 },
+  { value: 12, fromC: -12, toC: -18, label: "−12 to −18", alpha: 0.45 },
+  { value: 18, fromC: -18, toC: -25, label: "−18 to −25", alpha: 0.28 },
+  { value: 25, fromC: -25, toC: null, label: "below −25", alpha: 0.14 },
 ];
 
 /**

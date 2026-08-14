@@ -115,9 +115,20 @@ It has **real nodata** — where the satellite sees no cloud, nothing is drawn. 
 is **filtered**: only tops at −5 °C or colder appear, because a warmer top means
 the seeding band lies above the cloud entirely, which accounts for most cloudy
 ground over a Texas year. The bands are **disjoint, not nested**, and the ramp
-runs backwards — warmest band loudest — because the warm end is the target and
-the cold end is cirrus covering most of the sky. There is **no cold cutoff**
-(`MEASUREMENTS.md` §4).
+runs backwards — warmest band loudest — **because of the ice**. Silver iodide
+only does something in a cloud that still holds liquid, and natural ice-forming
+particles are scarce in the warmest part of the subzero range and common well
+below it, so a colder top is likelier to have frozen on its own and already
+spent the water seeding would have converted.
+
+That is a preference, not a test. It cuts both ways — a colder top also means
+more of the band sits inside the cloud — and cloud-top temperature is the
+coldest part of a cloud rather than a summary of it, so a vigorous cell with a
+very cold anvil can still carry liquid in the band. There is **no cold cutoff**
+and the coldest band stays on the map. A faint top band under bright liquid
+contours is that case rather than a contradiction; **neither layer observes
+phase**, so prefer the one that is at least about the liquid and hold it as
+HRRR's opinion rather than a measurement (`MEASUREMENTS.md` §2, §4).
 
 ### Cloud phase and quantity — HRRR
 

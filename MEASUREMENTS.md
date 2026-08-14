@@ -130,14 +130,41 @@ there is nothing inside it to seed. That is C2, it is already in the design
 document, and masking those cells off is the single most useful thing a
 cloud-top layer does.
 
-**The cloud-top mask has no cold edge.** An upper bound would be a _new_
-criterion — that seeding's marginal benefit falls off below some cloud-top
-temperature — and no version of it appears in `SENSING_STRATEGY.md`. Under a
-strict reading of C2 there is no cold cutoff at all: a colder top means the band
-is more fully enclosed by cloud, which is better, not worse. **A physical cutoff
-needs a citation, not a table of coverage percentages.** Adding one is a
-one-line change to `CLOUD_TOP.levels` if the literature ever supports it; the
-burden of proof sits on adding it, not on leaving it out.
+**The cloud-top mask has no cold edge, and the ramp fades anyway.** These are
+two different statements and the reason they can both hold is that C2 and C4
+pull in opposite directions as the top gets colder.
+
+- **C2 says colder is better.** A colder top means the band is more fully
+  enclosed by cloud. On a strict reading there is no cold cutoff at all.
+- **C4 says colder is worse.** Natural ice-nucleating particles are scarce at
+  warm subzero temperatures — `APPLIED_PHYSICS.md` §1 puts relatively few active
+  warmer than about −15 °C, with homogeneous freezing near −38 °C. So a colder
+  top is likelier to have glaciated on its own, and C4's "AgI does nothing in a
+  cloud that has already frozen" is exactly the resource being lost. The
+  Wegener–Bergeron–Findeisen process seeding exists to trigger is the same one
+  that has already run there.
+
+Neither wins, so **neither gates**: the opacity ramp carries the tension and the
+mask keeps only the warm edge. **A physical cutoff needs a citation, not a table
+of coverage percentages**, and nothing here supports one — the fall-off is
+gradual and the −15 °C figure is where natural nucleation becomes common, not
+where seeding stops paying. Adding a cutoff is a one-line change to
+`CLOUD_TOP.levels` if the literature ever supports it; the burden of proof sits
+on adding it, not on leaving it out.
+
+**The ramp is about the wrong variable, so it can only ever shade.** Cloud-top
+temperature is the coldest part of the cloud, not a summary of its phase — a
+vigorous cell with a −60 °C anvil can still carry supercooled liquid in the
+band, and that is the cloud Texas seeds. A faint top band over bright liquid
+contours is that case, not a contradiction.
+
+**Neither layer observes phase, and §2 is why.** The supercooled-liquid contours
+are HRRR's CLWMR — the model's opinion about the right variable. The cloud-top
+ramp is an inference about phase from a different variable, read at one height.
+Prefer the layer that is at least about the liquid, and hold it as a modelled
+claim rather than a measurement: nothing free and national measures supercooled
+liquid water, which is the whole reason this product fuses sources instead of
+reading one.
 
 ## 5. Traps
 
@@ -247,3 +274,4 @@ is real.
 - [NWS SCN 25-89 — AIGFS/AIGEFS/HGEFS implementation](https://www.weather.gov/media/notification/pdf_2025/scn25-89_AIGFS_AIGEFS_and_HGEFS.pdf) (the authoritative variable list)
 - [Open-Meteo GFS & HRRR API](https://open-meteo.com/en/docs/gfs-api) · [NASA GIBS WMTS capabilities](https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/1.0.0/WMTSCapabilities.xml)
 - System design: `/home/nathan/code/rainmaker/weatherman/docs/SENSING_STRATEGY.md` (C1–C7, the phase-fusion principle) · [Cloudnet](https://cloudnet.fmi.fi/)
+- Applied physics: `/home/nathan/code/rainmaker/docs/APPLIED_PHYSICS.md` §1–2 (ice-nucleating particles and their scarcity at warm subzero temperatures, the Wegener–Bergeron–Findeisen process, AgI active as warm as about −4 to −6 °C)
