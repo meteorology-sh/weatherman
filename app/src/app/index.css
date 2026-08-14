@@ -8,6 +8,18 @@
 }
 @plugin "@tailwindcss/typography";
 
+/* Opening the drawer sets DaisyUI's --page-scroll-lock, which switches on both
+   `overflow: hidden` and a scroll-driven animation (`animation-timeline:
+   scroll()`) on <html> in the same style change — attaching a scroll timeline
+   to a scroller that is being removed. Toggling the drawer a few times crashes
+   the Chrome renderer on that. The root here never scrolls (the shell is one
+   viewport under a 4rem navbar), so the animation measures nothing; the scroll
+   lock itself is left alone. Unlayered, so it wins over DaisyUI's base layer. */
+:root {
+  animation: none;
+  animation-timeline: auto;
+}
+
 /* Every word in the panel is read, so none of it is dimmed. DaisyUI mixes stat
    captions down to 60% of base-content and prose body to 80%; both land as grey
    on black. Unlayered, so it wins over the plugins' own layers. */
