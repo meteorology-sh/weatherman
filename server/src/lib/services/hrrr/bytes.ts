@@ -13,8 +13,8 @@
  */
 
 // Services
-import { eachMessage } from "./grib";
-import { POINTS } from "./grid";
+import { eachMessage } from "../shared/grib";
+import { POINTS } from "../shared/grid";
 
 const HRRR = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod";
 

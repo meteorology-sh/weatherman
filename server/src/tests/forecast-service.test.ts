@@ -7,8 +7,8 @@ import {
   ForecastService,
   polygons,
   FORECAST_HOURS,
-} from "../lib/services/forecast";
-import { accumulate, blockAverage } from "../lib/services/grid";
+} from "../lib/services/hrrr/forecast";
+import { accumulate, blockAverage } from "../lib/services/shared/grid";
 
 const NX = 20;
 const NY = 20;

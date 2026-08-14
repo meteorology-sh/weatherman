@@ -20,15 +20,15 @@
  */
 
 // Services
-import { features } from "./contour";
-import { Hrrr } from "./forecast";
-import { SEEDING } from "./slw";
-import { Goes } from "./cloudtop";
-import { Mrms } from "./radar";
+import { features } from "../shared/contour";
+import { Hrrr } from "../hrrr/forecast";
+import { SEEDING } from "../hrrr/slw";
+import { Goes } from "../goes/cloudtop";
+import { Mrms } from "../mrms/radar";
 import { emptyStats, join, sampleRadar, summarize } from "./join";
 
 // Types
-import type { Grid, ContourFeature } from "./contour";
+import type { Grid, ContourFeature } from "../shared/contour";
 import type { CandidateStats } from "./join";
 
 /**

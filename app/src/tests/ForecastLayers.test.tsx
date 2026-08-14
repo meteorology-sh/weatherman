@@ -17,7 +17,7 @@ import {
 import { PrecipLegend } from "@/lib/arcgis/legends";
 
 // Components
-import { ForecastLayers } from "@/app/components/ForecastLayers";
+import { ForecastLayers } from "@/app/components/forecast/ForecastLayers";
 
 const swatches = (container: HTMLElement) =>
   Array.from(container.querySelectorAll<HTMLElement>("div.h-4"));

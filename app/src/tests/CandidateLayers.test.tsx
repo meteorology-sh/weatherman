@@ -34,7 +34,7 @@ import {
 } from "@/lib/arcgis/legends";
 
 // Components
-import { CandidateLayers } from "@/app/components/CandidateLayers";
+import { CandidateLayers } from "@/app/components/candidate/CandidateLayers";
 
 /**
  * One layer's ramp swatches, scoped to that layer's own switch.

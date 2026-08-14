@@ -6,7 +6,7 @@ import { createTestStore, renderWithStore } from "./utils";
 import { cloudBaseActions } from "@/lib/store/features/cloudbase";
 
 // Components
-import { CloudBase } from "@/app/components/CloudBase";
+import { CloudBase } from "@/app/components/candidate/CloudBase";
 
 // Types
 import type { CloudBaseStats } from "@/lib/types";

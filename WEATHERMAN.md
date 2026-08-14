@@ -134,7 +134,7 @@ a fixed level.
 −5 °C is physics: silver iodide barely nucleates ice above it. −18 °C is a
 judgement about where the _supply_ of liquid thins out, because natural ice
 nuclei activate and take it first; AgI itself keeps working to roughly −20 °C.
-Both edges live in `SEEDING` in `server/src/lib/services/slw.ts`, mirrored by
+Both edges live in `SEEDING` in `server/src/lib/services/hrrr/slw.ts`, mirrored by
 `BAND_WARMEST_C`/`BAND_COLDEST_C` in the app. **Every caption, legend bracket and
 readout reads the band from one of those two places.**
 
@@ -211,7 +211,7 @@ no evidence about what is inside it.
 Every data route takes an optional `at` (ISO 8601). **Absent means live**, and a
 request without it takes exactly the code path it took before replay existed —
 the live map is never routed through a historical branch to get today's weather.
-`parseAt` in `lib/services/replay.ts` is the one place it is read.
+`parseAt` in `lib/services/shared/replay.ts` is the one place it is read.
 
 `at` names the **HRRR cycle**, not the valid time: `?at=2025-05-15T18:00:00Z` is
 the 18z run, and `hour` still selects f00–f18 within it. The scene-based services
@@ -287,7 +287,7 @@ whose geometry is observed:
 ```
 noaa-goes19 listing → newest ABI-L2-ACHP2KMC scene (4.1 MB NetCDF4)
              → h5wasm → cloud-top pressure + projection constants
-             → ABI fixed grid → HRRR's 12 km grid   [services/abi.ts]
+             → ABI fixed grid → HRRR's 12 km grid   [services/goes/abi.ts]
              → Hrrr.column() supplies TMP at that pressure
              → mask to tops colder than −5 °C, disjoint bands
              → GET /cloudtop/temperature → CandidateCloudTopLayer.url

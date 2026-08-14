@@ -6,7 +6,7 @@ import { createTestStore, renderWithStore } from "./utils";
 import { seedabilityActions } from "@/lib/store/features/seedability";
 
 // Components
-import { CandidateField } from "@/app/components/CandidateField";
+import { CandidateField } from "@/app/components/candidate/CandidateField";
 
 // Types
 import type { CandidateStats } from "@/lib/types";

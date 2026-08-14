@@ -6,7 +6,7 @@ import { createTestStore, renderWithStore } from "./utils";
 import { forecastActions } from "@/lib/store/features/forecast";
 
 // Components
-import { TimeSlider } from "@/app/components/TimeSlider";
+import { TimeSlider } from "@/app/components/forecast/TimeSlider";
 
 // Types
 import type { ForecastMeta } from "@/lib/types";

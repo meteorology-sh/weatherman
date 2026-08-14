@@ -4,7 +4,7 @@
  */
 export type MapMode = "forecast" | "candidate" | "replay";
 
-/** Mirrors ForecastMeta in server/src/lib/services/forecast.ts */
+/** Mirrors ForecastMeta in server/src/lib/services/hrrr/forecast.ts */
 export interface ForecastMeta {
   /** Model run, ISO 8601. */
   run: string;
@@ -12,7 +12,7 @@ export interface ForecastMeta {
   hours: number[];
 }
 
-/** Mirrors Rejected in server/src/lib/services/join.ts */
+/** Mirrors Rejected in server/src/lib/services/candidate/join.ts */
 export interface Rejected {
   /** The model has no cloud base over the cell — nothing to climb into. */
   noCloudBase: number;
@@ -26,7 +26,7 @@ export interface Rejected {
   raining: number;
 }
 
-/** Mirrors CandidateStats in server/src/lib/services/join.ts */
+/** Mirrors CandidateStats in server/src/lib/services/candidate/join.ts */
 export interface CandidateStats {
   run: string;
   validTime: string;
@@ -66,7 +66,7 @@ export interface CandidateStats {
   stormMotionTowardDeg: number | null;
 }
 
-/** Mirrors SlwStats in server/src/lib/services/slw.ts */
+/** Mirrors SlwStats in server/src/lib/services/hrrr/slw.ts */
 export interface SlwStats {
   run: string;
   hour: number;
@@ -82,7 +82,7 @@ export interface SlwStats {
   bandBaseMb: number | null;
 }
 
-/** Mirrors CloudBaseStats in server/src/lib/services/diagnostics.ts */
+/** Mirrors CloudBaseStats in server/src/lib/services/hrrr/diagnostics.ts */
 export interface CloudBaseStats {
   run: string;
   hour: number;
@@ -97,7 +97,7 @@ export interface CloudBaseStats {
   medianFt: number | null;
 }
 
-/** Mirrors Diagnostics in server/src/lib/services/diagnostics.ts */
+/** Mirrors Diagnostics in server/src/lib/services/hrrr/diagnostics.ts */
 export interface Diagnostics {
   /** Cloud base, ft MSL. Null where the model has no cloud over the cell. */
   cloudBaseFt: number | null;
@@ -125,14 +125,14 @@ export interface Diagnostics {
   echoTopFt: number | null;
 }
 
-/** Mirrors SoundingLevel in server/src/lib/services/profile.ts */
+/** Mirrors SoundingLevel in server/src/lib/services/hrrr/profile.ts */
 export interface SoundingLevel {
   mb: number;
   tempC: number;
   heightFt: number;
 }
 
-/** Mirrors Sounding in server/src/lib/services/forecast.ts */
+/** Mirrors Sounding in server/src/lib/services/hrrr/forecast.ts */
 export interface Sounding {
   run: string;
   hour: number;
@@ -156,7 +156,7 @@ export interface Sounding {
   diagnostics: Diagnostics;
 }
 
-/** Mirrors RadarStats in server/src/lib/services/radar.ts */
+/** Mirrors RadarStats in server/src/lib/services/mrms/radar.ts */
 export interface RadarStats {
   /** When the server last built the scene, ISO 8601. */
   fetchedAt: string;
@@ -172,7 +172,7 @@ export interface RadarStats {
   peakDbz: number | null;
 }
 
-/** Mirrors CloudTopStats in server/src/lib/services/cloudtop.ts */
+/** Mirrors CloudTopStats in server/src/lib/services/goes/cloudtop.ts */
 export interface CloudTopStats {
   /** When the server last built the scene, ISO 8601. */
   fetchedAt: string;

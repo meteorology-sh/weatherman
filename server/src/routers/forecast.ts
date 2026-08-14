@@ -2,8 +2,8 @@
 import express, { Request, Response } from "express";
 
 // Services
-import { Hrrr } from "../lib/services/forecast";
-import { parseAt } from "../lib/services/replay";
+import { Hrrr } from "../lib/services/hrrr/forecast";
+import { parseAt } from "../lib/services/shared/replay";
 
 export const forecast = express.Router();
 

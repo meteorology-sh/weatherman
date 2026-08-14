@@ -24,10 +24,10 @@ import {
 } from "@/lib/arcgis/bands";
 
 // Components
-import { LayerToggle } from "./LayerToggle";
-import { Ramp } from "./Ramp";
-import { CloudBaseRamp } from "./CloudBaseRamp";
-import { CloudTopRamp } from "./CloudTopRamp";
+import { LayerToggle } from "@/app/components/panel/LayerToggle";
+import { Ramp } from "@/app/components/panel/Ramp";
+import { CloudBaseRamp } from "@/app/components/panel/CloudBaseRamp";
+import { CloudTopRamp } from "@/app/components/panel/CloudTopRamp";
 
 /**
  * The replay map's switches. The same layers as the candidate map and the same

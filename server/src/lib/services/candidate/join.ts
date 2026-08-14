@@ -3,7 +3,7 @@
  * the sidebar reports about the ground that survived.
  *
  * **Pure arithmetic over five arrays**, and that is the point of keeping it out
- * of the service. Reaching this code through `candidate.ts` means five network
+ * of the service. Reaching this code through `field.ts` means five network
  * builds and eccodes; here it is driven by hand-built grids, which is where the
  * reasoning that decides what an operator flies to can actually be tested.
  *
@@ -12,14 +12,14 @@
  */
 
 // Services
-import { SEEDING } from "./slw";
-import { CLEAR } from "./cloudtop";
-import { BLOCK_NO_COVERAGE, RAIN_DBZ, blockIndex } from "./radar";
-import { CELL_KM2 } from "./grid";
-import { BASE_WINDOW_FT, bearing } from "./diagnostics";
+import { SEEDING } from "../hrrr/slw";
+import { CLEAR } from "../goes/cloudtop";
+import { BLOCK_NO_COVERAGE, RAIN_DBZ, blockIndex } from "../mrms/radar";
+import { CELL_KM2 } from "../shared/grid";
+import { BASE_WINDOW_FT, bearing } from "../hrrr/diagnostics";
 
 // Types
-import type { Grid, Geo } from "./contour";
+import type { Grid, Geo } from "../shared/contour";
 
 /**
  * The coldest cloud top that still counts as reaching the seeding band, stored

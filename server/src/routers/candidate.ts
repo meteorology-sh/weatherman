@@ -2,8 +2,8 @@
 import express, { Request, Response } from "express";
 
 // Services
-import { Seedability } from "../lib/services/candidate";
-import { parseAt } from "../lib/services/replay";
+import { Seedability } from "../lib/services/candidate/field";
+import { parseAt } from "../lib/services/shared/replay";
 
 export const candidate = express.Router();
 

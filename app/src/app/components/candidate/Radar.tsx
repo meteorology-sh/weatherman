@@ -46,7 +46,7 @@ export const Radar = () => {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="font-semibold">RADAR_REFLECTIVITY</h3>
+      <h3 className="font-semibold">RADAR REFLECTIVITY</h3>
 
       {stats.echoKm2 === 0 ? (
         <div className="alert alert-info alert-soft p-2 text-xs">

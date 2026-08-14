@@ -1,5 +1,5 @@
 // Components
-import { ArcGIS } from "./Map";
+import { ArcGIS } from "@/app/components/Map";
 import { TimeSlider } from "./TimeSlider";
 import { ForecastLayers } from "./ForecastLayers";
 

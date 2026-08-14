@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/react";
 
 import { createTestStore, renderWithStore } from "./utils";
-import { ReplayStatus } from "@/app/components/ReplayStatus";
+import { ReplayStatus } from "@/app/components/replay/ReplayStatus";
 import { replayActions } from "@/lib/store/features/replay";
 
 const STATS = {

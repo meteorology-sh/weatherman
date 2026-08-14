@@ -118,8 +118,14 @@ app/src/
   app/                     # UI layer
     App.tsx                # Layout shell: Navigation + providers + <Outlet />
     main.tsx               # Entry: router config + provider composition
-    layout/                # Chrome components (Navigation)
-    components/            # Route pages + feature components
+    layout/                # Chrome: Navigation, Drawer
+    components/            # One directory per route, plus what they share
+      Landing.tsx          #   The landing page
+      Map.tsx              #   The one component touching ArcGIS imperatively
+      panel/               #   Sidebar parts more than one route uses
+      forecast/            #   /map/forecast and its panel
+      candidate/           #   /map/candidate and its panel
+      replay/              #   /map/replay and its panel
     assets/
     index.css / App.css
   lib/                     # Infrastructure — not UI
@@ -321,6 +327,12 @@ the source's own sampling rather than adapting a contour layer.
 
 ## Component conventions
 
+**A component lives in the directory of the route that renders it.** A page and
+its panel are one folder — `candidate/` holds the page, its switches and every
+readout under them. Something a second route starts using moves out rather than
+being imported across: sidebar parts shared by two panels go to `panel/`, and
+`Map.tsx` sits at the components root because all three routes mount it.
+
 **A layer is named on screen in SCREAMING_SNAKE_CASE** — `CLOUD_BASE`,
 `SUPERCOOLED_LIQUID_WATER` — and the name lives in that layer's `LayerLegend` in
 `lib/arcgis/legends.ts`. Switches, panel headings and tests read it from there,
@@ -458,7 +470,7 @@ dependency is allowed but must be loaded through a lazy `await import()`.
 `tsconfig.json` sets `"module": "node16"` rather than `"commonjs"` for exactly
 this: the output is still CommonJS, but `node16` stops TypeScript downlevelling
 `await import()` into `require()`, which cannot load an ESM-only package.
-`cloudtop.ts` is the worked example — it loads `h5wasm` lazily and declares the
+`goes/cloudtop.ts` is the worked example — it loads `h5wasm` lazily and declares the
 slice of its API it uses locally, so the package never appears in a static import
 position.
 
@@ -477,28 +489,33 @@ server/src/
   index.ts                 # App setup: middleware, router mounts, listen
   routers/                 # One Express router per URL prefix
   lib/
-    services/              # Data access classes + singleton exports
-                           #   forecast.ts  -> Hrrr   (the HRRR service)
-                           #   radar.ts     -> Mrms
-                           #   cloudtop.ts  -> Goes
-                           # Shared infrastructure, no source of its own:
-                           #   contour.ts     marching squares, features(),
-                           #                  bandFeatures(), the frame shape
-                           #   grib.ts        eccodes, streaming values
-                           #   grid.ts        the 12 km grid + block averaging
-                           #   hrrr.ts        fetching bytes and reading
-                           #                  messages from HRRR
-                           #   slw.ts         the seeding-band integral
-                           #   join.ts        the candidate join and its summary
-                           #   profile.ts     pressure levels + isotherms
-                           #   diagnostics.ts the wrfsfc 2D fields
-                           #   abi.ts         GOES fixed-grid geolocation
-                           #   replay.ts      the `at` parameter
+    services/              # One directory per source, and what they share
+      hrrr/                #   forecast.ts     -> Hrrr
+                           #   bytes.ts        cycles, byte ranges, messages
+                           #   slw.ts          the seeding-band integral
+                           #   profile.ts      pressure levels + isotherms
+                           #   diagnostics.ts  the wrfsfc 2D fields
+      goes/                #   cloudtop.ts     -> Goes
+                           #   abi.ts          fixed-grid geolocation
+      mrms/                #   radar.ts        -> Mrms
+      candidate/           #   field.ts        -> Seedability
+                           #   join.ts         the join and its summary
+      shared/              # No source of its own:
+                           #   contour.ts      marching squares, features(),
+                           #                   bandFeatures(), the frame shape
+                           #   grib.ts         eccodes, streaming values
+                           #   grid.ts         the 12 km grid + block averaging
+                           #   replay.ts       the `at` parameter
     data/                  # (optional) on-disk JSON datasets read by services
   tests/                   # All test files (.test.ts)
 ```
 
-**The file is named for the product; the singleton is named for the source.**
+**The file is named for the product; the singleton is named for the source; the
+directory is named for the feed.** A module that reads one source lives in that
+source's directory, however pure it is — `profile.ts` is HRRR's vertical
+coordinate and sits under `hrrr/` even though it touches no network. `shared/`
+is for modules with no source at all, and a module that ends up importing from
+two feeds belongs there or in the service that joins them.
 
 ## Entry point
 

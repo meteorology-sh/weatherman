@@ -18,7 +18,7 @@ export type Band = { readonly value: number; readonly alpha: number };
 
 /**
  * Cloud-cover isopleths, percent. Must stay in step with FIELDS.clouds.levels in
- * server/src/lib/services/forecast.ts — the server decides which contours exist
+ * server/src/lib/services/hrrr/forecast.ts — the server decides which contours exist
  * and this decides how they are painted. Overcast tops out near 47% opacity,
  * not 100%.
  *
@@ -50,7 +50,7 @@ export const PRECIP_BANDS: readonly Band[] = [
 ];
 
 /**
- * The seeding band, mirroring SEEDING in server/src/lib/services/slw.ts.
+ * The seeding band, mirroring SEEDING in server/src/lib/services/hrrr/slw.ts.
  *
  * Every caption, legend bracket and readout that names the band reads it from
  * here. Keep it that way — the band moves, and a hardcoded copy of it goes
@@ -71,7 +71,7 @@ export const BAND_LABEL = `${BAND_WARMEST_C} to ${BAND_COLDEST_C} °C`.replace(
 
 /**
  * Supercooled liquid water path in the seeding band, g/m^2, mirroring
- * SEEDING.levels in server/src/lib/services/slw.ts. This is the seedability
+ * SEEDING.levels in server/src/lib/services/hrrr/slw.ts. This is the seedability
  * signal itself, so unlike the other two layers the bands mean "worth flying
  * to", not "how much weather".
  *
@@ -89,7 +89,7 @@ export const SLW_BANDS: readonly Band[] = [
 
 /**
  * The candidate field, g/m², mirroring CANDIDATE.levels in
- * server/src/lib/services/candidate.ts — which are SLW_BANDS' levels, because
+ * server/src/lib/services/candidate/field.ts — which are SLW_BANDS' levels, because
  * the candidate field *is* the liquid field with the other criteria applied.
  *
  * Same levels, same nesting, deliberately stronger fills. This is the answer
@@ -114,7 +114,7 @@ export const CANDIDATE_RGB = [52, 211, 153] as const;
 
 /**
  * Observed reflectivity, dBZ, mirroring REFLECTIVITY.levels in
- * server/src/lib/services/radar.ts. The NWS intensity classes: light, moderate,
+ * server/src/lib/services/mrms/radar.ts. The NWS intensity classes: light, moderate,
  * heavy, and the top band where a summer cell is producing hail.
  *
  * Same alphas as the liquid-water bands because they share the candidate map and
@@ -212,7 +212,7 @@ export type CloudTopBand = {
 export const CLOUD_TOP_RGB = [148, 163, 184] as const;
 
 /**
- * Mirrors CLOUD_TOP.levels in server/src/lib/services/cloudtop.ts.
+ * Mirrors CLOUD_TOP.levels in server/src/lib/services/goes/cloudtop.ts.
  *
  * **The opacity ramp runs backwards from every other layer here, on purpose.**
  * The warmest band is the loudest because it is the one a seeding operator is
@@ -244,7 +244,7 @@ export const soloColor = (rgb: readonly number[], alpha: number) =>
 
 /**
  * The window Texas operations select cloud bases in, ft MSL. Mirrors
- * BASE_WINDOW_FT in server/src/lib/services/diagnostics.ts — the server bands on
+ * BASE_WINDOW_FT in server/src/lib/services/hrrr/diagnostics.ts — the server bands on
  * these edges and every caption here reads them from this one place.
  */
 export const BASE_WINDOW_FT = [4000, 12000] as const;
@@ -272,7 +272,7 @@ export type CloudBaseBand = {
 export const CLOUD_BASE_RGB = [167, 139, 250] as const;
 
 /**
- * Mirrors CLOUD_BASE.edges in server/src/lib/services/diagnostics.ts.
+ * Mirrors CLOUD_BASE.edges in server/src/lib/services/hrrr/diagnostics.ts.
  *
  * **The middle band is the loud one**, which is neither quiet-to-loud nor
  * loud-to-quiet: the ramp is not a magnitude at all. It is a window with a

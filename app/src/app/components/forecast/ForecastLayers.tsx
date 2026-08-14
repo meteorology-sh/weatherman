@@ -14,9 +14,9 @@ import {
 } from "@/lib/arcgis/bands";
 
 // Components
-import { LayerAbout } from "./LayerAbout";
-import { LayerToggle } from "./LayerToggle";
-import { Ramp } from "./Ramp";
+import { LayerAbout } from "@/app/components/panel/LayerAbout";
+import { LayerToggle } from "@/app/components/panel/LayerToggle";
+import { Ramp } from "@/app/components/panel/Ramp";
 
 export const ForecastLayers = () => {
   const dispatch = useAppDispatch();

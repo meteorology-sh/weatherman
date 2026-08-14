@@ -10,7 +10,7 @@
  */
 
 // Grid
-import { NO_VALUE } from "./grid";
+import { NO_VALUE } from "../shared/grid";
 
 /** wrfprs carries CLWMR and TMP every 25 mb. */
 export const LEVEL_STEP_MB = 25;

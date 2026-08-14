@@ -11,7 +11,7 @@
  */
 
 // Services
-import { frame } from "./contour";
+import { frame } from "../shared/contour";
 import {
   CLWMR_NAME,
   eachHrrrMessage,
@@ -19,8 +19,8 @@ import {
   gribUrl,
   index,
   pick,
-} from "./hrrr";
-import { CELL_KM2, POINTS, blockAverage } from "./grid";
+} from "./bytes";
+import { CELL_KM2, POINTS, blockAverage } from "../shared/grid";
 import {
   GRAVITY,
   LAYER_PA,
@@ -32,8 +32,8 @@ import {
 } from "./profile";
 
 // Types
-import type { ContourFrame, Grid } from "./contour";
-import type { Cycle, IdxRow } from "./hrrr";
+import type { ContourFrame, Grid } from "../shared/contour";
+import type { Cycle, IdxRow } from "./bytes";
 
 /**
  * The band, the levels drawn, and the property they are drawn under.

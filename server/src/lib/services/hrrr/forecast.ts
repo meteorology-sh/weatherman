@@ -3,9 +3,10 @@
  *
  * The service itself — what each field means, which builds are cached and for
  * how long, and how a frame is assembled. The machinery it stands on lives
- * next door and is readable without this: `hrrr.ts` fetches bytes, `grid.ts`
- * averages onto the 12 km cell, `profile.ts` turns temperatures into altitudes,
- * `diagnostics.ts` holds the 2D `wrfsfc` fields, and `contour.ts` traces them.
+ * next door and is readable without this: `bytes.ts` fetches them, `slw.ts`
+ * integrates the seeding band, `profile.ts` turns temperatures into altitudes,
+ * `diagnostics.ts` holds the 2D `wrfsfc` fields, and `shared/grid.ts` and
+ * `shared/contour.ts` average onto the 12 km cell and trace it.
  */
 
 // Node
@@ -16,8 +17,8 @@ import { tmpdir } from "os";
 import { join } from "path";
 
 // Services
-import { bandFeatures, features, frame, polygons } from "./contour";
-import { eachMessage } from "./grib";
+import { bandFeatures, features, frame, polygons } from "../shared/contour";
+import { eachMessage } from "../shared/grib";
 import {
   RunDiscovery,
   assertAt,
@@ -27,7 +28,7 @@ import {
   gribUrl,
   index,
   pick,
-} from "./hrrr";
+} from "./bytes";
 import { SEEDING, buildSlw } from "./slw";
 import {
   MISSING,
@@ -36,7 +37,7 @@ import {
   blockAverage,
   blockAverageSparse,
   nearestCell,
-} from "./grid";
+} from "../shared/grid";
 import {
   METRES_TO_FEET,
   PROFILE_LEVELS,
@@ -64,8 +65,8 @@ import type {
   ContourFrame,
   ContourRing,
   ContourFeature,
-} from "./contour";
-import type { Cycle, Product } from "./hrrr";
+} from "../shared/contour";
+import type { Cycle, Product } from "./bytes";
 import type { Slw, SlwStats } from "./slw";
 import type { ProfileGrid, SoundingLevel } from "./profile";
 import type {

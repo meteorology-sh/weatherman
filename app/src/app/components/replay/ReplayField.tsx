@@ -2,7 +2,7 @@
 import { useAppSelector } from "@/lib/store/hooks";
 
 // Components
-import { Rejections } from "./Rejections";
+import { Rejections } from "@/app/components/panel/Rejections";
 
 const km2 = new Intl.NumberFormat("en-US");
 const ft = new Intl.NumberFormat("en-US");
@@ -28,7 +28,7 @@ export const ReplayField = () => {
   if (field.coveragePct === 0) {
     return (
       <div className="flex flex-col gap-2">
-        <h3 className="font-semibold text-sm">SEEDING_OPPORTUNITY</h3>
+        <h3 className="font-semibold text-sm">SEEDING OPPORTUNITY</h3>
         <div className="text-sm">
           No ground in the domain passed every test at this hour.
         </div>
@@ -39,7 +39,7 @@ export const ReplayField = () => {
 
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="font-semibold text-sm">SEEDING_OPPORTUNITY</h3>
+      <h3 className="font-semibold text-sm">SEEDING OPPORTUNITY</h3>
       <div className="text-sm">
         <strong>{km2.format(field.candidateKm2)} km²</strong> passed every test
         — {field.coveragePct}% of the domain, richest cell{" "}

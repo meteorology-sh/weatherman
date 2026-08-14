@@ -145,7 +145,7 @@ export const ReplayFieldLayer = new GeoJSONLayer({
  * to seed. That removes most cloudy ground.
  *
  * The geometry comes from the satellite and the temperatures from HRRR's
- * profile — see the server's `cloudtop.ts` for why that split runs the way it
+ * profile — see the server's `goes/cloudtop.ts` for why that split runs the way it
  * does. `fields` and `geometryType` are declared rather than inferred for the
  * same reason as the precipitation layer: on a clear scene the collection is
  * empty, and an empty one gives ArcGIS nothing to infer a schema from.

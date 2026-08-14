@@ -4,10 +4,10 @@ import { createRoot } from "react-dom/client";
 
 // Components
 import { App } from "./App.tsx";
-import { LandingPage } from "./components/Landing.tsx";
-import { Candidate } from "./components/Candidate.tsx";
-import { Forecast } from "./components/Forecast.tsx";
-import { Replay } from "./components/Replay.tsx";
+import { LandingPage } from "@/app/components/Landing";
+import { Candidate } from "@/app/components/candidate/Candidate";
+import { Forecast } from "@/app/components/forecast/Forecast";
+import { Replay } from "@/app/components/replay/Replay";
 
 // Router
 import { createBrowserRouter } from "react-router";

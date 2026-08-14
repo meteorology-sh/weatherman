@@ -6,7 +6,7 @@ import { createTestStore, renderWithStore } from "./utils";
 import { radarActions } from "@/lib/store/features/radar";
 
 // Components
-import { Radar } from "@/app/components/Radar";
+import { Radar } from "@/app/components/candidate/Radar";
 
 // Types
 import type { RadarStats } from "@/lib/types";

@@ -14,11 +14,11 @@
  */
 
 // Grid
-import { CELL_KM2 } from "./grid";
+import { CELL_KM2 } from "../shared/grid";
 import { METRES_TO_FEET } from "./profile";
 
 // Types
-import type { Grid } from "./contour";
+import type { Grid } from "../shared/contour";
 
 /**
  * What a bitmapped-missing point is printed as while decoding these records.

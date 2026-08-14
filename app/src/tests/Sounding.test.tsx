@@ -6,7 +6,7 @@ import { createTestStore, noDiagnostics, renderWithStore } from "./utils";
 import { soundingActions } from "@/lib/store/features/sounding";
 
 // Components
-import { Sounding } from "@/app/components/Sounding";
+import { Sounding } from "@/app/components/candidate/Sounding";
 
 // Types
 import type { Sounding as SoundingT } from "@/lib/types";

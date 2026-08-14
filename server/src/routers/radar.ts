@@ -2,8 +2,8 @@
 import express, { Request, Response } from "express";
 
 // Services
-import { Mrms } from "../lib/services/radar";
-import { parseAt } from "../lib/services/replay";
+import { Mrms } from "../lib/services/mrms/radar";
+import { parseAt } from "../lib/services/shared/replay";
 
 export const radar = express.Router();
 

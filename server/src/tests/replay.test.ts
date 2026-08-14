@@ -1,9 +1,13 @@
 import { describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
 
-import { parseAt } from "../lib/services/replay";
-import { assertAt, floorHour, fetchRangesOneByOne } from "../lib/services/hrrr";
-import { archiveKeyTime } from "../lib/services/radar";
+import { parseAt } from "../lib/services/shared/replay";
+import {
+  assertAt,
+  floorHour,
+  fetchRangesOneByOne,
+} from "../lib/services/hrrr/bytes";
+import { archiveKeyTime } from "../lib/services/mrms/radar";
 
 describe("parseAt", () => {
   it("reads an absent parameter as live", () => {

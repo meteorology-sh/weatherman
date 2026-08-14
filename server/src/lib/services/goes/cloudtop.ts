@@ -15,12 +15,12 @@
  */
 
 // Services
-import { bandFeatures } from "./contour";
-import { Hrrr } from "./forecast";
+import { bandFeatures } from "../shared/contour";
+import { Hrrr } from "../hrrr/forecast";
 
 // Types
-import type { Grid, Geo, ContourFeature } from "./contour";
-import type { Column } from "./forecast";
+import type { Grid, Geo, ContourFeature } from "../shared/contour";
+import type { Column } from "../hrrr/forecast";
 import { abiGrid, pixelAt } from "./abi";
 import type { AbiGrid } from "./abi";
 

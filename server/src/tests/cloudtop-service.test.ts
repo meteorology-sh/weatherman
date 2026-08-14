@@ -3,13 +3,13 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 // Services
-import { abiGrid, scanAngles, pixelAt } from "../lib/services/abi";
-import { sceneTime, dayOfYear, summarize } from "../lib/services/cloudtop";
-import { temperatureAtMb } from "../lib/services/profile";
-import { bandFeatures } from "../lib/services/contour";
+import { abiGrid, scanAngles, pixelAt } from "../lib/services/goes/abi";
+import { sceneTime, dayOfYear, summarize } from "../lib/services/goes/cloudtop";
+import { temperatureAtMb } from "../lib/services/hrrr/profile";
+import { bandFeatures } from "../lib/services/shared/contour";
 
 // Types
-import type { Grid, Geo } from "../lib/services/contour";
+import type { Grid, Geo } from "../lib/services/shared/contour";
 
 /** The real constants from a live ABI-L2-ACHP2KMC scene. */
 const grid = abiGrid({

@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 // Services
-import { concatParts } from "../lib/services/hrrr";
+import { concatParts } from "../lib/services/hrrr/bytes";
 
 const BOUNDARY = "SEP";
 const TYPE = `multipart/byteranges; boundary=${BOUNDARY}`;

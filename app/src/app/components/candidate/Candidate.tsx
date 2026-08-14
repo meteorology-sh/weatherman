@@ -2,7 +2,7 @@
 import { BAND_LABEL } from "@/lib/arcgis/bands";
 
 // Components
-import { ArcGIS } from "./Map";
+import { ArcGIS } from "@/app/components/Map";
 import { CandidateLayers } from "./CandidateLayers";
 import { CandidateField } from "./CandidateField";
 import { CloudBase } from "./CloudBase";
@@ -30,11 +30,11 @@ export const Candidate = () => {
               <div className="prose">
                 <ol>
                   <li>
-                    Read the green first. SEEDING_OPPORTUNITY is every layer
+                    Read the green first. SEEDING OPPORTUNITY is every layer
                     joined, so green ground has passed every test.
                   </li>
                   <li>
-                    Leave SUPERCOOLED_LIQUID_WATER on underneath it. Amber with
+                    Leave SUPERCOOLED LIQUID WATER on underneath it. Amber with
                     no green over it was rejected, and the panel below says
                     which test rejected it.
                   </li>

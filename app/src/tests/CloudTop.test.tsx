@@ -6,7 +6,7 @@ import { createTestStore, renderWithStore } from "./utils";
 import { cloudTopActions } from "@/lib/store/features/cloudtop";
 
 // Components
-import { CloudTop } from "@/app/components/CloudTop";
+import { CloudTop } from "@/app/components/candidate/CloudTop";
 
 // Types
 import type { CloudTopStats } from "@/lib/types";

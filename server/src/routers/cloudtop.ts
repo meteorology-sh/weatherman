@@ -2,8 +2,8 @@
 import express, { Request, Response } from "express";
 
 // Services
-import { Goes } from "../lib/services/cloudtop";
-import { parseAt } from "../lib/services/replay";
+import { Goes } from "../lib/services/goes/cloudtop";
+import { parseAt } from "../lib/services/shared/replay";
 
 export const cloudtop = express.Router();
 

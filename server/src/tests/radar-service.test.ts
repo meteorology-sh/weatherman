@@ -8,8 +8,8 @@ import {
   blockGeo,
   sceneTime,
   summarize,
-} from "../lib/services/radar";
-import { polygons } from "../lib/services/contour";
+} from "../lib/services/mrms/radar";
+import { polygons } from "../lib/services/shared/contour";
 
 /** MRMS's own sentinels, which the block grid keeps. */
 const NO_ECHO = -99;

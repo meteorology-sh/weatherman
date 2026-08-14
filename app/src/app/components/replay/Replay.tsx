@@ -2,7 +2,7 @@
 import { useAppSelector } from "@/lib/store/hooks";
 
 // Components
-import { ArcGIS } from "./Map";
+import { ArcGIS } from "@/app/components/Map";
 import { ReplayCalendar } from "./ReplayCalendar";
 import { ReplayLayers } from "./ReplayLayers";
 import { ReplayStatus } from "./ReplayStatus";

@@ -6,7 +6,7 @@ import { createTestStore, renderWithStore } from "./utils";
 import { candidateActions } from "@/lib/store/features/candidate";
 
 // Components
-import { Liquid } from "@/app/components/Liquid";
+import { Liquid } from "@/app/components/candidate/Liquid";
 
 // Types
 import type { SlwStats } from "@/lib/types";

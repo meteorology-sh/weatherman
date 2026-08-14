@@ -1,7 +1,7 @@
 import { screen, fireEvent } from "@testing-library/react";
 
 import { createTestStore, renderWithStore } from "./utils";
-import { ReplayCalendar } from "@/app/components/ReplayCalendar";
+import { ReplayCalendar } from "@/app/components/replay/ReplayCalendar";
 import { replayActions } from "@/lib/store/features/replay";
 
 describe("ReplayCalendar", () => {

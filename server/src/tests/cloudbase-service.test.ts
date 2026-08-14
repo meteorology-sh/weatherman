@@ -9,12 +9,12 @@ import {
   bearing,
   diagnostics,
   recordsAt,
-} from "../lib/services/diagnostics";
-import { blockAverageSparse } from "../lib/services/grid";
+} from "../lib/services/hrrr/diagnostics";
+import { blockAverageSparse } from "../lib/services/shared/grid";
 
 // Types
-import type { Fields } from "../lib/services/diagnostics";
-import type { Grid } from "../lib/services/contour";
+import type { Fields } from "../lib/services/hrrr/diagnostics";
+import type { Grid } from "../lib/services/shared/contour";
 
 const MISSING = -9_999_999;
 const RUN = new Date("2025-05-15T18:00:00.000Z");

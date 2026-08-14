@@ -26,7 +26,7 @@ import {
 
 describe("CLOUD_BANDS", () => {
   // The server decides which contours exist (FIELDS.clouds.levels in
-  // server/src/lib/services/forecast.ts); this pins our half of that contract.
+  // server/src/lib/services/hrrr/forecast.ts); this pins our half of that contract.
   it("matches the levels the server contours", () => {
     expect(CLOUD_BANDS.map((b) => b.value)).toEqual([30, 50, 70, 90]);
   });

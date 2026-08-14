@@ -7,11 +7,11 @@ import {
   isothermFt,
   SCOUT_LADDER_MB,
   SOUNDING_LEVELS,
-} from "../lib/services/profile";
-import { nearestCell } from "../lib/services/grid";
+} from "../lib/services/hrrr/profile";
+import { nearestCell } from "../lib/services/shared/grid";
 
 // Types
-import type { SoundingLevel } from "../lib/services/profile";
+import type { SoundingLevel } from "../lib/services/hrrr/profile";
 
 /** A column, bottom up, the way the service assembles one. */
 const column = (pairs: [number, number][]): SoundingLevel[] =>

@@ -2,7 +2,7 @@
  * The `at` query parameter, shared by every router that can replay.
  *
  * Shared infrastructure with no source of its own, like `contour.ts` and
- * `grib.ts`: all three routers accept the same parameter and must read it the
+ * `grib.ts` beside it: all three routers accept the same parameter and must read it the
  * same way, and three copies of this would drift.
  *
  * **Absent means live.** That is the whole contract — a request without `at`

@@ -41,7 +41,7 @@ export const Liquid = () => {
   if (stats.coveragePct === 0) {
     return (
       <div className="flex flex-col gap-2">
-        <h3 className="font-semibold">SUPERCOOLED_LIQUID_WATER</h3>
+        <h3 className="font-semibold">SUPERCOOLED LIQUID WATER</h3>
         <div className="alert alert-warning alert-soft p-2 text-xs">
           <span>
             No supercooled liquid water anywhere in the domain at this hour.
@@ -55,7 +55,7 @@ export const Liquid = () => {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="font-semibold">SUPERCOOLED_LIQUID_WATER</h3>
+      <h3 className="font-semibold">SUPERCOOLED LIQUID WATER</h3>
 
       <div className="stats stats-vertical bg-base-200">
         <div className="stat py-2">

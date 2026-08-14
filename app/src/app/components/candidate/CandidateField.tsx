@@ -5,7 +5,7 @@ import { useAppSelector } from "@/lib/store/hooks";
 import { BAND_LABEL, CANDIDATE_BANDS } from "@/lib/arcgis/bands";
 
 // Components
-import { Rejections } from "./Rejections";
+import { Rejections } from "@/app/components/panel/Rejections";
 
 const km2 = new Intl.NumberFormat("en-US");
 const ft = new Intl.NumberFormat("en-US");
@@ -44,7 +44,7 @@ export const CandidateField = () => {
   if (stats.coveragePct === 0) {
     return (
       <div className="flex flex-col gap-2 p-4">
-        <h3 className="font-semibold">SEEDING_OPPORTUNITY</h3>
+        <h3 className="font-semibold">SEEDING OPPORTUNITY</h3>
         <div className="alert alert-warning alert-soft p-2 text-xs">
           <span>
             No ground in the domain passes every test at this hour. The build
@@ -58,7 +58,7 @@ export const CandidateField = () => {
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      <h3 className="font-semibold">SEEDING_OPPORTUNITY</h3>
+      <h3 className="font-semibold">SEEDING OPPORTUNITY</h3>
 
       <div className="stats stats-vertical bg-base-200">
         <div className="stat py-2">

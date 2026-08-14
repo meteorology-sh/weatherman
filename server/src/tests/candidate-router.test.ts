@@ -11,10 +11,13 @@ import express from "express";
 import { candidate } from "../routers/candidate";
 
 // Services
-import { Seedability } from "../lib/services/candidate";
+import { Seedability } from "../lib/services/candidate/field";
 
 // Types
-import type { CandidateFrame, CandidateStats } from "../lib/services/candidate";
+import type {
+  CandidateFrame,
+  CandidateStats,
+} from "../lib/services/candidate/field";
 
 const frame: CandidateFrame = {
   type: "FeatureCollection",

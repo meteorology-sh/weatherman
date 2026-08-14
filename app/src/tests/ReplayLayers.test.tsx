@@ -15,7 +15,7 @@ import {
 } from "@/lib/arcgis/legends";
 
 // Components
-import { ReplayLayers } from "@/app/components/ReplayLayers";
+import { ReplayLayers } from "@/app/components/replay/ReplayLayers";
 
 const LAYERS = [
   CandidateLegend,

@@ -17,8 +17,8 @@ import {
   ForecastMeta,
   SlwStats,
   Sounding,
-} from "../lib/services/forecast";
-import { CloudBaseStats } from "../lib/services/diagnostics";
+} from "../lib/services/hrrr/forecast";
+import { CloudBaseStats } from "../lib/services/hrrr/diagnostics";
 
 const meta: ForecastMeta = {
   run: "2026-07-17T00:00:00.000Z",

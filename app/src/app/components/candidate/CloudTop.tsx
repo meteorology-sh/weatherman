@@ -51,7 +51,7 @@ export const CloudTop = () => {
 
   return (
     <div className="p-4 flex flex-col gap-2">
-      <h3 className="font-semibold">CLOUD_TOPS</h3>
+      <h3 className="font-semibold">CLOUD TOPS</h3>
 
       {stats.cloudPct === 0 ? (
         <div className="text-sm">

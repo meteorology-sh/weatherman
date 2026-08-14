@@ -3,11 +3,11 @@ import { gunzip } from "zlib";
 import { promisify } from "util";
 
 // Services
-import { features } from "./contour";
-import { eachMessage } from "./grib";
+import { features } from "../shared/contour";
+import { eachMessage } from "../shared/grib";
 
 // Types
-import type { Grid, Geo, ContourFeature } from "./contour";
+import type { Grid, Geo, ContourFeature } from "../shared/contour";
 
 const gunzipAsync = promisify(gunzip);
 
