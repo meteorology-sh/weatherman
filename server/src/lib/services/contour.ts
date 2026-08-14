@@ -25,6 +25,35 @@ export type ContourFeature = {
   geometry: { type: "MultiPolygon"; coordinates: ContourRing[][] };
 };
 
+/**
+ * One contoured field on the wire: the features plus the times they are true
+ * of. Every layer this server draws is one of these, so the shape lives with
+ * the contourer rather than with any one source.
+ */
+export type ContourFrame = {
+  type: "FeatureCollection";
+  run: string;
+  /** Valid time of this frame, ISO 8601. */
+  validTime: string;
+  hour: number;
+  features: ContourFeature[];
+};
+
+/** A frame for one run and hour. The valid time follows from the two. */
+export function frame(
+  run: Date,
+  hour: number,
+  features: ContourFeature[]
+): ContourFrame {
+  return {
+    type: "FeatureCollection",
+    run: run.toISOString(),
+    hour,
+    validTime: new Date(run.getTime() + hour * 3_600_000).toISOString(),
+    features,
+  };
+}
+
 type Pt = readonly [number, number];
 
 /**

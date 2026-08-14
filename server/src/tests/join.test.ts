@@ -3,16 +3,11 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 // Services
-import {
-  CEILING_FT,
-  join,
-  sampleRadar,
-  summarize,
-} from "../lib/services/candidate";
+import { CEILING_FT, join, sampleRadar, summarize } from "../lib/services/join";
 import { blockGeo } from "../lib/services/radar";
 
 // Types
-import type { Inputs, Join } from "../lib/services/candidate";
+import type { Inputs, Join } from "../lib/services/join";
 import type { Geo } from "../lib/services/contour";
 
 const RUN = new Date("2025-05-15T18:00:00.000Z");

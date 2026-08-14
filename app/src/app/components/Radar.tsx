@@ -2,7 +2,7 @@
 import { useAppSelector } from "@/lib/store/hooks";
 
 // ArcGIS
-import { RADAR_BANDS } from "@/lib/arcgis/renderers";
+import { RADAR_BANDS } from "@/lib/arcgis/bands";
 
 const km2 = new Intl.NumberFormat("en-US");
 

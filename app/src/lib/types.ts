@@ -12,7 +12,7 @@ export interface ForecastMeta {
   hours: number[];
 }
 
-/** Mirrors Rejected in server/src/lib/services/candidate.ts */
+/** Mirrors Rejected in server/src/lib/services/join.ts */
 export interface Rejected {
   /** The model has no cloud base over the cell — nothing to climb into. */
   noCloudBase: number;
@@ -26,7 +26,7 @@ export interface Rejected {
   raining: number;
 }
 
-/** Mirrors CandidateStats in server/src/lib/services/candidate.ts */
+/** Mirrors CandidateStats in server/src/lib/services/join.ts */
 export interface CandidateStats {
   run: string;
   validTime: string;
@@ -66,7 +66,7 @@ export interface CandidateStats {
   stormMotionTowardDeg: number | null;
 }
 
-/** Mirrors SlwStats in server/src/lib/services/forecast.ts */
+/** Mirrors SlwStats in server/src/lib/services/slw.ts */
 export interface SlwStats {
   run: string;
   hour: number;
@@ -82,7 +82,7 @@ export interface SlwStats {
   bandBaseMb: number | null;
 }
 
-/** Mirrors CloudBaseStats in server/src/lib/services/forecast.ts */
+/** Mirrors CloudBaseStats in server/src/lib/services/diagnostics.ts */
 export interface CloudBaseStats {
   run: string;
   hour: number;
@@ -97,7 +97,7 @@ export interface CloudBaseStats {
   medianFt: number | null;
 }
 
-/** Mirrors Diagnostics in server/src/lib/services/forecast.ts */
+/** Mirrors Diagnostics in server/src/lib/services/diagnostics.ts */
 export interface Diagnostics {
   /** Cloud base, ft MSL. Null where the model has no cloud over the cell. */
   cloudBaseFt: number | null;
@@ -125,7 +125,7 @@ export interface Diagnostics {
   echoTopFt: number | null;
 }
 
-/** Mirrors SoundingLevel in server/src/lib/services/forecast.ts */
+/** Mirrors SoundingLevel in server/src/lib/services/profile.ts */
 export interface SoundingLevel {
   mb: number;
   tempC: number;

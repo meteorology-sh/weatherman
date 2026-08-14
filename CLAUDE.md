@@ -129,13 +129,15 @@ app/src/
       layers.ts            #   Module-scope GeoJSONLayer instances
       legends.ts           #   Per layer: on-screen name, source, what it
                            #   measures, and what it does not tell you
-      renderers.ts         #   Contour bands + renderers
+      bands.ts             #   Contour levels, colours and labels per layer
+      renderers.ts         #   The ArcGIS symbols those bands are painted with
     context/               # One data provider per domain
     store/
       store.ts             # Singleton store + AppStore/RootState/AppDispatch
       hooks.ts             # useAppDispatch/useAppSelector/useAppStore
       features/            # One slice per domain
-  tests/                   # All test files (.test.ts / .test.tsx) + utils.tsx
+  tests/                   # All test files (.test.ts / .test.tsx), plus
+                           # utils.tsx and arcgis-fakes.ts
 ```
 
 ## Routing and provider composition
@@ -409,8 +411,8 @@ hides the theme break rather than fixing it.
 `describe`/`it`/`expect`/`vi` need no import.
 
 - All tests live in `src/tests/` with a `.test.ts` / `.test.tsx` suffix — never
-  co-located. Non-test helpers live there too (`utils.tsx`); Vitest's default
-  `include` only picks up `*.test.*`.
+  co-located. Non-test helpers live there too (`utils.tsx`,
+  `arcgis-fakes.ts`); Vitest's default `include` only picks up `*.test.*`.
 - Priorities (testing trophy): pure logic and data transforms first, then reducer
   cases called directly, then component integration with RTL.
 - Each `it` tests exactly one behavior.
@@ -423,8 +425,10 @@ hides the theme break rather than fixing it.
 - Assert with plain `expect` — `@testing-library/jest-dom` is not installed
   (`expect(container.innerHTML).toBe("")`, not `toBeEmptyDOMElement()`).
 - **Fake `@arcgis/core` with `vi.mock`** — the real modules need a WebGL context.
-  `Map.test.tsx` is the pattern: fake classes recording their instances via
-  `vi.hoisted`, asserted through spied `goTo` and `visible`. It fakes
+  `tests/arcgis-fakes.ts` holds the fakes: classes that record their instances,
+  asserted through spied `goTo` and `visible`. Each `vi.mock` factory imports
+  that module rather than closing over it, which is what lets `Map.test.tsx` and
+  `MapReplay.test.tsx` drive one map without keeping two copies of it. It fakes
   `@/lib/arcgis/layers` too; `layers.test.ts` covers the real layer objects,
   which construct fine in jsdom.
 - **Assert the numbers a legend is derived from, not just its labels.** A test
@@ -479,10 +483,13 @@ server/src/
                            #   cloudtop.ts  -> Goes
                            # Shared infrastructure, no source of its own:
                            #   contour.ts     marching squares, features(),
-                           #                  bandFeatures()
+                           #                  bandFeatures(), the frame shape
                            #   grib.ts        eccodes, streaming values
                            #   grid.ts        the 12 km grid + block averaging
-                           #   hrrr.ts        fetching bytes from HRRR
+                           #   hrrr.ts        fetching bytes and reading
+                           #                  messages from HRRR
+                           #   slw.ts         the seeding-band integral
+                           #   join.ts        the candidate join and its summary
                            #   profile.ts     pressure levels + isotherms
                            #   diagnostics.ts the wrfsfc 2D fields
                            #   abi.ts         GOES fixed-grid geolocation

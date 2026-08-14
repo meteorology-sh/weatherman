@@ -2,7 +2,7 @@
 import { useAppSelector } from "@/lib/store/hooks";
 
 // ArcGIS
-import { BAND_LABEL, CANDIDATE_BANDS } from "@/lib/arcgis/renderers";
+import { BAND_LABEL, CANDIDATE_BANDS } from "@/lib/arcgis/bands";
 
 // Components
 import { Rejections } from "./Rejections";

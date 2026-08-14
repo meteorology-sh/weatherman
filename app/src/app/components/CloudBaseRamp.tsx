@@ -3,7 +3,7 @@ import {
   CLOUD_BASE_BANDS,
   CLOUD_BASE_RGB,
   soloColor,
-} from "@/lib/arcgis/renderers";
+} from "@/lib/arcgis/bands";
 
 /**
  * The cloud-base bands, drawn as the map draws them.

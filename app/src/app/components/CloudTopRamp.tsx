@@ -1,9 +1,5 @@
 // ArcGIS
-import {
-  CLOUD_TOP_BANDS,
-  CLOUD_TOP_RGB,
-  soloColor,
-} from "@/lib/arcgis/renderers";
+import { CLOUD_TOP_BANDS, CLOUD_TOP_RGB, soloColor } from "@/lib/arcgis/bands";
 
 /**
  * The cloud-top temperature bands, drawn as the map draws them.

@@ -2,11 +2,7 @@
 import { useAppSelector } from "@/lib/store/hooks";
 
 // ArcGIS
-import {
-  BAND_LABEL,
-  BAND_WARMEST_C,
-  BAND_COLDEST_C,
-} from "@/lib/arcgis/renderers";
+import { BAND_LABEL, BAND_WARMEST_C, BAND_COLDEST_C } from "@/lib/arcgis/bands";
 
 const ft = new Intl.NumberFormat("en-US");
 

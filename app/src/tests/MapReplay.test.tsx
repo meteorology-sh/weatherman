@@ -1,0 +1,233 @@
+// Testing
+import { act } from "@testing-library/react";
+import { createTestStore, renderWithStore } from "./utils";
+import {
+  FakeExtent,
+  FakeMap,
+  FakeMapView,
+  layers as layerFakes,
+  resetArcgis,
+  watch,
+} from "./arcgis-fakes";
+
+// The imperative ArcGIS API needs a real WebGL context, so everything the
+// component reaches for is faked. The factories import the fakes rather than
+// closing over them, which is what lets the module be shared.
+vi.mock("@/lib/arcgis/layers", async () => layerFakes);
+vi.mock("@arcgis/core/core/reactiveUtils", () => ({ watch }));
+vi.mock("@arcgis/core/Map", () => ({ default: FakeMap }));
+vi.mock("@arcgis/core/views/MapView", () => ({ default: FakeMapView }));
+vi.mock("@arcgis/core/geometry/Extent", () => ({ default: FakeExtent }));
+
+beforeEach(resetArcgis);
+
+// Store
+import { replayActions } from "@/lib/store/features/replay";
+
+// Fakes
+import {
+  cloudTopLayer,
+  liquidLayer,
+  map,
+  radarLayer,
+  replayCloudBaseLayer,
+  replayCloudTopLayer,
+  replayLiquidLayer,
+  replayRadarLayer,
+} from "./arcgis-fakes";
+
+// Components
+import { ArcGIS } from "@/app/components/Map";
+
+const replayStats = {
+  cloudBase: { run: "2025-05-15T18:00:00.000Z" },
+  cloudTop: { validTime: "2025-05-15T18:01:17.900Z" },
+  liquid: { run: "2025-05-15T18:00:00.000Z" },
+  radar: { validTime: "2025-05-15T17:59:00.000Z" },
+} as unknown as Parameters<typeof replayActions.setReady>[0]["stats"];
+
+describe("ArcGIS in replay mode", () => {
+  const AT = "2025-05-15T18:00:00.000Z";
+  const ready = (at: string) =>
+    replayActions.setReady({ at, stats: replayStats });
+
+  it("draws nothing until an hour is picked", () => {
+    renderWithStore(<ArcGIS mode="replay" />, createTestStore());
+
+    expect(replayCloudTopLayer.visible).toBe(false);
+    expect(replayLiquidLayer.visible).toBe(false);
+    expect(replayRadarLayer.visible).toBe(false);
+  });
+
+  // The complaint this fixes: the three sources finish 10 s to 40 s apart, so
+  // revealing each as it landed put two dates on the map at once.
+  it("stays blank while an hour is still loading", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(replayActions.setAt(AT));
+    });
+
+    expect(replayCloudTopLayer.visible).toBe(false);
+    expect(replayLiquidLayer.visible).toBe(false);
+    expect(replayRadarLayer.visible).toBe(false);
+  });
+
+  it("blanks the map again when a new hour is picked", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(replayActions.setAt(AT));
+      store.dispatch(ready(AT));
+    });
+    expect(replayLiquidLayer.visible).toBe(true);
+
+    act(() => {
+      store.dispatch(replayActions.setAt("2025-05-16T18:00:00.000Z"));
+    });
+
+    expect(replayCloudTopLayer.visible).toBe(false);
+    expect(replayLiquidLayer.visible).toBe(false);
+    expect(replayRadarLayer.visible).toBe(false);
+  });
+
+  it("reveals all three together once every source has answered", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(replayActions.setAt(AT));
+      store.dispatch(ready(AT));
+    });
+
+    expect(replayCloudTopLayer.visible).toBe(true);
+    expect(replayLiquidLayer.visible).toBe(true);
+    expect(replayRadarLayer.visible).toBe(true);
+  });
+
+  // The one thing this page must never do: show today's scene under a past
+  // date. The live layers are pinned to now, so replay mode keeps them off.
+  it("keeps the live candidate layers off", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(replayActions.setAt(AT));
+      store.dispatch(ready(AT));
+    });
+
+    expect(cloudTopLayer.visible).toBe(false);
+    expect(liquidLayer.visible).toBe(false);
+    expect(radarLayer.visible).toBe(false);
+  });
+
+  it("points every layer at the hour that is ready", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(ready(AT));
+    });
+
+    const at = encodeURIComponent(AT);
+    expect(replayCloudTopLayer.url).toBe(`/cloudtop/temperature?at=${at}`);
+    expect(replayLiquidLayer.url).toBe(`/forecast/liquid?hour=0&at=${at}`);
+    expect(replayRadarLayer.url).toBe(`/radar/reflectivity?at=${at}`);
+    expect(replayCloudBaseLayer.url).toBe(
+      `/forecast/cloudbase?hour=0&at=${at}`
+    );
+  });
+
+  it("does not fetch geometry for an hour that is still building", () => {
+    // Pointing on `at` would send three cold requests racing the three the
+    // provider is already making, and land them minutes apart.
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(replayActions.setAt(AT));
+    });
+
+    expect(replayLiquidLayer.url).toBe("");
+  });
+
+  it("adds the replay layers to the map once an hour is ready", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(ready(AT));
+    });
+
+    const layers = map().layers ?? [];
+    expect(layers).toContain(replayCloudTopLayer);
+    // Cloud base underneath, as on the candidate map: it is the question asked
+    // before the others and covers more ground than any of them.
+    expect(layers.indexOf(replayCloudTopLayer)).toBeGreaterThan(
+      layers.indexOf(replayCloudBaseLayer)
+    );
+    expect(layers.indexOf(replayLiquidLayer)).toBeGreaterThan(
+      layers.indexOf(replayCloudTopLayer)
+    );
+    expect(layers.indexOf(replayRadarLayer)).toBeGreaterThan(
+      layers.indexOf(replayLiquidLayer)
+    );
+  });
+
+  // A cold replay build is ~40 s a layer, so paying for it twice because
+  // StrictMode double-invoked the effect is not a small waste.
+  it("does not re-request the hour it is already showing", () => {
+    const store = createTestStore();
+    const { rerender } = renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(ready(AT));
+    });
+    replayLiquidLayer.refresh.mockClear();
+
+    rerender(<ArcGIS mode="replay" />);
+    act(() => {
+      store.dispatch(ready(AT));
+    });
+
+    expect(replayLiquidLayer.refresh).not.toHaveBeenCalled();
+  });
+
+  it("refreshes onto a newly readied hour", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(ready(AT));
+    });
+    act(() => {
+      store.dispatch(ready("2025-05-16T18:00:00.000Z"));
+    });
+
+    expect(replayLiquidLayer.refresh).toHaveBeenCalled();
+    expect(replayLiquidLayer.url).toContain("2025-05-16");
+  });
+
+  // The cloud base is off on arrival on both maps, so a readied hour must not
+  // switch it on by itself.
+  it("leaves the replayed cloud base off until it is asked for", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(ready(AT));
+    });
+
+    expect(replayCloudBaseLayer.visible).toBe(false);
+
+    act(() => {
+      store.dispatch(replayActions.setCloudBase(true));
+    });
+
+    expect(replayCloudBaseLayer.visible).toBe(true);
+  });
+
+  it("hides a replay layer the operator turns off", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(ready(AT));
+      store.dispatch(replayActions.setRadar(false));
+    });
+
+    expect(replayRadarLayer.visible).toBe(false);
+    expect(replayLiquidLayer.visible).toBe(true);
+  });
+});

@@ -1,5 +1,5 @@
 // ArcGIS
-import { stackedColor } from "@/lib/arcgis/renderers";
+import { stackedColor } from "@/lib/arcgis/bands";
 
 type PropsT = {
   bands: readonly { value: number; alpha: number }[];

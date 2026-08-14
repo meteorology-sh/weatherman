@@ -18,13 +18,13 @@ import {
   BAND_LABEL,
   stackedColor,
   soloColor,
-} from "@/lib/arcgis/renderers";
-import { CLOUD_TOP_BANDS, CLOUD_TOP_RGB } from "@/lib/arcgis/renderers";
+} from "@/lib/arcgis/bands";
+import { CLOUD_TOP_BANDS, CLOUD_TOP_RGB } from "@/lib/arcgis/bands";
 import {
   BASE_WINDOW_FT,
   CLOUD_BASE_BANDS,
   CLOUD_BASE_RGB,
-} from "@/lib/arcgis/renderers";
+} from "@/lib/arcgis/bands";
 import {
   CandidateLegend,
   CloudBaseLegend,

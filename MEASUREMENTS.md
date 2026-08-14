@@ -32,7 +32,7 @@ first; AgI itself keeps working to roughly −20 °C. Treat the warm edge as fix
 and the cold edge as a choice that a tool for _finding_ candidates should make
 generously.
 
-Both edges live in `SEEDING` in `server/src/lib/services/forecast.ts`, mirrored
+Both edges live in `SEEDING` in `server/src/lib/services/slw.ts`, mirrored
 by `BAND_WARMEST_C`/`BAND_COLDEST_C` in the app. Keep them there: every caption,
 legend bracket and readout reads the band from one of those two places.
 

@@ -36,7 +36,7 @@ import {
   ReplayLiquidLayer,
   ReplayRadarLayer,
 } from "@/lib/arcgis/layers";
-import { PRECIP_FIRST_HOUR } from "@/lib/arcgis/renderers";
+import { PRECIP_FIRST_HOUR } from "@/lib/arcgis/bands";
 
 // Types
 import type { ClickEvent } from "@arcgis/core/views/input/types";

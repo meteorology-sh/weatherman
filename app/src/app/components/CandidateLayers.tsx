@@ -25,7 +25,7 @@ import {
   RADAR_LABELS,
   RADAR_RGB,
   BAND_LABEL,
-} from "@/lib/arcgis/renderers";
+} from "@/lib/arcgis/bands";
 
 // Components
 import { LayerToggle } from "./LayerToggle";

@@ -134,7 +134,7 @@ a fixed level.
 −5 °C is physics: silver iodide barely nucleates ice above it. −18 °C is a
 judgement about where the _supply_ of liquid thins out, because natural ice
 nuclei activate and take it first; AgI itself keeps working to roughly −20 °C.
-Both edges live in `SEEDING` in `server/src/lib/services/forecast.ts`, mirrored by
+Both edges live in `SEEDING` in `server/src/lib/services/slw.ts`, mirrored by
 `BAND_WARMEST_C`/`BAND_COLDEST_C` in the app. **Every caption, legend bracket and
 readout reads the band from one of those two places.**
 

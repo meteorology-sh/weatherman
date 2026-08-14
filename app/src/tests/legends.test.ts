@@ -4,7 +4,7 @@ import {
   BASE_WINDOW_FT,
   CLOUD_TOP_BANDS,
   RADAR_BANDS,
-} from "@/lib/arcgis/renderers";
+} from "@/lib/arcgis/bands";
 import {
   BASE_WINDOW_LABEL,
   CandidateLegend,

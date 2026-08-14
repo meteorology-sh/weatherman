@@ -1,5 +1,5 @@
 // ArcGIS
-import { BAND_LABEL } from "@/lib/arcgis/renderers";
+import { BAND_LABEL } from "@/lib/arcgis/bands";
 
 // Components
 import { ArcGIS } from "./Map";

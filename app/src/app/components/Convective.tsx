@@ -2,7 +2,7 @@
 import { useAppSelector } from "@/lib/store/hooks";
 
 // ArcGIS
-import { BAND_WARMEST_C } from "@/lib/arcgis/renderers";
+import { BAND_WARMEST_C } from "@/lib/arcgis/bands";
 
 const num = new Intl.NumberFormat("en-US");
 

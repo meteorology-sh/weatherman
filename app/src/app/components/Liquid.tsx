@@ -2,7 +2,7 @@
 import { useAppSelector } from "@/lib/store/hooks";
 
 // ArcGIS
-import { SLW_BANDS, BAND_LABEL } from "@/lib/arcgis/renderers";
+import { SLW_BANDS, BAND_LABEL } from "@/lib/arcgis/bands";
 
 const km2 = new Intl.NumberFormat("en-US");
 

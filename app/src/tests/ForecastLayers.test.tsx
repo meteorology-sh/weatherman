@@ -11,7 +11,7 @@ import {
   PRECIP_BANDS,
   stackedColor,
   PRECIP_RGB,
-} from "@/lib/arcgis/renderers";
+} from "@/lib/arcgis/bands";
 
 // ArcGIS
 import { PrecipLegend } from "@/lib/arcgis/legends";

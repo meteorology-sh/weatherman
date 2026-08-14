@@ -11,7 +11,7 @@ import {
   PRECIP_LABELS,
   PRECIP_RGB,
   PRECIP_FIRST_HOUR,
-} from "@/lib/arcgis/renderers";
+} from "@/lib/arcgis/bands";
 
 // Components
 import { LayerAbout } from "./LayerAbout";

@@ -5,7 +5,7 @@ import {
   CANDIDATE_BANDS,
   CLOUD_TOP_BANDS,
   RADAR_BANDS,
-} from "./renderers";
+} from "./bands";
 
 /**
  * The prose half of a layer's legend: its name, what it measures, how it is

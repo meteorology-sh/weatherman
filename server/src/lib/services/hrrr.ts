@@ -12,6 +12,10 @@
  * why each one is silent rather than loud.
  */
 
+// Services
+import { eachMessage } from "./grib";
+import { POINTS } from "./grid";
+
 const HRRR = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod";
 
 /**
@@ -295,4 +299,26 @@ export function concatParts(body: Buffer, contentType: string): Buffer {
 
   parts.sort((a, b) => a.offset - b.offset);
   return Buffer.concat(parts.map((p) => p.data));
+}
+
+/**
+ * Stream a multi-message HRRR GRIB, one callback per message.
+ *
+ * The decoding itself lives in ./grib, which the radar service uses too; this
+ * only names the keys HRRR is read by and turns the level back into a number.
+ */
+export function eachHrrrMessage(
+  grib: Buffer,
+  onMessage: (name: string, level: number, values: Float32Array) => void
+): Promise<void> {
+  return eachMessage(
+    grib,
+    {
+      keys: ["shortName", "level"],
+      points: POINTS,
+      onMessage: ([name, level], values) =>
+        onMessage(name, Number(level), values),
+    },
+    "hrrr-msg"
+  );
 }

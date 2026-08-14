@@ -1,12 +1,14 @@
 // ArcGIS
 import {
+  candidateCloudBaseRenderer,
+  candidateCloudTopRenderer,
+} from "@/lib/arcgis/renderers";
+import {
   BASE_WINDOW_FT,
   CLOUD_BASE_BANDS,
   CLOUD_BASE_RGB,
-  candidateCloudBaseRenderer,
   CLOUD_TOP_BANDS,
   CLOUD_TOP_RGB,
-  candidateCloudTopRenderer,
   CLOUD_BANDS,
   PRECIP_BANDS,
   PRECIP_LABELS,
@@ -20,7 +22,7 @@ import {
   CLOUD_RGB,
   PRECIP_RGB,
   SLW_RGB,
-} from "@/lib/arcgis/renderers";
+} from "@/lib/arcgis/bands";
 
 describe("CLOUD_BANDS", () => {
   // The server decides which contours exist (FIELDS.clouds.levels in
