@@ -10,6 +10,7 @@ import cloudTopReducer from "@/lib/store/features/cloudtop";
 import interactionsReducer from "@/lib/store/features/interactions";
 import forecastReducer from "@/lib/store/features/forecast";
 import radarReducer from "@/lib/store/features/radar";
+import seedabilityReducer from "@/lib/store/features/seedability";
 import replayReducer from "@/lib/store/features/replay";
 import soundingReducer from "@/lib/store/features/sounding";
 
@@ -55,6 +56,7 @@ export function createTestStore() {
       interactions: interactionsReducer,
       forecast: forecastReducer,
       radar: radarReducer,
+      seedability: seedabilityReducer,
       replay: replayReducer,
       sounding: soundingReducer,
     },

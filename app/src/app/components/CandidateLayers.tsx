@@ -4,10 +4,14 @@ import { candidateActions } from "@/lib/store/features/candidate";
 import { cloudBaseActions } from "@/lib/store/features/cloudbase";
 import { cloudTopActions } from "@/lib/store/features/cloudtop";
 import { radarActions } from "@/lib/store/features/radar";
+import { seedabilityActions } from "@/lib/store/features/seedability";
 
 // ArcGIS
 import { CloudBaseLegend, CloudTopLegend } from "@/lib/arcgis/legends";
 import {
+  CANDIDATE_BANDS,
+  CANDIDATE_LABELS,
+  CANDIDATE_RGB,
   SLW_BANDS,
   SLW_LABELS,
   SLW_RGB,
@@ -29,9 +33,34 @@ export const CandidateLayers = () => {
   const cloudTop = useAppSelector((state) => state.cloudtop.visible);
   const liquid = useAppSelector((state) => state.candidate.liquid);
   const radar = useAppSelector((state) => state.radar.visible);
+  const field = useAppSelector((state) => state.seedability.visible);
 
   return (
     <div className="flex flex-col gap-4">
+      <LayerToggle
+        name="Candidate field"
+        title={<>Candidate field &middot; every test passed</>}
+        checked={field}
+        onChange={(on) => dispatch(seedabilityActions.setVisible(on))}
+      >
+        <Ramp
+          bands={CANDIDATE_BANDS}
+          rgb={CANDIDATE_RGB}
+          captions={CANDIDATE_BANDS.map((band) => String(band.value))}
+          titles={CANDIDATE_LABELS}
+        />
+        <div className="text-xs opacity-60">
+          g/m² in the {BAND_LABEL} band, where the model has liquid, the
+          satellite sees a cloud top reaching that band, the cloud has a base
+          you can climb through, and the radar is not already watching it rain.
+        </div>
+        <div className="text-xs opacity-50">
+          The other four layers are its inputs. Leave the amber on to read them
+          together: amber with no green over it is liquid this field rejected,
+          and the panel below says which test rejected it.
+        </div>
+      </LayerToggle>
+
       <LayerToggle
         name="Cloud tops"
         title={<>Cloud tops &middot; {CloudTopLegend.name}</>}

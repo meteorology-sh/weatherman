@@ -4,6 +4,7 @@ import { BAND_LABEL } from "@/lib/arcgis/renderers";
 // Components
 import { ArcGIS } from "./Map";
 import { CandidateLayers } from "./CandidateLayers";
+import { CandidateField } from "./CandidateField";
 import { CloudBase } from "./CloudBase";
 import { CloudTop } from "./CloudTop";
 import { Convective } from "./Convective";
@@ -71,6 +72,8 @@ export const Candidate = () => {
           </div>
         </div>
         <CandidateLayers />
+        <div className="divider my-1" />
+        <CandidateField />
         <div className="divider my-1" />
         <CloudBase />
         <div className="divider my-1" />

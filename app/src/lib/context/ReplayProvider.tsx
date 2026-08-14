@@ -6,10 +6,15 @@ import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { replayActions } from "@/lib/store/features/replay";
 
 // Client
-import { GetCloudTopStats, GetLiquidStats, GetRadarStats } from "@/lib/client";
+import {
+  GetCandidateStats,
+  GetCloudTopStats,
+  GetLiquidStats,
+  GetRadarStats,
+} from "@/lib/client";
 
 /**
- * Warms all three sources for the chosen hour, then releases the map to draw.
+ * Warms every source for the chosen hour, then releases the map to draw.
  *
  * The three summaries are not fetched to be displayed — though they are, in the
  * panel. They are fetched because **asking for a summary builds the same cached
@@ -44,19 +49,23 @@ export function ReplayProvider({ children }: { children: React.ReactNode }) {
         dispatch(replayActions.setLoading(true));
         dispatch(replayActions.setError(null));
 
-        const [cloudTop, liquid, radar] = await Promise.all([
+        const [cloudTop, liquid, radar, field] = await Promise.all([
           GetCloudTopStats(hour),
           // Hour 0 — the analysis of the cycle being replayed, matching the
           // candidate map's reading of "the sky at this moment".
           GetLiquidStats(0, hour),
           GetRadarStats(hour),
+          // The join reads all three of the above, so this warms nothing they
+          // do not — but it is the slowest, and the gate has to include it or
+          // the map would draw three layers and wait on the fourth.
+          GetCandidateStats(hour),
         ]);
 
         if (!current) return;
         dispatch(
           replayActions.setReady({
             at: hour,
-            stats: { cloudTop, liquid, radar },
+            stats: { cloudTop, liquid, radar, field },
           })
         );
       } catch (error) {

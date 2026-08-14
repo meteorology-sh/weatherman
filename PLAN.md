@@ -217,7 +217,7 @@ candidate field.
 
 ---
 
-### Phase 2 — The join: one candidate field
+### Phase 2 — The join: one candidate field — **built**
 
 The core deliverable. `INVESTIGATION.md` measured the intersection of the three
 existing layers at 2.23% of CONUS and 0.13% of Texas; nothing in the codebase
@@ -254,10 +254,42 @@ per-level coverage over the corpus before committing**, per the existing guidanc
 must not invent structure — every input is already at 12 km or block-averaged down
 to it, and nothing is interpolated up.
 
-**Attributes, not gates.** C1 and C7 ride as feature properties so the sidebar can
+**Attributes, not gates.** C1 and C7 ride on the summary so the sidebar can
 report them without the map pre-filtering on numbers we cannot yet justify. Per
 `MEASUREMENTS.md` §6 and the standing rule, **a threshold needs a citation, not a
 coverage table** — so ship the fields and defer the cutoffs to Phase 5.
+
+**Correction to the C2 line above.** `C2  cloud base <= band base <= cloud top`
+is the wrong comparison, and implementing it literally rejects seedable cloud.
+The test is whether the cloud and the band **overlap**, and two intervals overlap
+when each starts below where the other ends: `cloud top > band base` — which is
+exactly the satellite's −5 °C mask — and `cloud base < band top`, against the
+band's **cold** edge. A cloud whose base is already colder than −5 °C has the
+band inside it from the bottom up, and the plan's version throws it away. Both
+directions are pinned in `candidate-service.test.ts`.
+
+**What shipped.** `candidate.ts` exports `Seedability`, served at
+`GET /candidate/field` and `/candidate/field/stats`. The join is an array pass
+over the grids each source's build already produced — `Hrrr.liquidField`,
+`Hrrr.diagnosticField`, `Hrrr.bandField`, `Goes.topField`,
+`Mrms.reflectivityField` — with the mosaic sampled onto the HRRR grid by nearest
+block, both grids being ~12 km so nothing is interpolated.
+
+**Output shape: nested contours on the liquid layer's own levels**, provisional
+per open question 4. The field carries the supercooled-liquid path itself, so
+the candidate layer is the liquid layer with the other criteria applied and the
+two are read against each other. Phase 5's coverage measurement can still move
+it to disjoint bands.
+
+**Rejections partition.** Each cell holding in-band liquid is charged to exactly
+the first test it failed, reported in km², because a blank candidate layer over
+an amber liquid layer is a bug report unless the panel can name what emptied it.
+
+**Not in this phase:** lightning cannot ride as an attribute — the join is
+analysis-hour only (satellites cannot forecast) and HRRR does not diagnose
+`LTNG` at f00. The reachability ceiling is a server constant (18,000 ft),
+reported and never a filter; open question 3's per-airframe UI setting is not
+built.
 
 ---
 

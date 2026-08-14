@@ -1,5 +1,5 @@
 // Testing
-import { act, screen } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import { createTestStore, renderWithStore } from "./utils";
 
 // Store
@@ -10,11 +10,10 @@ import { radarActions } from "@/lib/store/features/radar";
 
 // ArcGIS
 import {
+  CANDIDATE_BANDS,
   SLW_BANDS,
-  SLW_LABELS,
   SLW_RGB,
   RADAR_BANDS,
-  RADAR_LABELS,
   RADAR_RGB,
   BAND_LABEL,
   stackedColor,
@@ -32,13 +31,28 @@ import { CloudBaseLegend, CloudTopLegend } from "@/lib/arcgis/legends";
 import { CandidateLayers } from "@/app/components/CandidateLayers";
 
 /**
- * One layer's ramp swatches. This panel carries several ramps, so the swatches
- * are picked out by the class titles that layer paints rather than by position.
+ * One layer's ramp swatches, scoped to that layer's own switch.
+ *
+ * Scoped by switch rather than by class title, because two ramps here carry the
+ * same titles on purpose: the candidate field is the liquid-water field with
+ * the other tests applied, so it is the same quantity on the same levels and
+ * "trace" means the same thing in both. Filtering on the title alone matches
+ * both ramps and silently doubles every count.
  */
-const swatches = (container: HTMLElement, titles: readonly string[]) =>
-  Array.from(container.querySelectorAll<HTMLElement>("div.h-4.flex-1")).filter(
-    (el) => titles.includes(el.title)
+const swatches = (container: HTMLElement, layer: string) => {
+  const input = container.querySelector<HTMLElement>(
+    `input[aria-label="${layer}"]`
   );
+  const section = input?.closest("div.flex.flex-col.gap-2");
+  return Array.from(
+    section?.querySelectorAll<HTMLElement>("div.h-4.flex-1") ?? []
+  );
+};
+
+/** The switch names the panel renders, as the accessible names they are. */
+const LIQUID = "Supercooled liquid water";
+const RADAR = "Radar";
+const FIELD = "Candidate field";
 
 /**
  * jsdom re-prints rgba() with spaces and trims trailing zeros off the alpha
@@ -52,13 +66,31 @@ const rgba = (css: string) =>
     .replace(/\.\)/, ")");
 
 describe("CandidateLayers", () => {
+  it("shows a swatch for every candidate band", () => {
+    const { container } = renderWithStore(
+      <CandidateLayers />,
+      createTestStore()
+    );
+
+    expect(swatches(container, FIELD)).toHaveLength(CANDIDATE_BANDS.length);
+  });
+
+  // The candidate field carries the same quantity on the same levels as the
+  // liquid layer, so the two ramps have to agree — they are read against each
+  // other on the map.
+  it("bands the candidate field on the liquid layer's own levels", () => {
+    expect(CANDIDATE_BANDS.map((b) => b.value)).toEqual(
+      SLW_BANDS.map((b) => b.value)
+    );
+  });
+
   it("shows a swatch for every liquid-water band", () => {
     const { container } = renderWithStore(
       <CandidateLayers />,
       createTestStore()
     );
 
-    expect(swatches(container, SLW_LABELS)).toHaveLength(SLW_BANDS.length);
+    expect(swatches(container, LIQUID)).toHaveLength(SLW_BANDS.length);
   });
 
   // The swatch has to be the colour the map paints, not a hand-picked one, or
@@ -69,18 +101,27 @@ describe("CandidateLayers", () => {
       createTestStore()
     );
 
-    const richest = swatches(container, SLW_LABELS)[SLW_BANDS.length - 1];
+    const richest = swatches(container, LIQUID)[SLW_BANDS.length - 1];
     expect(rgba(richest.style.backgroundColor)).toBe(
       rgba(stackedColor(SLW_BANDS, SLW_RGB, SLW_BANDS.length))
     );
   });
 
   it("labels the liquid bands in g/m² over the seeding band", () => {
-    renderWithStore(<CandidateLayers />, createTestStore());
+    const { container } = renderWithStore(
+      <CandidateLayers />,
+      createTestStore()
+    );
 
-    expect(screen.getByText("400")).toBeTruthy();
+    // Scoped to the liquid switch: the candidate ramp carries the same levels,
+    // so an unscoped lookup for "400" matches both.
+    const section = container
+      .querySelector(`input[aria-label="${LIQUID}"]`)
+      ?.closest("div.flex.flex-col.gap-2") as HTMLElement;
+
+    expect(within(section).getByText("400")).toBeTruthy();
     expect(
-      screen.getByText(new RegExp(`g/m² in the ${BAND_LABEL} band`))
+      within(section).getByText(new RegExp(`g/m² in the ${BAND_LABEL} band`))
     ).toBeTruthy();
   });
 
@@ -125,7 +166,7 @@ describe("CandidateLayers", () => {
       store.dispatch(candidateActions.setLiquid(false));
     });
 
-    expect(swatches(container, SLW_LABELS)).toHaveLength(0);
+    expect(swatches(container, LIQUID)).toHaveLength(0);
   });
 
   it("hides the cloud-top legend when the layer is off", () => {
@@ -267,7 +308,7 @@ describe("CandidateLayers cloud base", () => {
   it("leaves the liquid ramp alone", () => {
     const { container } = withLayer();
 
-    expect(swatches(container, SLW_LABELS)).toHaveLength(SLW_BANDS.length);
+    expect(swatches(container, LIQUID)).toHaveLength(SLW_BANDS.length);
   });
 });
 
@@ -278,7 +319,7 @@ describe("CandidateLayers radar", () => {
       createTestStore()
     );
 
-    expect(swatches(container, RADAR_LABELS)).toHaveLength(RADAR_BANDS.length);
+    expect(swatches(container, RADAR)).toHaveLength(RADAR_BANDS.length);
   });
 
   it("paints each swatch the colour the map composites", () => {
@@ -287,7 +328,7 @@ describe("CandidateLayers radar", () => {
       createTestStore()
     );
 
-    const hardest = swatches(container, RADAR_LABELS)[RADAR_BANDS.length - 1];
+    const hardest = swatches(container, RADAR)[RADAR_BANDS.length - 1];
     expect(rgba(hardest.style.backgroundColor)).toBe(
       rgba(stackedColor(RADAR_BANDS, RADAR_RGB, RADAR_BANDS.length))
     );
@@ -337,7 +378,7 @@ describe("CandidateLayers radar", () => {
       store.dispatch(radarActions.setVisible(false));
     });
 
-    expect(swatches(container, RADAR_LABELS)).toHaveLength(0);
+    expect(swatches(container, RADAR)).toHaveLength(0);
   });
 
   // Two ramps in one panel: switching one off must not take the other with it.
@@ -349,6 +390,6 @@ describe("CandidateLayers radar", () => {
       store.dispatch(radarActions.setVisible(false));
     });
 
-    expect(swatches(container, SLW_LABELS)).toHaveLength(SLW_BANDS.length);
+    expect(swatches(container, LIQUID)).toHaveLength(SLW_BANDS.length);
   });
 });

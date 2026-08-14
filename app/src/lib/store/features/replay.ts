@@ -1,13 +1,19 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 // Types
-import type { CloudTopStats, RadarStats, SlwStats } from "@/lib/types";
+import type {
+  CandidateStats,
+  CloudTopStats,
+  RadarStats,
+  SlwStats,
+} from "@/lib/types";
 
-/** The three summaries for one replayed hour, or nothing yet. */
+/** The summaries for one replayed hour, or nothing yet. */
 type ReplayStats = {
   cloudTop: CloudTopStats;
   liquid: SlwStats;
   radar: RadarStats;
+  field: CandidateStats;
 };
 
 type ReplayState = {
@@ -40,10 +46,11 @@ type ReplayState = {
   error: string | null;
   /** What each source reports for `ready` — the evidence of which scenes drew. */
   stats: ReplayStats | null;
-  /** Which of the three layers are drawn. Mirrors the candidate map's defaults. */
+  /** Which layers are drawn. Mirrors the candidate map's defaults. */
   cloudTop: boolean;
   liquid: boolean;
   radar: boolean;
+  field: boolean;
 };
 
 const initialState: ReplayState = {
@@ -55,6 +62,7 @@ const initialState: ReplayState = {
   cloudTop: true,
   liquid: true,
   radar: true,
+  field: true,
 };
 
 const replaySlice = createSlice({
@@ -72,7 +80,7 @@ const replaySlice = createSlice({
       state.stats = null;
       state.error = null;
     },
-    /** All three sources have answered for this hour, so it may be drawn. */
+    /** Every source has answered for this hour, so it may be drawn. */
     setReady(state, action: PayloadAction<{ at: string; stats: ReplayStats }>) {
       state.ready = action.payload.at;
       state.stats = action.payload.stats;
@@ -91,6 +99,9 @@ const replaySlice = createSlice({
     },
     setRadar(state, action: PayloadAction<boolean>) {
       state.radar = action.payload;
+    },
+    setField(state, action: PayloadAction<boolean>) {
+      state.field = action.payload;
     },
   },
 });

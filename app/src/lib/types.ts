@@ -12,6 +12,60 @@ export interface ForecastMeta {
   hours: number[];
 }
 
+/** Mirrors Rejected in server/src/lib/services/candidate.ts */
+export interface Rejected {
+  /** The model has no cloud base over the cell — nothing to climb into. */
+  noCloudBase: number;
+  /** The base sits above the band's cold edge: the cloud is colder than the band. */
+  baseAboveBand: number;
+  /** The satellite sees no cloud at all, contradicting the model outright. */
+  noCloudSeen: number;
+  /** The observed top is warmer than −5 °C, so the band is above the cloud. */
+  topTooWarm: number;
+  /** Radar is already watching it precipitate. */
+  raining: number;
+}
+
+/** Mirrors CandidateStats in server/src/lib/services/candidate.ts */
+export interface CandidateStats {
+  run: string;
+  validTime: string;
+  /** Start of the satellite scan the observed half came from. */
+  sceneTime: string;
+  /** Time of the radar scan that vetoed. */
+  radarTime: string;
+  /** Percent of the HRRR domain that passes every test. */
+  coveragePct: number;
+  /** Ground that passes every test, km². */
+  candidateKm2: number;
+  /** Richest candidate cell, g/m². */
+  peak: number;
+  /** Ground holding in-band liquid before the join, km². */
+  liquidKm2: number;
+  /** Ground each test removed, km². These partition liquidKm2 − candidateKm2. */
+  rejected: Rejected;
+  /** Candidate ground no radar covers, km² — unchecked rather than cleared. */
+  blindKm2: number;
+  /** Median cloud base over candidate ground, ft MSL. */
+  medianBaseFt: number | null;
+  /** Percent of candidate ground whose base is inside the operational window. */
+  windowPct: number;
+  /** Median height of the band's warm edge over candidate ground, ft MSL. */
+  medianBandBaseFt: number | null;
+  /** The ceiling reachability is reported against, ft MSL. */
+  ceilingFt: number;
+  /** Percent of candidate ground whose band base is below that ceiling. */
+  reachablePct: number;
+  /** Strongest mixed-layer CAPE over candidate ground, J/kg. */
+  peakMixedCapeJKg: number;
+  /** Strongest vertically integrated liquid over candidate ground, kg/m². */
+  peakVilKgM2: number;
+  /** Storm motion at the richest candidate cell, knots. */
+  stormMotionKt: number;
+  /** Bearing that cell is moving toward, degrees. Null when still. */
+  stormMotionTowardDeg: number | null;
+}
+
 /** Mirrors SlwStats in server/src/lib/services/forecast.ts */
 export interface SlwStats {
   run: string;

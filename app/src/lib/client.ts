@@ -1,5 +1,6 @@
 // Types
 import type {
+  CandidateStats,
   CloudBaseStats,
   CloudTopStats,
   ForecastMeta,
@@ -98,6 +99,35 @@ export async function GetSounding(
   }
   const sounding: Sounding = await res.json();
   return sounding;
+}
+
+/**
+ * The candidate field — every layer joined into one.
+ *
+ * No `hour`, unlike the other HRRR routes: the join leans on an observed cloud
+ * top and a satellite cannot forecast, so it exists at the analysis hour only.
+ */
+export function CandidateFieldUrl(): string {
+  return "/candidate/field";
+}
+
+/** The same field at a past hour. `at` names the HRRR cycle to replay. */
+export function ReplayCandidateUrl(at: string): string {
+  return `/candidate/field?${new URLSearchParams({ at })}`;
+}
+
+/** The same build's summary. Asking for it also warms the server's build. */
+export async function GetCandidateStats(at?: string): Promise<CandidateStats> {
+  const res = await fetch(
+    at
+      ? `/candidate/field/stats?${new URLSearchParams({ at })}`
+      : "/candidate/field/stats"
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to fetch the candidate field: ${res.status}`);
+  }
+  const stats: CandidateStats = await res.json();
+  return stats;
 }
 
 /**

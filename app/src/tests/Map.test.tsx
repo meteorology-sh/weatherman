@@ -47,6 +47,8 @@ const {
   replayCloudTopLayer,
   replayLiquidLayer,
   replayRadarLayer,
+  fieldLayer,
+  replayFieldLayer,
   watch,
 } = vi.hoisted(() => ({
   arcgis: {
@@ -100,6 +102,18 @@ const {
     url: "",
     refresh: vi.fn(),
   },
+  fieldLayer: {
+    id: "candidate-field-layer",
+    visible: false,
+    url: "",
+    refresh: vi.fn(),
+  },
+  replayFieldLayer: {
+    id: "replay-field-layer",
+    visible: false,
+    url: "",
+    refresh: vi.fn(),
+  },
   watch: vi.fn(() => ({ remove: vi.fn() })),
 }));
 
@@ -113,6 +127,8 @@ vi.mock("@/lib/arcgis/layers", () => ({
   ReplayCloudTopLayer: replayCloudTopLayer,
   ReplayLiquidLayer: replayLiquidLayer,
   ReplayRadarLayer: replayRadarLayer,
+  CandidateFieldLayer: fieldLayer,
+  ReplayFieldLayer: replayFieldLayer,
 }));
 vi.mock("@arcgis/core/core/reactiveUtils", () => ({ watch }));
 vi.mock("@arcgis/core/Map", () => ({
@@ -217,7 +233,18 @@ describe("ArcGIS", () => {
       precipLayer,
       liquidLayer,
       radarLayer,
+      fieldLayer,
     ]);
+  });
+
+  // The candidate field is the answer the other four are inputs to, so it is
+  // drawn over all of them — amber showing through with no green on it is
+  // liquid the join rejected, and that reading only works in this order.
+  it("draws the candidate field above every layer it joins", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    const layers = map().layers ?? [];
+    expect(layers[layers.length - 1]).toBe(fieldLayer);
   });
 
   // Cloud base answers "can I get into this cloud at all", which is the

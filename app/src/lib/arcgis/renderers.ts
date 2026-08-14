@@ -83,6 +83,31 @@ export const SLW_BANDS: readonly Band[] = [
 ];
 
 /**
+ * The candidate field, g/m², mirroring CANDIDATE.levels in
+ * server/src/lib/services/candidate.ts — which are SLW_BANDS' levels, because
+ * the candidate field *is* the liquid field with the other criteria applied.
+ *
+ * Same levels, same nesting, deliberately stronger fills. This is the answer
+ * the map exists to give, it covers a fraction of the ground the liquid layer
+ * does, and it is drawn over the top of it — so where both are on, amber
+ * showing through with no green over it is liquid the join rejected.
+ */
+export const CANDIDATE_BANDS: readonly Band[] = [
+  { value: 10, alpha: 0.2 },
+  { value: 50, alpha: 0.24 },
+  { value: 150, alpha: 0.28 },
+  { value: 400, alpha: 0.32 },
+];
+
+/**
+ * Emerald, and the last hue this map has. Slate is cloud shape, violet is
+ * cloud base, amber is modelled liquid, cyan is rain. The candidate field is a
+ * fifth claim — "every test passed here" — and borrowing any of the four would
+ * read as one of them. Green is also the only hue on the map that means go.
+ */
+export const CANDIDATE_RGB = [52, 211, 153] as const;
+
+/**
  * Observed reflectivity, dBZ, mirroring REFLECTIVITY.levels in
  * server/src/lib/services/radar.ts. The NWS intensity classes: light, moderate,
  * heavy, and the top band where a summer cell is producing hail.
@@ -174,6 +199,11 @@ export const candidateLiquidRenderer = new UniqueValueRenderer({
 export const candidateRadarRenderer = new UniqueValueRenderer({
   field: "reflectivity",
   uniqueValueInfos: fills(RADAR_BANDS, RADAR_RGB),
+});
+
+export const candidateFieldRenderer = new UniqueValueRenderer({
+  field: "seedableSlwPath",
+  uniqueValueInfos: fills(CANDIDATE_BANDS, CANDIDATE_RGB),
 });
 
 /**
@@ -326,6 +356,13 @@ export const PRECIP_LABELS = ["trace", "light", "moderate", "heavy"] as const;
  * target.
  */
 export const SLW_LABELS = ["trace", "marginal", "good", "prime"] as const;
+
+/**
+ * Parallel to CANDIDATE_BANDS. The same words as SLW_LABELS, because it is the
+ * same quantity on the same levels — what differs is that these cells passed
+ * every other test, not how much water is in them.
+ */
+export const CANDIDATE_LABELS = SLW_LABELS;
 
 /**
  * Parallel to RADAR_BANDS. The NWS reflectivity classes, in the words an

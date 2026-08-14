@@ -1,5 +1,8 @@
 // Client
 import {
+  CandidateFieldUrl,
+  GetCandidateStats,
+  ReplayCandidateUrl,
   CloudTopUrl,
   ForecastCloudBaseUrl,
   GetCloudBaseStats,
@@ -237,6 +240,56 @@ describe("cloud tops", () => {
     );
     await expect(GetCloudTopStats()).rejects.toThrow(
       "Failed to fetch cloud tops: 503"
+    );
+  });
+});
+
+describe("GetCandidateStats", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // No hour: the join reads an observed cloud top, and a satellite cannot
+  // forecast, so the field exists at the analysis hour only.
+  it("asks for the live field with no parameters at all", async () => {
+    const fetcher = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 200 }));
+
+    await GetCandidateStats();
+
+    expect(fetcher.mock.calls[0][0]).toBe("/candidate/field/stats");
+  });
+
+  it("passes a replayed hour through as `at`", async () => {
+    const fetcher = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 200 }));
+
+    await GetCandidateStats("2025-05-15T18:00:00.000Z");
+
+    expect(fetcher.mock.calls[0][0]).toContain(
+      "at=2025-05-15T18%3A00%3A00.000Z"
+    );
+  });
+
+  it("throws on a non-OK response", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("nope", { status: 503 })
+    );
+
+    await expect(GetCandidateStats()).rejects.toThrow(/503/);
+  });
+});
+
+describe("candidate field urls", () => {
+  it("names the live field without a date", () => {
+    expect(CandidateFieldUrl()).toBe("/candidate/field");
+  });
+
+  it("names a replayed field by its hour", () => {
+    expect(ReplayCandidateUrl("2025-05-15T18:00:00.000Z")).toBe(
+      "/candidate/field?at=2025-05-15T18%3A00%3A00.000Z"
     );
   });
 });

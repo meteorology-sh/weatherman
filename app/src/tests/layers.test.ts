@@ -1,5 +1,7 @@
 // ArcGIS
 import {
+  CandidateFieldLayer,
+  ReplayFieldLayer,
   CandidateCloudBaseLayer,
   CandidateCloudTopLayer,
   ForecastCloudsLayer,
@@ -148,5 +150,45 @@ describe("MRMS radar layer", () => {
   it("asks for whatever scene is current", () => {
     expect(CandidateRadarLayer.url).not.toContain("?");
     expect(CandidateRadarLayer.customParameters).toBeFalsy();
+  });
+});
+
+describe("CandidateFieldLayer", () => {
+  it("points at the joined field", () => {
+    expect(CandidateFieldLayer.url).toBe("/candidate/field");
+  });
+
+  // The renderer matches on this field, and the layer starts empty on a day
+  // with no candidates — an empty FeatureCollection gives ArcGIS nothing to
+  // infer a schema from, so it has to be declared.
+  it("declares the schema its renderer matches on", () => {
+    expect(CandidateFieldLayer.geometryType).toBe("polygon");
+    expect(CandidateFieldLayer.fields.map((f) => f.name)).toContain(
+      "seedableSlwPath"
+    );
+  });
+
+  it("credits all three sources it joins", () => {
+    expect(CandidateFieldLayer.copyright).toMatch(/HRRR/);
+    expect(CandidateFieldLayer.copyright).toMatch(/GOES/);
+    expect(CandidateFieldLayer.copyright).toMatch(/MRMS/);
+  });
+});
+
+describe("ReplayFieldLayer", () => {
+  // Separate from the live layer for the same reason the other replay layers
+  // are: a shared url would leave a past date on the live map.
+  it("starts with no url, since the page opens with no date chosen", () => {
+    expect(ReplayFieldLayer.url).toBeFalsy();
+  });
+
+  it("is a different instance from the live field layer", () => {
+    expect(ReplayFieldLayer).not.toBe(CandidateFieldLayer);
+  });
+
+  it("declares the same schema, so both draw the same frames", () => {
+    expect(ReplayFieldLayer.fields.map((f) => f.name)).toEqual(
+      CandidateFieldLayer.fields.map((f) => f.name)
+    );
   });
 });

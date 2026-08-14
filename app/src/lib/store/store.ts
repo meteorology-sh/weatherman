@@ -5,6 +5,7 @@ import cloudTopReducer from "./features/cloudtop";
 import interactionsReducer from "./features/interactions";
 import forecastReducer from "./features/forecast";
 import radarReducer from "./features/radar";
+import seedabilityReducer from "./features/seedability";
 import replayReducer from "./features/replay";
 import soundingReducer from "./features/sounding";
 
@@ -19,6 +20,7 @@ export const store = configureStore({
     interactions: interactionsReducer,
     forecast: forecastReducer,
     radar: radarReducer,
+    seedability: seedabilityReducer,
     replay: replayReducer,
     sounding: soundingReducer,
   },

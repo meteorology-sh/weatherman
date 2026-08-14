@@ -1,6 +1,7 @@
 // ArcGIS
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
 import {
+  candidateFieldRenderer,
   forecastCloudRenderer,
   forecastPrecipRenderer,
   candidateCloudBaseRenderer,
@@ -11,6 +12,7 @@ import {
 
 // Client
 import {
+  CandidateFieldUrl,
   CloudTopUrl,
   ForecastCloudsUrl,
   ForecastCloudBaseUrl,
@@ -72,6 +74,45 @@ export const ReplayRadarLayer = new GeoJSONLayer({
   fields: [
     { name: "OBJECTID", type: "oid" },
     { name: "reflectivity", type: "double" },
+  ],
+  visible: false,
+});
+
+/**
+ * The candidate field: every layer joined, drawn only where all of them agree.
+ *
+ * Nested contours on the same levels as the liquid-water layer, because it
+ * carries the same quantity — the join filters cells, it does not rescore them.
+ * Drawn above the liquid layer so amber showing through with no green over it
+ * is liquid the join rejected, which is the comparison the map is for.
+ *
+ * Pinned to the analysis hour with no url parameter at all: the join reads an
+ * observed cloud top, and a satellite cannot forecast. Nothing repoints this.
+ */
+export const CandidateFieldLayer = new GeoJSONLayer({
+  title: "Candidate field",
+  url: CandidateFieldUrl(),
+  copyright: "NOAA HRRR / NOAA GOES-East / NOAA MRMS",
+  renderer: candidateFieldRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "seedableSlwPath", type: "double" },
+  ],
+  visible: false,
+});
+
+/** The same field at a replayed hour. See ReplayCloudTopLayer for why separate. */
+export const ReplayFieldLayer = new GeoJSONLayer({
+  title: "Candidate field (replay)",
+  copyright: "NOAA HRRR / NOAA GOES-East / NOAA MRMS",
+  renderer: candidateFieldRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "seedableSlwPath", type: "double" },
   ],
   visible: false,
 });

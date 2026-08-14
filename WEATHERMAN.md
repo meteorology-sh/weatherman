@@ -41,7 +41,7 @@ here. This map is entirely model output.
 
 ### `/map/candidate` — observed
 
-Four layers, and they are not the same kind of claim. Bottom to top:
+Five layers, and they are not the same kind of claim. Bottom to top:
 
 | Layer                    | Claim        | Source                    |
 | ------------------------ | ------------ | ------------------------- |
@@ -55,16 +55,21 @@ and the sidebar says so. The radar mosaic is the only measurement on either map.
 Clicking anywhere profiles that point's column and reads that cell's convective
 diagnostics.
 
+**The candidate field is the answer the other four are inputs to**, drawn over
+all of them. Leaving the amber on reads the two together: amber with no green
+over it is liquid the join rejected, and the panel says which test rejected it.
+
 **Cloud base sits at the bottom because it is the question asked first** — can an
-aircraft climb into this cloud at all — and the other three are answers about a
-cloud you can reach. It is the only layer here that starts hidden: a fourth fill
-switched on by default lands on three an operator already reads.
+aircraft climb into this cloud at all — and the layers above are answers about a
+cloud you can reach. It is the only layer here that starts hidden: an extra fill
+switched on by default lands on ones an operator already reads.
 
 ### `/map/replay` — the candidate map at an hour you pick
 
 Its layers, rebuilt from that hour's own sources: the HRRR cycle initialised
-then, and the satellite and radar scans nearest it. The left panel is a calendar
-and what actually loaded, and nothing else.
+then, and the satellite and radar scans nearest it. The left panel is a calendar,
+what actually loaded, and the candidate field's summary — the one readout that
+says something about the hour as a whole rather than about one unjoined source.
 
 **Nothing is drawn until every source has answered.** The sources take 10 s to
 40 s and do not finish together, so revealing each as it landed put two dates on
@@ -149,6 +154,46 @@ answered at the clicked point instead, and the map's cloud top comes from the
 satellite. The rest of the file's diagnostics — CAPE, storm motion, lightning,
 vertically integrated liquid, echo top — ride the same build as **attributes on
 that point readout, and nothing gates on them.**
+
+### The candidate field — the join
+
+Every layer above, asked at once, per 12 km cell. A cell is a candidate where
+all four hold:
+
+- HRRR has supercooled liquid in the seeding band, at or above 10 g/m²
+- the model gives a cloud base, and it sits **below the band's cold edge**
+- GOES sees a cloud top at or colder than −5 °C
+- MRMS is not already watching the cell rain, at or above 20 dBZ
+
+**The band-inside-cloud test is an interval overlap.** Cloud spans base to top;
+the band spans its warm edge (−5 °C, lower) to its cold edge (−18 °C, higher).
+Two intervals overlap when each starts below where the other ends, so the halves
+are `cloud top > band base` — which is exactly the satellite's −5 °C test — and
+`cloud base < band top`, against the **cold** edge. Comparing the base against
+the warm edge instead discards clouds whose base is already colder than −5 °C,
+and those have the band inside them from the bottom up.
+
+**The value drawn is the liquid water path itself**, on the liquid layer's own
+levels. The join filters cells; it does not rescore them. That is what makes the
+two readable against each other.
+
+**Rejections are charged to exactly one test**, in the order above, so they
+partition and the panel can say what emptied the map. A blank candidate layer
+over an amber liquid layer is a bug report otherwise.
+
+**It exists at the analysis hour only.** It leans on an observed cloud top, and
+satellites cannot forecast. `at` replays the whole join at a past hour instead.
+
+**Attributes, never gates**: cloud base against the operational window, band base
+against a configured 18,000 ft ceiling, mixed-layer CAPE, integrated liquid and
+storm motion — all read over candidate ground only, all reported. A band above
+the ceiling in July is correct output, not a warning. Lightning cannot ride here
+at all: HRRR does not diagnose it at the analysis hour.
+
+**Absence of radar coverage does not veto.** A third of the mosaic's box has no
+radar over it, and no coverage is not a report of clear air — so those cells stay
+candidates and the panel reports how much ground was unchecked rather than
+cleared.
 
 ### Rain — MRMS
 
@@ -275,12 +320,13 @@ age rather than implying it is live.
 
 One hue per claim, and they cannot be swapped without the map lying:
 
-| Hue    | Layer                      |
-| ------ | -------------------------- |
-| Slate  | cloud top — context        |
-| Violet | cloud base                 |
-| Amber  | modelled liquid water      |
-| Cyan   | rain, modelled or measured |
+| Hue     | Layer                      |
+| ------- | -------------------------- |
+| Slate   | cloud top — context        |
+| Violet  | cloud base                 |
+| Amber   | modelled liquid water      |
+| Cyan    | rain, modelled or measured |
+| Emerald | the candidate field        |
 
 Cyan is the same on both maps deliberately: it is the same quantity, and the two
 never share a map. On `/map/forecast` it is what the model says will fall; on

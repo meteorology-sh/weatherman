@@ -10,6 +10,7 @@ import { soundingActions } from "@/lib/store/features/sounding";
 import {
   ForecastCloudsUrl,
   ForecastPrecipUrl,
+  ReplayCandidateUrl,
   ReplayCloudTopUrl,
   ReplayLiquidUrl,
   ReplayRadarUrl,
@@ -27,7 +28,9 @@ import {
   ForecastPrecipLayer,
   CandidateLiquidLayer,
   CandidateRadarLayer,
+  CandidateFieldLayer,
   ReplayCloudTopLayer,
+  ReplayFieldLayer,
   ReplayLiquidLayer,
   ReplayRadarLayer,
 } from "@/lib/arcgis/layers";
@@ -58,10 +61,12 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const cloudTop = useAppSelector((state) => state.cloudtop.visible);
   const liquid = useAppSelector((state) => state.candidate.liquid);
   const radar = useAppSelector((state) => state.radar.visible);
+  const field = useAppSelector((state) => state.seedability.visible);
   const ready = useAppSelector((state) => state.replay.ready);
   const replayCloudTop = useAppSelector((state) => state.replay.cloudTop);
   const replayLiquid = useAppSelector((state) => state.replay.liquid);
   const replayRadar = useAppSelector((state) => state.replay.radar);
+  const replayField = useAppSelector((state) => state.replay.field);
   const forecasting = mode === "forecast";
   const replaying = mode === "replay";
   const raining = forecasting && hour >= PRECIP_FIRST_HOUR;
@@ -88,6 +93,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
           ForecastPrecipLayer,
           CandidateLiquidLayer,
           CandidateRadarLayer,
+          CandidateFieldLayer,
         ],
       });
 
@@ -138,6 +144,8 @@ export const ArcGIS = ({ mode }: PropsT) => {
     // Observations, so they never appear on the modelled map — the same rule
     // that keeps the satellite cloud tops off it.
     CandidateRadarLayer.visible = candidating && radar;
+    // The answer, drawn over its own inputs.
+    CandidateFieldLayer.visible = candidating && field;
     // Gated on `ready`, not on the hour that was asked for. `setAt` clears
     // `ready`, so picking a date blanks the map immediately and it stays blank
     // until every source has answered — the three take 10 s to 40 s and finish
@@ -146,6 +154,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayCloudTopLayer.visible = drawable && replayCloudTop;
     ReplayLiquidLayer.visible = drawable && replayLiquid;
     ReplayRadarLayer.visible = drawable && replayRadar;
+    ReplayFieldLayer.visible = drawable && replayField;
   }, [
     forecasting,
     candidating,
@@ -156,10 +165,12 @@ export const ArcGIS = ({ mode }: PropsT) => {
     cloudTop,
     liquid,
     radar,
+    field,
     ready,
     replayCloudTop,
     replayLiquid,
     replayRadar,
+    replayField,
   ]);
 
   // Point each forecast contour layer at the selected hour. Repointing the url
@@ -210,17 +221,24 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayCloudTopLayer.url = ReplayCloudTopUrl(at);
     ReplayLiquidLayer.url = ReplayLiquidUrl(at);
     ReplayRadarLayer.url = ReplayRadarUrl(at);
+    ReplayFieldLayer.url = ReplayCandidateUrl(at);
 
     const map = mapRef.current;
     if (map && !map.layers.includes(ReplayCloudTopLayer)) {
       // Draw order matches the candidate map: modelled liquid over observed
       // tops, measured radar over both.
-      map.addMany([ReplayCloudTopLayer, ReplayLiquidLayer, ReplayRadarLayer]);
+      map.addMany([
+        ReplayCloudTopLayer,
+        ReplayLiquidLayer,
+        ReplayRadarLayer,
+        ReplayFieldLayer,
+      ]);
       return; // A layer added with a url fetches on load; refreshing would double it.
     }
     ReplayCloudTopLayer.refresh();
     ReplayLiquidLayer.refresh();
     ReplayRadarLayer.refresh();
+    ReplayFieldLayer.refresh();
   }, [ready]);
 
   // Surface "still drawing" so the slider can say so rather than looking stuck.
