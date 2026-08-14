@@ -21,7 +21,7 @@ type PropsT = { stats: CandidateStats };
 export const Rejections = ({ stats }: PropsT) => {
   if (stats.liquidKm2 === 0) {
     return (
-      <div className="text-xs opacity-60">
+      <div className="text-xs">
         The model has no supercooled liquid in the band anywhere, so there was
         nothing for the other tests to rule out.
       </div>
@@ -38,16 +38,16 @@ export const Rejections = ({ stats }: PropsT) => {
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="text-xs opacity-70">
+      <div className="text-xs">
         Of {km2.format(stats.liquidKm2)} km² holding in-band liquid,{" "}
-        {km2.format(stats.candidateKm2)} km² met all four. Ruled out by:
+        {km2.format(stats.candidateKm2)} km² came through. Ruled out by:
       </div>
       {rows
         .filter(([, value]) => value > 0)
         .map(([label, value]) => (
           <div key={label} className="flex justify-between gap-2 text-xs">
-            <span className="opacity-60">{label}</span>
-            <span className="opacity-80">{km2.format(value)} km²</span>
+            <span>{label}</span>
+            <span>{km2.format(value)} km²</span>
           </div>
         ))}
     </div>

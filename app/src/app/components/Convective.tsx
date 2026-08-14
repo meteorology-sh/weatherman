@@ -65,17 +65,16 @@ export const Convective = () => {
           than it reports a base, so "we cannot tell" is the common answer and
           must not read as "no". */}
       {d.bandInCloud === null ? (
-        <div className="text-xs opacity-60">
-          Not enough here to say whether the seeding band is inside this cloud.
-          That needs a cloud base, a cloud top and a band base, and one of the
-          three is missing.
+        <div className="text-xs">
+          No answer for this point. It takes a cloud base, a cloud top and a
+          band base, and one of the three is missing.
         </div>
       ) : d.bandInCloud ? (
         <div className="alert alert-success alert-soft p-2 text-xs">
           <span>
             The {BAND_WARMEST_C} °C level lies between this cloud's base and its
-            top, so the seeding band is inside the cloud — there is cloud around
-            the altitude worth seeding, rather than clear air.
+            top, so the seeding band is inside the cloud rather than in clear
+            air.
           </span>
         </div>
       ) : (
@@ -88,11 +87,11 @@ export const Convective = () => {
       )}
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-        <span className="opacity-60">CAPE, surface</span>
+        <span>CAPE, surface</span>
         <span>{num.format(d.capeJKg)} J/kg</span>
-        <span className="opacity-60">CAPE, mixed layer</span>
+        <span>CAPE, mixed layer</span>
         <span>{num.format(d.mixedCapeJKg)} J/kg</span>
-        <span className="opacity-60">Storm motion</span>
+        <span>Storm motion</span>
         <span>
           {d.stormMotionTowardDeg === null
             ? `${d.stormMotionKt} kt`
@@ -100,23 +99,23 @@ export const Convective = () => {
                 d.stormMotionTowardDeg
               )} (${d.stormMotionTowardDeg}°)`}
         </span>
-        <span className="opacity-60">Integrated liquid</span>
+        <span>Integrated liquid</span>
         <span>{d.vilKgM2} kg/m²</span>
-        <span className="opacity-60">Echo top</span>
+        <span>Echo top</span>
         <span>{feet(d.echoTopFt)}</span>
-        <span className="opacity-60">Lightning</span>
+        <span>Lightning</span>
         <span>
           {d.lightning === null ? "not at the analysis hour" : d.lightning}
         </span>
       </div>
 
-      <div className="text-xs opacity-50">
-        All modelled, and none of it filters the map. CAPE says how much energy
-        a growing turret has to work with, and storm motion says where the
-        seeded cloud would carry the plume. Integrated liquid is a second
-        opinion on the amber contours, worked out from a different field than
-        they are. HRRR publishes no unit for its lightning field, so it is shown
-        as the bare number.
+      <div className="text-xs">
+        All modelled, and none of it filters the map. CAPE is the energy a
+        growing turret has to work with; storm motion is where a seeded cloud
+        would carry the plume; integrated liquid is a second opinion on
+        SUPERCOOLED_LIQUID_WATER, worked out from a different field. HRRR
+        publishes no unit for its lightning field, so it is shown as the bare
+        number.
       </div>
     </div>
   );

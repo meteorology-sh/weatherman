@@ -21,23 +21,25 @@ export const Forecast = () => {
             <div className="collapse-title font-semibold">Instructions</div>
             <div className="collapse-content text-sm">
               <div className="prose">
-                <p>
-                  Drag the slider to step through the forecast. Each frame is
-                  HRRR total cloud cover, contoured into nested bands — the
-                  denser the white, the more cloud. Where the model has no
-                  cloud, nothing is drawn, so the basemap stays readable.
-                </p>
-                <p>
-                  Precipitation rate is contoured the same way, in cyan, over
-                  the cloud. Rain covers a fraction of the ground cloud does, so
-                  it reads as distinct cells rather than a wash — and a cloud
-                  that is already raining is not a seeding candidate.
-                </p>
-                <p>
-                  This is a <em>model</em>, not a picture: satellites cannot see
-                  the future, so nothing here is observed. For observed cloud
-                  shape, use the candidate map.
-                </p>
+                <ol>
+                  <li>
+                    Drag the slider to step through the run, from the analysis
+                    hour out to +18 h. The frame redraws at each step.
+                  </li>
+                  <li>
+                    Switch PRECIPITATION off to read the cloud on its own. It
+                    has nothing to draw at the analysis hour, so step forward an
+                    hour to see it.
+                  </li>
+                  <li>
+                    Open “What this measures” under either layer for what it is
+                    and how it is made.
+                  </li>
+                  <li>
+                    For observed cloud rather than modelled, use the candidate
+                    map.
+                  </li>
+                </ol>
               </div>
             </div>
           </div>

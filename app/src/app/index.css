@@ -7,3 +7,19 @@
   themes: dark --default;
 }
 @plugin "@tailwindcss/typography";
+
+/* Every word in the panel is read, so none of it is dimmed. DaisyUI mixes stat
+   captions down to 60% of base-content and prose body to 80%; both land as grey
+   on black. Unlayered, so it wins over the plugins' own layers. */
+.stat-title,
+.stat-desc {
+  color: var(--color-base-content);
+}
+
+.prose {
+  --tw-prose-body: var(--color-base-content);
+  --tw-prose-headings: var(--color-base-content);
+  --tw-prose-bold: var(--color-base-content);
+  --tw-prose-counters: var(--color-base-content);
+  --tw-prose-bullets: var(--color-base-content);
+}

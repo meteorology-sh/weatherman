@@ -140,7 +140,7 @@ export function CloudTopUrl(): string {
 }
 
 /**
- * The same three layers, at a past hour.
+ * The same layers, at a past hour.
  *
  * `at` names the HRRR cycle and the scene to replay. Every route takes it and
  * every route treats its absence as "live", so these builders exist to keep the
@@ -152,6 +152,13 @@ export function ReplayCloudTopUrl(at: string): string {
 
 export function ReplayLiquidUrl(at: string, hour = 0): string {
   return `/forecast/liquid?${new URLSearchParams({ hour: String(hour), at })}`;
+}
+
+export function ReplayCloudBaseUrl(at: string, hour = 0): string {
+  return `/forecast/cloudbase?${new URLSearchParams({
+    hour: String(hour),
+    at,
+  })}`;
 }
 
 export function ReplayRadarUrl(at: string): string {

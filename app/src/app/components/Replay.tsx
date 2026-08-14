@@ -34,7 +34,7 @@ export const Replay = () => {
         </div>
 
         {at === null ? (
-          <div className="text-sm opacity-60">
+          <div className="text-sm">
             Pick a date and hour to load. Times are UTC, matching the model
             cycles and scan times the layers are keyed on.
           </div>

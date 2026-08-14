@@ -28,9 +28,9 @@ export const ReplayField = () => {
   if (field.coveragePct === 0) {
     return (
       <div className="flex flex-col gap-2">
-        <h3 className="font-semibold text-sm">Seeding opportunity</h3>
-        <div className="text-sm opacity-70">
-          Nothing in the domain met all four conditions at this hour.
+        <h3 className="font-semibold text-sm">SEEDING_OPPORTUNITY</h3>
+        <div className="text-sm">
+          No ground in the domain passed every test at this hour.
         </div>
         <Rejections stats={field} />
       </div>
@@ -39,14 +39,14 @@ export const ReplayField = () => {
 
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="font-semibold text-sm">Seeding opportunity</h3>
+      <h3 className="font-semibold text-sm">SEEDING_OPPORTUNITY</h3>
       <div className="text-sm">
-        <strong>{km2.format(field.candidateKm2)} km²</strong> met all four
-        conditions — {field.coveragePct}% of the domain, richest cell{" "}
+        <strong>{km2.format(field.candidateKm2)} km²</strong> passed every test
+        — {field.coveragePct}% of the domain, richest cell{" "}
         {km2.format(field.peak)} g/m².
       </div>
       {field.medianBandBaseFt !== null && (
-        <div className="text-sm opacity-80">
+        <div className="text-sm">
           Band base {ft.format(field.medianBandBaseFt)} ft MSL &middot;{" "}
           {field.reachablePct}% below an {ft.format(field.ceilingFt)} ft ceiling
         </div>

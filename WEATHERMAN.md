@@ -66,10 +66,13 @@ switched on by default lands on ones an operator already reads.
 
 ### `/map/replay` — the candidate map at an hour you pick
 
-Its layers, rebuilt from that hour's own sources: the HRRR cycle initialised
-then, and the satellite and radar scans nearest it. The left panel is a calendar,
-what actually loaded, and the seeding-opportunity summary — the one readout that
-says something about the hour as a whole rather than about one unjoined source.
+**The same layers as the candidate map, with the same defaults and the same
+legends**, rebuilt from that hour's own sources: the HRRR cycle initialised then,
+and the satellite and radar scans nearest it. A layer offered live and not here
+is one an operator cannot check against a seeding log. The left panel is a
+calendar, what actually loaded, and the seeding-opportunity summary — the one
+readout that says something about the hour as a whole rather than about one
+unjoined source.
 
 **Nothing is drawn until every source has answered.** The sources take 10 s to
 40 s and do not finish together, so revealing each as it landed put two dates on
@@ -77,9 +80,9 @@ the map at once. `ReplayProvider` awaits the _stats_ routes — which build the
 same cached scenes the geometry routes serve — and only then does the store's
 `ready` move and the layers point at the hour. Picking a date clears `ready`,
 which blanks the map immediately rather than leaving the old hour under a new
-date. Warming in parallel takes ~43 s against ~87 s sequentially, and the
-geometry that follows is cache-warm (<0.5 s each), which is what makes the layers
-appear together.
+date. The warms run in parallel, so a cold hour costs the slowest source rather
+than the sum of them, and the geometry that follows is cache-warm (<0.5 s each).
+That is what makes the layers appear together.
 
 **Its layers are separate ArcGIS instances**, not the candidate map's pointed at
 a date. Sharing them would leave a past date's url on the live map, and the bug

@@ -22,9 +22,7 @@ export const CloudBaseRamp = () => (
           style={{ backgroundColor: soloColor(CLOUD_BASE_RGB, band.alpha) }}
           title={`${band.label} ft MSL`}
         />
-        <span className="text-[10px] opacity-70 whitespace-nowrap">
-          {band.label}
-        </span>
+        <span className="text-[10px] whitespace-nowrap">{band.label}</span>
       </div>
     ))}
   </div>

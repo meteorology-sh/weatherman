@@ -22,7 +22,7 @@ import {
 } from "@/lib/client";
 
 /**
- * The replay map's three layers.
+ * The replay map's layers.
  *
  * Separate instances rather than repointing the live ones, and that is not
  * duplication for its own sake. Every layer here is added to the map once and
@@ -48,6 +48,19 @@ export const ReplayCloudTopLayer = new GeoJSONLayer({
   fields: [
     { name: "OBJECTID", type: "oid" },
     { name: "topColdnessC", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayCloudBaseLayer = new GeoJSONLayer({
+  title: "HRRR cloud base (replay)",
+  copyright: "NOAA HRRR",
+  renderer: candidateCloudBaseRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "cloudBaseFt", type: "double" },
   ],
   visible: false,
 });

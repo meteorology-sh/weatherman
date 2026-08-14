@@ -1,24 +1,26 @@
+// Types
+import type { LayerLegend } from "@/lib/arcgis/legends";
+
+// Components
+import { LayerAbout } from "./LayerAbout";
+
 type PropsT = {
-  /** Accessible name, and the heading when no `title` is given. */
-  name: string;
-  /** Heading text, when it carries more than the name (a source, a window). */
-  title?: React.ReactNode;
+  legend: LayerLegend;
   checked: boolean;
   onChange: (checked: boolean) => void;
-  /** Legend and caveats. Rendered only while the layer is on. */
+  /** The ramp and its units. Rendered only while the layer is on. */
   children?: React.ReactNode;
 };
 
 /**
- * One layer's switch, with its legend underneath.
+ * One layer's switch, its legend, and what it measures.
  *
  * The legend is mounted only while the layer is on, and that is the point: a
  * ramp for a layer nobody is drawing describes a map that is not there. Every
  * sidebar section on both maps is this shape, so it lives in one place.
  */
 export const LayerToggle = ({
-  name,
-  title,
+  legend,
   checked,
   onChange,
   children,
@@ -29,11 +31,16 @@ export const LayerToggle = ({
         type="checkbox"
         className="toggle toggle-sm"
         checked={checked}
-        aria-label={name}
+        aria-label={legend.name}
         onChange={(e) => onChange(e.target.checked)}
       />
-      <span className="text-sm font-semibold">{title ?? name}</span>
+      <span className="text-sm font-semibold">{legend.name}</span>
     </label>
-    {checked && children}
+    {checked && (
+      <>
+        {children}
+        <LayerAbout legend={legend} />
+      </>
+    )}
   </div>
 );

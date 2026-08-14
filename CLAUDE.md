@@ -127,7 +127,8 @@ app/src/
     types.ts               # Shared data shapes — mirror server responses
     arcgis/
       layers.ts            #   Module-scope GeoJSONLayer instances
-      legends.ts           #   Legend data per layer (ramp, ticks, caveat)
+      legends.ts           #   Per layer: on-screen name, source, what it
+                           #   measures, and what it does not tell you
       renderers.ts         #   Contour bands + renderers
     context/               # One data provider per domain
     store/
@@ -317,6 +318,25 @@ in the app needs it yet, so there is no in-repo example to copy — build it fro
 the source's own sampling rather than adapting a contour layer.
 
 ## Component conventions
+
+**A layer is named on screen in SCREAMING_SNAKE_CASE** — `CLOUD_BASE`,
+`SUPERCOOLED_LIQUID_WATER` — and the name lives in that layer's `LayerLegend` in
+`lib/arcgis/legends.ts`. Switches, panel headings and tests read it from there,
+so a layer has one name everywhere and renaming it is one edit. The name still
+says what the layer measures; the case is the only shorthand allowed.
+
+**Every layer's prose lives in its `LayerLegend`, and both maps read it.** The
+candidate map and the replay map draw the same layers at different hours, so
+descriptions that differed between them would be describing the same layer two
+ways. `about` says what the thing is and how it is made; `caveat` says what it
+does not tell you. Both are rendered by `LayerAbout` in a DaisyUI collapse under
+the switch — printed inline they bury the ramp, which is the part read every
+time.
+
+**Panel text is undimmed.** No `opacity-*` on anything carrying words; the
+DaisyUI classes that dim themselves (`stat-title`, `stat-desc`, `prose`) are
+un-dimmed once in `index.css` rather than fought per component. Muting is for a
+control that cannot act — the greyed ramp at an hour its layer cannot draw.
 
 **Use early-return guards. Never ternaries for loading/error/empty at the top
 level:**

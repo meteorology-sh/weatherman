@@ -3,6 +3,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 // Types
 import type {
   CandidateStats,
+  CloudBaseStats,
   CloudTopStats,
   RadarStats,
   SlwStats,
@@ -10,6 +11,7 @@ import type {
 
 /** The summaries for one replayed hour, or nothing yet. */
 type ReplayStats = {
+  cloudBase: CloudBaseStats;
   cloudTop: CloudTopStats;
   liquid: SlwStats;
   radar: RadarStats;
@@ -47,6 +49,7 @@ type ReplayState = {
   /** What each source reports for `ready` — the evidence of which scenes drew. */
   stats: ReplayStats | null;
   /** Which layers are drawn. Mirrors the candidate map's defaults. */
+  cloudBase: boolean;
   cloudTop: boolean;
   liquid: boolean;
   radar: boolean;
@@ -59,6 +62,9 @@ const initialState: ReplayState = {
   loading: false,
   error: null,
   stats: null,
+  // Off on arrival, like the candidate map's: an extra fill switched on by
+  // default lands on the ones an operator already reads.
+  cloudBase: false,
   cloudTop: true,
   liquid: true,
   radar: true,
@@ -90,6 +96,9 @@ const replaySlice = createSlice({
     },
     setError(state, action: PayloadAction<string | null>) {
       state.error = action.payload;
+    },
+    setCloudBase(state, action: PayloadAction<boolean>) {
+      state.cloudBase = action.payload;
     },
     setCloudTop(state, action: PayloadAction<boolean>) {
       state.cloudTop = action.payload;

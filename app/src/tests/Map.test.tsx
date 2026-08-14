@@ -44,6 +44,7 @@ const {
   precipLayer,
   liquidLayer,
   radarLayer,
+  replayCloudBaseLayer,
   replayCloudTopLayer,
   replayLiquidLayer,
   replayRadarLayer,
@@ -84,6 +85,12 @@ const {
   // The replay map's own instances. Separate objects here for the same reason
   // they are separate in lib/arcgis/layers.ts: pointing the candidate layers at
   // a date would leave that date on the live map.
+  replayCloudBaseLayer: {
+    id: "replay-cloud-base-layer",
+    visible: false,
+    url: "",
+    refresh: vi.fn(),
+  },
   replayCloudTopLayer: {
     id: "replay-cloud-top-layer",
     visible: false,
@@ -124,6 +131,7 @@ vi.mock("@/lib/arcgis/layers", () => ({
   ForecastPrecipLayer: precipLayer,
   CandidateLiquidLayer: liquidLayer,
   CandidateRadarLayer: radarLayer,
+  ReplayCloudBaseLayer: replayCloudBaseLayer,
   ReplayCloudTopLayer: replayCloudTopLayer,
   ReplayLiquidLayer: replayLiquidLayer,
   ReplayRadarLayer: replayRadarLayer,
@@ -193,6 +201,7 @@ beforeEach(() => {
   precipLayer.refresh.mockClear();
   radarLayer.visible = false;
   for (const layer of [
+    replayCloudBaseLayer,
     replayCloudTopLayer,
     replayLiquidLayer,
     replayRadarLayer,
@@ -607,6 +616,7 @@ describe("ArcGIS sounding point", () => {
 });
 
 const replayStats = {
+  cloudBase: { run: "2025-05-15T18:00:00.000Z" },
   cloudTop: { validTime: "2025-05-15T18:01:17.900Z" },
   liquid: { run: "2025-05-15T18:00:00.000Z" },
   radar: { validTime: "2025-05-15T17:59:00.000Z" },
@@ -696,6 +706,9 @@ describe("ArcGIS in replay mode", () => {
     expect(replayCloudTopLayer.url).toBe(`/cloudtop/temperature?at=${at}`);
     expect(replayLiquidLayer.url).toBe(`/forecast/liquid?hour=0&at=${at}`);
     expect(replayRadarLayer.url).toBe(`/radar/reflectivity?at=${at}`);
+    expect(replayCloudBaseLayer.url).toBe(
+      `/forecast/cloudbase?hour=0&at=${at}`
+    );
   });
 
   it("does not fetch geometry for an hour that is still building", () => {
@@ -719,6 +732,11 @@ describe("ArcGIS in replay mode", () => {
 
     const layers = map().layers ?? [];
     expect(layers).toContain(replayCloudTopLayer);
+    // Cloud base underneath, as on the candidate map: it is the question asked
+    // before the others and covers more ground than any of them.
+    expect(layers.indexOf(replayCloudTopLayer)).toBeGreaterThan(
+      layers.indexOf(replayCloudBaseLayer)
+    );
     expect(layers.indexOf(replayLiquidLayer)).toBeGreaterThan(
       layers.indexOf(replayCloudTopLayer)
     );
@@ -757,6 +775,24 @@ describe("ArcGIS in replay mode", () => {
 
     expect(replayLiquidLayer.refresh).toHaveBeenCalled();
     expect(replayLiquidLayer.url).toContain("2025-05-16");
+  });
+
+  // The cloud base is off on arrival on both maps, so a readied hour must not
+  // switch it on by itself.
+  it("leaves the replayed cloud base off until it is asked for", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(ready(AT));
+    });
+
+    expect(replayCloudBaseLayer.visible).toBe(false);
+
+    act(() => {
+      store.dispatch(replayActions.setCloudBase(true));
+    });
+
+    expect(replayCloudBaseLayer.visible).toBe(true);
   });
 
   it("hides a replay layer the operator turns off", () => {

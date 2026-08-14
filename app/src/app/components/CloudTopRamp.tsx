@@ -23,9 +23,7 @@ export const CloudTopRamp = () => (
           style={{ backgroundColor: soloColor(CLOUD_TOP_RGB, band.alpha) }}
           title={`${band.label} °C`}
         />
-        <span className="text-[10px] opacity-70 whitespace-nowrap">
-          {band.label}
-        </span>
+        <span className="text-[10px] whitespace-nowrap">{band.label}</span>
       </div>
     ))}
   </div>

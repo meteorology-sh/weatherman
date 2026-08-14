@@ -7,6 +7,7 @@ import { replayActions } from "@/lib/store/features/replay";
 const AT = "2025-05-15T18:00:00.000Z";
 
 const cloudTop = { validTime: "2025-05-15T18:01:17.900Z", cloudPct: 55.68 };
+const cloudBase = { run: AT, basePct: 39.1 };
 const liquid = { run: AT, coveragePct: 3.54 };
 const radar = { validTime: "2025-05-15T17:59:00.000Z", echoPct: 2.09 };
 
@@ -14,9 +15,11 @@ function mockStats() {
   return vi.fn(async (url: string) => {
     const body = url.startsWith("/cloudtop")
       ? cloudTop
-      : url.startsWith("/forecast")
-        ? liquid
-        : radar;
+      : url.startsWith("/forecast/cloudbase")
+        ? cloudBase
+        : url.startsWith("/forecast")
+          ? liquid
+          : radar;
     return { ok: true, json: async () => body } as Response;
   });
 }
@@ -31,7 +34,7 @@ describe("ReplayProvider", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("asks all three sources for the chosen hour", async () => {
+  it("asks every source for the chosen hour", async () => {
     const fetchMock = mockStats();
     vi.stubGlobal("fetch", fetchMock);
     const store = createTestStore();
@@ -46,9 +49,10 @@ describe("ReplayProvider", () => {
     expect(asked).toContain(`/cloudtop/temperature/stats?at=${at}`);
     expect(asked).toContain(`/forecast/liquid/stats?hour=0&at=${at}`);
     expect(asked).toContain(`/radar/reflectivity/stats?at=${at}`);
+    expect(asked).toContain(`/forecast/cloudbase/stats?hour=0&at=${at}`);
   });
 
-  // Awaiting all three is what makes the layers appear together: the stats
+  // Awaiting every one of them is what makes the layers appear together: the stats
   // routes build the same cached scenes the geometry routes serve.
   it("does not release the map until every source has answered", async () => {
     let releaseRadar: (value: Response) => void = () => {};
@@ -60,7 +64,11 @@ describe("ReplayProvider", () => {
             releaseRadar = resolve;
           });
         }
-        const body = url.startsWith("/cloudtop") ? cloudTop : liquid;
+        const body = url.startsWith("/cloudtop")
+          ? cloudTop
+          : url.startsWith("/forecast/cloudbase")
+            ? cloudBase
+            : liquid;
         return { ok: true, json: async () => body } as Response;
       })
     );
@@ -92,6 +100,7 @@ describe("ReplayProvider", () => {
     expect(store.getState().replay.stats!.radar.validTime).toBe(
       "2025-05-15T17:59:00.000Z"
     );
+    expect(store.getState().replay.stats!.cloudBase.run).toBe(AT);
   });
 
   it("reports a failure instead of leaving the spinner running", async () => {

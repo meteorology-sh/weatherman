@@ -32,7 +32,7 @@ export const Ramp = ({ bands, rgb, captions, titles, muted }: PropsT) => (
         />
       ))}
     </div>
-    <div className="flex text-xs opacity-90">
+    <div className="flex text-xs">
       {captions.map((caption) => (
         <span key={caption} className="flex-1">
           {caption}

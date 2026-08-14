@@ -51,10 +51,10 @@ export const CloudTop = () => {
 
   return (
     <div className="p-4 flex flex-col gap-2">
-      <h3 className="font-semibold">Cloud tops</h3>
+      <h3 className="font-semibold">CLOUD_TOPS</h3>
 
       {stats.cloudPct === 0 ? (
-        <div className="text-sm opacity-70">
+        <div className="text-sm">
           The satellite sees no cloud anywhere in the domain.
         </div>
       ) : (
@@ -64,24 +64,24 @@ export const CloudTop = () => {
             which <strong>{stats.seedableTopPct}%</strong> has a top at{" "}
             {CLOUD_TOP_WARMEST_C} °C or colder.
           </div>
-          <div className="text-sm opacity-80">
+          <div className="text-sm">
             {km2.format(stats.seedableKm2)} km² with a seedable top
             {stats.coldestTopC !== null && (
               <> &middot; coldest {stats.coldestTopC} °C</>
             )}
           </div>
-          <div className="text-xs opacity-50">
+          <div className="text-xs">
             The rest is cloud too warm to hold the seeding band — its top is
             above {CLOUD_TOP_WARMEST_C} °C, so the band sits over open sky.
           </div>
         </>
       )}
 
-      <div className="text-xs opacity-60">
+      <div className="text-xs">
         Scanned {utc(stats.validTime)}Z &middot;{" "}
         {age === 0 ? "under a minute" : `${age} min`} old
       </div>
-      <div className="text-xs opacity-50">
+      <div className="text-xs">
         Shape observed by GOES-East; temperatures from the HRRR run at{" "}
         {utc(stats.profileRun)}Z.
       </div>

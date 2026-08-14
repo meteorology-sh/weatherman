@@ -11,6 +11,7 @@ import {
   ForecastCloudsUrl,
   ForecastPrecipUrl,
   ReplayCandidateUrl,
+  ReplayCloudBaseUrl,
   ReplayCloudTopUrl,
   ReplayLiquidUrl,
   ReplayRadarUrl,
@@ -29,6 +30,7 @@ import {
   CandidateLiquidLayer,
   CandidateRadarLayer,
   CandidateFieldLayer,
+  ReplayCloudBaseLayer,
   ReplayCloudTopLayer,
   ReplayFieldLayer,
   ReplayLiquidLayer,
@@ -63,6 +65,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const radar = useAppSelector((state) => state.radar.visible);
   const field = useAppSelector((state) => state.seedability.visible);
   const ready = useAppSelector((state) => state.replay.ready);
+  const replayCloudBase = useAppSelector((state) => state.replay.cloudBase);
   const replayCloudTop = useAppSelector((state) => state.replay.cloudTop);
   const replayLiquid = useAppSelector((state) => state.replay.liquid);
   const replayRadar = useAppSelector((state) => state.replay.radar);
@@ -148,9 +151,10 @@ export const ArcGIS = ({ mode }: PropsT) => {
     CandidateFieldLayer.visible = candidating && field;
     // Gated on `ready`, not on the hour that was asked for. `setAt` clears
     // `ready`, so picking a date blanks the map immediately and it stays blank
-    // until every source has answered — the three take 10 s to 40 s and finish
+    // until every source has answered — they take 10 s to 40 s and finish
     // apart, and revealing each as it landed showed two dates at once.
     const drawable = replaying && ready !== null;
+    ReplayCloudBaseLayer.visible = drawable && replayCloudBase;
     ReplayCloudTopLayer.visible = drawable && replayCloudTop;
     ReplayLiquidLayer.visible = drawable && replayLiquid;
     ReplayRadarLayer.visible = drawable && replayRadar;
@@ -167,6 +171,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     radar,
     field,
     ready,
+    replayCloudBase,
     replayCloudTop,
     replayLiquid,
     replayRadar,
@@ -218,6 +223,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     if (at === null || drawnReplayAt.current === at) return;
     drawnReplayAt.current = at;
 
+    ReplayCloudBaseLayer.url = ReplayCloudBaseUrl(at);
     ReplayCloudTopLayer.url = ReplayCloudTopUrl(at);
     ReplayLiquidLayer.url = ReplayLiquidUrl(at);
     ReplayRadarLayer.url = ReplayRadarUrl(at);
@@ -225,9 +231,10 @@ export const ArcGIS = ({ mode }: PropsT) => {
 
     const map = mapRef.current;
     if (map && !map.layers.includes(ReplayCloudTopLayer)) {
-      // Draw order matches the candidate map: modelled liquid over observed
-      // tops, measured radar over both.
+      // Draw order matches the candidate map: cloud base underneath, modelled
+      // liquid over observed tops, measured radar over both.
       map.addMany([
+        ReplayCloudBaseLayer,
         ReplayCloudTopLayer,
         ReplayLiquidLayer,
         ReplayRadarLayer,
@@ -235,6 +242,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
       ]);
       return; // A layer added with a url fetches on load; refreshing would double it.
     }
+    ReplayCloudBaseLayer.refresh();
     ReplayCloudTopLayer.refresh();
     ReplayLiquidLayer.refresh();
     ReplayRadarLayer.refresh();

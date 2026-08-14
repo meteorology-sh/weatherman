@@ -5,6 +5,7 @@ import { ReplayStatus } from "@/app/components/ReplayStatus";
 import { replayActions } from "@/lib/store/features/replay";
 
 const STATS = {
+  cloudBase: { run: "2025-05-15T18:00:00.000Z" },
   cloudTop: { validTime: "2025-05-15T18:01:17.900Z" },
   liquid: { run: "2025-05-15T18:00:00.000Z" },
   radar: { validTime: "2025-05-15T17:59:00.000Z" },

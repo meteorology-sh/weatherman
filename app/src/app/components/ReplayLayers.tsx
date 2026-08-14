@@ -3,7 +3,13 @@ import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
 import { replayActions } from "@/lib/store/features/replay";
 
 // ArcGIS
-import { CloudTopLegend } from "@/lib/arcgis/legends";
+import {
+  CandidateLegend,
+  CloudBaseLegend,
+  CloudTopLegend,
+  LiquidLegend,
+  RadarLegend,
+} from "@/lib/arcgis/legends";
 import {
   CANDIDATE_BANDS,
   CANDIDATE_LABELS,
@@ -20,6 +26,7 @@ import {
 // Components
 import { LayerToggle } from "./LayerToggle";
 import { Ramp } from "./Ramp";
+import { CloudBaseRamp } from "./CloudBaseRamp";
 import { CloudTopRamp } from "./CloudTopRamp";
 
 /**
@@ -28,6 +35,7 @@ import { CloudTopRamp } from "./CloudTopRamp";
  */
 export const ReplayLayers = () => {
   const dispatch = useAppDispatch();
+  const cloudBase = useAppSelector((state) => state.replay.cloudBase);
   const cloudTop = useAppSelector((state) => state.replay.cloudTop);
   const liquid = useAppSelector((state) => state.replay.liquid);
   const radar = useAppSelector((state) => state.replay.radar);
@@ -36,8 +44,7 @@ export const ReplayLayers = () => {
   return (
     <div className="flex flex-col gap-4">
       <LayerToggle
-        name="Seeding opportunity"
-        title={<>Seeding opportunity &middot; all four conditions met</>}
+        legend={CandidateLegend}
         checked={field}
         onChange={(on) => dispatch(replayActions.setField(on))}
       >
@@ -47,26 +54,36 @@ export const ReplayLayers = () => {
           captions={CANDIDATE_BANDS.map((band) => String(band.value))}
           titles={CANDIDATE_LABELS}
         />
-        <div className="text-xs opacity-60">
-          g/m² &middot; the join of all three layers below, rebuilt from that
-          hour's own model run and scans.
+        <div className="text-xs">
+          g/m² in the {BAND_LABEL} band, rebuilt from that hour's own model run
+          and scans.
         </div>
       </LayerToggle>
 
       <LayerToggle
-        name="Cloud tops"
-        title={<>Cloud tops &middot; {CloudTopLegend.name}</>}
+        legend={CloudTopLegend}
         checked={cloudTop}
         onChange={(on) => dispatch(replayActions.setCloudTop(on))}
       >
-        <div className="text-xs opacity-60">{CloudTopLegend.summary}</div>
         <CloudTopRamp />
-        <div className="text-xs opacity-50">{CloudTopLegend.caveat}</div>
+        <div className="text-xs">
+          °C at the cloud top, from the scan nearest that hour.
+        </div>
       </LayerToggle>
 
       <LayerToggle
-        name="Supercooled liquid water"
-        title={<>Supercooled liquid water &middot; {BAND_LABEL}</>}
+        legend={CloudBaseLegend}
+        checked={cloudBase}
+        onChange={(on) => dispatch(replayActions.setCloudBase(on))}
+      >
+        <CloudBaseRamp />
+        <div className="text-xs">
+          ft MSL at the cloud base, from that hour's HRRR analysis.
+        </div>
+      </LayerToggle>
+
+      <LayerToggle
+        legend={LiquidLegend}
         checked={liquid}
         onChange={(on) => dispatch(replayActions.setLiquid(on))}
       >
@@ -76,14 +93,13 @@ export const ReplayLayers = () => {
           captions={SLW_BANDS.map((band) => String(band.value))}
           titles={SLW_LABELS}
         />
-        <div className="text-xs opacity-60">
-          g/m² in the {BAND_LABEL} band &middot; modelled, from that hour's own
-          HRRR analysis.
+        <div className="text-xs">
+          g/m² in the {BAND_LABEL} band, from that hour's HRRR analysis.
         </div>
       </LayerToggle>
 
       <LayerToggle
-        name="Radar reflectivity"
+        legend={RadarLegend}
         checked={radar}
         onChange={(on) => dispatch(replayActions.setRadar(on))}
       >
@@ -93,9 +109,9 @@ export const ReplayLayers = () => {
           captions={RADAR_BANDS.map((band) => String(band.value))}
           titles={RADAR_LABELS}
         />
-        <div className="text-xs opacity-60">
-          dBZ &middot; measured. Rain already falling is a candidate crossed
-          off.
+        <div className="text-xs">
+          dBZ, from the mosaic nearest that hour. Rain already falling is a
+          candidate crossed off.
         </div>
       </LayerToggle>
     </div>

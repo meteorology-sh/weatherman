@@ -96,9 +96,7 @@ describe("Convective panel", () => {
     it("says it cannot be evaluated rather than failing it", () => {
       withDiagnostics({ bandInCloud: null, cloudTopFt: null, depthFt: null });
 
-      expect(
-        screen.getByText(/Not enough here to say whether the seeding band/)
-      ).toBeTruthy();
+      expect(screen.getByText(/No answer for this point/)).toBeTruthy();
       expect(screen.queryByText(/do not overlap/)).toBeNull();
     });
 

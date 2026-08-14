@@ -108,7 +108,7 @@ export const ReplayCalendar = () => {
 
       <div className="grid grid-cols-7 gap-1 text-center">
         {DAYS.map((d, i) => (
-          <span key={i} className="text-xs opacity-50 py-1">
+          <span key={i} className="text-xs py-1">
             {d}
           </span>
         ))}
@@ -134,7 +134,7 @@ export const ReplayCalendar = () => {
       </div>
 
       <div className="pt-4">
-        <label className="text-xs opacity-70" htmlFor="replay-hour">
+        <label className="text-xs" htmlFor="replay-hour">
           Hour (UTC)
         </label>
         <select
@@ -159,7 +159,7 @@ export const ReplayCalendar = () => {
 
       {at && (
         <div className="pt-4 flex items-center justify-between">
-          <span className="text-xs opacity-70">{at.replace(".000Z", "Z")}</span>
+          <span className="text-xs">{at.replace(".000Z", "Z")}</span>
           <button
             className="btn btn-xs btn-ghost"
             onClick={() => dispatch(replayActions.setAt(null))}

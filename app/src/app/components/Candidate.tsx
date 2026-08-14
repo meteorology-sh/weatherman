@@ -28,45 +28,32 @@ export const Candidate = () => {
             <div className="collapse-title font-semibold">Instructions</div>
             <div className="collapse-content text-sm">
               <div className="prose">
-                <p>
-                  Four layers, and they are not the same kind of claim. The grey
-                  cloud tops are <em>observed</em> — a GOES-East scene from
-                  minutes ago, showing where there is cloud and how cold its top
-                  is, with nothing drawn where there is no cloud. Only tops at
-                  −5 °C or colder appear: a warmer top means the seeding band
-                  lies above the cloud entirely, so there is nothing inside it
-                  to seed. The brightest grey is the shallow supercooled-topped
-                  cloud worth finding; the faintest is high cirrus, which covers
-                  most of the sky and is drawn quietly on purpose.
-                </p>
-                <p>
-                  The amber contours are <em>modelled</em>: HRRR's analysis of
-                  the supercooled liquid water sitting in the {BAND_LABEL} band,
-                  which is the thing a satellite cannot see and the thing
-                  seeding needs. Read the two together — amber with no grey
-                  under it is the model claiming liquid where the satellite sees
-                  no cloud at all, and that is worth distrusting.
-                </p>
-                <p>
-                  Violet, off by default, is <em>modelled</em> too and answers
-                  the question that comes before the others: how high is the
-                  cloud base, and could an aircraft climb into this cloud at
-                  all. Only the middle band is lit, because that is the
-                  4,000–12,000 ft window Texas operations select in — below it
-                  is fog and low stratus, above it is usually the base of a
-                  cirrus deck with clear air underneath. Clicking the map reads
-                  the base, the depth to cloud top, and whether the seeding band
-                  actually lies inside the cloud over that point.
-                </p>
-                <p>
-                  Cyan is the disqualifier, and the only <em>measured</em>
-                  thing here: the MRMS radar mosaic, contoured the same way, at
-                  the reflectivity a rain gauge would agree with. A candidate
-                  with cyan through it is already converting its water to
-                  precipitation without help. Radar only sees what is falling,
-                  though, so quiet air over a cloud says nothing about what is
-                  inside it.
-                </p>
+                <ol>
+                  <li>
+                    Read the green first. SEEDING_OPPORTUNITY is every layer
+                    joined, so green ground has passed every test.
+                  </li>
+                  <li>
+                    Leave SUPERCOOLED_LIQUID_WATER on underneath it. Amber with
+                    no green over it was rejected, and the panel below says
+                    which test rejected it.
+                  </li>
+                  <li>
+                    Switch the input layers off one at a time to see what each
+                    contributes. Open “What this measures” under any of them for
+                    what it is and how it is made.
+                  </li>
+                  <li>
+                    Click the map to profile that point: the altitudes to fly
+                    between, the cloud base, and whether the {BAND_LABEL} band
+                    lies inside the cloud there.
+                  </li>
+                  <li>
+                    Check the times at the bottom of the panel. Every layer is
+                    the analysis hour, and the join is only as current as its
+                    slowest source.
+                  </li>
+                </ol>
               </div>
             </div>
           </div>

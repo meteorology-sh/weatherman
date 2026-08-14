@@ -25,7 +25,13 @@ import {
   CLOUD_BASE_BANDS,
   CLOUD_BASE_RGB,
 } from "@/lib/arcgis/renderers";
-import { CloudBaseLegend, CloudTopLegend } from "@/lib/arcgis/legends";
+import {
+  CandidateLegend,
+  CloudBaseLegend,
+  CloudTopLegend,
+  LiquidLegend,
+  RadarLegend,
+} from "@/lib/arcgis/legends";
 
 // Components
 import { CandidateLayers } from "@/app/components/CandidateLayers";
@@ -50,9 +56,9 @@ const swatches = (container: HTMLElement, layer: string) => {
 };
 
 /** The switch names the panel renders, as the accessible names they are. */
-const LIQUID = "Supercooled liquid water";
-const RADAR = "Radar";
-const FIELD = "Seeding opportunity";
+const LIQUID = LiquidLegend.name;
+const RADAR = RadarLegend.name;
+const FIELD = CandidateLegend.name;
 
 /**
  * jsdom re-prints rgba() with spaces and trims trailing zeros off the alpha
@@ -129,10 +135,10 @@ describe("CandidateLayers", () => {
     const store = createTestStore();
 
     renderWithStore(<CandidateLayers />, store);
-    const cloudTop = screen.getByLabelText("Cloud tops") as HTMLInputElement;
-    const liquid = screen.getByLabelText(
-      "Supercooled liquid water"
+    const cloudTop = screen.getByLabelText(
+      CloudTopLegend.name
     ) as HTMLInputElement;
+    const liquid = screen.getByLabelText(LiquidLegend.name) as HTMLInputElement;
 
     expect(cloudTop.checked).toBe(true);
     expect(liquid.checked).toBe(true);
@@ -150,9 +156,7 @@ describe("CandidateLayers", () => {
 
     renderWithStore(<CandidateLayers />, store);
     act(() => {
-      (
-        screen.getByLabelText("Supercooled liquid water") as HTMLElement
-      ).click();
+      (screen.getByLabelText(LiquidLegend.name) as HTMLElement).click();
     });
 
     expect(store.getState().candidate.liquid).toBe(false);
@@ -177,7 +181,7 @@ describe("CandidateLayers", () => {
       store.dispatch(cloudTopActions.setVisible(false));
     });
 
-    expect(screen.queryByText(CloudTopLegend.summary)).toBeNull();
+    expect(screen.queryByText(CloudTopLegend.about)).toBeNull();
   });
 
   // The cloud-top bands are disjoint, so each swatch is the literal fill the
@@ -276,7 +280,9 @@ describe("CandidateLayers cloud base", () => {
 
   it("drives its toggle from the store", () => {
     const { store } = withLayer();
-    const toggle = screen.getByLabelText("Cloud base") as HTMLInputElement;
+    const toggle = screen.getByLabelText(
+      CloudBaseLegend.name
+    ) as HTMLInputElement;
 
     expect(toggle.checked).toBe(true);
 
@@ -292,7 +298,7 @@ describe("CandidateLayers cloud base", () => {
 
     renderWithStore(<CandidateLayers />, store);
     act(() => {
-      (screen.getByLabelText("Cloud base") as HTMLElement).click();
+      (screen.getByLabelText(CloudBaseLegend.name) as HTMLElement).click();
     });
 
     expect(store.getState().cloudbase.visible).toBe(true);
@@ -335,12 +341,19 @@ describe("CandidateLayers radar", () => {
   });
 
   it("labels the bands in dBZ", () => {
-    renderWithStore(<CandidateLayers />, createTestStore());
+    const { container } = renderWithStore(
+      <CandidateLayers />,
+      createTestStore()
+    );
+    const section = container
+      .querySelector(`input[aria-label="${RADAR}"]`)
+      ?.closest("div.flex.flex-col.gap-2") as HTMLElement;
 
     // 30 and 40 rather than 50, which the liquid ramp also captions.
-    expect(screen.getByText("30")).toBeTruthy();
-    expect(screen.getByText("40")).toBeTruthy();
-    expect(screen.getByText(/dBZ/)).toBeTruthy();
+    expect(within(section).getByText("30")).toBeTruthy();
+    expect(within(section).getByText("40")).toBeTruthy();
+    // The unit line under the ramp, and the collapse behind it, both say dBZ.
+    expect(within(section).getAllByText(/dBZ/).length).toBeGreaterThan(0);
   });
 
   // The one measured layer on either map, and the sidebar has to say so — every
@@ -356,7 +369,7 @@ describe("CandidateLayers radar", () => {
   it("warns that radar is a mask, not a detector", () => {
     renderWithStore(<CandidateLayers />, createTestStore());
 
-    expect(screen.getByText(/not a detector/)).toBeTruthy();
+    expect(screen.getByText(/never confirm one/)).toBeTruthy();
   });
 
   it("turns the mosaic off when its toggle is clicked", () => {
@@ -364,7 +377,7 @@ describe("CandidateLayers radar", () => {
 
     renderWithStore(<CandidateLayers />, store);
     act(() => {
-      (screen.getByLabelText("Radar") as HTMLElement).click();
+      (screen.getByLabelText(RadarLegend.name) as HTMLElement).click();
     });
 
     expect(store.getState().radar.visible).toBe(false);

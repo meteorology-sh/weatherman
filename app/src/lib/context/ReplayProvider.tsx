@@ -8,6 +8,7 @@ import { replayActions } from "@/lib/store/features/replay";
 // Client
 import {
   GetCandidateStats,
+  GetCloudBaseStats,
   GetCloudTopStats,
   GetLiquidStats,
   GetRadarStats,
@@ -16,12 +17,12 @@ import {
 /**
  * Warms every source for the chosen hour, then releases the map to draw.
  *
- * The three summaries are not fetched to be displayed — though they are, in the
+ * The summaries are not fetched to be displayed — though they are, in the
  * panel. They are fetched because **asking for a summary builds the same cached
  * scene the geometry route serves**, and the server collapses concurrent
- * requests for one build onto one download. So awaiting the three stats is
- * awaiting the three builds, and by the time they resolve the geometry the
- * layers want is already sitting in the server's cache.
+ * requests for one build onto one download. So awaiting the stats is awaiting
+ * the builds, and by the time they resolve the geometry the layers want is
+ * already sitting in the server's cache.
  *
  * That is what makes the layers appear together. Pointed straight at the
  * geometry routes they arrive minutes apart on a cold hour, and the map spends
@@ -49,15 +50,16 @@ export function ReplayProvider({ children }: { children: React.ReactNode }) {
         dispatch(replayActions.setLoading(true));
         dispatch(replayActions.setError(null));
 
-        const [cloudTop, liquid, radar, field] = await Promise.all([
+        const [cloudBase, cloudTop, liquid, radar, field] = await Promise.all([
+          // Hour 0 throughout — the analysis of the cycle being replayed,
+          // matching the candidate map's reading of "the sky at this moment".
+          GetCloudBaseStats(0, hour),
           GetCloudTopStats(hour),
-          // Hour 0 — the analysis of the cycle being replayed, matching the
-          // candidate map's reading of "the sky at this moment".
           GetLiquidStats(0, hour),
           GetRadarStats(hour),
-          // The join reads all three of the above, so this warms nothing they
-          // do not — but it is the slowest, and the gate has to include it or
-          // the map would draw three layers and wait on the fourth.
+          // The join reads the layers above, so this warms nothing they do not
+          // — but it is the slowest, and the gate has to include it or the map
+          // would draw its inputs and wait on the answer.
           GetCandidateStats(hour),
         ]);
 
@@ -65,7 +67,7 @@ export function ReplayProvider({ children }: { children: React.ReactNode }) {
         dispatch(
           replayActions.setReady({
             at: hour,
-            stats: { cloudTop, liquid, radar, field },
+            stats: { cloudBase, cloudTop, liquid, radar, field },
           })
         );
       } catch (error) {

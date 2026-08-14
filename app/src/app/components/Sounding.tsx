@@ -121,7 +121,7 @@ export const Sounding = () => {
         </div>
       )}
 
-      <div className="text-xs opacity-60">
+      <div className="text-xs">
         Sampled at {data.lat}, {data.lon} &middot; the 12 km cell containing
         your click, not the click itself. Click the map to move it.
       </div>

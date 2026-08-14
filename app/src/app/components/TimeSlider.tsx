@@ -46,7 +46,7 @@ export const TimeSlider = () => {
         <span className="font-semibold">
           {hour === 0 ? "Analysis" : `+${hour} h`}
         </span>
-        <span className="text-sm opacity-70">{label(meta.run, hour)}</span>
+        <span className="text-sm">{label(meta.run, hour)}</span>
       </div>
 
       <input
@@ -62,12 +62,12 @@ export const TimeSlider = () => {
         }
       />
 
-      <div className="flex justify-between text-xs opacity-60">
+      <div className="flex justify-between text-xs">
         <span>now</span>
         <span>+{last} h</span>
       </div>
 
-      <div className="text-xs opacity-60 h-4">
+      <div className="text-xs h-4">
         {drawing ? (
           <span className="flex items-center gap-2">
             <span className="loading loading-spinner loading-xs"></span>

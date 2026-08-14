@@ -37,10 +37,10 @@ export const CloudBase = () => {
 
   return (
     <div className="p-4 flex flex-col gap-2">
-      <h3 className="font-semibold">Cloud base</h3>
+      <h3 className="font-semibold">CLOUD_BASE</h3>
 
       {stats.basePct === 0 ? (
-        <div className="text-sm opacity-70">
+        <div className="text-sm">
           The model has no cloud anywhere in the domain.
         </div>
       ) : (
@@ -50,20 +50,20 @@ export const CloudBase = () => {
             <strong>{stats.windowPct}%</strong> of it inside the{" "}
             {BASE_WINDOW_LABEL} window.
           </div>
-          <div className="text-sm opacity-80">
+          <div className="text-sm">
             {ft.format(stats.windowKm2)} km² in the window
             {stats.medianFt !== null && (
               <> &middot; median base {ft.format(stats.medianFt)} ft MSL</>
             )}
           </div>
-          <div className="text-xs opacity-50">
+          <div className="text-xs">
             The rest is mostly the base of a high deck with clear air under it —
             a base, but not one a turret grows from.
           </div>
         </>
       )}
 
-      <div className="text-xs opacity-60">
+      <div className="text-xs">
         Modelled by the HRRR run at{" "}
         {new Date(stats.run).toISOString().slice(0, 16).replace("T", " ")}Z,
         analysis hour.

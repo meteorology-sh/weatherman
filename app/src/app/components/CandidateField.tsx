@@ -44,11 +44,11 @@ export const CandidateField = () => {
   if (stats.coveragePct === 0) {
     return (
       <div className="flex flex-col gap-2 p-4">
-        <h3 className="font-semibold">Seeding opportunity</h3>
+        <h3 className="font-semibold">SEEDING_OPPORTUNITY</h3>
         <div className="alert alert-warning alert-soft p-2 text-xs">
           <span>
-            Nothing in the domain meets all four conditions at this hour. Not a
-            failed build — the sky is not offering a target.
+            No ground in the domain passes every test at this hour. The build
+            worked; the sky is not offering a target.
           </span>
         </div>
         <Rejections stats={stats} />
@@ -58,7 +58,7 @@ export const CandidateField = () => {
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      <h3 className="font-semibold">Seeding opportunity</h3>
+      <h3 className="font-semibold">SEEDING_OPPORTUNITY</h3>
 
       <div className="stats stats-vertical bg-base-200">
         <div className="stat py-2">
@@ -66,9 +66,7 @@ export const CandidateField = () => {
           <div className="stat-value text-lg">
             {km2.format(stats.candidateKm2)} km²
           </div>
-          <div className="stat-desc">
-            {stats.coveragePct}% of the domain &middot; all four conditions met
-          </div>
+          <div className="stat-desc">{stats.coveragePct}% of the domain</div>
         </div>
         <div className="stat py-2">
           <div className="stat-title">Richest candidate</div>
@@ -98,7 +96,7 @@ export const CandidateField = () => {
 
       <Rejections stats={stats} />
 
-      <div className="text-xs opacity-80">
+      <div className="text-xs">
         {stats.medianBaseFt !== null && (
           <>
             Median cloud base {ft.format(stats.medianBaseFt)} ft MSL,{" "}
@@ -117,13 +115,13 @@ export const CandidateField = () => {
       </div>
 
       {stats.blindKm2 > 0 && (
-        <div className="text-xs opacity-50">
+        <div className="text-xs">
           {km2.format(stats.blindKm2)} km² of this has no radar over it — it was
           not cleared of rain, it was simply not checked.
         </div>
       )}
 
-      <div className="text-xs opacity-60">
+      <div className="text-xs">
         Only as current as its slowest source: HRRR {utc(stats.run)}Z, satellite{" "}
         {utc(stats.sceneTime)}Z, radar {utc(stats.radarTime)}Z.
       </div>

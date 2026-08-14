@@ -34,10 +34,10 @@ export const ReplayStatus = () => {
     return (
       <div className="flex items-start gap-3 text-sm">
         <span className="loading loading-spinner loading-sm shrink-0" />
-        <span className="opacity-70">
-          Building all three sources for this hour. A cold hour takes about a
-          minute — the map stays clear until every layer is ready, so it never
-          shows two dates at once.
+        <span>
+          Building every source for this hour. A cold hour takes about a minute.
+          The map stays clear until every layer is ready, so it never shows two
+          dates at once.
         </span>
       </div>
     );
@@ -47,17 +47,21 @@ export const ReplayStatus = () => {
   if (!stats) return null;
 
   return (
-    <div className="text-xs opacity-60 flex flex-col gap-1">
+    <div className="text-xs flex flex-col gap-1">
       <div className="flex justify-between gap-2">
-        <span>Cloud tops &middot; GOES scan</span>
+        <span>CLOUD_TOPS &middot; GOES scan</span>
         <span>{stamp(stats.cloudTop.validTime)}</span>
       </div>
       <div className="flex justify-between gap-2">
-        <span>Liquid water &middot; HRRR run</span>
+        <span>CLOUD_BASE &middot; HRRR run</span>
+        <span>{stamp(stats.cloudBase.run)}</span>
+      </div>
+      <div className="flex justify-between gap-2">
+        <span>SUPERCOOLED_LIQUID_WATER &middot; HRRR run</span>
         <span>{stamp(stats.liquid.run)}</span>
       </div>
       <div className="flex justify-between gap-2">
-        <span>Radar &middot; MRMS scan</span>
+        <span>RADAR_REFLECTIVITY &middot; MRMS scan</span>
         <span>{stamp(stats.radar.validTime)}</span>
       </div>
     </div>

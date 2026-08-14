@@ -46,6 +46,8 @@ export const Radar = () => {
 
   return (
     <div className="flex flex-col gap-3">
+      <h3 className="font-semibold">RADAR_REFLECTIVITY</h3>
+
       {stats.echoKm2 === 0 ? (
         <div className="alert alert-info alert-soft p-2 text-xs">
           <span>
@@ -79,12 +81,12 @@ export const Radar = () => {
 
       {/* The denominator, and it is not a footnote: a third of the box has no
           radar over it, so "no echo" there is not a report of clear air. */}
-      <div className="text-xs opacity-60">
+      <div className="text-xs">
         Radars cover {stats.radarCoveragePct}% of this map. Elsewhere — the
         oceans, most of the mountain west aloft — nobody is looking.
       </div>
 
-      <div className="text-xs opacity-60">
+      <div className="text-xs">
         MRMS scene {utc(stats.validTime)}Z &middot; {age} min old
       </div>
     </div>
