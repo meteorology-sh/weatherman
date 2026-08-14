@@ -181,7 +181,7 @@ describe("CandidateLayers", () => {
       store.dispatch(cloudTopActions.setVisible(false));
     });
 
-    expect(screen.queryByText(CloudTopLegend.about)).toBeNull();
+    expect(screen.queryByText(CloudTopLegend.summary)).toBeNull();
   });
 
   // The cloud-top bands are disjoint, so each swatch is the literal fill the
@@ -209,14 +209,6 @@ describe("CandidateLayers", () => {
     const alphas = CLOUD_TOP_BANDS.map((b) => b.alpha);
 
     expect(alphas).toEqual([...alphas].sort((a, b) => b - a));
-  });
-
-  // Modelled data on the observed map is a real exception to this repo's
-  // editorial split, so the panel has to say so rather than let it pass.
-  it("says the liquid layer is modelled, not observed", () => {
-    renderWithStore(<CandidateLayers />, createTestStore());
-
-    expect(screen.getByText(/Modelled, not observed/)).toBeTruthy();
   });
 });
 
@@ -304,10 +296,10 @@ describe("CandidateLayers cloud base", () => {
     expect(store.getState().cloudbase.visible).toBe(true);
   });
 
-  it("says the layer is modelled and names its datum", () => {
+  it("says what the layer gives you under its switch", () => {
     withLayer();
 
-    expect(screen.getByText(CloudBaseLegend.caveat)).toBeTruthy();
+    expect(screen.getByText(CloudBaseLegend.summary)).toBeTruthy();
   });
 
   // Switching this one on must not disturb the ramps already on screen.
@@ -354,22 +346,6 @@ describe("CandidateLayers radar", () => {
     expect(within(section).getByText("40")).toBeTruthy();
     // The unit line under the ramp, and the collapse behind it, both say dBZ.
     expect(within(section).getAllByText(/dBZ/).length).toBeGreaterThan(0);
-  });
-
-  // The one measured layer on either map, and the sidebar has to say so — every
-  // other contour here is a model's opinion.
-  it("says the radar is measured, not modelled", () => {
-    renderWithStore(<CandidateLayers />, createTestStore());
-
-    expect(screen.getByText(/Measured, not modelled/)).toBeTruthy();
-  });
-
-  // Radar sees falling water, not cloud water. Quiet air over a cloud is not
-  // evidence about what is inside it, and the panel must not imply otherwise.
-  it("warns that radar is a mask, not a detector", () => {
-    renderWithStore(<CandidateLayers />, createTestStore());
-
-    expect(screen.getByText(/never confirm one/)).toBeTruthy();
   });
 
   it("turns the mosaic off when its toggle is clicked", () => {

@@ -71,6 +71,14 @@ export const Drawer = () => {
           >
             <button className="btn btn-sm w-full">Replay</button>
           </Link>
+          <br />
+          <Link
+            to={{
+              pathname: "/about",
+            }}
+          >
+            <button className="btn btn-sm w-full">About the layers</button>
+          </Link>
         </div>
       </div>
     </>

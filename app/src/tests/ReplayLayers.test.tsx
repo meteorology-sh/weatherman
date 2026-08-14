@@ -75,8 +75,7 @@ describe("ReplayLayers", () => {
   it("explains a layer with the same words the candidate map uses", () => {
     renderWithStore(<ReplayLayers />, createTestStore());
 
-    expect(screen.getByText(CloudTopLegend.about)).toBeTruthy();
-    expect(screen.getByText(CloudTopLegend.caveat)).toBeTruthy();
+    expect(screen.getByText(CloudTopLegend.summary)).toBeTruthy();
   });
 
   it("drops a layer's ramp and explanation when it is switched off", () => {
@@ -87,6 +86,6 @@ describe("ReplayLayers", () => {
       store.dispatch(replayActions.setCloudTop(false));
     });
 
-    expect(screen.queryByText(CloudTopLegend.about)).toBeNull();
+    expect(screen.queryByText(CloudTopLegend.summary)).toBeNull();
   });
 });

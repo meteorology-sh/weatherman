@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 // Components
 import { App } from "./App.tsx";
 import { LandingPage } from "@/app/components/Landing";
+import { About } from "@/app/components/about/About";
 import { Candidate } from "@/app/components/candidate/Candidate";
 import { Forecast } from "@/app/components/forecast/Forecast";
 import { Replay } from "@/app/components/replay/Replay";
@@ -29,6 +30,9 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       { path: "/", element: <LandingPage /> },
+      // Not under /map: it draws no map, reads no store and needs no provider.
+      // The server has no /about prefix for it to collide with.
+      { path: "/about", element: <About /> },
       // Page routes live under /map so they cannot collide with a server
       // prefix — the dev proxy forwards every /forecast* request to Express,
       // so a page at /forecast would be swallowed by the API.

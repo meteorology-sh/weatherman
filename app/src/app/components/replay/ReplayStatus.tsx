@@ -1,6 +1,14 @@
 // Store
 import { useAppSelector } from "@/lib/store/hooks";
 
+// ArcGIS
+import {
+  CloudBaseLegend,
+  CloudTopLegend,
+  LiquidLegend,
+  RadarLegend,
+} from "@/lib/arcgis/legends";
+
 /** `2025-05-15T18:01:17.900Z` → `15 May 2025, 18:01Z`. */
 const stamp = (iso: string) => {
   const d = new Date(iso);
@@ -49,19 +57,19 @@ export const ReplayStatus = () => {
   return (
     <div className="text-xs flex flex-col gap-1">
       <div className="flex justify-between gap-2">
-        <span>CLOUD_TOPS &middot; GOES scan</span>
+        <span>{CloudTopLegend.name} &middot; GOES scan</span>
         <span>{stamp(stats.cloudTop.validTime)}</span>
       </div>
       <div className="flex justify-between gap-2">
-        <span>CLOUD_BASE &middot; HRRR run</span>
+        <span>{CloudBaseLegend.name} &middot; HRRR run</span>
         <span>{stamp(stats.cloudBase.run)}</span>
       </div>
       <div className="flex justify-between gap-2">
-        <span>SUPERCOOLED_LIQUID_WATER &middot; HRRR run</span>
+        <span>{LiquidLegend.name} &middot; HRRR run</span>
         <span>{stamp(stats.liquid.run)}</span>
       </div>
       <div className="flex justify-between gap-2">
-        <span>RADAR_REFLECTIVITY &middot; MRMS scan</span>
+        <span>{RadarLegend.name} &middot; MRMS scan</span>
         <span>{stamp(stats.radar.validTime)}</span>
       </div>
     </div>

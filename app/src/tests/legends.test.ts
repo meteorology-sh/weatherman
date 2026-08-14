@@ -6,48 +6,55 @@ import {
   RADAR_BANDS,
 } from "@/lib/arcgis/bands";
 import {
+  ALL_LEGENDS,
   BASE_WINDOW_LABEL,
   CandidateLegend,
   CloudBaseLegend,
-  CloudCoverLegend,
   CloudTopLegend,
   LiquidLegend,
-  PrecipLegend,
   RadarLegend,
   CLOUD_TOP_WARMEST_C,
 } from "@/lib/arcgis/legends";
 
-/** Every layer named in the panel, so a new one cannot skip the checks below. */
-const LEGENDS = [
-  CandidateLegend,
-  CloudBaseLegend,
-  CloudCoverLegend,
-  CloudTopLegend,
-  LiquidLegend,
-  PrecipLegend,
-  RadarLegend,
-];
+/** The whole detail block as one string, for the checks that only need a fact. */
+const detailOf = (legend: (typeof ALL_LEGENDS)[number]) =>
+  legend.detail.join(" ");
 
 describe("layer legends", () => {
   // The panel is a stack of switches read at a glance, so the names have one
-  // shape: capitals, digits and underscores, nothing else.
+  // shape: capitals and single spaces, nothing else. No underscores — a name is
+  // read, not typed, and SUPERCOOLED_LIQUID_WATER reads like a constant.
   it("names every layer the same way", () => {
-    for (const legend of LEGENDS) {
-      expect(legend.name).toMatch(/^[A-Z0-9_]+$/);
+    for (const legend of ALL_LEGENDS) {
+      expect(legend.name).toMatch(/^[A-Z]+( [A-Z]+)*$/);
     }
   });
 
   it("gives every layer a name of its own", () => {
-    expect(new Set(LEGENDS.map((l) => l.name)).size).toBe(LEGENDS.length);
+    expect(new Set(ALL_LEGENDS.map((l) => l.name)).size).toBe(
+      ALL_LEGENDS.length
+    );
   });
 
-  // The collapse under a switch answers two questions, and a layer that
-  // answers neither is a switch with no explanation behind it.
-  it("says what every layer measures and what it does not tell you", () => {
-    for (const legend of LEGENDS) {
-      expect(legend.about.length).toBeGreaterThan(0);
-      expect(legend.caveat.length).toBeGreaterThan(0);
+  // The switch has room for one sentence and no more. A summary that runs on
+  // is the dense prose creeping back into the panel, which is what the About
+  // page exists to prevent.
+  it("gives every layer one short sentence for the panel", () => {
+    for (const legend of ALL_LEGENDS) {
+      expect(legend.summary.length).toBeGreaterThan(0);
+      expect(legend.summary.length).toBeLessThan(200);
       expect(legend.source.length).toBeGreaterThan(0);
+    }
+  });
+
+  // The About page is where a layer gets explained, so a layer with nothing to
+  // say there is a section that renders as a heading over a sentence.
+  it("gives every layer more than a sentence on the About page", () => {
+    for (const legend of ALL_LEGENDS) {
+      expect(legend.detail.length).toBeGreaterThan(0);
+      for (const paragraph of legend.detail) {
+        expect(paragraph.length).toBeGreaterThan(0);
+      }
     }
   });
 });
@@ -56,7 +63,7 @@ describe("CloudTopLegend", () => {
   // The layer shows the top; the seeding band is below it. Saying so is the
   // whole reason this layer does not replace the liquid-water one.
   it("names the band it cannot see into", () => {
-    expect(CloudTopLegend.caveat).toContain(BAND_LABEL);
+    expect(detailOf(CloudTopLegend)).toContain(BAND_LABEL);
   });
 
   // The warm edge is load-bearing, not decoration: a top warmer than it means
@@ -66,12 +73,14 @@ describe("CloudTopLegend", () => {
     expect(CLOUD_TOP_WARMEST_C).toBe(CLOUD_TOP_BANDS[0].fromC);
   });
 
-  it("states the warm edge it is cut at", () => {
-    expect(CloudTopLegend.about).toContain(String(CLOUD_TOP_WARMEST_C));
+  // The cut is the first thing an operator asks about an empty patch of map,
+  // so it is one of the few numbers that earns its place on the switch.
+  it("states the warm edge it is cut at on the switch", () => {
+    expect(CloudTopLegend.summary).toContain(String(CLOUD_TOP_WARMEST_C));
   });
 
   it("admits the temperature is modelled even though the shape is observed", () => {
-    expect(CloudTopLegend.caveat).toContain("HRRR");
+    expect(detailOf(CloudTopLegend)).toContain("HRRR");
   });
 });
 
@@ -86,26 +95,20 @@ describe("CloudBaseLegend", () => {
     expect(BASE_WINDOW_LABEL).toContain(
       BASE_WINDOW_FT[1].toLocaleString("en-US")
     );
-    expect(CloudBaseLegend.about).toContain(BASE_WINDOW_LABEL);
+    expect(CloudBaseLegend.summary).toContain(BASE_WINDOW_LABEL);
   });
 
   // Modelled data on the observed map is an exception to the editorial split,
-  // and the panel is where it has to be admitted.
+  // and the About page is where it has to be admitted.
   it("admits the layer is modelled rather than observed", () => {
-    expect(CloudBaseLegend.caveat).toContain("Modelled, not observed");
+    expect(detailOf(CloudBaseLegend)).toContain("Modelled, not observed");
   });
 
-  // MSL and AGL differ by thousands of feet across Texas, and the published
-  // window does not say which it means. Silence would be the dishonest option.
-  it("states the datum and that the source figure does not", () => {
-    expect(CloudBaseLegend.about).toContain("MSL");
-    expect(CloudBaseLegend.caveat).toContain("datum");
-  });
-
-  // The reason the map draws base and not depth: HRRR's own cloud top is far
-  // sparser than its base.
-  it("explains why depth is not drawn", () => {
-    expect(CloudBaseLegend.caveat).toContain("Depth is not drawn");
+  // MSL and AGL differ by thousands of feet across Texas, so a height with no
+  // datum on it is a height an operator can read two ways.
+  it("states the datum its heights are in", () => {
+    expect(CloudBaseLegend.summary).toContain("MSL");
+    expect(detailOf(CloudBaseLegend)).toContain("MSL");
   });
 });
 
@@ -113,11 +116,12 @@ describe("LiquidLegend", () => {
   // The one modelled layer on an observed map, and the band it is integrated
   // over is what makes it a seeding number rather than a cloud-water number.
   it("names the band it integrates over", () => {
-    expect(LiquidLegend.about).toContain(BAND_LABEL);
+    expect(LiquidLegend.summary).toContain(BAND_LABEL);
+    expect(detailOf(LiquidLegend)).toContain(BAND_LABEL);
   });
 
   it("admits the layer is modelled rather than observed", () => {
-    expect(LiquidLegend.caveat).toContain("Modelled, not observed");
+    expect(detailOf(LiquidLegend)).toContain("Modelled, not observed");
   });
 });
 
@@ -125,8 +129,8 @@ describe("RadarLegend", () => {
   // The only measurement on either map, and the only layer that can cross a
   // candidate off. Both halves of that have to be said.
   it("says it is measured and that it cannot confirm a candidate", () => {
-    expect(RadarLegend.caveat).toContain("Measured, not modelled");
-    expect(RadarLegend.caveat).toContain("never confirm one");
+    expect(detailOf(RadarLegend)).toContain("Measured, not modelled");
+    expect(detailOf(RadarLegend)).toContain("never confirm one");
   });
 });
 
@@ -134,11 +138,21 @@ describe("CandidateLegend", () => {
   // The tests it applies are the reason the layer exists, and their thresholds
   // are read from the bands rather than restated, so the prose follows them.
   it("states the thresholds it joins on", () => {
-    expect(CandidateLegend.about).toContain(String(RADAR_BANDS[0].value));
-    expect(CandidateLegend.about).toContain(String(CLOUD_TOP_WARMEST_C));
+    expect(detailOf(CandidateLegend)).toContain(String(RADAR_BANDS[0].value));
+    expect(detailOf(CandidateLegend)).toContain(String(CLOUD_TOP_WARMEST_C));
   });
 
   it("says it exists at the analysis hour only", () => {
-    expect(CandidateLegend.caveat).toContain("analysis hour");
+    expect(detailOf(CandidateLegend)).toContain("analysis hour");
+  });
+
+  // The switch names all four tests without a number on any of them. That is
+  // the layer in one line, and it is what a reader who never opens the About
+  // page takes away.
+  it("names every test it joins on, in the sentence under the switch", () => {
+    expect(CandidateLegend.summary).toContain("liquid");
+    expect(CandidateLegend.summary).toContain("cloud top");
+    expect(CandidateLegend.summary).toContain("cloud base");
+    expect(CandidateLegend.summary).toContain("rain");
   });
 });

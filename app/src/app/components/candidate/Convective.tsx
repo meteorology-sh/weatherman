@@ -3,6 +3,7 @@ import { useAppSelector } from "@/lib/store/hooks";
 
 // ArcGIS
 import { BAND_WARMEST_C } from "@/lib/arcgis/bands";
+import { LiquidLegend } from "@/lib/arcgis/legends";
 
 const num = new Intl.NumberFormat("en-US");
 
@@ -112,10 +113,9 @@ export const Convective = () => {
       <div className="text-xs">
         All modelled, and none of it filters the map. CAPE is the energy a
         growing turret has to work with; storm motion is where a seeded cloud
-        would carry the plume; integrated liquid is a second opinion on
-        SUPERCOOLED_LIQUID_WATER, worked out from a different field. HRRR
-        publishes no unit for its lightning field, so it is shown as the bare
-        number.
+        would carry the plume; integrated liquid is a second opinion on{" "}
+        {LiquidLegend.name}, worked out from a different field. HRRR publishes
+        no unit for its lightning field, so it is shown as the bare number.
       </div>
     </div>
   );

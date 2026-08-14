@@ -333,19 +333,37 @@ readout under them. Something a second route starts using moves out rather than
 being imported across: sidebar parts shared by two panels go to `panel/`, and
 `Map.tsx` sits at the components root because all three routes mount it.
 
-**A layer is named on screen in SCREAMING_SNAKE_CASE** — `CLOUD_BASE`,
-`SUPERCOOLED_LIQUID_WATER` — and the name lives in that layer's `LayerLegend` in
-`lib/arcgis/legends.ts`. Switches, panel headings and tests read it from there,
-so a layer has one name everywhere and renaming it is one edit. The name still
-says what the layer measures; the case is the only shorthand allowed.
+**A layer is named on screen in capitals with spaces** — `CLOUD BASE`,
+`SUPERCOOLED LIQUID WATER`. No underscores: the name is read, not typed, and
+`SUPERCOOLED_LIQUID_WATER` reads like a constant rather than a thing in the sky.
+The name lives in that layer's `LayerLegend` in `lib/arcgis/legends.ts` and every
+place that prints it reads it from there — switches, panel headings, the replay
+timestamps, the About page, prose that mentions another layer, and the tests — so
+a layer has one name everywhere and renaming it is one edit. The name says what
+the layer measures; the capitals are the only shorthand allowed.
 
-**Every layer's prose lives in its `LayerLegend`, and both maps read it.** The
-candidate map and the replay map draw the same layers at different hours, so
-descriptions that differed between them would be describing the same layer two
-ways. `about` says what the thing is and how it is made; `caveat` says what it
-does not tell you. Both are rendered by `LayerDefinitions` in a DaisyUI collapse under
-the switch — printed inline they bury the ramp, which is the part read every
-time.
+**Every layer's prose lives in its `LayerLegend`, and every reader of it reads
+the same words.** The candidate map and the replay map draw the same layers at
+different hours, so descriptions that differed between them would be describing
+the same layer two ways.
+
+The prose comes in two lengths, and the length decides where it is read:
+
+- `summary` is one sentence saying what the layer gives you, in the reader's
+  terms rather than the pipeline's. `LayerDefinitions` renders it with the
+  source in a DaisyUI collapse under the switch. It stays one sentence —
+  printed inline anything longer buries the ramp, which is the part read every
+  time.
+- `detail` is a paragraph array, read only by the About page at `/about`. How a
+  layer is made, and what it does not tell you, as prose. It is deliberately not
+  split into named "how" and "limits" fields: a reader follows the two without
+  being told which is which, and the split only ever pushed writers to fill both
+  halves.
+
+A layer's section on the About page opens with the same `summary` the switch
+shows, so the page reads as the panel expanded rather than as a second
+explanation. `ALL_LEGENDS` is the list both the page and the legend tests walk,
+so a new layer cannot arrive without a section.
 
 **Panel text is undimmed.** No `opacity-*` on anything carrying words; the
 DaisyUI classes that dim themselves (`stat-title`, `stat-desc`, `prose`) are
