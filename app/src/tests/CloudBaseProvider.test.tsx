@@ -13,8 +13,8 @@ const stats: CloudBaseStats = {
   hour: 0,
   validTime: "2025-05-15T18:00:00.000Z",
   basePct: 55.88,
-  windowPct: 17.14,
-  windowKm2: 2925792,
+  reachablePct: 17.14,
+  reachableKm2: 2925792,
   medianFt: 3719,
 };
 

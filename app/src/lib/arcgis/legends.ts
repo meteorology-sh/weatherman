@@ -3,6 +3,7 @@ import {
   BAND_LABEL,
   BASE_WINDOW_FT,
   CANDIDATE_BANDS,
+  CEILING_FT,
   CLOUD_TOP_BANDS,
   RADAR_BANDS,
 } from "./bands";
@@ -42,19 +43,42 @@ export const BASE_WINDOW_LABEL = `${BASE_WINDOW_FT[0].toLocaleString(
   "en-US"
 )}–${BASE_WINDOW_FT[1].toLocaleString("en-US")} ft`;
 
+/** The ceiling as an operator reads it, e.g. "18,000 ft". */
+export const CEILING_LABEL = `${CEILING_FT.toLocaleString("en-US")} ft`;
+
 export const CloudBaseLegend: LayerLegend = {
   name: "CLOUD BASE",
   source: "NOAA HRRR",
   summary:
-    "How high the bottom of the cloud sits, in feet MSL. The lit band is " +
-    `the ${BASE_WINDOW_LABEL} window Texas operations select in.`,
+    "How high the bottom of the cloud sits, in feet MSL. The brightest band " +
+    "is the shortest climb; the last one is above the " +
+    `${CEILING_LABEL} ceiling.`,
   detail: [
     "The height of the bottom of the lowest cloud deck, in feet MSL. HRRR " +
-      "diagnoses it at 3 km; the server averages that to 12 km and bands it " +
-      `on three intervals, lighting the ${BASE_WINDOW_LABEL} window.`,
+      "diagnoses it at 3 km and the server averages that to 12 km. The bands " +
+      `are thirds of the aircraft's ${CEILING_LABEL} service ceiling, so ` +
+      "every edge traces back to one cited number rather than to a coverage " +
+      "table. The last band is open above the ceiling and still drawn, " +
+      "because a base too high to reach and no cloud at all are different " +
+      "answers.",
+    "Feet above sea level, because that is the datum a sortie is planned in — " +
+      "a service ceiling, air density and climb performance all refer to it. " +
+      "The cost is that height above sea level says nothing about what kind " +
+      "of cloud this is: 6,000 ft is a low convective base at the Gulf coast " +
+      "and near-surface fog on the Llano Estacado. Click a point to read the " +
+      "same base as a height above the ground.",
+    "This is the bottom of the cloud, not the bottom of the seeding band. " +
+      "Where the column first reaches the seeding temperature is a different " +
+      "altitude, often thousands of feet higher, and the candidate summary " +
+      "reports it separately.",
+    `The ${BASE_WINDOW_LABEL} window Texas operations select convective ` +
+      "bases in is reported in the candidate summary and drawn nowhere. Read " +
+      "against sea level it means a different height above the ground over " +
+      "every cell — most of an 8,000 ft layer at the coast, and a sliver over " +
+      "high terrain where its lower edge is underground.",
     "Modelled, not observed. It is the base of the lowest deck of any kind, " +
-      "so a base above the window is usually cirrus over clear air rather " +
-      "than a high convective base.",
+      "so a base near the top of the ramp is usually cirrus over clear air " +
+      "rather than a high convective base.",
   ],
 };
 

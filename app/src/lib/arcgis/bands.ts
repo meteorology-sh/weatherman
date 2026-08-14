@@ -244,19 +244,31 @@ export const soloColor = (rgb: readonly number[], alpha: number) =>
 
 /**
  * The window Texas operations select cloud bases in, ft MSL. Mirrors
- * BASE_WINDOW_FT in server/src/lib/services/hrrr/diagnostics.ts — the server bands on
- * these edges and every caption here reads them from this one place.
+ * BASE_WINDOW_FT in server/src/lib/services/hrrr/diagnostics.ts.
+ *
+ * A cited figure the candidate summary reports and nothing draws. Read as MSL a
+ * fixed window means a different thing over every cell — it is 3,997–11,997 ft
+ * above ground at Galveston and underground to 1,827 ft above ground at
+ * Leadville — so it describes Texas cloud rather than bounding this map.
  */
 export const BASE_WINDOW_FT = [4000, 12000] as const;
 
 /**
+ * The drone's service ceiling, ft MSL. Mirrors CEILING_FT in
+ * server/src/lib/services/shared/aircraft.ts — the server bands cloud base on
+ * this edge and every caption here reads it from this one place.
+ *
+ * A property of the airframe, so unlike the window above it is the same number
+ * over Denver as over Galveston. That is what makes it the one height claim
+ * this map can draw across the whole domain.
+ */
+export const CEILING_FT = 18000;
+
+/**
  * One cloud-base band: its lower edge in ft MSL, and the fill painted for it.
  *
- * **Disjoint, like the cloud-top bands and for the same reason.** Cloud base
- * over Texas is bimodal — a low convective base, or the base of a cirrus deck
- * with clear air under it — so nested levels would land on top of each other.
- * Measured over the Texas box on a rainy-season afternoon, of the 39% of cells
- * with a base at all: 18% below 4,000 ft, 12% in the window, 70% above it.
+ * **Disjoint, like the cloud-top bands.** A height is a position rather than an
+ * accumulation, so exactly one band applies to a cell and nothing nests.
  */
 export type CloudBaseBand = {
   readonly value: number;
@@ -272,26 +284,45 @@ export type CloudBaseBand = {
 export const CLOUD_BASE_RGB = [167, 139, 250] as const;
 
 /**
- * Mirrors CLOUD_BASE.edges in server/src/lib/services/hrrr/diagnostics.ts.
+ * Mirrors CLOUD_BASE.edges in server/src/lib/services/hrrr/diagnostics.ts —
+ * thirds of the service ceiling, so every edge traces to that one cited number.
  *
- * **The middle band is the loud one**, which is neither quiet-to-loud nor
- * loud-to-quiet: the ramp is not a magnitude at all. It is a window with a
- * wrong side on each end — below it the base is fog or low stratus, above it
- * the base is cirrus over clear air, and the operator is looking for what is
- * between. So the band that carries the operational window is the one that
- * shows, and the other two are context.
+ * **The ramp runs loud-to-quiet, like the cloud tops and for the same reason.**
+ * Brightness is not the height, it is how much of a climb there is before there
+ * is cloud to work with: the lowest base is the least of it, so it is the
+ * loudest. Reading brightness as the magnitude of the number would put the ramp
+ * exactly the wrong way round, which is why this note exists.
+ *
+ * The last band is open above the ceiling and still drawn. A base too high to
+ * reach and no cloud at all are different answers, and leaving the first blank
+ * would make them the same.
+ *
+ * The steps are wide because these bands do not composite — see the cloud-top
+ * note above for why a disjoint band has to carry its whole separation in the
+ * alpha written here.
  */
+const THIRD_OF_CEILING = CEILING_FT / 3;
+
 export const CLOUD_BASE_BANDS: readonly CloudBaseBand[] = [
-  { value: 0, label: `under ${BASE_WINDOW_FT[0] / 1000}k`, alpha: 0.1 },
   {
-    value: BASE_WINDOW_FT[0],
-    label: `${BASE_WINDOW_FT[0] / 1000}–${BASE_WINDOW_FT[1] / 1000}k`,
-    alpha: 0.32,
+    value: 0,
+    label: `under ${THIRD_OF_CEILING / 1000}k`,
+    alpha: 0.6,
   },
   {
-    value: BASE_WINDOW_FT[1],
-    label: `over ${BASE_WINDOW_FT[1] / 1000}k`,
-    alpha: 0.1,
+    value: THIRD_OF_CEILING,
+    label: `${THIRD_OF_CEILING / 1000}–${(2 * THIRD_OF_CEILING) / 1000}k`,
+    alpha: 0.42,
+  },
+  {
+    value: 2 * THIRD_OF_CEILING,
+    label: `${(2 * THIRD_OF_CEILING) / 1000}–${CEILING_FT / 1000}k`,
+    alpha: 0.26,
+  },
+  {
+    value: CEILING_FT,
+    label: `over ${CEILING_FT / 1000}k`,
+    alpha: 0.12,
   },
 ];
 

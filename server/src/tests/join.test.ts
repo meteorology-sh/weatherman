@@ -3,12 +3,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 // Services
-import {
-  CEILING_FT,
-  join,
-  sampleRadar,
-  summarize,
-} from "../lib/services/candidate/join";
+import { join, sampleRadar, summarize } from "../lib/services/candidate/join";
+import { CEILING_FT } from "../lib/services/shared/aircraft";
 import { blockGeo } from "../lib/services/mrms/radar";
 
 // Types

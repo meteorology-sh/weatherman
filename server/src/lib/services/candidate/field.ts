@@ -60,7 +60,7 @@ const CANDIDATE = {
 // The join's own shapes, re-exported: the routers and the app's types.ts are
 // written against this service, not against the arithmetic behind it.
 export type { CandidateStats, Rejected } from "./join";
-export { CEILING_FT } from "./join";
+export { CEILING_FT } from "../shared/aircraft";
 
 export type CandidateFrame = {
   type: "FeatureCollection";

@@ -5,6 +5,8 @@ import {
 } from "@/lib/arcgis/renderers";
 import {
   BASE_WINDOW_FT,
+  CANDIDATE_BANDS,
+  CEILING_FT,
   CLOUD_BASE_BANDS,
   CLOUD_BASE_RGB,
   CLOUD_TOP_BANDS,
@@ -245,14 +247,16 @@ describe("CLOUD_TOP_BANDS", () => {
 });
 
 describe("CLOUD_BASE_BANDS", () => {
-  // The server bands on the operational window's own edges, so the middle
-  // swatch is the window rather than an approximation of it. If these drift
-  // apart the renderer matches nothing and the layer paints as invisible.
+  const third = CEILING_FT / 3;
+
+  // The server bands on thirds of the ceiling. If these drift apart the
+  // renderer matches nothing and the layer paints as invisible.
   it("keys each band on the lower edge the server emits", () => {
     expect(CLOUD_BASE_BANDS.map((band) => band.value)).toEqual([
       0,
-      BASE_WINDOW_FT[0],
-      BASE_WINDOW_FT[1],
+      third,
+      2 * third,
+      CEILING_FT,
     ]);
   });
 
@@ -260,13 +264,22 @@ describe("CLOUD_BASE_BANDS", () => {
     expect(candidateCloudBaseRenderer.field).toBe("cloudBaseFt");
   });
 
-  // Neither quiet-to-loud nor loud-to-quiet: the field is a window with a wrong
-  // side at each end, so the band in the middle is the one that shows.
-  it("lights the window and leaves both wrong sides quiet", () => {
-    const [below, window, above] = CLOUD_BASE_BANDS.map((b) => b.alpha);
+  // Loud to quiet, like the cloud tops: brightness is how short the climb is,
+  // not how big the number is. Inverted, the ramp would shout about the cloud
+  // furthest out of reach.
+  it("fades as the base gets higher", () => {
+    const alphas = CLOUD_BASE_BANDS.map((band) => band.alpha);
 
-    expect(window).toBeGreaterThan(below);
-    expect(window).toBeGreaterThan(above);
+    expect(alphas).toEqual([...alphas].sort((a, b) => b - a));
+  });
+
+  // A base too high to reach and no cloud at all are different answers, and
+  // dropping the top band would make them the same blank cell.
+  it("still draws the cloud above the ceiling", () => {
+    const top = CLOUD_BASE_BANDS[CLOUD_BASE_BANDS.length - 1];
+
+    expect(top.value).toBe(CEILING_FT);
+    expect(top.alpha).toBeGreaterThan(0);
   });
 
   // Three fills on one map, and a fourth that must not read as any of them.
@@ -277,10 +290,38 @@ describe("CLOUD_BASE_BANDS", () => {
   });
 
   // Disjoint bands, so the swatch is the literal fill. Nothing composites, and
-  // a stacked alpha would describe a map that is not being drawn.
-  it("stays faint enough that the basemap reads through the window", () => {
+  // a stacked alpha would describe a map that is not being drawn. The ceiling
+  // is where the nested layers' four bands stack to, so the loudest fill on the
+  // map is no louder here than it is anywhere else.
+  it("stays faint enough that the basemap reads through", () => {
     for (const band of CLOUD_BASE_BANDS) {
-      expect(band.alpha).toBeLessThan(0.5);
+      expect(band.alpha).toBeLessThanOrEqual(
+        stackedAlpha(CANDIDATE_BANDS, CANDIDATE_BANDS.length)
+      );
     }
+  });
+
+  // These bands do not composite, so the gap between them is only as wide as it
+  // is written — see the cloud-top note for why that has to be said out loud.
+  it("separates each band by more than a stacking step", () => {
+    const alphas = CLOUD_BASE_BANDS.map((band) => band.alpha);
+
+    for (let i = 0; i < alphas.length - 1; i++) {
+      expect(alphas[i] - alphas[i + 1]).toBeGreaterThanOrEqual(0.12);
+    }
+  });
+
+  // The edges come from the aircraft, not from Texas practice — which matters
+  // because two thirds of the ceiling happens to land on 12,000 ft, the top of
+  // the window. Assert the derivation rather than the absence of the number, or
+  // the coincidence reads as a citation the layer does not have.
+  it("derives every edge from the ceiling, not from the Texas window", () => {
+    expect(CLOUD_BASE_BANDS.map((band) => band.value)).toEqual(
+      [0, 1, 2, 3].map((n) => (n * CEILING_FT) / 3)
+    );
+    expect(CLOUD_BASE_BANDS[2].value).toBe(BASE_WINDOW_FT[1]); // the coincidence
+    expect(CLOUD_BASE_BANDS.map((b) => b.value)).not.toContain(
+      BASE_WINDOW_FT[0]
+    );
   });
 });

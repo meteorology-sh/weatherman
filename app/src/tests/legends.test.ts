@@ -2,12 +2,14 @@
 import {
   BAND_LABEL,
   BASE_WINDOW_FT,
+  CEILING_FT,
   CLOUD_TOP_BANDS,
   RADAR_BANDS,
 } from "@/lib/arcgis/bands";
 import {
   ALL_LEGENDS,
   BASE_WINDOW_LABEL,
+  CEILING_LABEL,
   CandidateLegend,
   CloudBaseLegend,
   CloudTopLegend,
@@ -85,17 +87,30 @@ describe("CloudTopLegend", () => {
 });
 
 describe("CloudBaseLegend", () => {
-  // The window's edges are cited operational practice, and the prose has to
-  // read them from the same constant the server bands on rather than restating
-  // them — a hardcoded copy goes stale silently when the window moves.
-  it("takes the window from the constant the bands are built on", () => {
+  // The ceiling is the aircraft's design figure, and the prose has to read it
+  // from the same constant the server bands on rather than restating it — a
+  // hardcoded copy goes stale silently when the airframe changes.
+  it("takes the ceiling from the constant the bands are built on", () => {
+    expect(CEILING_LABEL).toContain(CEILING_FT.toLocaleString("en-US"));
+    expect(CloudBaseLegend.summary).toContain(CEILING_LABEL);
+  });
+
+  // The Texas window is reported and never drawn, so the switch's one sentence
+  // must not offer it as what the ramp shows.
+  it("keeps the Texas window out of the summary", () => {
+    expect(CloudBaseLegend.summary).not.toContain(BASE_WINDOW_LABEL);
+  });
+
+  // It still has to be explained somewhere, and the About page is where the
+  // layer says what it does not tell you.
+  it("explains the window it does not band on, in the detail", () => {
     expect(BASE_WINDOW_LABEL).toContain(
       BASE_WINDOW_FT[0].toLocaleString("en-US")
     );
     expect(BASE_WINDOW_LABEL).toContain(
       BASE_WINDOW_FT[1].toLocaleString("en-US")
     );
-    expect(CloudBaseLegend.summary).toContain(BASE_WINDOW_LABEL);
+    expect(CloudBaseLegend.detail.join(" ")).toContain(BASE_WINDOW_LABEL);
   });
 
   // Modelled data on the observed map is an exception to the editorial split,

@@ -89,10 +89,14 @@ export interface CloudBaseStats {
   validTime: string;
   /** Percent of the HRRR domain with a cloud base at all. */
   basePct: number;
-  /** Percent of the domain whose base is inside the operational window. */
-  windowPct: number;
-  /** Ground with a base inside the window, km². */
-  windowKm2: number;
+  /**
+   * Percent of the domain whose base is below the aircraft's ceiling — cloud a
+   * sortie could enter. Not `CandidateStats.reachablePct`, which asks the same
+   * question of the seeding band's base over candidate ground only.
+   */
+  reachablePct: number;
+  /** Ground with a base below the ceiling, km². */
+  reachableKm2: number;
   /** Median base where there is one, ft MSL. Null when there is no cloud. */
   medianFt: number | null;
 }

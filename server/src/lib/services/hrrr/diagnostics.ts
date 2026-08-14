@@ -15,6 +15,7 @@
 
 // Grid
 import { CELL_KM2 } from "../shared/grid";
+import { CEILING_FT } from "../shared/aircraft";
 import { METRES_TO_FEET } from "./profile";
 
 // Types
@@ -46,39 +47,54 @@ const KNOTS = 1.94384;
  *
  * **Cited, not derived.** The state's published description of its permitted
  * programmes targets convective clouds with bases between 4,000 and 12,000 ft;
- * this is that number, not a cutoff chosen from a coverage table. It is
- * reported and drawn, never used to filter anything out — a base outside it is
- * still a base, and the layer still paints it.
+ * this is that number, not a cutoff chosen from a coverage table.
  *
- * **The datum is ours, not theirs.** The published figure does not say MSL or
- * AGL, and over Texas the two differ by up to ~4,000 ft between the coast and
- * the Llano Estacado. This app reads it as MSL because that is the datum
- * everything else here is in — `HGT:cloud base` is geopotential metres above
- * sea level, the sounding's band base and freezing level are MSL, and asking
- * whether the band lies between base and top is a comparison between those
- * three numbers, which is only meaningful in one datum. The point readout
- * carries the height above ground alongside it.
+ * **Reported, never drawn and never a gate.** The candidate summary says what
+ * share of candidate ground falls inside it, and that is all it does. It is not
+ * what the cloud-base layer bands on — see `CLOUD_BASE` below for why a figure
+ * about Texas convective cloud cannot carry a map of the whole HRRR domain.
+ *
+ * **The datum is ours, not theirs**, and that is the heart of it. The published
+ * figure does not say MSL or AGL. Read as MSL — which is the datum every other
+ * height here is in, and the only one in which "does the band lie between base
+ * and top" is a meaningful comparison — a fixed window means something
+ * different over every cell: 3,997–11,997 ft above ground at Galveston, and
+ * underground to 1,827 ft above ground at Leadville. Read as AGL it would
+ * transfer, but then it could not be compared against anything else on the map.
+ * Either way it is a description of Texas cloud rather than a limit that holds
+ * everywhere, so nothing is banded on it.
  */
 export const BASE_WINDOW_FT = [4000, 12000] as const;
 
 /**
  * Cloud base, contoured into **disjoint bands** rather than nested contours.
  *
- * The shape is chosen by measuring the coverage of each level first. Over the
- * Texas box on a rainy-season afternoon (2025-05-15 18z f00, 11,071 12 km
- * cells) 39.3% of cells carry a base at all, and those split 18% below
- * 4,000 ft, 12% inside the window, and 70% above 12,000 ft. That is bimodal —
- * low convective bases, or the base of a cirrus deck with clear air underneath
- * — and nesting cannot express it: "lower is better" up to a point and then
- * "lower" means fog. Exactly one band applies to a cell, so the legend reads
- * straight, the same way cloud-top temperature does.
+ * **A height ramp in ft MSL, and nothing more.** The layer says how high the
+ * bottom of the cloud sits, and the reader takes from that what the flight
+ * needs — how far there is to climb before there is cloud to work with. It
+ * makes no claim about what kind of cloud it is and gates nothing.
  *
- * The edges are the operational window's own, so the middle band **is** the
- * window rather than an approximation of it.
+ * **MSL because the aircraft is.** A service ceiling, air density and climb
+ * performance are all referenced to sea level, so this is the datum a sortie is
+ * planned in. What MSL cannot tell you is cloud type: 6,000 ft is a low
+ * convective base at the Gulf coast and near-surface fog on the Llano Estacado.
+ * Height above ground would carry that and lose the flight-planning reading, so
+ * the point readout carries `cloudBaseAglFt` alongside and the map stays MSL.
+ *
+ * **The edges are thirds of the ceiling**, so every one of them traces back to
+ * the single cited number in `shared/aircraft.ts` rather than being picked from
+ * a coverage table — `MEASUREMENTS.md` §6 on why that distinction matters. The
+ * last band is open above the ceiling and still drawn: a base too high to reach
+ * and no cloud at all are different answers, and blanking the first would make
+ * them the same.
+ *
+ * Disjoint rather than nested because a height is a position, not an
+ * accumulation — exactly one band applies to a cell, so the legend reads
+ * straight, the same way cloud-top temperature does.
  */
 export const CLOUD_BASE = {
   property: "cloudBaseFt",
-  edges: [0, ...BASE_WINDOW_FT] as const,
+  edges: [0, CEILING_FT / 3, (2 * CEILING_FT) / 3, CEILING_FT] as const,
 } as const;
 
 /**
@@ -203,9 +219,9 @@ export type Fields = Map<DiagnosticId, Float32Array>;
  * What the sidebar reports for the cloud-base layer.
  *
  * The two figures that matter are how much of the domain has a cloud base at
- * all and how much of it sits in the window Texas operations select in — the
- * gap between them is mostly cirrus base over clear low levels, which is not a
- * target and covers most of the cloudy ground on a typical hour.
+ * all and how much of that a sortie could actually enter. The gap between them
+ * is cloud whose base sits above the ceiling — high deck over clear low levels,
+ * a base but not one an aircraft can climb to.
  */
 export type CloudBaseStats = {
   run: string;
@@ -213,10 +229,14 @@ export type CloudBaseStats = {
   validTime: string;
   /** Percent of the HRRR domain with a cloud base at all. */
   basePct: number;
-  /** Percent of the domain whose base is inside BASE_WINDOW_FT. */
-  windowPct: number;
-  /** Ground with a base inside the window, km^2. */
-  windowKm2: number;
+  /**
+   * Percent of the domain whose base is below CEILING_FT — cloud an aircraft
+   * could enter. Not `CandidateStats.reachablePct`, which asks the same
+   * question of the seeding band's base over candidate ground only.
+   */
+  reachablePct: number;
+  /** Ground with a base below the ceiling, km^2. */
+  reachableKm2: number;
   /** Median base where there is one, ft MSL. Null when there is no cloud. */
   medianFt: number | null;
 };
@@ -344,14 +364,15 @@ export function bearing(u: number, v: number): number {
  * drawn from so the picture and the figures cannot disagree.
  */
 export function baseStats(run: Date, hour: number, grid: Grid): CloudBaseStats {
-  const [low, high] = BASE_WINDOW_FT;
   const bases: number[] = [];
-  let inWindow = 0;
+  let reachable = 0;
 
   for (const v of grid.values) {
     if (Number.isNaN(v)) continue;
     bases.push(v);
-    if (v >= low && v < high) inWindow++;
+    // The same edge the bands are drawn on, so the figure and the picture
+    // cannot disagree about which cloud a sortie could enter.
+    if (v < CEILING_FT) reachable++;
   }
 
   const total = grid.values.length;
@@ -362,8 +383,8 @@ export function baseStats(run: Date, hour: number, grid: Grid): CloudBaseStats {
     hour,
     validTime: new Date(run.getTime() + hour * 3_600_000).toISOString(),
     basePct: Math.round((10000 * bases.length) / total) / 100,
-    windowPct: Math.round((10000 * inWindow) / total) / 100,
-    windowKm2: inWindow * CELL_KM2,
+    reachablePct: Math.round((10000 * reachable) / total) / 100,
+    reachableKm2: reachable * CELL_KM2,
     medianFt: bases.length
       ? Math.round(bases[Math.floor((bases.length - 1) / 2)])
       : null,

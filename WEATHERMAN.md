@@ -142,14 +142,39 @@ readout reads the band from one of those two places.**
 ### Cloud base and the convective diagnostics — HRRR `wrfsfc`
 
 The file the cloud-cover and precipitation layers already download.
-`HGT:cloud base` is the variable Texas practice selects on, banded on the
-**4,000–12,000 ft window** the state's published description names — a cited
-figure, drawn and reported, **never used to filter**.
+`HGT:cloud base` says how high the bottom of the cloud sits. **The layer is a
+height ramp in ft MSL and makes no other claim** — how far there is to climb
+before there is cloud to work with, and nothing about what kind of cloud it is.
 
-It has **real nodata**, and its bands are **disjoint** for a reason the ramp shape
-carries: the field is a window with a wrong side at each end, not a magnitude.
-Below it is fog, above it is usually the base of a cirrus deck with clear air
-underneath. So the lit band is the one in the middle.
+Its four bands are **thirds of the aircraft's 18,000 ft service ceiling**, so
+every edge traces to one cited number — `CEILING_FT` in
+`server/src/lib/services/shared/aircraft.ts`, mirrored in the app's `bands.ts` —
+rather than to a coverage table. Two thirds of the ceiling lands on 12,000 ft,
+which is also the top of the Texas window; that is a coincidence, and
+`bands.test.ts` pins the derivation so it cannot be mistaken for a citation.
+
+It has **real nodata**, and its bands are **disjoint**: a height is a position,
+not an accumulation, so exactly one applies to a cell. **The ramp runs
+loud-to-quiet**, like the cloud tops — brightness is how short the climb is, not
+how big the number is. The last band is open above the ceiling and still drawn,
+because a base too high to reach and no cloud at all are different answers.
+
+**MSL because the aircraft is**: a service ceiling, air density and climb
+performance all refer to sea level, so this is the datum a sortie is planned in.
+The cost is that it says nothing about cloud type — 6,000 ft is a low convective
+base at the Gulf coast and near-surface fog on the Llano Estacado. The point
+readout carries `cloudBaseAglFt` alongside for that.
+
+**This is the bottom of the cloud, not the bottom of the seeding band.** Where
+the column first reaches seeding temperature is a different altitude, often
+thousands of feet higher; the candidate summary reports it as
+`medianBandBaseFt`.
+
+The **4,000–12,000 ft window** the state's published description names is cited,
+reported in the candidate summary, and **drawn nowhere**: read against sea level
+it means a different height above ground over every cell, from most of an
+8,000 ft layer at the coast down to a sliver over high terrain where its lower
+edge is underground. Nothing filters on it, or on the ceiling.
 
 **Depth is not drawn.** `HGT:cloud top` is diagnosed over far less ground than the
 base is, so a depth layer would vanish over most of the cloud the base layer

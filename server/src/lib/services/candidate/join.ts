@@ -17,6 +17,7 @@ import { CLEAR } from "../goes/cloudtop";
 import { BLOCK_NO_COVERAGE, RAIN_DBZ, blockIndex } from "../mrms/radar";
 import { CELL_KM2 } from "../shared/grid";
 import { BASE_WINDOW_FT, bearing } from "../hrrr/diagnostics";
+import { CEILING_FT } from "../shared/aircraft";
 
 // Types
 import type { Grid, Geo } from "../shared/contour";
@@ -31,17 +32,6 @@ import type { Grid, Geo } from "../shared/contour";
  * the join move together when the band moves.
  */
 export const TOP_REACHES_BAND = -SEEDING.warmestC;
-
-/**
- * A reported ceiling, in ft MSL — **never a gate**.
- *
- * The drone's design figure. The seeding band's base swings ~9,000 ft across a
- * Texas year, so a band above this in July is correct output rather than a
- * warning condition, and nothing here filters on it. The stats say what share of
- * candidate ground has a band base an aircraft with this ceiling could reach,
- * and the operator judges.
- */
-export const CEILING_FT = 18000;
 
 /** Why a cell holding in-band liquid is not a candidate. */
 export type Rejected = {

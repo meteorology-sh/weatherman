@@ -2,18 +2,16 @@
 import { useAppSelector } from "@/lib/store/hooks";
 
 // ArcGIS
-import { BASE_WINDOW_LABEL } from "@/lib/arcgis/legends";
+import { CEILING_LABEL } from "@/lib/arcgis/legends";
 
 const ft = new Intl.NumberFormat("en-US");
 
 /**
  * What the cloud-base layer reports.
  *
- * The two figures an operator acts on are how much of the domain has a cloud
- * base at all and how much of it sits in the window Texas practice selects in.
- * The gap between them is the point of the layer: most cloudy ground has a base
- * far too high to be a convective target, and until now the map could not say
- * so at all.
+ * How much of the domain has a cloud base at all, how much of that sits below
+ * the aircraft's ceiling, and the median height. The ramp says where the climb
+ * is short; these say how much ground there is to choose from.
  */
 export const CloudBase = () => {
   const stats = useAppSelector((state) => state.cloudbase.stats);
@@ -47,18 +45,18 @@ export const CloudBase = () => {
         <>
           <div className="text-sm">
             A cloud base over <strong>{stats.basePct}%</strong> of the domain,{" "}
-            <strong>{stats.windowPct}%</strong> of it inside the{" "}
-            {BASE_WINDOW_LABEL} window.
+            <strong>{stats.reachablePct}%</strong> of it below the{" "}
+            {CEILING_LABEL} ceiling.
           </div>
           <div className="text-sm">
-            {ft.format(stats.windowKm2)} km² in the window
+            {ft.format(stats.reachableKm2)} km² below the ceiling
             {stats.medianFt !== null && (
               <> &middot; median base {ft.format(stats.medianFt)} ft MSL</>
             )}
           </div>
           <div className="text-xs">
-            The rest is mostly the base of a high deck with clear air under it —
-            a base, but not one a turret grows from.
+            The bottom of the cloud, not the bottom of the seeding band — the
+            column reaches seeding temperature higher up.
           </div>
         </>
       )}

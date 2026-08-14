@@ -21,7 +21,7 @@ import {
 } from "@/lib/arcgis/bands";
 import { CLOUD_TOP_BANDS, CLOUD_TOP_RGB } from "@/lib/arcgis/bands";
 import {
-  BASE_WINDOW_FT,
+  CEILING_FT,
   CLOUD_BASE_BANDS,
   CLOUD_BASE_RGB,
 } from "@/lib/arcgis/bands";
@@ -266,20 +266,20 @@ describe("CandidateLayers cloud base", () => {
     );
   });
 
-  // The ramp is neither quiet-to-loud nor loud-to-quiet: it is a window with a
-  // wrong side on each end, so the middle band is the one that shows.
-  it("keeps the operational window the loudest band", () => {
-    const [below, window, above] = CLOUD_BASE_BANDS.map((b) => b.alpha);
+  // Quiet to loud, like every other ramp here: the brighter fill is the cloud
+  // whose entry point a sortie can actually reach.
+  it("keeps the reachable band the loudest", () => {
+    const [reachable, unreachable] = CLOUD_BASE_BANDS.map((b) => b.alpha);
 
-    expect(window).toBeGreaterThan(below);
-    expect(window).toBeGreaterThan(above);
+    expect(reachable).toBeGreaterThan(unreachable);
   });
 
-  // The band edges are the cited operational window, not numbers picked from a
-  // coverage table — so the middle band has to start and end on them.
-  it("bands on the operational window's own edges", () => {
-    expect(CLOUD_BASE_BANDS[1].value).toBe(BASE_WINDOW_FT[0]);
-    expect(CLOUD_BASE_BANDS[2].value).toBe(BASE_WINDOW_FT[1]);
+  // The edges are thirds of the aircraft's design ceiling, not numbers picked
+  // from a coverage table and not the Texas window, which does not transfer.
+  it("bands on thirds of the aircraft's ceiling", () => {
+    expect(CLOUD_BASE_BANDS.map((b) => b.value)).toEqual(
+      [0, 1, 2, 3].map((n) => (n * CEILING_FT) / 3)
+    );
   });
 
   it("drives its toggle from the store", () => {

@@ -10,6 +10,7 @@ import {
   diagnostics,
   recordsAt,
 } from "../lib/services/hrrr/diagnostics";
+import { CEILING_FT } from "../lib/services/shared/aircraft";
 import { blockAverageSparse } from "../lib/services/shared/grid";
 
 // Types
@@ -133,26 +134,35 @@ describe("baseStats", () => {
     values: new Float32Array(values),
   });
 
-  const [low, high] = BASE_WINDOW_FT;
-
   it("counts only cells that have a base at all", () => {
     const stats = baseStats(RUN, 0, grid([3000, NaN, NaN, NaN]));
 
     assert.equal(stats.basePct, 25);
   });
 
-  it("counts the window against the whole domain, not against the cloud", () => {
-    const stats = baseStats(RUN, 0, grid([5000, 3000, NaN, NaN]));
+  it("counts reachable cloud against the whole domain, not against the cloud", () => {
+    const stats = baseStats(RUN, 0, grid([5000, 25000, NaN, NaN]));
 
-    assert.equal(stats.windowPct, 25);
+    assert.equal(stats.reachablePct, 25);
   });
 
   // Half-open, matching the bands the map is drawn with: a base exactly on the
-  // upper edge belongs to the band above it, and must not be counted twice.
-  it("takes the window half-open at the top", () => {
-    const stats = baseStats(RUN, 0, grid([low, high]));
+  // ceiling belongs to the band above it, and must not be counted twice.
+  it("puts a base exactly on the ceiling out of reach", () => {
+    const stats = baseStats(RUN, 0, grid([CEILING_FT - 1, CEILING_FT]));
 
-    assert.equal(stats.windowPct, 50);
+    assert.equal(stats.reachablePct, 50);
+  });
+
+  // The Texas window is reported elsewhere and drawn nowhere; this figure is
+  // the aircraft's limit, so a base inside that window but above the ceiling is
+  // still out of reach. (The two cannot overlap today, which is the point: the
+  // window sits entirely below the ceiling and says nothing about reaching it.)
+  it("measures against the ceiling, not the Texas window", () => {
+    const [, high] = BASE_WINDOW_FT;
+    const stats = baseStats(RUN, 0, grid([high + 1000, high + 2000]));
+
+    assert.equal(stats.reachablePct, 100);
   });
 
   it("reports the median of the cells that have a base", () => {

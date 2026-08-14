@@ -56,8 +56,8 @@ const baseStats: CloudBaseStats = {
   hour: 0,
   validTime: "2026-07-17T00:00:00.000Z",
   basePct: 55.88,
-  windowPct: 17.14,
-  windowKm2: 2925792,
+  reachablePct: 17.14,
+  reachableKm2: 2925792,
   medianFt: 3719,
 };
 
@@ -312,7 +312,7 @@ describe("forecast router", () => {
     ]);
 
     assert.equal(geo.type, "FeatureCollection");
-    assert.equal(summary.windowPct, 17.14);
+    assert.equal(summary.reachablePct, 17.14);
   });
 
   it("passes the requested hour through to the cloud base service", async (t) => {

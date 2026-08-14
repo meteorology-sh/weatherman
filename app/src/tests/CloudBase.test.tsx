@@ -5,6 +5,9 @@ import { createTestStore, renderWithStore } from "./utils";
 // Store
 import { cloudBaseActions } from "@/lib/store/features/cloudbase";
 
+// ArcGIS
+import { CEILING_LABEL } from "@/lib/arcgis/legends";
+
 // Components
 import { CloudBase } from "@/app/components/candidate/CloudBase";
 
@@ -17,8 +20,8 @@ const stats: CloudBaseStats = {
   hour: 0,
   validTime: "2025-05-15T18:00:00.000Z",
   basePct: 55.88,
-  windowPct: 17.14,
-  windowKm2: 2925792,
+  reachablePct: 17.14,
+  reachableKm2: 2925792,
   medianFt: 3719,
 };
 
@@ -51,19 +54,24 @@ describe("CloudBase panel", () => {
     expect(screen.getByText("55.88%")).toBeTruthy();
   });
 
-  it("reports how much of it sits in the operational window", () => {
+  it("reports how much of it a sortie could enter", () => {
     withStats();
 
     expect(screen.getByText("17.14%")).toBeTruthy();
   });
 
-  it("names the window the figure is measured against", () => {
+  // The aircraft's limit, not Texas's window: a service ceiling is the same
+  // height everywhere, which is what lets this figure mean one thing across the
+  // whole domain.
+  it("names the ceiling the figure is measured against", () => {
     withStats();
 
-    expect(screen.getByText(/4,000–12,000 ft window/)).toBeTruthy();
+    expect(
+      screen.getByText(new RegExp(`${CEILING_LABEL} ceiling`))
+    ).toBeTruthy();
   });
 
-  it("reports the ground in the window in km²", () => {
+  it("reports the reachable ground in km²", () => {
     withStats();
 
     expect(screen.getByText(/2,925,792 km²/)).toBeTruthy();
@@ -79,7 +87,7 @@ describe("CloudBase panel", () => {
 
   // A clear domain is a real answer, not a missing one.
   it("says so plainly when the model has no cloud anywhere", () => {
-    withStats({ basePct: 0, windowPct: 0, windowKm2: 0, medianFt: null });
+    withStats({ basePct: 0, reachablePct: 0, reachableKm2: 0, medianFt: null });
 
     expect(screen.getByText(/no cloud anywhere in the domain/)).toBeTruthy();
   });
