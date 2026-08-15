@@ -33,3 +33,21 @@ candidate.get("/field/stats", async (req: Request, res: Response) => {
       .json({ error: error instanceof Error ? error.message : String(error) });
   }
 });
+
+// The same join, read over the 12 km cell a click landed in. It comes off the
+// cached build the map is drawing, so the panel and the picture cannot disagree
+// about a cell.
+candidate.get("/point", async (req: Request, res: Response) => {
+  try {
+    const point = await Seedability.point(
+      Number(req.query.lat),
+      Number(req.query.lon),
+      parseAt(req.query.at)
+    );
+    res.send(point);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});

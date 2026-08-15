@@ -3,7 +3,13 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 // Services
-import { join, sampleRadar, summarize } from "../lib/services/candidate/join";
+import {
+  emptyPoint,
+  join,
+  readPoint,
+  sampleRadar,
+  summarize,
+} from "../lib/services/candidate/join";
 import { CEILING_FT } from "../lib/services/shared/aircraft";
 import { blockGeo } from "../lib/services/mrms/radar";
 
@@ -423,5 +429,118 @@ describe("summarize", () => {
     assert.equal(stats.run, "2025-05-15T18:00:00.000Z");
     assert.equal(stats.sceneTime, "2025-05-15T18:01:17.900Z");
     assert.equal(stats.radarTime, "2025-05-15T18:00:39.000Z");
+  });
+});
+
+describe("readPoint", () => {
+  const where = {
+    run: "2025-05-15T18:00:00.000Z",
+    validTime: "2025-05-15T18:00:00.000Z",
+    sceneTime: "2025-05-15T18:01:17.900Z",
+    radarTime: "2025-05-15T18:00:39.000Z",
+    lat: 32.1,
+    lon: -101.4,
+  };
+
+  /** A covered block the radar reports clear air over, as the mosaic spells it. */
+  const NO_ECHO = -99;
+
+  it("reports what is in the cell, not what it is a fraction of", () => {
+    const point = readPoint(cell(), 0, where);
+
+    assert.equal(point.verdict, "candidate");
+    assert.equal(point.slwGM2, 120);
+    assert.equal(point.cloudBaseFt, 6000);
+    assert.equal(point.cloudTopC, -14);
+    assert.equal(point.dbz, 5);
+  });
+
+  // The same arithmetic the map is drawn from, so green ground and a green
+  // readout cannot disagree about a cell.
+  it("agrees with the join about every cell", () => {
+    const inputs: Inputs = {
+      slw: new Float32Array([120, 120, 120, 120, 4]),
+      cloudBaseFt: new Float32Array([6000, NaN, 6000, 6000, 6000]),
+      bandTopFt: new Float32Array([22000, 22000, 22000, 22000, 22000]),
+      topColdnessC: new Float32Array([14, 14, CLEAR, 14, 14]),
+      dbz: new Float32Array([5, 5, 5, 45, 5]),
+    };
+    const out = join(inputs);
+
+    for (let i = 0; i < inputs.slw.length; i++) {
+      const drawn = out.values[i] > 0;
+      assert.equal(readPoint(inputs, i, where).verdict === "candidate", drawn);
+    }
+  });
+
+  it("names the test that ruled the cell out", () => {
+    assert.equal(readPoint(cell({ dbz: 45 }), 0, where).verdict, "raining");
+    assert.equal(
+      readPoint(cell({ cloudBaseFt: NaN }), 0, where).verdict,
+      "noCloudBase"
+    );
+    assert.equal(readPoint(cell({ slw: 4 }), 0, where).verdict, "noLiquid");
+  });
+
+  // Stored as degrees below zero, which is the cloud-top layer's convention and
+  // nobody else's. Printing it raw would report a −40 °C top as +40 °C.
+  it("turns cloud-top coldness back into a temperature", () => {
+    assert.equal(
+      readPoint(cell({ topColdnessC: 40 }), 0, where).cloudTopC,
+      -40
+    );
+  });
+
+  it("reports no cloud top where the satellite sees clear sky", () => {
+    assert.equal(
+      readPoint(cell({ topColdnessC: CLEAR }), 0, where).cloudTopC,
+      null
+    );
+  });
+
+  it("reports no cloud base where the model has no cloud", () => {
+    assert.equal(
+      readPoint(cell({ cloudBaseFt: NaN }), 0, where).cloudBaseFt,
+      null
+    );
+  });
+
+  // The two ways a cell has no reflectivity mean opposite things: a radar
+  // watching clear air, and no radar looking at all.
+  it("separates a quiet radar from no radar", () => {
+    const quiet = readPoint(cell({ dbz: NO_ECHO }), 0, where);
+    const unwatched = readPoint(cell({ dbz: NO_COVERAGE }), 0, where);
+
+    assert.equal(quiet.dbz, null);
+    assert.equal(quiet.radarCovered, true);
+    assert.equal(unwatched.dbz, null);
+    assert.equal(unwatched.radarCovered, false);
+  });
+
+  // Unchecked is not cleared, so the cell is still a candidate.
+  it("keeps an uncovered cell a candidate", () => {
+    assert.equal(
+      readPoint(cell({ dbz: NO_COVERAGE }), 0, where).verdict,
+      "candidate"
+    );
+  });
+
+  it("reports the cell it read and all three source times", () => {
+    const point = readPoint(cell(), 0, where);
+
+    assert.equal(point.lat, 32.1);
+    assert.equal(point.lon, -101.4);
+    assert.equal(point.run, "2025-05-15T18:00:00.000Z");
+    assert.equal(point.sceneTime, "2025-05-15T18:01:17.900Z");
+    assert.equal(point.radarTime, "2025-05-15T18:00:39.000Z");
+  });
+
+  it("has nothing to seed where the domain holds no seeding band", () => {
+    const point = emptyPoint(where);
+
+    assert.equal(point.verdict, "noLiquid");
+    assert.equal(point.slwGM2, 0);
+    assert.equal(point.cloudTopC, null);
+    assert.equal(point.lat, 32.1);
   });
 });

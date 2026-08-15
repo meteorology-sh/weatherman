@@ -42,16 +42,14 @@ const withStats = (over: Partial<CloudTopStats> = {}) => {
 };
 
 describe("CloudTop panel", () => {
-  it("reports how much of the domain has cloud", () => {
+  // A share of the country's sky decides nothing. How much cloud has a top
+  // cold enough is the number to fly against, and the top over the clicked
+  // cell is in the point readout.
+  it("does not report cloud as a share of the domain", () => {
     withStats();
 
-    expect(screen.getByText("53.66%")).toBeTruthy();
-  });
-
-  it("reports how much of it has a seedable top", () => {
-    withStats();
-
-    expect(screen.getByText("41.5%")).toBeTruthy();
+    expect(screen.queryByText(/53\.66/)).toBeNull();
+    expect(screen.queryByText(/41\.5%/)).toBeNull();
   });
 
   it("reports the seedable ground in km²", () => {

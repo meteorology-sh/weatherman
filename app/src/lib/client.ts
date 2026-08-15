@@ -1,5 +1,6 @@
 // Types
 import type {
+  CandidatePoint,
   CandidateStats,
   CloudBaseStats,
   CloudTopStats,
@@ -128,6 +129,27 @@ export async function GetCandidateStats(at?: string): Promise<CandidateStats> {
   }
   const stats: CandidateStats = await res.json();
   return stats;
+}
+
+/**
+ * The join read over one clicked point — what the cloud there is made of and
+ * which test, if any, ruled it out.
+ *
+ * Takes `[lon, lat]` because that is what an ArcGIS click returns, and sends
+ * `lat`/`lon` because that is what the server takes. The swap happens here, like
+ * `GetSounding`, rather than at every call site.
+ */
+export async function GetCandidatePoint(
+  lon: number,
+  lat: number
+): Promise<CandidatePoint> {
+  const query = new URLSearchParams({ lat: String(lat), lon: String(lon) });
+  const res = await fetch(`/candidate/point?${query}`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch the point: ${res.status}`);
+  }
+  const point: CandidatePoint = await res.json();
+  return point;
 }
 
 /**

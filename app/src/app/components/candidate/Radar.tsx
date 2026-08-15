@@ -16,11 +16,11 @@ const minutesOld = (iso: string) =>
 /**
  * What the radar layer reports.
  *
- * Two numbers an operator acts on and one they have to be told: how much ground
- * is precipitating, how hard the worst of it is, and **how much of the country
- * the radar network can see at all**. That last one is a third of this map's
- * bounding box, and without it an empty layer reads as "clear everywhere"
- * rather than "clear where anyone is looking".
+ * How much ground is precipitating and how hard the worst of it is. **An empty
+ * layer is not a report of clear air**: the radars do not cover the whole map,
+ * and where they are not looking there is nothing to report. That distinction
+ * is made over the cell an operator clicks, where it changes a decision, rather
+ * than as a share of the country.
  */
 export const Radar = () => {
   const stats = useAppSelector((state) => state.radar.stats);
@@ -63,7 +63,7 @@ export const Radar = () => {
               {km2.format(stats.echoKm2)} km²
             </div>
             <div className="stat-desc">
-              {stats.echoPct}% of covered ground over {RADAR_BANDS[0].value} dBZ
+              over {RADAR_BANDS[0].value} dBZ, where a radar is looking
             </div>
           </div>
           <div className="stat py-2">
@@ -79,11 +79,12 @@ export const Radar = () => {
         </div>
       )}
 
-      {/* The denominator, and it is not a footnote: a third of the box has no
-          radar over it, so "no echo" there is not a report of clear air. */}
+      {/* Not every cell has a radar over it, so "no echo" is not always a
+          report of clear air. Which of the two a cell is only matters over the
+          cell being looked at, and the point readout answers it there. */}
       <div className="text-xs">
-        Radars cover {stats.radarCoveragePct}% of this map. Elsewhere — the
-        oceans, most of the mountain west aloft — nobody is looking.
+        A quiet cell is either clear air or ground no radar covers. Click it to
+        see which.
       </div>
 
       <div className="text-xs">

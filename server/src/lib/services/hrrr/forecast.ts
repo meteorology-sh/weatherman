@@ -34,6 +34,7 @@ import {
   MISSING,
   POINTS,
   accumulate,
+  assertInDomain,
   blockAverage,
   blockAverageSparse,
   nearestCell,
@@ -408,7 +409,7 @@ export class ForecastService {
     hour: number,
     at?: Date
   ): Promise<Sounding> {
-    this.assertPoint(lat, lon);
+    assertInDomain(lat, lon);
     // Two builds off two products, and neither needs the other, so the first
     // click pays for the slower rather than for the sum.
     const [profile, surface] = await Promise.all([
@@ -753,20 +754,6 @@ export class ForecastService {
 
     this.slwInflight.set(key, work);
     return work;
-  }
-
-  /**
-   * The HRRR domain is CONUS, so a point outside it has no profile. Refusing is
-   * the honest answer; nearestCell would otherwise happily return an edge cell
-   * and report Kansas' sounding for a click on Hawaii.
-   */
-  private assertPoint(lat: number, lon: number) {
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-      throw new Error("Sounding needs a numeric lat and lon");
-    }
-    if (lat < 21 || lat > 53 || lon < -135 || lon > -60) {
-      throw new Error(`No HRRR data at ${lat}, ${lon} — the domain is CONUS`);
-    }
   }
 
   private assertHour(hour: number) {

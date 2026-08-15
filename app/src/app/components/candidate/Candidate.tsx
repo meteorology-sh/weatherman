@@ -6,6 +6,7 @@ import { ArcGIS } from "@/app/components/Map";
 import { CandidateLayers } from "./CandidateLayers";
 import { CandidateField } from "./CandidateField";
 import { CloudBase } from "./CloudBase";
+import { CloudHere } from "./CloudHere";
 import { CloudTop } from "./CloudTop";
 import { Convective } from "./Convective";
 import { Liquid } from "./Liquid";
@@ -44,14 +45,14 @@ export const Candidate = () => {
                     what it is and how it is made.
                   </li>
                   <li>
-                    Click the map to profile that point: the altitudes to fly
-                    between, the cloud base, and whether the {BAND_LABEL} band
-                    lies inside the cloud there.
+                    Click the map to read that point: what every source says
+                    over that cell, the altitudes to fly between, and whether
+                    the {BAND_LABEL} band lies inside the cloud there.
                   </li>
                   <li>
-                    Check the times at the bottom of the panel. Every layer is
-                    the analysis hour, and the join is only as current as its
-                    slowest source.
+                    Check the times under the point. Every layer is the analysis
+                    hour, and the answer is only as current as its slowest
+                    source.
                   </li>
                 </ol>
               </div>
@@ -60,6 +61,14 @@ export const Candidate = () => {
         </div>
         <CandidateLayers />
         <div className="divider my-1" />
+        {/* The clicked point first. It is the one part of this panel about the
+            cloud an operator is looking at rather than about the domain. */}
+        <CloudHere />
+        <div className="divider my-1" />
+        <Sounding />
+        <div className="divider my-1" />
+        <Convective />
+        <div className="divider my-1" />
         <CandidateField />
         <div className="divider my-1" />
         <CloudBase />
@@ -67,10 +76,6 @@ export const Candidate = () => {
         <CloudTop />
         <div className="divider my-1" />
         <Liquid />
-        <div className="divider my-1" />
-        <Sounding />
-        <div className="divider my-1" />
-        <Convective />
         <div className="divider my-1" />
         <Radar />
       </div>

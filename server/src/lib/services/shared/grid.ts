@@ -121,6 +121,24 @@ export function blockAverageSparse(
 }
 
 /**
+ * Refuse a point the grid does not cover.
+ *
+ * The HRRR domain is CONUS, so a point outside it has no column and no cell.
+ * Refusing is the honest answer; `nearestCell` would otherwise happily return an
+ * edge cell and report Kansas' sounding for a click on Hawaii. Every readout
+ * that snaps a click to a cell calls this first, so the two cannot differ about
+ * where the domain ends.
+ */
+export function assertInDomain(lat: number, lon: number) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    throw new Error("A map point needs a numeric lat and lon");
+  }
+  if (lat < 21 || lat > 53 || lon < -135 || lon > -60) {
+    throw new Error(`No HRRR data at ${lat}, ${lon} — the domain is CONUS`);
+  }
+}
+
+/**
  * Index of the grid cell nearest a point.
  *
  * A plain scan of the 12 km grid — 118k cells, well under a millisecond, and it

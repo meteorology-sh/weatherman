@@ -25,11 +25,19 @@ import { Hrrr } from "../hrrr/forecast";
 import { SEEDING } from "../hrrr/slw";
 import { Goes } from "../goes/cloudtop";
 import { Mrms } from "../mrms/radar";
-import { emptyStats, join, sampleRadar, summarize } from "./join";
+import { assertInDomain, nearestCell } from "../shared/grid";
+import {
+  emptyPoint,
+  emptyStats,
+  join,
+  readPoint,
+  sampleRadar,
+  summarize,
+} from "./join";
 
 // Types
-import type { Grid, ContourFeature } from "../shared/contour";
-import type { CandidateStats } from "./join";
+import type { Grid, Geo, ContourFeature } from "../shared/contour";
+import type { CandidatePoint, CandidateStats, Inputs } from "./join";
 
 /**
  * The analysis hour. The candidate map is "right now", and every HRRR input
@@ -59,7 +67,7 @@ const CANDIDATE = {
 
 // The join's own shapes, re-exported: the routers and the app's types.ts are
 // written against this service, not against the arithmetic behind it.
-export type { CandidateStats, Rejected } from "./join";
+export type { CandidatePoint, CandidateStats, Rejected, Verdict } from "./join";
 export { CEILING_FT } from "../shared/aircraft";
 
 export type CandidateFrame = {
@@ -75,7 +83,22 @@ export type CandidateFrame = {
   features: ContourFeature[];
 };
 
-type Scene = { frame: CandidateFrame; stats: CandidateStats };
+/**
+ * A build: the picture, its summary, and the arrays both came from.
+ *
+ * `cells` is what answers a click. It is references to grids the source
+ * services already hold in their own caches — not copies — so keeping it costs
+ * nothing and means the answer over a point is read from the same arrays the
+ * contours were traced from. Re-fetching each source per click would let the
+ * panel report a scan the map is not drawing.
+ *
+ * `inputs` is null where the domain holds no seeding band at all and there is
+ * no liquid grid to join. The grid itself is there either way, so a click still
+ * lands on a cell and the readout still says which one.
+ */
+type Cells = { geo: Geo; inputs: Inputs | null };
+
+type Scene = { frame: CandidateFrame; stats: CandidateStats; cells: Cells };
 
 export class CandidateService {
   private cache: { scene: Scene; fetchedAt: number } | null = null;
@@ -90,6 +113,36 @@ export class CandidateService {
   /** The same build's summary. Asking for either warms both. */
   async fieldStats(at?: Date): Promise<CandidateStats> {
     return (await this.scene(at)).stats;
+  }
+
+  /**
+   * The same build, read over one clicked point.
+   *
+   * The summary is about the whole domain, which is a statement about the
+   * country rather than about the cloud an operator is looking at. This is the
+   * same five tests asked of one 12 km cell: what is in it, what ruled it out,
+   * and when each source saw it.
+   */
+  async point(lat: number, lon: number, at?: Date): Promise<CandidatePoint> {
+    assertInDomain(lat, lon);
+    const { frame, cells } = await this.scene(at);
+    const { geo, inputs } = cells;
+    const cell = nearestCell(geo, lat, lon);
+
+    const where = {
+      run: frame.run,
+      validTime: frame.validTime,
+      sceneTime: frame.sceneTime,
+      radarTime: frame.radarTime,
+      // The cell, not the click: the click is finer than the grid, and echoing
+      // it back would imply a precision this answer does not have.
+      lat: Math.round(geo.lats[cell] * 100) / 100,
+      lon: Math.round(geo.lons[cell] * 100) / 100,
+    };
+
+    // No seeding band anywhere in the domain, so there is nothing to seed in
+    // this cell either — a real answer about it rather than a missing one.
+    return inputs ? readPoint(inputs, cell, where) : emptyPoint(where);
   }
 
   private async scene(at?: Date): Promise<Scene> {
@@ -179,16 +232,18 @@ export class CandidateService {
           features: [],
         },
         stats: emptyStats(run, validTime, tops.validTime, radar.validTime),
+        cells: { geo, inputs: null },
       };
     }
 
-    const joined = join({
+    const inputs = {
       slw: liquid.values,
       cloudBaseFt: base.values!,
       bandTopFt: band.topFt,
       topColdnessC: tops.cells.values,
       dbz: sampleRadar(radar.grid, geo),
-    });
+    };
+    const joined = join(inputs);
 
     const grid: Grid = { nx: geo.nx, ny: geo.ny, values: joined.values };
 
@@ -224,6 +279,7 @@ export class CandidateService {
         stormU: stormU.values,
         stormV: stormV.values,
       }),
+      cells: { geo, inputs },
     };
   }
 }

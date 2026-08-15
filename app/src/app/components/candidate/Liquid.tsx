@@ -63,10 +63,7 @@ export const Liquid = () => {
           <div className="stat-value text-lg">
             {km2.format(stats.seedableKm2)} km²
           </div>
-          <div className="stat-desc">
-            {stats.coveragePct}% of the HRRR domain over {SLW_BANDS[0].value}{" "}
-            g/m²
-          </div>
+          <div className="stat-desc">over {SLW_BANDS[0].value} g/m²</div>
         </div>
         <div className="stat py-2">
           <div className="stat-title">Richest cell</div>
@@ -75,7 +72,7 @@ export const Liquid = () => {
           </div>
           <div className="stat-desc">
             {stats.peak >= SLW_BANDS[SLW_BANDS.length - 1].value
-              ? "A prime target exists somewhere in the domain"
+              ? "A prime target exists somewhere"
               : "Below the prime-target threshold"}
           </div>
         </div>
@@ -85,9 +82,7 @@ export const Liquid = () => {
             <div className="stat-value text-lg">
               {stats.bandTopMb}–{stats.bandBaseMb} mb
             </div>
-            <div className="stat-desc">
-              Where {BAND_LABEL} sits across the domain
-            </div>
+            <div className="stat-desc">Where {BAND_LABEL} sits</div>
           </div>
         )}
       </div>

@@ -20,6 +20,9 @@ const ft = new Intl.NumberFormat("en-US");
  *
  * The attributes underneath are reported, never gates. A band above the
  * configured ceiling in July is correct output, not a warning.
+ *
+ * Everything here is a figure about the whole model domain. What the cloud over
+ * one point is doing is `CloudHere`, above it — the readout an operator acts on.
  */
 export const CandidateField = () => {
   const stats = useAppSelector((state) => state.seedability.stats);
@@ -66,7 +69,7 @@ export const CandidateField = () => {
           <div className="stat-value text-lg">
             {km2.format(stats.candidateKm2)} km²
           </div>
-          <div className="stat-desc">{stats.coveragePct}% of the domain</div>
+          <div className="stat-desc">passing every test at this hour</div>
         </div>
         <div className="stat py-2">
           <div className="stat-title">Richest candidate</div>
@@ -96,23 +99,15 @@ export const CandidateField = () => {
 
       <Rejections stats={stats} />
 
-      <div className="text-xs">
-        {stats.medianBaseFt !== null && (
-          <>
-            Median cloud base {ft.format(stats.medianBaseFt)} ft MSL,{" "}
-            {stats.windowPct}% inside the operational window.{" "}
-          </>
-        )}
-        Peak mixed-layer CAPE {km2.format(stats.peakMixedCapeJKg)} J/kg, peak
-        integrated liquid {stats.peakVilKgM2} kg/m².
-        {stats.stormMotionKt > 0 && (
-          <>
-            {" "}
-            Richest cell moving {stats.stormMotionKt} kt toward{" "}
-            {stats.stormMotionTowardDeg}°.
-          </>
-        )}
-      </div>
+      {/* CAPE, storm motion and integrated liquid are read at the clicked point
+          rather than here: a domain-wide peak is a number about whichever cell
+          happened to be strongest, which is rarely the one on screen. */}
+      {stats.medianBaseFt !== null && (
+        <div className="text-xs">
+          Median cloud base {ft.format(stats.medianBaseFt)} ft MSL,{" "}
+          {stats.windowPct}% of candidate ground inside the operational window.
+        </div>
+      )}
 
       {stats.blindKm2 > 0 && (
         <div className="text-xs">

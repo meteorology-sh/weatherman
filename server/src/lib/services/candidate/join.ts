@@ -14,7 +14,12 @@
 // Services
 import { SEEDING } from "../hrrr/slw";
 import { CLEAR } from "../goes/cloudtop";
-import { BLOCK_NO_COVERAGE, RAIN_DBZ, blockIndex } from "../mrms/radar";
+import {
+  BLOCK_NO_COVERAGE,
+  BLOCK_NO_ECHO,
+  RAIN_DBZ,
+  blockIndex,
+} from "../mrms/radar";
 import { CELL_KM2 } from "../shared/grid";
 import { BASE_WINDOW_FT, bearing } from "../hrrr/diagnostics";
 import { CEILING_FT } from "../shared/aircraft";
@@ -45,6 +50,44 @@ export type Rejected = {
   topTooWarm: number;
   /** Radar is already watching it precipitate. */
   raining: number;
+};
+
+/**
+ * What the join decided about one cell: it is a candidate, there was nothing to
+ * seed in it, or it is the first test it failed.
+ */
+export type Verdict = "candidate" | "noLiquid" | keyof Rejected;
+
+/**
+ * The join read over one clicked cell — what the cloud there is doing, when it
+ * was measured and where the cell is.
+ *
+ * The same five numbers the join decides on, reported rather than counted, so
+ * an operator can see *this* cloud instead of a figure about the whole country.
+ * Every one of them is nullable, and the nulls mean different things: no cloud
+ * base is the model saying there is no cloud, no cloud top is the satellite
+ * saying it sees clear sky, and no reflectivity is either a quiet radar or no
+ * radar at all — `radarCovered` separates those two.
+ */
+export type CandidatePoint = {
+  run: string;
+  validTime: string;
+  sceneTime: string;
+  radarTime: string;
+  /** The 12 km cell sampled — not the click, which is finer than the grid. */
+  lat: number;
+  lon: number;
+  verdict: Verdict;
+  /** Supercooled liquid water path in the seeding band over this cell, g/m². */
+  slwGM2: number;
+  /** Cloud base, ft MSL. Null where the model has no cloud over the cell. */
+  cloudBaseFt: number | null;
+  /** Observed cloud-top temperature, °C. Null where the satellite sees no cloud. */
+  cloudTopC: number | null;
+  /** Measured reflectivity, dBZ. Null where the radars see no echo, or nothing. */
+  dbz: number | null;
+  /** Is any radar looking at this cell at all? */
+  radarCovered: boolean;
 };
 
 /**
@@ -172,8 +215,7 @@ export function sampleRadar(mosaic: Grid, geo: Geo): Float32Array {
  * up.
  */
 export function join(inputs: Inputs): Join {
-  const { slw, cloudBaseFt, bandTopFt, topColdnessC, dbz } = inputs;
-  const floor = SEEDING.levels[0];
+  const { slw, dbz } = inputs;
 
   const values = new Float32Array(slw.length);
   const rejected: Rejected = {
@@ -187,51 +229,121 @@ export function join(inputs: Inputs): Join {
   let blind = 0;
 
   for (let i = 0; i < slw.length; i++) {
+    const answer = verdict(inputs, i);
     // Nothing to seed here, so nothing to reject either.
-    if (!(slw[i] >= floor)) continue;
+    if (answer === "noLiquid") continue;
     liquid++;
 
-    const base = cloudBaseFt[i];
-    if (Number.isNaN(base)) {
-      rejected.noCloudBase++;
-      continue;
-    }
-
-    // A NaN band top means the column never reaches −18 °C, so the band has no
-    // cold edge here and the comparison cannot be made. `>=` is false for NaN,
-    // which lands in this branch — the honest answer, since a cell whose band
-    // is unbounded above is not one we can say encloses the cloud.
-    if (!(base < bandTopFt[i])) {
-      rejected.baseAboveBand++;
-      continue;
-    }
-
-    // CLEAR sits far below every band edge, so one comparison would catch both
-    // of the next two. They are split because they mean opposite things: no
-    // cloud at all contradicts the model, and a warm top agrees with it about
-    // the cloud while placing the band above it.
-    if (topColdnessC[i] === CLEAR) {
-      rejected.noCloudSeen++;
-      continue;
-    }
-    if (topColdnessC[i] < TOP_REACHES_BAND) {
-      rejected.topTooWarm++;
+    if (answer !== "candidate") {
+      rejected[answer]++;
       continue;
     }
 
     // No coverage is not a report of clear air, so it cannot veto — but it
     // cannot clear the cell either, and the stats say how much rides on it.
-    const reflectivity = dbz[i];
-    if (reflectivity !== BLOCK_NO_COVERAGE && reflectivity >= RAIN_DBZ) {
-      rejected.raining++;
-      continue;
-    }
-    if (reflectivity === BLOCK_NO_COVERAGE) blind++;
+    if (dbz[i] === BLOCK_NO_COVERAGE) blind++;
 
     values[i] = slw[i];
   }
 
   return { values, liquid, rejected, blind };
+}
+
+/**
+ * The whole decision for one cell: a candidate, nothing to seed, or the first
+ * test it failed.
+ *
+ * The loop above and the clicked-point readout both go through here, so the
+ * green on the map and the answer in the panel cannot disagree about a cell.
+ */
+export function verdict(inputs: Inputs, i: number): Verdict {
+  const { slw, cloudBaseFt, bandTopFt, topColdnessC, dbz } = inputs;
+
+  if (!(slw[i] >= SEEDING.levels[0])) return "noLiquid";
+
+  const base = cloudBaseFt[i];
+  if (Number.isNaN(base)) return "noCloudBase";
+
+  // A NaN band top means the column never reaches −18 °C, so the band has no
+  // cold edge here and the comparison cannot be made. `>=` is false for NaN,
+  // which lands in this branch — the honest answer, since a cell whose band
+  // is unbounded above is not one we can say encloses the cloud.
+  if (!(base < bandTopFt[i])) return "baseAboveBand";
+
+  // CLEAR sits far below every band edge, so one comparison would catch both
+  // of the next two. They are split because they mean opposite things: no
+  // cloud at all contradicts the model, and a warm top agrees with it about
+  // the cloud while placing the band above it.
+  if (topColdnessC[i] === CLEAR) return "noCloudSeen";
+  if (topColdnessC[i] < TOP_REACHES_BAND) return "topTooWarm";
+
+  // Rain the radar can see disqualifies; ground no radar covers does not, and
+  // the point readout says which of the two this cell is.
+  const reflectivity = dbz[i];
+  if (reflectivity !== BLOCK_NO_COVERAGE && reflectivity >= RAIN_DBZ) {
+    return "raining";
+  }
+
+  return "candidate";
+}
+
+/** The cell a point readout is about, and the scans it was read from. */
+export type Where = {
+  run: string;
+  validTime: string;
+  sceneTime: string;
+  radarTime: string;
+  lat: number;
+  lon: number;
+};
+
+/**
+ * Read the join's inputs over one cell.
+ *
+ * Pure, like `join` above and for the same reason: this is the answer an
+ * operator acts on, and reaching it through the service costs five network
+ * builds. The sentinels are turned back into nulls here — `CLEAR` and
+ * `BLOCK_NO_COVERAGE` are both −999, which is a plausible-looking number to
+ * print and a lie in every unit on this readout.
+ */
+export function readPoint(
+  inputs: Inputs,
+  cell: number,
+  where: Where
+): CandidatePoint {
+  const coldness = inputs.topColdnessC[cell];
+  const reflectivity = inputs.dbz[cell];
+  const base = inputs.cloudBaseFt[cell];
+
+  return {
+    ...where,
+    verdict: verdict(inputs, cell),
+    slwGM2: Math.round(inputs.slw[cell]),
+    cloudBaseFt: Number.isNaN(base) ? null : Math.round(base),
+    // Stored as degrees below zero, which is the cloud-top layer's convention
+    // and nobody else's.
+    cloudTopC: coldness === CLEAR ? null : -Math.round(coldness),
+    // A covered block with no echo reads as clear air, so it has no dBZ to
+    // report either — the difference from an uncovered one is `radarCovered`.
+    dbz:
+      reflectivity === BLOCK_NO_COVERAGE || reflectivity === BLOCK_NO_ECHO
+        ? null
+        : Math.round(reflectivity),
+    radarCovered: reflectivity !== BLOCK_NO_COVERAGE,
+  };
+}
+
+/** The domain holds no seeding band at all, so this cell holds nothing to seed. */
+export function emptyPoint(where: Where): CandidatePoint {
+  return {
+    ...where,
+    verdict: "noLiquid",
+    slwGM2: 0,
+    cloudBaseFt: null,
+    cloudTopC: null,
+    dbz: null,
+    radarCovered: false,
+  };
 }
 
 type Context = {

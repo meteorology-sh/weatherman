@@ -56,7 +56,13 @@ describe("CandidateField", () => {
     // Twice on purpose: the stat tile, and again in the accounting underneath
     // where it is the figure the rejections are subtracted down to.
     expect(screen.getAllByText(/52,560 km²/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/0\.31% of the domain/)).toBeTruthy();
+  });
+
+  // The area is the answer; what fraction of the country it is is not.
+  it("does not report candidate ground as a share of the domain", () => {
+    show();
+
+    expect(screen.queryByText(/0\.31/)).toBeNull();
   });
 
   it("reports the richest candidate cell", () => {

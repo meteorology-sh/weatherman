@@ -42,8 +42,7 @@ export const ReplayField = () => {
       <h3 className="font-semibold text-sm">SEEDING OPPORTUNITY</h3>
       <div className="text-sm">
         <strong>{km2.format(field.candidateKm2)} km²</strong> passed every test
-        — {field.coveragePct}% of the domain, richest cell{" "}
-        {km2.format(field.peak)} g/m².
+        &middot; richest cell {km2.format(field.peak)} g/m².
       </div>
       {field.medianBandBaseFt !== null && (
         <div className="text-sm">

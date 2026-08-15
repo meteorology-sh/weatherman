@@ -88,7 +88,7 @@ const NO_ECHO = -90;
  * block with no echo is a real report of clear air, an uncovered one is not.
  * Both sit below every contour level, so neither draws anything.
  */
-const BLOCK_NO_ECHO = -99;
+export const BLOCK_NO_ECHO = -99;
 export const BLOCK_NO_COVERAGE = -999;
 
 const REFLECTIVITY = {

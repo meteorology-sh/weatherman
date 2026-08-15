@@ -52,8 +52,18 @@ Five layers, and they are not the same kind of claim. Bottom to top:
 
 The supercooled-liquid contours are the deliberate exception on an observed map,
 and the sidebar says so. The radar mosaic is the only measurement on either map.
-Clicking anywhere profiles that point's column and reads that cell's convective
-diagnostics.
+
+**Clicking is how the panel is read.** A click profiles that point's column,
+reads that cell's convective diagnostics, and asks every layer what it says over
+that one 12 km cell — what the cloud there is made of, which test ruled it out
+if any, and when each source saw it. That readout leads the panel because it is
+the only part of it about the cloud an operator is looking at.
+
+**The layer summaries below it are figures about the whole model domain, and
+they do not report shares of it.** What fraction of the country has cloud over
+it, or has a radar looking at it, decides nothing a sortie does; the areas and
+the extremes are what an operator chooses between, and the cell is where the
+question is actually answered.
 
 **The seeding-opportunity layer is the answer the other four are inputs to**, drawn over
 all of them. It is the only layer that starts on: the map opens on its answer,
@@ -224,16 +234,20 @@ over an amber liquid layer is a bug report otherwise.
 **It exists at the analysis hour only.** It leans on an observed cloud top, and
 satellites cannot forecast. `at` replays the whole join at a past hour instead.
 
-**Attributes, never gates**: cloud base against the operational window, band base
-against a configured 18,000 ft ceiling, mixed-layer CAPE, integrated liquid and
-storm motion — all read over candidate ground only, all reported. A band above
-the ceiling in July is correct output, not a warning. Lightning cannot ride here
-at all: HRRR does not diagnose it at the analysis hour.
+**Attributes, never gates**: cloud base against the operational window and band
+base against a configured 18,000 ft ceiling, read over candidate ground only and
+reported. A band above the ceiling in July is correct output, not a warning.
+Mixed-layer CAPE, integrated liquid and storm motion are attributes too, and
+they are read at the clicked point rather than as domain peaks — a domain-wide
+peak is a number about whichever cell happened to be strongest, which is rarely
+the one on screen. Lightning cannot ride here at all: HRRR does not diagnose it
+at the analysis hour.
 
 **Absence of radar coverage does not veto.** A third of the mosaic's box has no
 radar over it, and no coverage is not a report of clear air — so those cells stay
-candidates and the panel reports how much ground was unchecked rather than
-cleared.
+candidates and the panel reports how much candidate ground was unchecked rather
+than cleared. Over a clicked cell the two are named apart: a quiet radar reads
+as no echo, and ground no radar covers says so.
 
 ### Rain — MRMS
 
@@ -348,6 +362,20 @@ The point sounding is the one HRRR product small enough to ride the whole patter
 into the store — a dozen levels over one point, not a field. That build is a
 _national_ profile grid rather than a point query, so the first click pays ~25 s
 and every later one is answered from the same cached grid in ~11 ms.
+
+The join answers a click the same way, off the same build the map is drawing:
+
+```
+GET /candidate/point?lat&lon → the cached join, read at one cell
+                             → CandidatePointProvider → seedability slice
+                             → CloudHere selects via useAppSelector
+```
+
+**The build keeps the arrays it joined**, not just the contours, which is what
+lets a click be answered from the picture on screen rather than from a fresh
+read of five sources. They are references to grids each source already caches,
+so keeping them costs nothing, and it is the reason green ground and a green
+readout cannot disagree about a cell.
 
 **Cache policy follows the source's own cycle.** A given HRRR run+hour never
 changes, so frames cache forever and evict only when the run rolls. Profile grids

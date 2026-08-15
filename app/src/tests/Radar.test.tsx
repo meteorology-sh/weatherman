@@ -86,23 +86,24 @@ describe("Radar", () => {
     expect(screen.getByText("309,859 km²")).toBeTruthy();
   });
 
-  // The honesty of this panel: 2% of *covered* ground, not of the map. A third
-  // of the map has no radar over it.
+  // The honesty of this panel: the echo is measured where a radar is looking,
+  // not across the whole map.
   it("measures the echo against covered ground", () => {
     withStats();
 
     expect(
-      screen.getByText(/2.01% of covered ground over 20 dBZ/)
+      screen.getByText(/over 20 dBZ, where a radar is looking/)
     ).toBeTruthy();
   });
 
   // Without this the empty parts of the map read as "clear", when they are
-  // really "unwatched".
-  it("says how much of the map the radars can see at all", () => {
+  // really "unwatched" — and which one a cell is, the click answers.
+  it("says a quiet cell may be one no radar covers", () => {
     withStats();
 
-    expect(screen.getByText(/Radars cover 67.33% of this map/)).toBeTruthy();
-    expect(screen.getByText(/nobody is looking/)).toBeTruthy();
+    expect(
+      screen.getByText(/either clear air or ground no radar covers/)
+    ).toBeTruthy();
   });
 
   it("reports the strongest cell", () => {
@@ -126,10 +127,12 @@ describe("Radar", () => {
     expect(screen.getByText(/Nothing is disqualified by rain/)).toBeTruthy();
   });
 
-  it("still reports radar coverage on a quiet scene", () => {
+  it("still warns about unwatched ground on a quiet scene", () => {
     withStats({ echoKm2: 0, echoPct: 0, peakDbz: null });
 
-    expect(screen.getByText(/Radars cover 67.33% of this map/)).toBeTruthy();
+    expect(
+      screen.getByText(/either clear air or ground no radar covers/)
+    ).toBeTruthy();
   });
 
   // A radar scene is only readable with its age attached — the panel reports the

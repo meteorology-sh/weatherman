@@ -48,16 +48,14 @@ describe("CloudBase panel", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  it("reports how much of the domain has a cloud base", () => {
+  // What share of the country has cloud over it decides nothing an operator
+  // does. The ground below the ceiling is the number they choose from, and the
+  // base over the cell they clicked is in the point readout.
+  it("does not report cloud as a share of the domain", () => {
     withStats();
 
-    expect(screen.getByText("55.88%")).toBeTruthy();
-  });
-
-  it("reports how much of it a sortie could enter", () => {
-    withStats();
-
-    expect(screen.getByText("17.14%")).toBeTruthy();
+    expect(screen.queryByText(/55\.88/)).toBeNull();
+    expect(screen.queryByText(/17\.14/)).toBeNull();
   });
 
   // The aircraft's limit, not Texas's window: a service ceiling is the same

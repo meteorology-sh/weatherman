@@ -1,6 +1,7 @@
 // Client
 import {
   CandidateFieldUrl,
+  GetCandidatePoint,
   GetCandidateStats,
   ReplayCandidateUrl,
   CloudTopUrl,
@@ -216,6 +217,35 @@ describe("GetSounding", () => {
     );
     await expect(GetSounding(-98.58, 39.83, 0)).rejects.toThrow(
       "Failed to fetch the sounding: 500"
+    );
+  });
+});
+
+describe("GetCandidatePoint", () => {
+  // The same swap as the sounding, and the same reason: a click is [lon, lat].
+  it("sends the point as lat and lon", async () => {
+    await GetCandidatePoint(-101.42, 32.05);
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/candidate/point?lat=32.05&lon=-101.42"
+    );
+  });
+
+  // No hour: the join leans on an observed cloud top, so it exists at the
+  // analysis hour only.
+  it("asks for no hour", async () => {
+    await GetCandidatePoint(-101.42, 32.05);
+
+    expect(fetch).toHaveBeenCalledWith(expect.not.stringContaining("hour"));
+  });
+
+  it("throws on a non-OK response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) }))
+    );
+    await expect(GetCandidatePoint(-101.42, 32.05)).rejects.toThrow(
+      "Failed to fetch the point: 500"
     );
   });
 });

@@ -9,9 +9,9 @@ const ft = new Intl.NumberFormat("en-US");
 /**
  * What the cloud-base layer reports.
  *
- * How much of the domain has a cloud base at all, how much of that sits below
- * the aircraft's ceiling, and the median height. The ramp says where the climb
- * is short; these say how much ground there is to choose from.
+ * How much cloud sits below the aircraft's ceiling, and how high its base
+ * typically is. The ramp says where the climb is short; this says how much
+ * ground there is to choose from. The base over one point is `CloudHere`.
  */
 export const CloudBase = () => {
   const stats = useAppSelector((state) => state.cloudbase.stats);
@@ -44,12 +44,8 @@ export const CloudBase = () => {
       ) : (
         <>
           <div className="text-sm">
-            A cloud base over <strong>{stats.basePct}%</strong> of the domain,{" "}
-            <strong>{stats.reachablePct}%</strong> of it below the{" "}
-            {CEILING_LABEL} ceiling.
-          </div>
-          <div className="text-sm">
-            {ft.format(stats.reachableKm2)} km² below the ceiling
+            {ft.format(stats.reachableKm2)} km² of cloud with a base below the{" "}
+            {CEILING_LABEL} ceiling
             {stats.medianFt !== null && (
               <> &middot; median base {ft.format(stats.medianFt)} ft MSL</>
             )}

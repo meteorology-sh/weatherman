@@ -16,10 +16,10 @@ const minutesOld = (iso: string) =>
 /**
  * What the cloud-top layer reports.
  *
- * The two figures an operator acts on are how much sky has cloud at all and how
- * much of it has a top cold enough for the seeding band to be inside the cloud
- * — the gap between them is the shallow warm cloud this layer throws away, and
- * it is usually most of the sky.
+ * How much cloud has a top cold enough for the seeding band to be inside it,
+ * and how cold the coldest is. The rest of the sky is shallow warm cloud this
+ * layer throws away, and it is usually most of it. The top over one point is
+ * `CloudHere`.
  *
  * It names **both** sources, which no other panel here has to do. This layer is
  * a claim assembled from two: the satellite says where the top is, HRRR says
@@ -60,12 +60,8 @@ export const CloudTop = () => {
       ) : (
         <>
           <div className="text-sm">
-            Cloud over <strong>{stats.cloudPct}%</strong> of the domain, of
-            which <strong>{stats.seedableTopPct}%</strong> has a top at{" "}
-            {CLOUD_TOP_WARMEST_C} °C or colder.
-          </div>
-          <div className="text-sm">
-            {km2.format(stats.seedableKm2)} km² with a seedable top
+            {km2.format(stats.seedableKm2)} km² of cloud with a top at{" "}
+            {CLOUD_TOP_WARMEST_C} °C or colder
             {stats.coldestTopC !== null && (
               <> &middot; coldest {stats.coldestTopC} °C</>
             )}

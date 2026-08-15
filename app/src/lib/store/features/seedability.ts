@@ -1,7 +1,10 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
+// Store
+import { soundingActions } from "./sounding";
+
 // Types
-import type { CandidateStats } from "@/lib/types";
+import type { CandidatePoint, CandidateStats } from "@/lib/types";
 
 type SeedabilityState = {
   /**
@@ -16,6 +19,10 @@ type SeedabilityState = {
   stats: CandidateStats | undefined;
   loading: boolean;
   error: string | null;
+  /** The same join read over the clicked cell. One cell, so it fits here. */
+  here: CandidatePoint | undefined;
+  hereLoading: boolean;
+  hereError: string | null;
 };
 
 /**
@@ -28,6 +35,9 @@ const initialState: SeedabilityState = {
   stats: undefined,
   loading: false,
   error: null,
+  here: undefined,
+  hereLoading: false,
+  hereError: null,
 };
 
 const seedabilitySlice = createSlice({
@@ -46,6 +56,26 @@ const seedabilitySlice = createSlice({
     setError(state, action: PayloadAction<string | null>) {
       state.error = action.payload;
     },
+    setHere(state, action: PayloadAction<CandidatePoint>) {
+      state.here = action.payload;
+    },
+    setHereLoading(state, action: PayloadAction<boolean>) {
+      state.hereLoading = action.payload;
+    },
+    setHereError(state, action: PayloadAction<string | null>) {
+      state.hereError = action.payload;
+    },
+  },
+  // Moving the click is what makes the readout fetch, exactly as it is for the
+  // sounding: the old cell's answer is about somewhere else, and leaving it on
+  // screen under new coordinates would be the wrong answer confidently
+  // labelled. The two readouts answer the same click, so they clear on the same
+  // action rather than on two that could drift apart.
+  extraReducers: (builder) => {
+    builder.addCase(soundingActions.setPoint, (state) => {
+      state.here = undefined;
+      state.hereError = null;
+    });
   },
 });
 

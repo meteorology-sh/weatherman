@@ -1,8 +1,9 @@
 // Store
 import reducer, { seedabilityActions } from "@/lib/store/features/seedability";
+import { soundingActions } from "@/lib/store/features/sounding";
 
 // Types
-import type { CandidateStats } from "@/lib/types";
+import type { CandidatePoint, CandidateStats } from "@/lib/types";
 
 const stats: CandidateStats = {
   run: "2025-05-15T18:00:00.000Z",
@@ -75,5 +76,69 @@ describe("seedability slice", () => {
     const cleared = reducer(failed, seedabilityActions.setError(null));
 
     expect(cleared.error).toBe(null);
+  });
+
+  describe("the clicked point", () => {
+    const here: CandidatePoint = {
+      run: "2025-05-15T18:00:00.000Z",
+      validTime: "2025-05-15T18:00:00.000Z",
+      sceneTime: "2025-05-15T18:01:17.900Z",
+      radarTime: "2025-05-15T18:00:39.000Z",
+      lat: 32.05,
+      lon: -101.42,
+      verdict: "candidate",
+      slwGM2: 140,
+      cloudBaseFt: 5800,
+      cloudTopC: -14,
+      dbz: null,
+      radarCovered: true,
+    };
+
+    it("starts with no point read", () => {
+      expect(initial().here).toBeUndefined();
+      expect(initial().hereError).toBe(null);
+      expect(initial().hereLoading).toBe(false);
+    });
+
+    it("takes the point without touching the summary", () => {
+      const loaded = reducer(initial(), seedabilityActions.setStats(stats));
+      const state = reducer(loaded, seedabilityActions.setHere(here));
+
+      expect(state.here?.verdict).toBe("candidate");
+      expect(state.stats?.candidateKm2).toBe(52560);
+    });
+
+    // The old cell's answer is about somewhere else. Keeping it under new
+    // coordinates would be the wrong answer, confidently labelled — and an
+    // undefined point is also what makes the provider fetch the new one.
+    it("forgets the point when the click moves", () => {
+      const loaded = reducer(initial(), seedabilityActions.setHere(here));
+      const moved = reducer(loaded, soundingActions.setPoint([-99.1, 35.2]));
+
+      expect(moved.here).toBeUndefined();
+    });
+
+    it("keeps the summary when the click moves", () => {
+      const loaded = reducer(initial(), seedabilityActions.setStats(stats));
+      const moved = reducer(loaded, soundingActions.setPoint([-99.1, 35.2]));
+
+      expect(moved.stats?.candidateKm2).toBe(52560);
+    });
+
+    it("records loading and error for the point separately", () => {
+      const loading = reducer(
+        initial(),
+        seedabilityActions.setHereLoading(true)
+      );
+      expect(loading.hereLoading).toBe(true);
+      expect(loading.loading).toBe(false);
+
+      const failed = reducer(
+        loading,
+        seedabilityActions.setHereError("no scene")
+      );
+      expect(failed.hereError).toBe("no scene");
+      expect(failed.error).toBe(null);
+    });
   });
 });

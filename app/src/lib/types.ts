@@ -66,6 +66,41 @@ export interface CandidateStats {
   stormMotionTowardDeg: number | null;
 }
 
+/** Mirrors Verdict in server/src/lib/services/candidate/join.ts */
+export type Verdict =
+  | "candidate"
+  | "noLiquid"
+  | "noCloudBase"
+  | "baseAboveBand"
+  | "noCloudSeen"
+  | "topTooWarm"
+  | "raining";
+
+/** Mirrors CandidatePoint in server/src/lib/services/candidate/join.ts */
+export interface CandidatePoint {
+  run: string;
+  validTime: string;
+  /** Start of the satellite scan read over this cell. */
+  sceneTime: string;
+  /** Time of the radar scan read over this cell. */
+  radarTime: string;
+  /** The 12 km cell sampled — not the click, which is finer than the grid. */
+  lat: number;
+  lon: number;
+  /** A candidate, nothing to seed, or the first test the cell failed. */
+  verdict: Verdict;
+  /** Supercooled liquid water path in the seeding band over this cell, g/m². */
+  slwGM2: number;
+  /** Cloud base, ft MSL. Null where the model has no cloud over the cell. */
+  cloudBaseFt: number | null;
+  /** Observed cloud-top temperature, °C. Null where the satellite sees no cloud. */
+  cloudTopC: number | null;
+  /** Measured reflectivity, dBZ. Null where the radars see no echo, or nothing. */
+  dbz: number | null;
+  /** Is any radar looking at this cell at all? */
+  radarCovered: boolean;
+}
+
 /** Mirrors SlwStats in server/src/lib/services/hrrr/slw.ts */
 export interface SlwStats {
   run: string;
