@@ -93,6 +93,33 @@ apply.
   `react-hooks` + `react-refresh`. Run `yarn lint` before committing.
 - TypeScript enforces `noUnusedLocals` / `noUnusedParameters`. No dead code.
 
+## Which tests to run while working
+
+**Run the tests the change touches, not the suite.** Both packages take a path
+or a name filter, and a full run in either one is minutes of waiting for
+hundreds of assertions about code nobody edited.
+
+```bash
+cd server && yarn test --test-name-pattern "cloud phase"
+cd server && node --require ts-node/register --test src/tests/join.test.ts
+cd app && yarn vitest run src/tests/CloudHere.test.tsx
+cd app && yarn vitest run -t "reports the observed phase"
+```
+
+Widen deliberately, not by habit:
+
+- **While building**, run the file you are editing and nothing else.
+- **When a change reaches past its own file** — a shared type, a service another
+  service reads, a store slice — run the tests for what it reaches, because that
+  is where a real break hides. Following a side effect is always worth the time;
+  running everything to see whether there was one is not.
+- **Before shipping** — a commit, a PR, or saying the work is done — run the
+  full suite in both packages once. That is the point of the whole run, and the
+  only point that needs it.
+
+The two packages have separate suites and separate runners, so a server change
+does not need `/app`'s tests and a component change does not need the server's.
+
 ---
 
 # Frontend — `/app`

@@ -1,9 +1,11 @@
 // Client
 import {
+  CandidateConfirmedUrl,
   CandidateFieldUrl,
   GetCandidatePoint,
   GetCandidateStats,
   ReplayCandidateUrl,
+  ReplayConfirmedUrl,
   CloudTopUrl,
   ForecastCloudBaseUrl,
   GetCloudBaseStats,
@@ -320,6 +322,18 @@ describe("candidate field urls", () => {
   it("names a replayed field by its hour", () => {
     expect(ReplayCandidateUrl("2025-05-15T18:00:00.000Z")).toBe(
       "/candidate/field?at=2025-05-15T18%3A00%3A00.000Z"
+    );
+  });
+
+  // A second trace of the same build, not a subset of the field's route — the
+  // outline is drawn over the field rather than instead of it.
+  it("names the observed outline on its own route", () => {
+    expect(CandidateConfirmedUrl()).toBe("/candidate/field/confirmed");
+  });
+
+  it("names a replayed outline by its hour", () => {
+    expect(ReplayConfirmedUrl("2025-05-15T18:00:00.000Z")).toBe(
+      "/candidate/field/confirmed?at=2025-05-15T18%3A00%3A00.000Z"
     );
   });
 });

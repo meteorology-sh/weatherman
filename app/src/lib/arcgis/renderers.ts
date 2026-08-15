@@ -8,6 +8,7 @@
 
 // ArcGIS
 import UniqueValueRenderer from "@arcgis/core/renderers/UniqueValueRenderer";
+import SimpleRenderer from "@arcgis/core/renderers/SimpleRenderer";
 import SimpleFillSymbol from "@arcgis/core/symbols/SimpleFillSymbol";
 import {
   CLOUD_BANDS,
@@ -18,6 +19,8 @@ import {
   CLOUD_TOP_RGB,
   CANDIDATE_BANDS,
   CANDIDATE_RGB,
+  CONFIRMED_RGB,
+  CONFIRMED_WIDTH,
   PRECIP_BANDS,
   PRECIP_RGB,
   RADAR_BANDS,
@@ -61,6 +64,22 @@ export const candidateRadarRenderer = new UniqueValueRenderer({
 export const candidateFieldRenderer = new UniqueValueRenderer({
   field: "seedableSlwPath",
   uniqueValueInfos: fills(CANDIDATE_BANDS, CANDIDATE_RGB),
+});
+
+/**
+ * The observed-phase outline: one symbol for every polygon, because every
+ * polygon means the same thing.
+ *
+ * A `SimpleRenderer` rather than a banded one on purpose — this geometry
+ * carries no magnitude to band. The field underneath already says how much
+ * liquid is there; this says only which of that ground the satellite still sees
+ * liquid at the top of. Hollow, so the fills it encloses are read unchanged.
+ */
+export const candidateConfirmedRenderer = new SimpleRenderer({
+  symbol: new SimpleFillSymbol({
+    color: [0, 0, 0, 0],
+    outline: { color: [...CONFIRMED_RGB, 0.9], width: CONFIRMED_WIDTH },
+  }),
 });
 
 export const candidateCloudTopRenderer = new UniqueValueRenderer({

@@ -293,7 +293,7 @@ built.
 
 ---
 
-### Phase 3 — Observed cloud-top phase as a cross-check on the model
+### Phase 3 — Observed cloud-top phase as a cross-check on the model — **built**
 
 `ABI-L2-ACTPC`, verified in `INVESTIGATION.md` §5.3: an explicit
 `super_cooled_liquid_water` class, 2 km, 5-minute cadence, 666 KB per scene (6×
@@ -306,8 +306,87 @@ liquid and the satellite says the top is glaciated. `INVESTIGATION.md` measured
 model/satellite agreement at 88.3%; this makes the 11.7% visible instead of
 invisible.
 
-Ship it as an attribute on the candidate field first — a confidence flag — rather
-than as a fourth toggle.
+**What it adds beyond the ramp already on the cloud-top layer.** That ramp fades
+with colder tops because a colder top is _likelier_ to have glaciated on its own
+— `MEASUREMENTS.md` §4, and the fall-off is gradual with no edge in it. But
+between about −5 and −38 °C both states are physically ordinary and the whole
+seeding band sits inside that window, so temperature ranks cloud and cannot
+separate a turret that has already frozen from one that has not. Phase can. That
+is the reason to carry it, and it is a different claim from the ramp's.
+
+**Both directions are counted, and the plan above named only one.** Model says
+liquid, satellite says frozen, is the confidence downgrade. The reverse — an
+observed supercooled top over a cell the model drew nothing on — is cloud that
+never reached the map to be rejected, and for a tool whose weakness is that
+liquid is simulated, that direction is the one no amount of reading the map
+finds.
+
+**Measured live, 2026-08-15 20z analysis, CONUS.** Candidate ground 217,440 km²,
+of which the satellite confirms 38,880, sees already frozen 174,672, and cannot
+settle 3,888 — the three partition it exactly. The reverse count is 228,528 km²,
+**larger than the candidate field itself**, and that is the number to be careful
+with: a cloud top is one surface and the liquid field is a path integral through
+the band, so a thin supercooled deck can sit under the lowest contour honestly.
+It is ground worth looking at, not a tally of model errors, and every place the
+app prints it says so. Mid-August is also the dry control, with a band base of
+18,276 ft — the season §1 predicts the fewest reachable candidates in.
+
+**What shipped.** `goes/phase.ts` exports `GoesPhase`, and the S3 listing,
+nearest-scene, download and HDF5 machinery moved to `goes/scene.ts` so the two
+GOES products share one copy of it. The join reads the resampled classes and
+reports `CandidateStats.phase` — candidate ground confirmed, glaciated or
+unresolved, plus the missed ground above — and `CandidatePoint.topPhase`, which
+the candidate panel prints in words. No layer, no route, no toggle.
+
+**Three decisions worth naming.** A class cannot be block-averaged, so a 12 km
+cell takes the commonest class among its cloudy pixels, with ties broken toward
+the colder class so a coin toss never manufactures a confirmation. Nothing gates
+on phase, and `join.test.ts` pins that in both directions — a frozen top cannot
+turn a candidate into a rejection, and a supercooled one cannot turn a rejection
+into a candidate. And the cross-check is allowed to fail alone: a scene that will
+not
+download leaves the field intact and the panel saying the check is missing,
+because every other input decides a verdict and this one decides nothing.
+
+**The limitation that survives, and it is not small.** A passive radiometer sees
+the highest deck, which `MEASUREMENTS.md` §4 already records for `PRES:cloud
+top`. Cirrus over a growing cumulus classifies as ice. That failure concentrates
+in exactly the multi-layer scenes where model and satellite are most likely to
+disagree, so a disagreement under layered cloud is at least as likely to be
+viewing geometry as model error. Every place the app prints a phase says so.
+
+**The strategy question this exposes, and the reason it is worth finishing.**
+§2's table records that Texas seeds growing turrets with tops normally between
+−5 and −10 °C, and that the app's open-ended cold edge "admits cirrus-topped
+systems alongside young turrets". Those are two different seeding strategies and
+the candidate field has been serving both at once — not by choice, but because
+separating them looked like it needed a cold cutoff, and §6 rules that out for
+want of a citation.
+
+Observed phase is the way out: a classified top is measured rather than chosen,
+so it draws the same distinction without inventing a constant. **That is a
+better argument for this phase than the confidence flag the plan opens with.**
+
+**Measured on the 2026-08-14 18z hour.** Confirmed candidate ground is strongly
+clustered, so it can be drawn rather than only counted: given a confirmed cell,
+an adjacent candidate cell is confirmed 82.1% of the time against a 27.5% base
+rate, and 72.9% of confirmed cells sit in patches of five cells or more. Over the
+Midwest complex the largest patch is 10,080 km² centred 39.99N 95.61W. Salt-and-
+pepper would have ruled contours out; this is not that.
+
+**What shipped for it.** A second trace of the same array, masked to confirmed
+cells, at the field's lowest level only — one hollow outline over the fills,
+served at `GET /candidate/field/confirmed` and drawn by `CandidateConfirmedLayer`
+on the same switch as the field. An annotation, never a subset.
+
+**Not in this phase, and this is what would settle the strategy question.** The
+5-minute cadence makes differencing consecutive scenes possible — glaciation
+onset, and cloud-top cooling rate — which is the closest any free feed gets to
+C1's "growing turret". A top that is supercooled _and_ cooling fast is a young
+growing turret unambiguously, and that is the target Texas practice describes.
+One scene cannot say it: a turret that froze a minute ago and one that froze an
+hour ago look identical. Until then the outline narrows where to look and the
+operator judges the rest.
 
 ---
 
@@ -404,6 +483,11 @@ failure.**
   and top missing. Assert geometry, not ring counts.
 - Replay resolution: `at` picks the right archive key; a `200` on a multi-range
   request throws.
+- Observed phase is counted and never acted on: a candidate with a frozen top
+  stays a candidate, a rejection with a supercooled top stays rejected, and a
+  build with no phase scene still draws its field. (`join.test.ts`.)
+- A 12 km cell takes the commonest class among its cloudy pixels, and a tie
+  falls toward the colder one. (`phase-service.test.ts`.)
 - Sentinel handling: a cloud top at 9,999 m decodes as a **value**, not as missing.
   (`cloudbase-service.test.ts`.)
 - `LTNG` at f00 is skipped, as `PRATE` is. (`recordsAt`, same file.)

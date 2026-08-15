@@ -32,6 +32,8 @@ import {
   radarLayer,
   replayCloudBaseLayer,
   replayCloudTopLayer,
+  replayConfirmedLayer,
+  replayFieldLayer,
   replayLiquidLayer,
   replayRadarLayer,
 } from "./arcgis-fakes";
@@ -148,6 +150,28 @@ describe("ArcGIS in replay mode", () => {
     expect(replayCloudBaseLayer.url).toBe(
       `/forecast/cloudbase?hour=0&at=${at}`
     );
+    expect(replayConfirmedLayer.url).toBe(
+      `/candidate/field/confirmed?at=${at}`
+    );
+  });
+
+  // One switch drives the field and the outline over it: an outline with no
+  // field under it marks ground the map is not drawing.
+  it("shows the observed outline with the field it annotates", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(ready(AT));
+    });
+
+    expect(replayConfirmedLayer.visible).toBe(replayFieldLayer.visible);
+
+    act(() => {
+      store.dispatch(replayActions.setField(false));
+    });
+
+    expect(replayFieldLayer.visible).toBe(false);
+    expect(replayConfirmedLayer.visible).toBe(false);
   });
 
   it("does not fetch geometry for an hour that is still building", () => {

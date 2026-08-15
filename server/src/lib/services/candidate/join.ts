@@ -14,6 +14,7 @@
 // Services
 import { SEEDING } from "../hrrr/slw";
 import { CLEAR } from "../goes/cloudtop";
+import { PHASE, PHASE_NAMES } from "../goes/phase";
 import {
   BLOCK_NO_COVERAGE,
   BLOCK_NO_ECHO,
@@ -26,6 +27,7 @@ import { CEILING_FT } from "../shared/aircraft";
 
 // Types
 import type { Grid, Geo } from "../shared/contour";
+import type { CloudPhase } from "../goes/phase";
 
 /**
  * The coldest cloud top that still counts as reaching the seeding band, stored
@@ -59,6 +61,45 @@ export type Rejected = {
 export type Verdict = "candidate" | "noLiquid" | keyof Rejected;
 
 /**
+ * What the satellite's observed cloud-top phase says about the model's answer.
+ *
+ * **None of this changes a verdict, and it must not.** The model is the only
+ * thing here that says anything about the seeding band; the satellite sees the
+ * top of the cloud and nothing below it, so an observation of a glaciated top
+ * is a reason to look harder at a candidate rather than a reason to delete it.
+ * Under multi-layer cloud it is not even about the same cloud.
+ *
+ * The two directions are counted separately because they are different
+ * mistakes. Ground charged to `glaciated` is the model claiming liquid where
+ * the cloud has already frozen — a candidate that may be spent. Ground charged
+ * to `missed` is the reverse: the satellite sees a supercooled top over a cell
+ * the model puts too little liquid in to draw, so it never reached the map to
+ * be rejected.
+ *
+ * **`missed` is a weaker reading than it looks, and it is the larger number.**
+ * A supercooled cloud top is a statement about one surface; the liquid field is
+ * a path integral through the seeding band, and a thin supercooled deck can be
+ * honestly below the lowest contour. So this counts disagreements worth looking
+ * at, not model errors, and it routinely covers more ground than the candidate
+ * field does.
+ */
+export type PhaseCheck = {
+  /** Start of the phase scan, ISO 8601. Null when no scene could be read. */
+  sceneTime: string | null;
+  /** Candidate ground whose top is observed supercooled or mixed, km². */
+  confirmedKm2: number;
+  /** Candidate ground whose top the satellite already sees frozen, km². */
+  glaciatedKm2: number;
+  /** Candidate ground the observation neither confirms nor contradicts, km². */
+  unresolvedKm2: number;
+  /**
+   * Ground with an observed supercooled top carrying less modelled in-band
+   * liquid than the lowest contour draws, km².
+   */
+  missedKm2: number;
+};
+
+/**
  * The join read over one clicked cell — what the cloud there is doing, when it
  * was measured and where the cell is.
  *
@@ -74,6 +115,8 @@ export type CandidatePoint = {
   validTime: string;
   sceneTime: string;
   radarTime: string;
+  /** Start of the phase scan. Null where no scene could be read. */
+  phaseTime: string | null;
   /** The 12 km cell sampled — not the click, which is finer than the grid. */
   lat: number;
   lon: number;
@@ -84,6 +127,14 @@ export type CandidatePoint = {
   cloudBaseFt: number | null;
   /** Observed cloud-top temperature, °C. Null where the satellite sees no cloud. */
   cloudTopC: number | null;
+  /**
+   * Observed phase at the cloud top. Null where no phase scene could be read.
+   *
+   * Reported beside the model's answer rather than folded into it: this is the
+   * one thing on this readout that is measured rather than simulated, and an
+   * operator comparing the two is the whole point of carrying it.
+   */
+  topPhase: CloudPhase | null;
   /** Measured reflectivity, dBZ. Null where the radars see no echo, or nothing. */
   dbz: number | null;
   /** Is any radar looking at this cell at all? */
@@ -145,6 +196,9 @@ export type CandidateStats = {
   stormMotionKt: number;
   /** Bearing that cell is moving toward, degrees. Null when still. */
   stormMotionTowardDeg: number | null;
+
+  /** What the observed cloud-top phase says about all of the above. */
+  phase: PhaseCheck;
 };
 
 /** Everything the join reads, all on the HRRR 12 km grid except the radar. */
@@ -159,6 +213,38 @@ export type Inputs = {
   topColdnessC: Float32Array;
   /** Reflectivity already sampled onto the HRRR grid, dBZ. */
   dbz: Float32Array;
+  /**
+   * Observed cloud-top phase as `PHASE` codes. Null when no phase scene could
+   * be read — the join still answers, without the cross-check.
+   */
+  topPhase: Float32Array | null;
+};
+
+/**
+ * Does the satellite still see liquid at this cell's cloud top?
+ *
+ * Supercooled and mixed both count: mixed phase is a top freezing over as it is
+ * watched, so it still holds the water seeding works on. One definition, used
+ * by the tally below and by the outline the map draws, so the shape on screen
+ * and the figure in the panel cannot come to different answers.
+ *
+ * False where no scene could be read — an unobserved cell is not a confirmed
+ * one, and the panel says separately that nothing was observed.
+ */
+export function topHoldsLiquid(
+  topPhase: Float32Array | null,
+  cell: number
+): boolean {
+  const observed = topPhase?.[cell];
+  return observed === PHASE.supercooled || observed === PHASE.mixed;
+}
+
+/** Candidate cells the observation confirms, contradicts or cannot settle. */
+type PhaseTally = {
+  confirmed: number;
+  glaciated: number;
+  unresolved: number;
+  missed: number;
 };
 
 export type Join = {
@@ -169,6 +255,8 @@ export type Join = {
   rejected: Rejected;
   /** Candidate cells no radar covers. */
   blind: number;
+  /** The observed cross-check, counted alongside but never acted on. */
+  phase: PhaseTally;
 };
 
 /**
@@ -215,7 +303,7 @@ export function sampleRadar(mosaic: Grid, geo: Geo): Float32Array {
  * up.
  */
 export function join(inputs: Inputs): Join {
-  const { slw, dbz } = inputs;
+  const { slw, dbz, topPhase } = inputs;
 
   const values = new Float32Array(slw.length);
   const rejected: Rejected = {
@@ -225,13 +313,26 @@ export function join(inputs: Inputs): Join {
     topTooWarm: 0,
     raining: 0,
   };
+  const phase: PhaseTally = {
+    confirmed: 0,
+    glaciated: 0,
+    unresolved: 0,
+    missed: 0,
+  };
   let liquid = 0;
   let blind = 0;
 
   for (let i = 0; i < slw.length; i++) {
     const answer = verdict(inputs, i);
-    // Nothing to seed here, so nothing to reject either.
-    if (answer === "noLiquid") continue;
+    const observed = topPhase?.[i];
+
+    // Too little liquid to draw — but the satellite may still see a supercooled
+    // top over it, and cloud the model never put on the map is the one
+    // disagreement no amount of reading the map can catch.
+    if (answer === "noLiquid") {
+      if (observed === PHASE.supercooled) phase.missed++;
+      continue;
+    }
     liquid++;
 
     if (answer !== "candidate") {
@@ -243,10 +344,19 @@ export function join(inputs: Inputs): Join {
     // cannot clear the cell either, and the stats say how much rides on it.
     if (dbz[i] === BLOCK_NO_COVERAGE) blind++;
 
+    // Counted over candidate ground only, and counted *after* the cell is
+    // already a candidate, so that reading this can never be mistaken for a
+    // sixth test.
+    if (observed !== undefined) {
+      if (topHoldsLiquid(topPhase, i)) phase.confirmed++;
+      else if (observed === PHASE.ice) phase.glaciated++;
+      else phase.unresolved++;
+    }
+
     values[i] = slw[i];
   }
 
-  return { values, liquid, rejected, blind };
+  return { values, liquid, rejected, blind, phase };
 }
 
 /**
@@ -293,6 +403,8 @@ export type Where = {
   validTime: string;
   sceneTime: string;
   radarTime: string;
+  /** Start of the phase scan. Null when no scene could be read. */
+  phaseTime: string | null;
   lat: number;
   lon: number;
 };
@@ -323,6 +435,7 @@ export function readPoint(
     // Stored as degrees below zero, which is the cloud-top layer's convention
     // and nobody else's.
     cloudTopC: coldness === CLEAR ? null : -Math.round(coldness),
+    topPhase: phaseAt(inputs.topPhase, cell),
     // A covered block with no echo reads as clear air, so it has no dBZ to
     // report either — the difference from an uncovered one is `radarCovered`.
     dbz:
@@ -333,6 +446,21 @@ export function readPoint(
   };
 }
 
+/**
+ * The observed class over one cell, as a name.
+ *
+ * The grid carries codes so a class can ride beside every other field as a
+ * number; nothing outside the grid speaks in them. A code the grid should not
+ * hold reads as `unknown` rather than as an index into nothing.
+ */
+export function phaseAt(
+  grid: Float32Array | null,
+  cell: number
+): CloudPhase | null {
+  if (!grid) return null;
+  return PHASE_NAMES[grid[cell]] ?? "unknown";
+}
+
 /** The domain holds no seeding band at all, so this cell holds nothing to seed. */
 export function emptyPoint(where: Where): CandidatePoint {
   return {
@@ -341,6 +469,7 @@ export function emptyPoint(where: Where): CandidatePoint {
     slwGM2: 0,
     cloudBaseFt: null,
     cloudTopC: null,
+    topPhase: null,
     dbz: null,
     radarCovered: false,
   };
@@ -351,6 +480,7 @@ type Context = {
   validTime: string;
   sceneTime: string;
   radarTime: string;
+  phaseTime: string | null;
   cloudBaseFt: Float32Array;
   bandBaseFt: Float32Array;
   mixedCape: Float32Array | undefined;
@@ -446,6 +576,14 @@ export function summarize(joined: Join, context: Context): CandidateStats {
     stormMotionKt: speed,
     // atan2(0, 0) is 0, which would print "toward north" for still air.
     stormMotionTowardDeg: speed === 0 ? null : bearing(u, v),
+
+    phase: {
+      sceneTime: context.phaseTime,
+      confirmedKm2: joined.phase.confirmed * CELL_KM2,
+      glaciatedKm2: joined.phase.glaciated * CELL_KM2,
+      unresolvedKm2: joined.phase.unresolved * CELL_KM2,
+      missedKm2: joined.phase.missed * CELL_KM2,
+    },
   };
 }
 
@@ -461,7 +599,8 @@ export function emptyStats(
   run: Date,
   validTime: string,
   sceneTime: string,
-  radarTime: string
+  radarTime: string,
+  phaseTime: string | null
 ): CandidateStats {
   return {
     run: run.toISOString(),
@@ -489,5 +628,12 @@ export function emptyStats(
     peakVilKgM2: 0,
     stormMotionKt: 0,
     stormMotionTowardDeg: null,
+    phase: {
+      sceneTime: phaseTime,
+      confirmedKm2: 0,
+      glaciatedKm2: 0,
+      unresolvedKm2: 0,
+      missedKm2: 0,
+    },
   };
 }

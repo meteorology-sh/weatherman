@@ -9,12 +9,15 @@ import {
   readPoint,
   sampleRadar,
   summarize,
+  topHoldsLiquid,
 } from "../lib/services/candidate/join";
 import { CEILING_FT } from "../lib/services/shared/aircraft";
 import { blockGeo } from "../lib/services/mrms/radar";
+import { PHASE } from "../lib/services/goes/phase";
 
 // Types
 import type { Inputs, Join } from "../lib/services/candidate/join";
+import type { CloudPhase } from "../lib/services/goes/phase";
 import type { Geo } from "../lib/services/shared/contour";
 
 const RUN = new Date("2025-05-15T18:00:00.000Z");
@@ -28,9 +31,14 @@ const CLEAR = -999;
  * One cell that passes every test, with any field overridden.
  *
  * Cloud base 6,000 ft, band cold edge 22,000 ft, an observed top at −14 °C, a
- * quiet radar and 120 g/m² of liquid: an ordinary rainy-season candidate.
+ * quiet radar and 120 g/m² of liquid: an ordinary rainy-season candidate. The
+ * observed phase is separate because it is the one input that is a class rather
+ * than a measurement, and `null` is the real case where no scene could be read.
  */
-function cell(over: Partial<Record<keyof Inputs, number>> = {}): Inputs {
+function cell(
+  over: Partial<Record<Exclude<keyof Inputs, "topPhase">, number>> = {},
+  phase: CloudPhase | null = "supercooled"
+): Inputs {
   const one = (v: number) => new Float32Array([v]);
   return {
     slw: one(over.slw ?? 120),
@@ -38,6 +46,7 @@ function cell(over: Partial<Record<keyof Inputs, number>> = {}): Inputs {
     bandTopFt: one(over.bandTopFt ?? 22000),
     topColdnessC: one(over.topColdnessC ?? 14),
     dbz: one(over.dbz ?? 5),
+    topPhase: phase === null ? null : one(PHASE[phase]),
   };
 }
 
@@ -188,6 +197,7 @@ describe("join", () => {
       bandTopFt: new Float32Array([22000, 22000, 22000, 22000, 22000, 22000]),
       topColdnessC: new Float32Array([14, 14, CLEAR, 3, 14, 14]),
       dbz: new Float32Array([5, 5, 5, 5, 45, 5]),
+      topPhase: null,
     };
 
     const out = join(inputs);
@@ -196,6 +206,138 @@ describe("join", () => {
 
     assert.equal(out.liquid, 5);
     assert.equal(candidates + rejections, out.liquid);
+  });
+});
+
+/**
+ * The observed cloud-top phase, which is counted and never acted on.
+ *
+ * The satellite sees the top of the cloud and the seeding band is inside it, so
+ * an observation of a frozen top is evidence about a candidate rather than a
+ * verdict on one — and under multi-layer cloud it is evidence about a different
+ * cloud entirely. These pin that it stays evidence.
+ */
+describe("the observed cloud-top phase", () => {
+  it("cannot turn a candidate into a rejection", () => {
+    const glaciated = join(cell({}, "ice"));
+
+    assert.equal(glaciated.values[0], 120);
+    assert.equal(
+      Object.values(glaciated.rejected).reduce((a, b) => a + b, 0),
+      0
+    );
+  });
+
+  it("cannot turn a rejection into a candidate", () => {
+    const raining = join(cell({ dbz: 45 }, "supercooled"));
+
+    assert.equal(raining.values[0], 0);
+    assert.equal(raining.rejected.raining, 1);
+  });
+
+  it("confirms a candidate the satellite sees a supercooled top over", () => {
+    assert.equal(join(cell({}, "supercooled")).phase.confirmed, 1);
+  });
+
+  // Glaciation in progress is the cloud still holding liquid, so it counts with
+  // the confirmations rather than against them.
+  it("confirms a candidate whose top is still glaciating", () => {
+    assert.equal(join(cell({}, "mixed")).phase.confirmed, 1);
+  });
+
+  it("charges a candidate with an observed frozen top to glaciated", () => {
+    const out = join(cell({}, "ice"));
+
+    assert.equal(out.phase.glaciated, 1);
+    assert.equal(out.phase.confirmed, 0);
+  });
+
+  // Neither confirmation nor contradiction. A candidate the observation cannot
+  // settle has to be visible as that rather than folded into either side.
+  it("leaves a candidate the satellite cannot classify unresolved", () => {
+    assert.equal(join(cell({}, "unknown")).phase.unresolved, 1);
+  });
+
+  // The direction the plan does not name and the more expensive one: this cell
+  // never reached the map to be rejected.
+  it("counts a supercooled top the model puts no liquid under", () => {
+    const out = join(cell({ slw: 4 }, "supercooled"));
+
+    assert.equal(out.phase.missed, 1);
+    assert.equal(out.liquid, 0);
+  });
+
+  it("does not count a frozen top over ground with no modelled liquid", () => {
+    assert.equal(join(cell({ slw: 4 }, "ice")).phase.missed, 0);
+  });
+
+  // Every count partitions candidate ground, so a build with no scene reports
+  // nothing rather than reporting zero of everything as though it had looked.
+  it("counts nothing at all where no scene could be read", () => {
+    const out = join(cell({}, null));
+
+    assert.equal(out.values[0], 120);
+    assert.deepEqual(out.phase, {
+      confirmed: 0,
+      glaciated: 0,
+      unresolved: 0,
+      missed: 0,
+    });
+  });
+
+  /**
+   * The same rule decides the count in the panel and the outline on the map, so
+   * they cannot come to different answers about a cell.
+   */
+  describe("what counts as a liquid top", () => {
+    it("counts supercooled and freezing-over tops", () => {
+      const one = (name: CloudPhase) => new Float32Array([PHASE[name]]);
+
+      assert.equal(topHoldsLiquid(one("supercooled"), 0), true);
+      assert.equal(topHoldsLiquid(one("mixed"), 0), true);
+      assert.equal(topHoldsLiquid(one("ice"), 0), false);
+      assert.equal(topHoldsLiquid(one("liquid"), 0), false);
+      assert.equal(topHoldsLiquid(one("clear"), 0), false);
+    });
+
+    // An unobserved cell is not a confirmed one. The panel says separately that
+    // nothing was observed, so this must not quietly claim it was.
+    it("confirms nothing where no scene could be read", () => {
+      assert.equal(topHoldsLiquid(null, 0), false);
+    });
+
+    it("agrees with the count the panel reports", () => {
+      const inputs = cell({}, "supercooled");
+
+      assert.equal(join(inputs).phase.confirmed, 1);
+      assert.equal(topHoldsLiquid(inputs.topPhase, 0), true);
+    });
+  });
+
+  it("accounts for every candidate cell exactly once", () => {
+    const inputs: Inputs = {
+      slw: new Float32Array([120, 120, 120, 120, 120]),
+      cloudBaseFt: new Float32Array([6000, 6000, 6000, 6000, 6000]),
+      bandTopFt: new Float32Array([22000, 22000, 22000, 22000, 22000]),
+      topColdnessC: new Float32Array([14, 14, 14, 14, 14]),
+      // The last one is raining, so it is not candidate ground at all.
+      dbz: new Float32Array([5, 5, 5, 5, 45]),
+      topPhase: new Float32Array([
+        PHASE.supercooled,
+        PHASE.mixed,
+        PHASE.ice,
+        PHASE.liquid,
+        PHASE.supercooled,
+      ]),
+    };
+
+    const out = join(inputs);
+    const { confirmed, glaciated, unresolved } = out.phase;
+
+    assert.equal(confirmed, 2);
+    assert.equal(glaciated, 1);
+    assert.equal(unresolved, 1);
+    assert.equal(confirmed + glaciated + unresolved, 4);
   });
 });
 
@@ -264,6 +406,7 @@ describe("summarize", () => {
     validTime: "2025-05-15T18:00:00.000Z",
     sceneTime: "2025-05-15T18:01:17.900Z",
     radarTime: "2025-05-15T18:00:39.000Z",
+    phaseTime: "2025-05-15T18:01:17.900Z",
     cloudBaseFt: new Float32Array([6000]),
     bandBaseFt: new Float32Array([16000]),
     mixedCape: new Float32Array([1800]),
@@ -284,6 +427,7 @@ describe("summarize", () => {
       raining: 0,
     },
     blind: 0,
+    phase: { confirmed: 0, glaciated: 0, unresolved: 0, missed: 0 },
     ...over,
   });
 
@@ -430,6 +574,35 @@ describe("summarize", () => {
     assert.equal(stats.sceneTime, "2025-05-15T18:01:17.900Z");
     assert.equal(stats.radarTime, "2025-05-15T18:00:39.000Z");
   });
+
+  it("reports the observed cross-check in km², like every other area", () => {
+    const stats = summarize(
+      joined({
+        phase: { confirmed: 2, glaciated: 1, unresolved: 0, missed: 3 },
+      }),
+      context()
+    );
+
+    assert.equal(stats.phase.confirmedKm2, 2 * CELL_KM2);
+    assert.equal(stats.phase.glaciatedKm2, 1 * CELL_KM2);
+    assert.equal(stats.phase.unresolvedKm2, 0);
+    assert.equal(stats.phase.missedKm2, 3 * CELL_KM2);
+  });
+
+  // A missing scene has to read as missing. Zeroes with a time on them would
+  // say the satellite looked and confirmed nothing, which is a different claim.
+  it("has no phase scan time where no scene could be read", () => {
+    const stats = summarize(joined(), context({ phaseTime: null }));
+
+    assert.equal(stats.phase.sceneTime, null);
+  });
+
+  it("names the phase scan it was checked against", () => {
+    assert.equal(
+      summarize(joined(), context()).phase.sceneTime,
+      "2025-05-15T18:01:17.900Z"
+    );
+  });
 });
 
 describe("readPoint", () => {
@@ -438,6 +611,7 @@ describe("readPoint", () => {
     validTime: "2025-05-15T18:00:00.000Z",
     sceneTime: "2025-05-15T18:01:17.900Z",
     radarTime: "2025-05-15T18:00:39.000Z",
+    phaseTime: "2025-05-15T18:01:17.900Z",
     lat: 32.1,
     lon: -101.4,
   };
@@ -464,6 +638,7 @@ describe("readPoint", () => {
       bandTopFt: new Float32Array([22000, 22000, 22000, 22000, 22000]),
       topColdnessC: new Float32Array([14, 14, CLEAR, 14, 14]),
       dbz: new Float32Array([5, 5, 5, 45, 5]),
+      topPhase: null,
     };
     const out = join(inputs);
 
@@ -533,6 +708,27 @@ describe("readPoint", () => {
     assert.equal(point.run, "2025-05-15T18:00:00.000Z");
     assert.equal(point.sceneTime, "2025-05-15T18:01:17.900Z");
     assert.equal(point.radarTime, "2025-05-15T18:00:39.000Z");
+  });
+
+  it("reports the observed phase as a name, not as the code it rode on", () => {
+    assert.equal(
+      readPoint(cell({}, "supercooled"), 0, where).topPhase,
+      "supercooled"
+    );
+    assert.equal(readPoint(cell({}, "ice"), 0, where).topPhase, "ice");
+  });
+
+  it("reports no phase where no scene could be read", () => {
+    assert.equal(readPoint(cell({}, null), 0, where).topPhase, null);
+  });
+
+  // The readout says what the satellite saw even where the model found nothing,
+  // because that disagreement is the reason to carry the observation at all.
+  it("reports an observed phase over a cell with nothing to seed", () => {
+    const point = readPoint(cell({ slw: 4 }, "supercooled"), 0, where);
+
+    assert.equal(point.verdict, "noLiquid");
+    assert.equal(point.topPhase, "supercooled");
   });
 
   it("has nothing to seed where the domain holds no seeding band", () => {

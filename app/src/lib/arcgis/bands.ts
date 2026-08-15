@@ -113,6 +113,21 @@ export const CANDIDATE_BANDS: readonly Band[] = [
 export const CANDIDATE_RGB = [52, 211, 153] as const;
 
 /**
+ * The outline around candidate ground the satellite still sees liquid at the
+ * top of.
+ *
+ * **A line, not a fill, and the same hue as what it encloses.** It marks which
+ * part of the green has an observation behind it rather than a different
+ * quantity, so it must not read as a sixth claim on the map — a new colour
+ * would. Near-white emerald reads as emphasis on the green it sits on.
+ *
+ * Wide enough to survive over four composited fills and thin enough that a
+ * small patch is still a patch rather than a blob of line.
+ */
+export const CONFIRMED_RGB = [209, 255, 232] as const;
+export const CONFIRMED_WIDTH = 1.5;
+
+/**
  * Observed reflectivity, dBZ, mirroring REFLECTIVITY.levels in
  * server/src/lib/services/mrms/radar.ts. The NWS intensity classes: light, moderate,
  * heavy, and the top band where a summer cell is producing hail.

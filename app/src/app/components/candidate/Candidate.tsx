@@ -6,6 +6,7 @@ import { ArcGIS } from "@/app/components/Map";
 import { CandidateLayers } from "./CandidateLayers";
 import { ClickedPoint } from "./ClickedPoint";
 import { CloudBase } from "./CloudBase";
+import { Field } from "./Field";
 import { CloudTop } from "./CloudTop";
 import { Liquid } from "./Liquid";
 import { Radar } from "./Radar";
@@ -67,6 +68,7 @@ export const Candidate = () => {
         <div className="flex flex-col divide-y divide-base-300 [&>*]:py-4">
           <CandidateLayers />
           <ClickedPoint />
+          <Field />
           <CloudBase />
           <CloudTop />
           <Liquid />

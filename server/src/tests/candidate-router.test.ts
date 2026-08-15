@@ -26,6 +26,7 @@ const frame: CandidateFrame = {
   validTime: "2025-05-15T18:00:00.000Z",
   sceneTime: "2025-05-15T18:01:17.900Z",
   radarTime: "2025-05-15T18:00:39.000Z",
+  phaseTime: "2025-05-15T18:01:17.900Z",
   features: [
     {
       type: "Feature",
@@ -73,6 +74,13 @@ const stats: CandidateStats = {
   peakVilKgM2: 3.2,
   stormMotionKt: 24,
   stormMotionTowardDeg: 65,
+  phase: {
+    sceneTime: "2025-05-15T18:01:17.900Z",
+    confirmedKm2: 31680,
+    glaciatedKm2: 15840,
+    unresolvedKm2: 5040,
+    missedKm2: 8640,
+  },
 };
 
 const point: CandidatePoint = {
@@ -80,12 +88,14 @@ const point: CandidatePoint = {
   validTime: "2025-05-15T18:00:00.000Z",
   sceneTime: "2025-05-15T18:01:17.900Z",
   radarTime: "2025-05-15T18:00:39.000Z",
+  phaseTime: "2025-05-15T18:01:17.900Z",
   lat: 32.05,
   lon: -101.42,
   verdict: "candidate",
   slwGM2: 140,
   cloudBaseFt: 5800,
   cloudTopC: -14,
+  topPhase: "supercooled",
   dbz: null,
   radarCovered: true,
 };

@@ -12,7 +12,7 @@ import {
 } from "@/lib/arcgis/legends";
 
 // Types
-import type { Verdict } from "@/lib/types";
+import type { CloudPhase, Verdict } from "@/lib/types";
 
 const num = new Intl.NumberFormat("en-US");
 
@@ -35,6 +35,29 @@ const ANSWER: Record<Verdict, string> = {
   topTooWarm:
     "This cloud's top is too warm, so the seeding band sits above it.",
   raining: "The radar is already watching this cell rain itself out.",
+};
+
+/**
+ * What the satellite measured at the top of this cloud.
+ *
+ * Everything else on this readout about liquid water is the model's. This one
+ * line is measured, and it is worth its own words rather than a class name: an
+ * operator wants to know whether the cloud has frozen, not which of six labels
+ * an algorithm assigned it.
+ */
+const PHASE_READING: Record<CloudPhase, string> = {
+  supercooled:
+    "The top of this cloud is supercooled liquid — at the one height a " +
+    "satellite can see it, the water is the kind seeding works on.",
+  mixed:
+    "The top of this cloud is part liquid and part ice: it is freezing over " +
+    "as it is watched.",
+  ice:
+    "The top of this cloud has already frozen. The model still puts liquid " +
+    "in the band below it, and nothing observed can see down there to check.",
+  liquid: "The top of this cloud is liquid and warmer than freezing.",
+  clear: "The phase scan sees no cloud over this cell.",
+  unknown: "The phase scan could not put this cloud top in any class.",
 };
 
 /**
@@ -115,10 +138,35 @@ export const CloudHere = () => {
         </span>
       </div>
 
+      {/* The one measured statement about phase on this panel, kept out of the
+          grid above because it is not one of the tests — nothing here changed
+          the verdict, and a row among the inputs would read as though it had.
+          The limit rides with it rather than living on the About page, because
+          it is what stops "already frozen" being read as "do not fly". */}
+      <div className="flex flex-col gap-1 text-xs">
+        <span className="font-semibold">Measured at the cloud top</span>
+        {here.topPhase === null ? (
+          <span>
+            No phase scan was available for this hour, so nothing observed
+            checks the model here.
+          </span>
+        ) : (
+          <>
+            <span>{PHASE_READING[here.topPhase]}</span>
+            <span>
+              The top only, and the highest deck of it. Under layered cloud this
+              describes whatever is on top rather than the cloud underneath, so
+              it never rules a cell out.
+            </span>
+          </>
+        )}
+      </div>
+
       <div className="text-xs">
         {here.lat}, {here.lon} &middot; the 12 km cell containing your click.
         Model {utc(here.run)}Z, satellite {utc(here.sceneTime)}Z, radar{" "}
-        {utc(here.radarTime)}Z.
+        {utc(here.radarTime)}Z
+        {here.phaseTime !== null && <>, phase {utc(here.phaseTime)}Z</>}.
       </div>
     </div>
   );

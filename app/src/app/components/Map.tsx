@@ -11,6 +11,7 @@ import {
   ForecastCloudsUrl,
   ForecastPrecipUrl,
   ReplayCandidateUrl,
+  ReplayConfirmedUrl,
   ReplayCloudBaseUrl,
   ReplayCloudTopUrl,
   ReplayLiquidUrl,
@@ -29,9 +30,11 @@ import {
   ForecastPrecipLayer,
   CandidateLiquidLayer,
   CandidateRadarLayer,
+  CandidateConfirmedLayer,
   CandidateFieldLayer,
   ReplayCloudBaseLayer,
   ReplayCloudTopLayer,
+  ReplayConfirmedLayer,
   ReplayFieldLayer,
   ReplayLiquidLayer,
   ReplayRadarLayer,
@@ -97,6 +100,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
           CandidateLiquidLayer,
           CandidateRadarLayer,
           CandidateFieldLayer,
+          CandidateConfirmedLayer,
         ],
       });
 
@@ -147,8 +151,11 @@ export const ArcGIS = ({ mode }: PropsT) => {
     // Observations, so they never appear on the modelled map — the same rule
     // that keeps the satellite cloud tops off it.
     CandidateRadarLayer.visible = candidating && radar;
-    // The answer, drawn over its own inputs.
+    // The answer, drawn over its own inputs, and the observed outline over
+    // that. One switch drives both: the outline says which part of the field
+    // the satellite backs, which is meaningless without the field under it.
     CandidateFieldLayer.visible = candidating && field;
+    CandidateConfirmedLayer.visible = candidating && field;
     // Gated on `ready`, not on the hour that was asked for. `setAt` clears
     // `ready`, so picking a date blanks the map immediately and it stays blank
     // until every source has answered — they take 10 s to 40 s and finish
@@ -159,6 +166,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayLiquidLayer.visible = drawable && replayLiquid;
     ReplayRadarLayer.visible = drawable && replayRadar;
     ReplayFieldLayer.visible = drawable && replayField;
+    ReplayConfirmedLayer.visible = drawable && replayField;
   }, [
     forecasting,
     candidating,
@@ -228,6 +236,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayLiquidLayer.url = ReplayLiquidUrl(at);
     ReplayRadarLayer.url = ReplayRadarUrl(at);
     ReplayFieldLayer.url = ReplayCandidateUrl(at);
+    ReplayConfirmedLayer.url = ReplayConfirmedUrl(at);
 
     const map = mapRef.current;
     if (map && !map.layers.includes(ReplayCloudTopLayer)) {
@@ -239,6 +248,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
         ReplayLiquidLayer,
         ReplayRadarLayer,
         ReplayFieldLayer,
+        ReplayConfirmedLayer,
       ]);
       return; // A layer added with a url fetches on load; refreshing would double it.
     }
@@ -247,6 +257,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayLiquidLayer.refresh();
     ReplayRadarLayer.refresh();
     ReplayFieldLayer.refresh();
+    ReplayConfirmedLayer.refresh();
   }, [ready]);
 
   // Surface "still drawing" so the slider can say so rather than looking stuck.

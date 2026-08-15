@@ -263,6 +263,73 @@ candidates and the summary counts how much candidate ground was unchecked rather
 than cleared. Over a clicked cell the two are named apart: a quiet radar reads
 as no echo, and ground no radar covers says so.
 
+**Observed cloud-top phase rides alongside as a fifth reading and not a fifth
+test.** Everything the join says about liquid water is HRRR's; GOES publishes a
+per-pixel classification of the cloud top as clear, liquid, supercooled, mixed
+or ice, and that is the only observation of phase in the app. It is counted two
+ways, because the two disagreements cost different things: candidate ground
+whose top the satellite already sees frozen may be a cloud that has spent its
+liquid, and ground with a supercooled top the model drew nothing over is cloud
+that never reached the map to be rejected at all. The clicked point reports the
+class in words.
+
+**The second count is the larger and the weaker.** A supercooled top is a
+statement about one surface; the liquid field is a path integral through the
+seeding band, so a thin supercooled deck can sit honestly below the lowest
+contour. It routinely covers more ground than the candidate field, and it is
+ground worth looking at rather than a tally of model errors.
+
+**It cannot rule anything out, and the reason is geometry.** The classification
+is of the cloud top and the seeding band is inside the cloud, so it never
+observes the thing the candidate field claims. It also describes the highest
+deck only: cirrus over a growing turret classifies as ice, and that failure
+concentrates in exactly the layered scenes where model and satellite are most
+likely to differ. The panel says so wherever it prints a phase.
+
+**The cross-check may fail without taking the field with it.** Every other input
+decides whether a cell is a candidate, so losing one means the answer would be
+wrong. This one decides nothing, so a scene that will not download leaves a
+build that reports one fewer thing — and the panel says the check is missing
+rather than showing zeroes, which would claim the satellite looked and confirmed
+nothing.
+
+**Where the observation is, the map outlines.** The confirmed ground is traced a
+second time from the same array and drawn as a hollow outline over the field, at
+the field's lowest level only — one boundary, because the fills underneath
+already say how much liquid is there and this says only which of it has an
+observation behind it. One switch drives both: an outline with no field under it
+would mark ground the map is not drawing. It is an annotation and never a
+subset, and clicking inside or outside it returns a candidate either way.
+
+#### Two seeding strategies, and which one this map serves
+
+Texas seeds **growing convective turrets**: cloud base 4,000–12,000 ft, a top
+normally between −5 and −10 °C, seeded through cloud-base inflow, with severe
+storms excluded under TDLR permit. That is glaciogenic seeding of young cloud
+that has not yet frozen on its own — silver iodide does nothing in a cloud that
+already has ice, because the process seeding exists to trigger is the one that
+has already run there.
+
+**The candidate field does not select for that.** Its mask has a warm edge at
+−5 °C and no cold edge at all, so a young turret with a −8 °C top and a mature
+complex under a −60 °C anvil both qualify, identically. That is deliberate:
+there is no cold cutoff because a physical cutoff needs a citation and none
+supports a particular number, and because a colder top also means the seeding
+band is more fully enclosed by cloud. The two readings pull opposite ways and
+neither gates (`MEASUREMENTS.md` §4).
+
+**The observed phase outline is the first thing that separates them without a
+threshold.** A classified cloud top is measured, not chosen, so it draws the
+young-turret distinction that a temperature cutoff would have had to invent. It
+is drawn and never filtered, because a spreading anvil classifies as ice over
+cloud that is still growing underneath it — the outline says where the evidence
+is, not where the cloud is.
+
+**What the map still cannot tell you is whether a cloud is growing.** One scene
+gives the state of a cloud top, not its direction, and a turret that has just
+frozen looks the same as one that froze an hour ago. Until that is answered, the
+outline narrows where to look and the operator judges the rest.
+
 ### Rain — MRMS
 
 The observed check on all of it. **Radar cannot see supercooled liquid water** —
@@ -356,6 +423,18 @@ noaa-goes19 listing → newest ABI-L2-ACHP2KMC scene (4.1 MB NetCDF4)
              → Hrrr.column() supplies TMP at that pressure
              → mask to tops colder than −5 °C, disjoint bands
              → GET /cloudtop/temperature → CandidateCloudTopLayer.url
+```
+
+The phase scene is read off the same bucket by the same machinery, and is the
+one GOES product with no layer and no route — the join reads it and the panel
+reports it:
+
+```
+noaa-goes19 listing → nearest ABI-L2-ACTPC scene (666 KB NetCDF4)
+             → h5wasm → one class per pixel + projection constants
+                                                [services/goes/scene.ts]
+             → ABI fixed grid → HRRR's 12 km grid, commonest class per cell
+             → CandidateStats.phase + CandidatePoint.topPhase
 ```
 
 The cloud-base build serves a layer **and** a point readout, because both come

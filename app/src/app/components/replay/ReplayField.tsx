@@ -3,6 +3,7 @@ import { useAppSelector } from "@/lib/store/hooks";
 
 // Components
 import { Rejections } from "@/app/components/panel/Rejections";
+import { PhaseCheck } from "@/app/components/panel/PhaseCheck";
 
 const km2 = new Intl.NumberFormat("en-US");
 const ft = new Intl.NumberFormat("en-US");
@@ -33,6 +34,7 @@ export const ReplayField = () => {
           No ground in the domain passed every test at this hour.
         </div>
         <Rejections stats={field} />
+        <PhaseCheck stats={field} />
       </div>
     );
   }
@@ -51,6 +53,7 @@ export const ReplayField = () => {
         </div>
       )}
       <Rejections stats={field} />
+      <PhaseCheck stats={field} />
     </div>
   );
 };

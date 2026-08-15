@@ -4,7 +4,8 @@ import assert from "node:assert/strict";
 
 // Services
 import { abiGrid, scanAngles, pixelAt } from "../lib/services/goes/abi";
-import { sceneTime, dayOfYear, summarize } from "../lib/services/goes/cloudtop";
+import { summarize } from "../lib/services/goes/cloudtop";
+import { sceneTime, dayOfYear } from "../lib/services/goes/scene";
 import { temperatureAtMb } from "../lib/services/hrrr/profile";
 import { bandFeatures } from "../lib/services/shared/contour";
 

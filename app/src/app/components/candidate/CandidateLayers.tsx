@@ -59,6 +59,14 @@ export const CandidateLayers = () => {
           leave the amber on and amber with no green over it is liquid this
           layer rejected.
         </div>
+        {/* The outline has no swatch on the ramp: it carries no level, so a
+            fifth block of colour would imply a fifth amount of liquid. */}
+        <div className="text-xs">
+          The pale outline marks green the satellite still sees liquid at the
+          top of — where the evidence is strongest. Green outside it is still a
+          candidate: the seeding band sits far below the cloud top, and an anvil
+          reads as ice over whatever is growing under it.
+        </div>
       </LayerToggle>
 
       <LayerToggle

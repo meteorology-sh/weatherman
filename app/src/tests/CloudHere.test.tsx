@@ -17,11 +17,13 @@ const point: CandidatePoint = {
   validTime: "2025-05-15T18:00:00.000Z",
   sceneTime: "2025-05-15T18:01:17.900Z",
   radarTime: "2025-05-15T18:00:39.000Z",
+  phaseTime: "2025-05-15T18:01:17.900Z",
   lat: 32.05,
   lon: -101.42,
   verdict: "candidate",
   slwGM2: 140,
   cloudBaseFt: 5800,
+  topPhase: "supercooled",
   cloudTopC: -14,
   dbz: null,
   radarCovered: true,
@@ -135,5 +137,73 @@ describe("CloudHere", () => {
     expect(
       screen.getByText(/Model 18:00Z, satellite 18:01Z, radar 18:00Z/)
     ).toBeTruthy();
+  });
+
+  /**
+   * The observed cross-check. It is the one measured statement about phase on
+   * this panel, and the thing it must never do is read as a sixth test.
+   */
+  describe("what the satellite measured at the cloud top", () => {
+    it("says the top is the water seeding works on", () => {
+      withPoint({ topPhase: "supercooled" });
+
+      expect(
+        screen.getByText(/The top of this cloud is supercooled liquid/)
+      ).toBeTruthy();
+    });
+
+    it("says the top has frozen, and that the band below is unchecked", () => {
+      withPoint({ topPhase: "ice" });
+
+      expect(
+        screen.getByText(/The top of this cloud has already frozen/)
+      ).toBeTruthy();
+    });
+
+    it("says the top is freezing over as it is watched", () => {
+      withPoint({ topPhase: "mixed" });
+
+      expect(screen.getByText(/part liquid and part ice/)).toBeTruthy();
+    });
+
+    // A frozen top is evidence, not a verdict. If this ever starts reading as a
+    // rejection the panel is claiming something the satellite cannot see.
+    it("leaves the cell a candidate when the observed top has frozen", () => {
+      withPoint({ topPhase: "ice" });
+
+      expect(screen.getByText("SEEDING OPPORTUNITY")).toBeTruthy();
+      expect(
+        screen.getByText(/Everything a seeding pass needs is over this point/)
+      ).toBeTruthy();
+    });
+
+    // The limit travels with the reading rather than living on the About page,
+    // because it is what stops "already frozen" being read as "do not fly".
+    it("says the reading is the top deck only", () => {
+      withPoint({ topPhase: "ice" });
+
+      expect(
+        screen.getByText(
+          /Under layered cloud this describes whatever is on top/
+        )
+      ).toBeTruthy();
+    });
+
+    // Silence would read as agreement.
+    it("says so when no phase scan was available", () => {
+      withPoint({ topPhase: null, phaseTime: null });
+
+      expect(
+        screen.getByText(/No phase scan was available for this hour/)
+      ).toBeTruthy();
+    });
+
+    it("names the phase scan's own time, not the cloud-top scan's", () => {
+      withPoint({ phaseTime: "2025-05-15T18:06:17.900Z" });
+
+      expect(
+        screen.getByText(/satellite 18:01Z, radar 18:00Z, phase 18:06Z/)
+      ).toBeTruthy();
+    });
   });
 });

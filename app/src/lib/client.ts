@@ -117,6 +117,19 @@ export function ReplayCandidateUrl(at: string): string {
   return `/candidate/field?${new URLSearchParams({ at })}`;
 }
 
+/**
+ * The outline around the part of that field the satellite still sees liquid at
+ * the top of. Same build, drawn over the field rather than instead of it.
+ */
+export function CandidateConfirmedUrl(): string {
+  return "/candidate/field/confirmed";
+}
+
+/** The same outline at a past hour. */
+export function ReplayConfirmedUrl(at: string): string {
+  return `/candidate/field/confirmed?${new URLSearchParams({ at })}`;
+}
+
 /** The same build's summary. Asking for it also warms the server's build. */
 export async function GetCandidateStats(at?: string): Promise<CandidateStats> {
   const res = await fetch(

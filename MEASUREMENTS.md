@@ -51,6 +51,7 @@ the map we have and the map we want is entirely C4.**
 | Icing PIREPs                       | **confirms** it, spot            | ~20 positive / 12 h CONUS |
 | MODIS cloud phase / water path     | retrieves it, **cloud-top only** | 1 km, 2×/day              |
 | GOES ABI cloud-top temperature     | **cannot see it** — top only, C2 | 2 km, 5 min               |
+| GOES ABI cloud-top phase           | **observes** phase, top only     | 2 km, 5 min               |
 
 **The conclusion that matters:** with no ground station we get _simulation_,
 never measurement. A national map can therefore honestly show **candidate
@@ -117,6 +118,29 @@ under genuine multi-layer cloud. It is a small fraction of cloudy cells, but it
 is the likely explanation for any cell reporting a top warmer than −5 °C while
 still carrying in-band liquid. A passive radiometer almost certainly shares the
 failure, since it sees whichever deck is on top.
+
+**Observed cloud-top phase settles what temperature only makes likely.** A
+colder top is likelier to have glaciated on its own, but between about −5 and
+−38 °C both a supercooled top and a frozen one are physically ordinary, and the
+whole seeding band sits inside that range. Cloud-top temperature therefore ranks
+cloud; it cannot separate a turret that has already frozen from one that has
+not. The satellite's phase classification can, and it is the only observation of
+phase this product has. **It is a check on the model, never a substitute for
+it** — it sees the top, and the seeding band is inside the cloud.
+
+**The phase classification describes the highest deck, and so shares
+`PRES:cloud top`'s failure exactly.** Cirrus over a growing cumulus is
+classified as ice, and the cumulus underneath is invisible to it. That failure
+is not evenly spread: it concentrates in the multi-layer scenes where model and
+satellite are most likely to disagree in the first place, so a disagreement
+under layered cloud is at least as likely to be viewing geometry as model error.
+**Report the phase; never let it rule a cell out.**
+
+**A class cannot be averaged onto a coarser grid.** The mean of ice and
+supercooled is not a phase. Fold a classified field by counting instead — a cell
+takes the commonest class among its cloudy pixels — and break ties toward the
+colder class, so a coin toss costs a candidate its confirmation rather than
+manufacturing one.
 
 **HRRR diagnoses a cloud base over roughly twice the ground it diagnoses a
 cloud top.** Both are bitmapped fields in `wrfsfc`, and the base is the denser
@@ -273,5 +297,6 @@ is real.
 - [CIP/FIP (NCAR RAL)](https://ral.ucar.edu/solutions/products/icing-products-cipfip-operational) · [FAA In-Flight Icing](https://www.faa.gov/nextgen/programs/weather/awrp/ifi) · [AWC data API](https://aviationweather.gov/data/api/)
 - [NWS SCN 25-89 — AIGFS/AIGEFS/HGEFS implementation](https://www.weather.gov/media/notification/pdf_2025/scn25-89_AIGFS_AIGEFS_and_HGEFS.pdf) (the authoritative variable list)
 - [Open-Meteo GFS & HRRR API](https://open-meteo.com/en/docs/gfs-api) · [NASA GIBS WMTS capabilities](https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/1.0.0/WMTSCapabilities.xml)
+- [GOES-R Cloud Phase (ACTP)](https://www.goes-r.gov/products/baseline-cloud-phase.html) · [NOAA NCEI ABI L2 Cloud Top Phase](https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ncdc%3AC01504)
 - System design: `/home/nathan/code/rainmaker/weatherman/docs/SENSING_STRATEGY.md` (C1–C7, the phase-fusion principle) · [Cloudnet](https://cloudnet.fmi.fi/)
 - Applied physics: `/home/nathan/code/rainmaker/docs/APPLIED_PHYSICS.md` §1–2 (ice-nucleating particles and their scarcity at warm subzero temperatures, the Wegener–Bergeron–Findeisen process, AgI active as warm as about −4 to −6 °C)

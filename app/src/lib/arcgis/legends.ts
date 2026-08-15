@@ -178,6 +178,32 @@ export const CandidateLegend: LayerLegend = {
       "top and a satellite cannot forecast. It is also only as current as its " +
       "slowest source. Where the radar cannot see, a cell stays a candidate: " +
       "it was not cleared of rain, it was simply never checked.",
+    "Everything this layer says about liquid water is the model's. The " +
+      "satellite also classifies each cloud top as liquid, supercooled, " +
+      "freezing over or frozen, and that classification is measured rather " +
+      "than simulated — so the panel reports it beside the answer. It reads " +
+      "both ways: candidate ground whose top has already frozen may be cloud " +
+      "that has spent its liquid, and a supercooled top this layer drew " +
+      "nothing over is cloud that never reached the map to be ruled out. That " +
+      "second reading covers more ground than this layer does and is the " +
+      "weaker of the two — a top is one surface, the liquid is a path through " +
+      "the whole band, and a thin deck can sit under the lowest band honestly.",
+    "That classification is drawn, not just counted: a pale outline encloses " +
+      "the ground whose top is still liquid, at the lowest level only, because " +
+      "the fills already say how much liquid is there and the line says only " +
+      "which of it has an observation behind it. Texas seeds growing turrets " +
+      "with tops between −5 and −10 °C, and this layer's mask has no cold edge " +
+      "at all, so it admits a young turret and an anvil-topped complex alike. " +
+      "The outline is the first thing here that separates them, and it does it " +
+      "with a measurement rather than a cutoff nobody can cite.",
+    "It cannot rule anything out, and the reason is geometry rather than " +
+      "caution. The classification is of the cloud top, and the seeding band " +
+      "is inside the cloud, so it never sees the thing this layer claims. It " +
+      "also describes the highest deck only: cirrus over a growing turret " +
+      "reads as frozen, and the turret underneath is invisible to it. So green " +
+      "outside the outline is still a candidate, and one scene still cannot " +
+      "say whether a cloud is growing. Where no phase scan can be read the " +
+      "panel says so rather than showing zeroes.",
   ],
 };
 

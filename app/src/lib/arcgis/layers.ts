@@ -1,6 +1,7 @@
 // ArcGIS
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
 import {
+  candidateConfirmedRenderer,
   candidateFieldRenderer,
   forecastCloudRenderer,
   forecastPrecipRenderer,
@@ -12,6 +13,7 @@ import {
 
 // Client
 import {
+  CandidateConfirmedUrl,
   CandidateFieldUrl,
   CloudTopUrl,
   ForecastCloudsUrl,
@@ -116,11 +118,54 @@ export const CandidateFieldLayer = new GeoJSONLayer({
   visible: false,
 });
 
+/**
+ * The outline around the part of that field the satellite still sees liquid at
+ * the top of.
+ *
+ * **An annotation on the field, not a filter of it.** Both are drawn, and the
+ * ground outside the outline is still a candidate — the satellite sees the top
+ * of the cloud and the seeding band is inside it, so a frozen top is evidence
+ * about a candidate rather than a verdict on one. Under an anvil it is not even
+ * evidence about the same cloud.
+ *
+ * Its own layer rather than a symbol on the field, because a contour polygon
+ * spans many 12 km cells and confirmation is per cell: one polygon routinely
+ * covers both, so the distinction has to be traced separately to fall where it
+ * actually falls. Added above the field so the line sits on top of the fills.
+ */
+export const CandidateConfirmedLayer = new GeoJSONLayer({
+  title: "Seeding opportunity — observed liquid top",
+  url: CandidateConfirmedUrl(),
+  copyright: "NOAA GOES-East",
+  renderer: candidateConfirmedRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "seedableSlwPath", type: "double" },
+  ],
+  visible: false,
+});
+
 /** The same field at a replayed hour. See ReplayCloudTopLayer for why separate. */
 export const ReplayFieldLayer = new GeoJSONLayer({
   title: "Seeding opportunity (replay)",
   copyright: "NOAA HRRR / NOAA GOES-East / NOAA MRMS",
   renderer: candidateFieldRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "seedableSlwPath", type: "double" },
+  ],
+  visible: false,
+});
+
+/** The same outline at a replayed hour. */
+export const ReplayConfirmedLayer = new GeoJSONLayer({
+  title: "Seeding opportunity — observed liquid top (replay)",
+  copyright: "NOAA GOES-East",
+  renderer: candidateConfirmedRenderer,
   geometryType: "polygon",
   objectIdField: "OBJECTID",
   fields: [

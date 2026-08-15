@@ -35,6 +35,7 @@ import { soundingActions } from "@/lib/store/features/sounding";
 import {
   cloudBaseLayer,
   cloudTopLayer,
+  confirmedLayer,
   fieldLayer,
   forecastLayer,
   liquidLayer,
@@ -78,6 +79,7 @@ describe("ArcGIS", () => {
       liquidLayer,
       radarLayer,
       fieldLayer,
+      confirmedLayer,
     ]);
   });
 
@@ -88,7 +90,21 @@ describe("ArcGIS", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     const layers = map().layers ?? [];
-    expect(layers[layers.length - 1]).toBe(fieldLayer);
+    expect(layers.indexOf(fieldLayer)).toBeGreaterThan(
+      layers.indexOf(liquidLayer)
+    );
+    expect(layers.indexOf(fieldLayer)).toBeGreaterThan(
+      layers.indexOf(radarLayer)
+    );
+  });
+
+  // The outline says which part of the field the satellite backs, so it has to
+  // sit on the fills rather than under them.
+  it("draws the observed outline above the field it annotates", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    const layers = map().layers ?? [];
+    expect(layers[layers.length - 1]).toBe(confirmedLayer);
   });
 
   // Cloud base answers "can I get into this cloud at all", which is the

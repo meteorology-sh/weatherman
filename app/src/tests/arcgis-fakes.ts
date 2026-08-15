@@ -53,6 +53,7 @@ export const precipLayer = layer("precip-layer");
 export const liquidLayer = layer("liquid-layer");
 export const radarLayer = layer("radar-layer");
 export const fieldLayer = layer("candidate-field-layer");
+export const confirmedLayer = layer("candidate-confirmed-layer");
 
 // The replay map's own instances. Separate objects here for the same reason
 // they are separate in lib/arcgis/layers.ts: pointing the candidate layers at
@@ -62,6 +63,7 @@ export const replayCloudTopLayer = layer("replay-cloud-top-layer");
 export const replayLiquidLayer = layer("replay-liquid-layer");
 export const replayRadarLayer = layer("replay-radar-layer");
 export const replayFieldLayer = layer("replay-field-layer");
+export const replayConfirmedLayer = layer("replay-confirmed-layer");
 
 /** The mocked module: every layer `Map.tsx` imports, under its real name. */
 export const layers = {
@@ -72,11 +74,13 @@ export const layers = {
   CandidateLiquidLayer: liquidLayer,
   CandidateRadarLayer: radarLayer,
   CandidateFieldLayer: fieldLayer,
+  CandidateConfirmedLayer: confirmedLayer,
   ReplayCloudBaseLayer: replayCloudBaseLayer,
   ReplayCloudTopLayer: replayCloudTopLayer,
   ReplayLiquidLayer: replayLiquidLayer,
   ReplayRadarLayer: replayRadarLayer,
   ReplayFieldLayer: replayFieldLayer,
+  ReplayConfirmedLayer: replayConfirmedLayer,
 };
 
 export const watch = vi.fn(() => ({ remove: vi.fn() }));

@@ -24,6 +24,7 @@ import { features } from "../shared/contour";
 import { Hrrr } from "../hrrr/forecast";
 import { SEEDING } from "../hrrr/slw";
 import { Goes } from "../goes/cloudtop";
+import { GoesPhase } from "../goes/phase";
 import { Mrms } from "../mrms/radar";
 import { assertInDomain, nearestCell } from "../shared/grid";
 import {
@@ -33,6 +34,7 @@ import {
   readPoint,
   sampleRadar,
   summarize,
+  topHoldsLiquid,
 } from "./join";
 
 // Types
@@ -65,6 +67,24 @@ const CANDIDATE = {
   levels: SEEDING.levels,
 } as const;
 
+/**
+ * The outline drawn around candidate ground the satellite still sees liquid at
+ * the top of.
+ *
+ * **One level, not four.** The field's own bands say how much liquid is there;
+ * this says only *which* of that ground has an observation behind it, and that
+ * is one boundary rather than a second ramp. Tracing all four would put a
+ * nested set of rings on top of a nested set of fills and say nothing the fills
+ * do not already say.
+ *
+ * It is the lowest of the field's own levels, so the outline encloses exactly
+ * the ground the field draws and cannot appear where there is no candidate.
+ */
+const CONFIRMED = {
+  property: CANDIDATE.property,
+  levels: [SEEDING.levels[0]],
+} as const;
+
 // The join's own shapes, re-exported: the routers and the app's types.ts are
 // written against this service, not against the arithmetic behind it.
 export type { CandidatePoint, CandidateStats, Rejected, Verdict } from "./join";
@@ -80,6 +100,8 @@ export type CandidateFrame = {
   sceneTime: string;
   /** Time of the radar scan that vetoed. */
   radarTime: string;
+  /** Start of the phase scan cross-checking it. Null when none could be read. */
+  phaseTime: string | null;
   features: ContourFeature[];
 };
 
@@ -98,7 +120,13 @@ export type CandidateFrame = {
  */
 type Cells = { geo: Geo; inputs: Inputs | null };
 
-type Scene = { frame: CandidateFrame; stats: CandidateStats; cells: Cells };
+type Scene = {
+  frame: CandidateFrame;
+  /** The same build, traced around the ground the satellite confirms. */
+  confirmed: CandidateFrame;
+  stats: CandidateStats;
+  cells: Cells;
+};
 
 export class CandidateService {
   private cache: { scene: Scene; fetchedAt: number } | null = null;
@@ -113,6 +141,19 @@ export class CandidateService {
   /** The same build's summary. Asking for either warms both. */
   async fieldStats(at?: Date): Promise<CandidateStats> {
     return (await this.scene(at)).stats;
+  }
+
+  /**
+   * The outline of candidate ground whose cloud top the satellite still sees
+   * as liquid, off the same cached build the field came from.
+   *
+   * A separate frame rather than a property on the field's own polygons,
+   * because a contour polygon spans many cells and confirmation is per cell —
+   * one polygon routinely covers both. Two traces of the same array is the only
+   * way to draw the distinction where it actually falls.
+   */
+  async confirmedField(at?: Date): Promise<CandidateFrame> {
+    return (await this.scene(at)).confirmed;
   }
 
   /**
@@ -134,6 +175,7 @@ export class CandidateService {
       validTime: frame.validTime,
       sceneTime: frame.sceneTime,
       radarTime: frame.radarTime,
+      phaseTime: frame.phaseTime,
       // The cell, not the click: the click is finer than the grid, and echoing
       // it back would imply a precision this answer does not have.
       lat: Math.round(geo.lats[cell] * 100) / 100,
@@ -205,12 +247,13 @@ export class CandidateService {
    * profile grid, and the service collapses those onto one download.
    */
   private async build(at?: Date): Promise<Scene> {
-    const [liquid, base, band, tops, radar] = await Promise.all([
+    const [liquid, base, band, tops, radar, phase] = await Promise.all([
       Hrrr.liquidField(ANALYSIS_HOUR, at),
       Hrrr.diagnosticField("cloudBase", ANALYSIS_HOUR, at),
       Hrrr.bandField(ANALYSIS_HOUR, at),
       Goes.topField(at),
       Mrms.reflectivityField(at),
+      observedPhase(at),
     ]);
 
     const run = liquid.run;
@@ -222,16 +265,25 @@ export class CandidateService {
     // No point in the domain is in the seeding band at any level, so there is
     // no liquid grid to join and nothing can be a candidate.
     if (!liquid.values) {
+      const empty: CandidateFrame = {
+        type: "FeatureCollection",
+        run: run.toISOString(),
+        validTime,
+        sceneTime: tops.validTime,
+        radarTime: radar.validTime,
+        phaseTime: phase.validTime,
+        features: [],
+      };
       return {
-        frame: {
-          type: "FeatureCollection",
-          run: run.toISOString(),
+        frame: empty,
+        confirmed: empty,
+        stats: emptyStats(
+          run,
           validTime,
-          sceneTime: tops.validTime,
-          radarTime: radar.validTime,
-          features: [],
-        },
-        stats: emptyStats(run, validTime, tops.validTime, radar.validTime),
+          tops.validTime,
+          radar.validTime,
+          phase.validTime
+        ),
         cells: { geo, inputs: null },
       };
     }
@@ -242,10 +294,26 @@ export class CandidateService {
       bandTopFt: band.topFt,
       topColdnessC: tops.cells.values,
       dbz: sampleRadar(radar.grid, geo),
+      topPhase: phase.cells,
     };
     const joined = join(inputs);
 
     const grid: Grid = { nx: geo.nx, ny: geo.ny, values: joined.values };
+
+    // The same values, kept only where the satellite still sees liquid at the
+    // cloud top. Zero elsewhere, so the trace encloses the confirmed ground and
+    // nothing else — it is a mask over the field, never a second field.
+    const confirmedValues = new Float32Array(joined.values.length);
+    for (let i = 0; i < joined.values.length; i++) {
+      if (joined.values[i] > 0 && topHoldsLiquid(inputs.topPhase, i)) {
+        confirmedValues[i] = joined.values[i];
+      }
+    }
+    const confirmedGrid: Grid = {
+      nx: geo.nx,
+      ny: geo.ny,
+      values: confirmedValues,
+    };
 
     // The convective and steering numbers over the ground that passed. They are
     // read here rather than in `join` because they answer a different question:
@@ -265,13 +333,29 @@ export class CandidateService {
         validTime,
         sceneTime: tops.validTime,
         radarTime: radar.validTime,
+        phaseTime: phase.validTime,
         features: features(grid, geo, CANDIDATE.property, CANDIDATE.levels),
+      },
+      confirmed: {
+        type: "FeatureCollection",
+        run: run.toISOString(),
+        validTime,
+        sceneTime: tops.validTime,
+        radarTime: radar.validTime,
+        phaseTime: phase.validTime,
+        features: features(
+          confirmedGrid,
+          geo,
+          CONFIRMED.property,
+          CONFIRMED.levels
+        ),
       },
       stats: summarize(joined, {
         run,
         validTime,
         sceneTime: tops.validTime,
         radarTime: radar.validTime,
+        phaseTime: phase.validTime,
         cloudBaseFt: base.values!,
         bandBaseFt: band.baseFt,
         mixedCape: mixedCape.values,
@@ -285,3 +369,24 @@ export class CandidateService {
 }
 
 export const Seedability = new CandidateService();
+
+/**
+ * The observed phase scene, or nothing.
+ *
+ * **The cross-check may not take the field down with it.** Every other input
+ * here decides whether a cell is a candidate, so losing one means the answer
+ * would be wrong and the build should fail. Phase decides nothing: it is read
+ * beside the answer, and a scene that will not download is a build that reports
+ * one fewer thing rather than a build with no map in it. The panel says the
+ * check is missing instead of quietly showing zeroes.
+ */
+async function observedPhase(
+  at?: Date
+): Promise<{ cells: Float32Array | null; validTime: string | null }> {
+  try {
+    const scene = await GoesPhase.phaseField(at);
+    return { cells: scene.cells.values, validTime: scene.validTime };
+  } catch {
+    return { cells: null, validTime: null };
+  }
+}

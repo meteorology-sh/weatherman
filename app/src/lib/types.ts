@@ -26,6 +26,28 @@ export interface Rejected {
   raining: number;
 }
 
+/** Mirrors CloudPhase in server/src/lib/services/goes/phase.ts */
+export type CloudPhase =
+  "clear" | "liquid" | "supercooled" | "mixed" | "ice" | "unknown";
+
+/** Mirrors PhaseCheck in server/src/lib/services/candidate/join.ts */
+export interface PhaseCheck {
+  /** Start of the phase scan, ISO 8601. Null when no scene could be read. */
+  sceneTime: string | null;
+  /** Candidate ground whose top is observed supercooled or mixed, km². */
+  confirmedKm2: number;
+  /** Candidate ground whose top the satellite already sees frozen, km². */
+  glaciatedKm2: number;
+  /** Candidate ground the observation neither confirms nor contradicts, km². */
+  unresolvedKm2: number;
+  /**
+   * Ground with an observed supercooled top carrying less modelled in-band
+   * liquid than the lowest contour draws, km². Routinely larger than the
+   * candidate field: a thin supercooled deck can be honestly below it.
+   */
+  missedKm2: number;
+}
+
 /** Mirrors CandidateStats in server/src/lib/services/candidate/join.ts */
 export interface CandidateStats {
   run: string;
@@ -64,6 +86,8 @@ export interface CandidateStats {
   stormMotionKt: number;
   /** Bearing that cell is moving toward, degrees. Null when still. */
   stormMotionTowardDeg: number | null;
+  /** What the observed cloud-top phase says about all of the above. */
+  phase: PhaseCheck;
 }
 
 /** Mirrors Verdict in server/src/lib/services/candidate/join.ts */
@@ -84,6 +108,8 @@ export interface CandidatePoint {
   sceneTime: string;
   /** Time of the radar scan read over this cell. */
   radarTime: string;
+  /** Start of the phase scan read over this cell. Null where there was none. */
+  phaseTime: string | null;
   /** The 12 km cell sampled — not the click, which is finer than the grid. */
   lat: number;
   lon: number;
@@ -95,6 +121,8 @@ export interface CandidatePoint {
   cloudBaseFt: number | null;
   /** Observed cloud-top temperature, °C. Null where the satellite sees no cloud. */
   cloudTopC: number | null;
+  /** Observed phase at the cloud top. Null where no phase scene could be read. */
+  topPhase: CloudPhase | null;
   /** Measured reflectivity, dBZ. Null where the radars see no echo, or nothing. */
   dbz: number | null;
   /** Is any radar looking at this cell at all? */

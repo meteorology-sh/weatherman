@@ -17,16 +17,25 @@
 // Services
 import { bandFeatures } from "../shared/contour";
 import { Hrrr } from "../hrrr/forecast";
+import { pixelAt } from "./abi";
+import {
+  download,
+  gridOf,
+  keyAt,
+  latestKey,
+  readScene,
+  scalar,
+  sceneTime,
+} from "./scene";
 
 // Types
 import type { Grid, Geo, ContourFeature } from "../shared/contour";
 import type { Column } from "../hrrr/forecast";
-import { abiGrid, pixelAt } from "./abi";
 import type { AbiGrid } from "./abi";
 
 /**
- * GOES-19 is GOES-East. `ABI-L2-ACHP2KMC` is cloud-top **pressure**, CONUS
- * sector, 2 km — 4.1 MB a scene, a new scene every 5 minutes, keyless.
+ * `ABI-L2-ACHP2KMC` is cloud-top **pressure**, CONUS sector, 2 km — 4.1 MB a
+ * scene, a new scene every 5 minutes, keyless.
  *
  * Pressure rather than the `ACHT` cloud-top *temperature* product because there
  * is no CONUS variant of that one: it is published full-disk and mesoscale only.
@@ -34,7 +43,6 @@ import type { AbiGrid } from "./abi";
  * variable HRRR's own `PRES:cloud top` carries, so the two sources are
  * interchangeable behind this service if the observed feed ever fails.
  */
-const BUCKET = "https://noaa-goes19.s3.amazonaws.com";
 const PRODUCT = "ABI-L2-ACHP2KMC";
 
 /**
@@ -174,44 +182,6 @@ export type CloudTopStats = {
  */
 type Scene = { frame: CloudTopFrame; stats: CloudTopStats; cells: Grid };
 
-/**
- * The slice of h5wasm this service uses.
- *
- * Declared locally rather than imported: h5wasm is ESM-only and this server is
- * CommonJS, so it is loaded through a dynamic `import()` (see `hdf5()` below)
- * and never appears in a static import position that could be downlevelled to
- * `require()`. Naming the surface we depend on also keeps that surface small
- * and obvious.
- */
-type H5Attr = { value: unknown };
-type H5Dataset = {
-  shape: number[];
-  value: ArrayLike<number>;
-  attrs: Record<string, H5Attr>;
-};
-type H5File = { get(name: string): H5Dataset; close(): void };
-type H5Module = {
-  ready: Promise<{
-    FS: { writeFile(p: string, d: Uint8Array): void; unlink(p: string): void };
-  }>;
-  File: new (name: string, mode: string) => H5File;
-};
-
-let h5: Promise<H5Module> | null = null;
-
-/**
- * Load h5wasm once, lazily.
- *
- * Lazily because it drags a WebAssembly runtime in with it, and a server whose
- * other five routes never touch HDF5 should not pay for that at boot.
- */
-function hdf5(): Promise<H5Module> {
-  h5 ??= import("h5wasm/node").then(
-    (m) => ((m as { default?: H5Module }).default ?? m) as unknown as H5Module
-  );
-  return h5;
-}
-
 export class CloudTopService {
   private cache: { scene: Scene; fetchedAt: number } | null = null;
   private inflight: Promise<Scene> | null = null;
@@ -270,7 +240,7 @@ export class CloudTopService {
    * scan from last May will not be rescanned.
    */
   private async replay(at: Date): Promise<Scene> {
-    const key = await this.keyAt(at);
+    const key = await keyAt(PRODUCT, at, SCENE_TOLERANCE_MS);
 
     const cached = this.archive.get(key);
     if (cached) return cached;
@@ -292,53 +262,8 @@ export class CloudTopService {
     return work;
   }
 
-  /**
-   * The scene nearest `at`.
-   *
-   * The listing prefix is already hour-resolved, so this lists the hour and the
-   * one before it — a scan starting at 13:56 is the nearest neighbour of 14:00
-   * and lives under the previous hour's prefix.
-   */
-  private async keyAt(at: Date): Promise<string> {
-    if (Number.isNaN(at.getTime())) {
-      throw new Error("`at` must be an ISO 8601 timestamp");
-    }
-    const want = at.getTime();
-    const keys: string[] = [];
-    for (const offset of [-1, 0]) {
-      const t = new Date(want + offset * 3_600_000);
-      keys.push(
-        ...(await this.list(
-          `${PRODUCT}/${t.getUTCFullYear()}/` +
-            `${String(dayOfYear(t)).padStart(3, "0")}/` +
-            `${String(t.getUTCHours()).padStart(2, "0")}/`
-        ))
-      );
-    }
-
-    let best: { key: string; delta: number } | null = null;
-    for (const key of keys) {
-      const t = Date.parse(sceneTime(key));
-      if (Number.isNaN(t)) continue;
-      const delta = Math.abs(t - want);
-      if (!best || delta < best.delta) best = { key, delta };
-    }
-
-    if (!best) {
-      throw new Error(`No archived GOES scene near ${at.toISOString()}`);
-    }
-    if (best.delta > SCENE_TOLERANCE_MS) {
-      throw new Error(
-        `Nearest GOES scene to ${at.toISOString()} is ` +
-          `${Math.round(best.delta / 60_000)} min away — refusing to caption it ` +
-          `as that time`
-      );
-    }
-    return best.key;
-  }
-
   private async build(key?: string, at?: Date): Promise<Scene> {
-    const sceneKey = key ?? (await this.latestKey());
+    const sceneKey = key ?? (await latestKey(PRODUCT));
     // The profile is the slow half on a cold run, and it does not depend on the
     // scene, so the two go together rather than in sequence.
     //
@@ -346,7 +271,7 @@ export class CloudTopService {
     // from *that* day's run, or the geometry would be historical and the
     // temperatures painted onto it would be today's.
     const [buffer, column] = await Promise.all([
-      this.download(sceneKey),
+      download(sceneKey),
       Hrrr.column(ANALYSIS_HOUR, at),
     ]);
 
@@ -380,83 +305,20 @@ export class CloudTopService {
   }
 
   /**
-   * Newest published scene key.
-   *
-   * Keys sort lexicographically by their embedded start time, so the last one
-   * in the hour's listing is the newest. The walk back covers the hour boundary
-   * — at 00:02 UTC the current hour may hold nothing yet — and gives up rather
-   * than silently serving something stale.
-   */
-  private async latestKey(): Promise<string> {
-    const now = Date.now();
-    for (let back = 0; back < 4; back++) {
-      const t = new Date(now - back * 3_600_000);
-      const prefix =
-        `${PRODUCT}/${t.getUTCFullYear()}/` +
-        `${String(dayOfYear(t)).padStart(3, "0")}/` +
-        `${String(t.getUTCHours()).padStart(2, "0")}/`;
-      const keys = await this.list(prefix);
-      if (keys.length) return keys[keys.length - 1];
-    }
-    throw new Error("No GOES cloud-top scene published in the last 4 hours");
-  }
-
-  private async list(prefix: string): Promise<string[]> {
-    const res = await fetch(
-      `${BUCKET}/?list-type=2&prefix=${encodeURIComponent(prefix)}`
-    );
-    if (!res.ok) throw new Error(`GOES listing failed: ${res.status}`);
-    const xml = await res.text();
-    return Array.from(xml.matchAll(/<Key>([^<]+)<\/Key>/g)).map((m) => m[1]);
-  }
-
-  private async download(key: string): Promise<Buffer> {
-    const res = await fetch(`${BUCKET}/${key}`);
-    if (!res.ok) throw new Error(`GOES scene fetch failed: ${res.status}`);
-    return Buffer.from(await res.arrayBuffer());
-  }
-
-  /**
    * Read the scene: the projection constants, and cloud-top pressure in hPa
    * with clear pixels left as NaN.
    *
-   * Every constant comes out of the file rather than a table in this comment.
-   * The scale factor, the fill value and the projection geometry are all
-   * attributes GOES publishes per scene, and hardcoding them would be the
+   * The scale factor and the fill value come out of the file, like the
+   * projection geometry `gridOf` reads — hardcoding them would be the
    * pixel-archaeology version of the mistake this layer exists to undo.
    */
   private async decode(
     buffer: Buffer
   ): Promise<{ grid: AbiGrid; pressure: Float32Array }> {
-    const mod = await hdf5();
-    const { FS } = await mod.ready;
-    const path = `goes-${Date.now()}-${Math.random().toString(36).slice(2)}.nc`;
-
-    FS.writeFile(path, new Uint8Array(buffer));
-    let file: H5File | null = null;
-    try {
-      file = new mod.File(path, "r");
+    return readScene(buffer, (file) => {
+      const grid = gridOf(file, "PRES");
 
       const pres = file.get("PRES");
-      const proj = file.get("goes_imager_projection");
-      const x = file.get("x");
-      const y = file.get("y");
-
-      const [ny, nx] = pres.shape;
-      const grid = abiGrid({
-        lonOriginDeg: scalar(proj, "longitude_of_projection_origin"),
-        perspectiveHeight: scalar(proj, "perspective_point_height"),
-        semiMajor: scalar(proj, "semi_major_axis"),
-        semiMinor: scalar(proj, "semi_minor_axis"),
-        sweep: text(proj, "sweep_angle_axis"),
-        xScale: scalar(x, "scale_factor"),
-        xOffset: scalar(x, "add_offset"),
-        yScale: scalar(y, "scale_factor"),
-        yOffset: scalar(y, "add_offset"),
-        nx,
-        ny,
-      });
-
       const fill = scalar(pres, "_FillValue");
       const scale = scalar(pres, "scale_factor");
       const offset = scalar(pres, "add_offset");
@@ -470,10 +332,7 @@ export class CloudTopService {
       }
 
       return { grid, pressure };
-    } finally {
-      file?.close();
-      FS.unlink(path);
-    }
+    });
   }
 
   /**
@@ -533,55 +392,6 @@ export class CloudTopService {
 }
 
 export const Goes = new CloudTopService();
-
-/** A numeric attribute, which HDF5 hands back as a length-1 typed array. */
-function scalar(node: H5Dataset, name: string): number {
-  const attr = node.attrs[name];
-  if (!attr) throw new Error(`GOES scene has no ${name} attribute`);
-  const v = attr.value;
-  const n = typeof v === "number" ? v : Number((v as ArrayLike<number>)[0]);
-  if (!Number.isFinite(n)) throw new Error(`GOES ${name} is not a number`);
-  return n;
-}
-
-function text(node: H5Dataset, name: string): string {
-  const attr = node.attrs[name];
-  if (!attr) throw new Error(`GOES scene has no ${name} attribute`);
-  const v = attr.value;
-  return String(Array.isArray(v) ? v[0] : v);
-}
-
-/**
- * Scan start time from the file name, e.g. `..._s20262250051179_e..._c....nc`
- * -> `2026-08-13T00:51:17.900Z`.
- *
- * The name is the only place the scan time appears without opening the file,
- * and `latestKey` has to compare scenes before downloading one.
- */
-export function sceneTime(key: string): string {
-  const m = /_s(\d{4})(\d{3})(\d{2})(\d{2})(\d{2})(\d)/.exec(key);
-  if (!m) throw new Error(`Unparseable GOES scene name: ${key}`);
-  const [, year, doy, hh, mm, ss, tenths] = m;
-  const t = new Date(
-    Date.UTC(
-      Number(year),
-      0,
-      1,
-      Number(hh),
-      Number(mm),
-      Number(ss),
-      Number(tenths) * 100
-    )
-  );
-  t.setUTCDate(t.getUTCDate() + Number(doy) - 1);
-  return t.toISOString();
-}
-
-/** Day of year, 1-based — the directory GOES files are filed under. */
-export function dayOfYear(t: Date): number {
-  const start = Date.UTC(t.getUTCFullYear(), 0, 1);
-  return Math.floor((t.getTime() - start) / 86_400_000) + 1;
-}
 
 /**
  * The sidebar's numbers, against the same 12 km grid the contours are drawn

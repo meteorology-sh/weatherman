@@ -21,6 +21,7 @@ import { CloudBaseProvider } from "@/lib/context/CloudBaseProvider.tsx";
 import { CloudTopProvider } from "@/lib/context/CloudTopProvider.tsx";
 import { RadarProvider } from "@/lib/context/RadarProvider.tsx";
 import { CandidatePointProvider } from "@/lib/context/CandidatePointProvider.tsx";
+import { SeedabilityProvider } from "@/lib/context/SeedabilityProvider.tsx";
 import { SoundingProvider } from "@/lib/context/SoundingProvider.tsx";
 import { ReplayProvider } from "@/lib/context/ReplayProvider.tsx";
 
@@ -62,7 +63,9 @@ const router = createBrowserRouter([
               <RadarProvider>
                 <SoundingProvider>
                   <CandidatePointProvider>
-                    <Candidate />
+                    <SeedabilityProvider>
+                      <Candidate />
+                    </SeedabilityProvider>
                   </CandidatePointProvider>
                 </SoundingProvider>
               </RadarProvider>
