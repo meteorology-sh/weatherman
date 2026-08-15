@@ -176,8 +176,8 @@ export const CandidateLegend: LayerLegend = {
       "levels as the liquid layer, so the two read against each other.",
     "It exists at the analysis hour only, because it reads an observed cloud " +
       "top and a satellite cannot forecast. It is also only as current as its " +
-      "slowest source. Where the radar cannot see, a cell stays a candidate " +
-      "and the panel reports how much ground went unchecked.",
+      "slowest source. Where the radar cannot see, a cell stays a candidate: " +
+      "it was not cleared of rain, it was simply never checked.",
   ],
 };
 

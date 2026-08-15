@@ -23,18 +23,18 @@ export const CloudBase = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 p-4">
+      <div className="flex items-center gap-2">
         <span className="loading loading-spinner loading-sm"></span>
         Reading the model's cloud base…
       </div>
     );
   }
 
-  if (error) return <div className="text-error p-4">{error}</div>;
+  if (error) return <div className="text-error">{error}</div>;
   if (!stats) return null;
 
   return (
-    <div className="p-4 flex flex-col gap-2">
+    <div className="flex flex-col gap-2">
       <h3 className="font-semibold">CLOUD BASE</h3>
 
       {stats.basePct === 0 ? (

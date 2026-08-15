@@ -28,14 +28,14 @@ export const Liquid = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 p-4">
+      <div className="flex items-center gap-2">
         <span className="loading loading-spinner loading-sm"></span>
         Integrating HRRR cloud water…
       </div>
     );
   }
 
-  if (error) return <div className="text-error p-4">{error}</div>;
+  if (error) return <div className="text-error">{error}</div>;
   if (!stats) return null;
 
   if (stats.coveragePct === 0) {

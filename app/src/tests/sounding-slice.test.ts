@@ -29,7 +29,8 @@ const sounding: Sounding = {
 const initial = reducer(undefined, { type: "@@INIT" });
 
 describe("sounding slice", () => {
-  // A panel that starts empty teaches nobody that the map is clickable.
+  // Read on arrival to warm the national profile grid every later click is
+  // answered from, not to fill the panel.
   it("starts on the centre of the map", () => {
     expect(initial.point).toEqual(DEFAULT_POINT);
   });
@@ -44,6 +45,17 @@ describe("sounding slice", () => {
     const state = reducer(initial, soundingActions.setPoint([-104.99, 39.74]));
 
     expect(state.point).toEqual([-104.99, 39.74]);
+  });
+
+  // The default point is somewhere, so the column is worth reading over it.
+  // The join's readout is headed "cloud over this point" and waits for a real
+  // one, and this flag is how it tells the two apart.
+  it("records that the point came from a click", () => {
+    expect(initial.clicked).toBe(false);
+
+    expect(
+      reducer(initial, soundingActions.setPoint([-104.99, 39.74])).clicked
+    ).toBe(true);
   });
 
   // The old column is about somewhere else. Leaving it on screen under new

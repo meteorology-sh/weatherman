@@ -4,22 +4,22 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { soundingActions } from "./sounding";
 
 // Types
-import type { CandidatePoint, CandidateStats } from "@/lib/types";
+import type { CandidatePoint } from "@/lib/types";
 
 type SeedabilityState = {
   /**
    * The candidate field — every layer joined into one.
    *
    * Its own slice rather than a field on `candidate`: that one covers the
-   * supercooled-liquid layer, and this fetches and summarises a build of its
-   * own. One slice per data domain.
+   * supercooled-liquid layer, and this one carries the join.
    */
   visible: boolean;
-  /** Summary of the field. The geometry itself never enters the store. */
-  stats: CandidateStats | undefined;
-  loading: boolean;
-  error: string | null;
-  /** The same join read over the clicked cell. One cell, so it fits here. */
+  /**
+   * The join read over the clicked cell, and the only reading of the join the
+   * panel carries. One cell, so it fits in the store; a summary of the whole
+   * domain would be a statement about the country rather than about the cloud
+   * an operator is looking at.
+   */
   here: CandidatePoint | undefined;
   hereLoading: boolean;
   hereError: string | null;
@@ -32,9 +32,6 @@ type SeedabilityState = {
  */
 const initialState: SeedabilityState = {
   visible: true,
-  stats: undefined,
-  loading: false,
-  error: null,
   here: undefined,
   hereLoading: false,
   hereError: null,
@@ -46,15 +43,6 @@ const seedabilitySlice = createSlice({
   reducers: {
     setVisible(state, action: PayloadAction<boolean>) {
       state.visible = action.payload;
-    },
-    setStats(state, action: PayloadAction<CandidateStats>) {
-      state.stats = action.payload;
-    },
-    setLoading(state, action: PayloadAction<boolean>) {
-      state.loading = action.payload;
-    },
-    setError(state, action: PayloadAction<string | null>) {
-      state.error = action.payload;
     },
     setHere(state, action: PayloadAction<CandidatePoint>) {
       state.here = action.payload;

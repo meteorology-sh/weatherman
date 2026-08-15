@@ -61,37 +61,53 @@ describe("CandidatePointProvider", () => {
     expect(getByText("child")).toBeTruthy();
   });
 
-  // Like the sounding, it reads the default point on mount rather than waiting
-  // for a click: a panel that starts empty teaches nobody that the map is
-  // clickable.
-  it("reads the default point without being asked", async () => {
+  // Unlike the sounding, this one waits: the readout is about the cell an
+  // operator picked, and the default centre of the country is not one.
+  it("reads nothing until the map is clicked", () => {
     const store = mount();
 
-    await waitFor(() => {
-      expect(store.getState().seedability.here).toEqual(point);
-    });
-    expect(calls()[0][0]).toBe("/candidate/point?lat=39.83&lon=-98.58");
+    expect(calls().length).toBe(0);
+    expect(store.getState().seedability.here).toBeUndefined();
   });
 
   // Clicking the map clears the stored point, and that is what makes this
   // provider read the new cell.
-  it("rereads when the point moves", async () => {
+  it("reads the cell when the map is clicked", async () => {
     const store = mount();
-    await waitFor(() => expect(store.getState().seedability.here).toBeTruthy());
 
     act(() => {
       store.dispatch(soundingActions.setPoint([-104.99, 39.74]));
     });
 
     await waitFor(() => {
+      expect(store.getState().seedability.here).toEqual(point);
+    });
+    expect(calls()[0][0]).toBe("/candidate/point?lat=39.74&lon=-104.99");
+  });
+
+  it("rereads when the point moves again", async () => {
+    const store = mount();
+    act(() => {
+      store.dispatch(soundingActions.setPoint([-104.99, 39.74]));
+    });
+    await waitFor(() => expect(store.getState().seedability.here).toBeTruthy());
+
+    act(() => {
+      store.dispatch(soundingActions.setPoint([-101.42, 32.05]));
+    });
+
+    await waitFor(() => {
       expect(calls()[calls().length - 1][0]).toBe(
-        "/candidate/point?lat=39.74&lon=-104.99"
+        "/candidate/point?lat=32.05&lon=-101.42"
       );
     });
   });
 
   it("does not reread while the point is unchanged", async () => {
     const store = mount();
+    act(() => {
+      store.dispatch(soundingActions.setPoint([-104.99, 39.74]));
+    });
     await waitFor(() => expect(store.getState().seedability.here).toBeTruthy());
     const before = calls().length;
 
@@ -106,6 +122,9 @@ describe("CandidatePointProvider", () => {
       vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) }))
     );
     const store = mount();
+    act(() => {
+      store.dispatch(soundingActions.setPoint([-104.99, 39.74]));
+    });
 
     await waitFor(() => {
       expect(store.getState().seedability.hereError).toBe(
@@ -114,14 +133,15 @@ describe("CandidatePointProvider", () => {
     });
   });
 
-  // The field's own summary has its own flags, and a click must not make the
-  // layer's panel look like it is still loading.
-  it("keeps its loading flag separate from the field's", async () => {
+  it("clears its loading flag once the point is read", async () => {
     const store = mount();
+    act(() => {
+      store.dispatch(soundingActions.setPoint([-104.99, 39.74]));
+    });
 
     await waitFor(() => {
-      expect(store.getState().seedability.hereLoading).toBe(false);
+      expect(store.getState().seedability.here).toBeTruthy();
     });
-    expect(store.getState().seedability.loading).toBe(false);
+    expect(store.getState().seedability.hereLoading).toBe(false);
   });
 });

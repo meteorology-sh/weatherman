@@ -16,6 +16,10 @@ import { GetCandidatePoint } from "@/lib/client";
  * on the data rather than on first mount, because clicking the map clears the
  * data and that is what makes the click fetch. It answers off the join the map
  * is already drawing, so a click costs one cached read rather than a build.
+ *
+ * It waits for a click, unlike the sounding. The readout is about the cell an
+ * operator picked, and the centre of the country is not one — reading it would
+ * fill the panel with an answer about nowhere in particular.
  */
 export function CandidatePointProvider({
   children,
@@ -23,6 +27,7 @@ export function CandidatePointProvider({
   children: React.ReactNode;
 }) {
   const point = useAppSelector((state) => state.sounding.point);
+  const clicked = useAppSelector((state) => state.sounding.clicked);
   const here = useAppSelector((state) => state.seedability.here);
   const dispatch = useAppDispatch();
 
@@ -46,8 +51,8 @@ export function CandidatePointProvider({
       }
     }
 
-    if (!here) load();
-  }, [point, here, dispatch]);
+    if (clicked && !here) load();
+  }, [point, clicked, here, dispatch]);
 
   return <>{children}</>;
 }

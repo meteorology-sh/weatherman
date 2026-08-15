@@ -26,14 +26,14 @@ export const Sounding = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 p-4">
+      <div className="flex items-center gap-2">
         <span className="loading loading-spinner loading-sm"></span>
         Reading the column over {point[1]}, {point[0]}…
       </div>
     );
   }
 
-  if (error) return <div className="text-error p-4">{error}</div>;
+  if (error) return <div className="text-error">{error}</div>;
   if (!data) return null;
 
   // The band's warm edge can sit below the bottom of the column: an airmass

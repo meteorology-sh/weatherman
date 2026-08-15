@@ -20,7 +20,6 @@ import { ForecastProvider } from "@/lib/context/ForecastProvider.tsx";
 import { CloudBaseProvider } from "@/lib/context/CloudBaseProvider.tsx";
 import { CloudTopProvider } from "@/lib/context/CloudTopProvider.tsx";
 import { RadarProvider } from "@/lib/context/RadarProvider.tsx";
-import { SeedabilityProvider } from "@/lib/context/SeedabilityProvider.tsx";
 import { CandidatePointProvider } from "@/lib/context/CandidatePointProvider.tsx";
 import { SoundingProvider } from "@/lib/context/SoundingProvider.tsx";
 import { ReplayProvider } from "@/lib/context/ReplayProvider.tsx";
@@ -45,9 +44,6 @@ const router = createBrowserRouter([
           </ForecastProvider>
         ),
       },
-      // Page-scoped: the radar scene and the satellite scene both go stale in
-      // minutes, so unlike the seeding-band build there is nothing worth
-      // warming from the landing page.
       // Page-scoped: the provider warms all three sources for the chosen hour
       // before the map is allowed to draw any of them.
       {
@@ -61,19 +57,17 @@ const router = createBrowserRouter([
       {
         path: "/map/candidate",
         element: (
-          <SeedabilityProvider>
-            <CloudBaseProvider>
-              <CloudTopProvider>
-                <RadarProvider>
-                  <SoundingProvider>
-                    <CandidatePointProvider>
-                      <Candidate />
-                    </CandidatePointProvider>
-                  </SoundingProvider>
-                </RadarProvider>
-              </CloudTopProvider>
-            </CloudBaseProvider>
-          </SeedabilityProvider>
+          <CloudBaseProvider>
+            <CloudTopProvider>
+              <RadarProvider>
+                <SoundingProvider>
+                  <CandidatePointProvider>
+                    <Candidate />
+                  </CandidatePointProvider>
+                </SoundingProvider>
+              </RadarProvider>
+            </CloudTopProvider>
+          </CloudBaseProvider>
         ),
       },
     ],

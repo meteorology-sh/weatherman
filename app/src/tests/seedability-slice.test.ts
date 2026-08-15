@@ -3,35 +3,7 @@ import reducer, { seedabilityActions } from "@/lib/store/features/seedability";
 import { soundingActions } from "@/lib/store/features/sounding";
 
 // Types
-import type { CandidatePoint, CandidateStats } from "@/lib/types";
-
-const stats: CandidateStats = {
-  run: "2025-05-15T18:00:00.000Z",
-  validTime: "2025-05-15T18:00:00.000Z",
-  sceneTime: "2025-05-15T18:01:17.900Z",
-  radarTime: "2025-05-15T18:00:39.000Z",
-  coveragePct: 0.31,
-  candidateKm2: 52560,
-  peak: 340,
-  liquidKm2: 249120,
-  rejected: {
-    noCloudBase: 41184,
-    baseAboveBand: 8496,
-    noCloudSeen: 96912,
-    topTooWarm: 34848,
-    raining: 15120,
-  },
-  blindKm2: 2880,
-  medianBaseFt: 5800,
-  windowPct: 61.4,
-  medianBandBaseFt: 17100,
-  ceilingFt: 18000,
-  reachablePct: 72.9,
-  peakMixedCapeJKg: 1840,
-  peakVilKgM2: 3.2,
-  stormMotionKt: 24,
-  stormMotionTowardDeg: 65,
-};
+import type { CandidatePoint } from "@/lib/types";
 
 const initial = () => reducer(undefined, { type: "@@INIT" });
 
@@ -40,42 +12,6 @@ describe("seedability slice", () => {
   // its inputs do, so it does not bury them the way a fourth fill would.
   it("starts visible", () => {
     expect(initial().visible).toBe(true);
-  });
-
-  it("starts with no summary and no error", () => {
-    expect(initial().stats).toBeUndefined();
-    expect(initial().error).toBe(null);
-    expect(initial().loading).toBe(false);
-  });
-
-  it("takes the summary", () => {
-    const state = reducer(initial(), seedabilityActions.setStats(stats));
-
-    expect(state.stats?.candidateKm2).toBe(52560);
-    expect(state.stats?.rejected.raining).toBe(15120);
-  });
-
-  it("toggles visibility without touching the summary", () => {
-    const loaded = reducer(initial(), seedabilityActions.setStats(stats));
-    const hidden = reducer(loaded, seedabilityActions.setVisible(false));
-
-    expect(hidden.visible).toBe(false);
-    expect(hidden.stats?.candidateKm2).toBe(52560);
-  });
-
-  it("records loading and error", () => {
-    const loading = reducer(initial(), seedabilityActions.setLoading(true));
-    expect(loading.loading).toBe(true);
-
-    const failed = reducer(loading, seedabilityActions.setError("no scene"));
-    expect(failed.error).toBe("no scene");
-  });
-
-  it("clears an error when a later attempt sets it back to null", () => {
-    const failed = reducer(initial(), seedabilityActions.setError("no scene"));
-    const cleared = reducer(failed, seedabilityActions.setError(null));
-
-    expect(cleared.error).toBe(null);
   });
 
   describe("the clicked point", () => {
@@ -100,12 +36,19 @@ describe("seedability slice", () => {
       expect(initial().hereLoading).toBe(false);
     });
 
-    it("takes the point without touching the summary", () => {
-      const loaded = reducer(initial(), seedabilityActions.setStats(stats));
-      const state = reducer(loaded, seedabilityActions.setHere(here));
+    it("takes the point", () => {
+      const state = reducer(initial(), seedabilityActions.setHere(here));
 
       expect(state.here?.verdict).toBe("candidate");
-      expect(state.stats?.candidateKm2).toBe(52560);
+      expect(state.here?.slwGM2).toBe(140);
+    });
+
+    it("takes the point without touching the layer's visibility", () => {
+      const hidden = reducer(initial(), seedabilityActions.setVisible(false));
+      const state = reducer(hidden, seedabilityActions.setHere(here));
+
+      expect(state.visible).toBe(false);
+      expect(state.here?.verdict).toBe("candidate");
     });
 
     // The old cell's answer is about somewhere else. Keeping it under new
@@ -118,27 +61,38 @@ describe("seedability slice", () => {
       expect(moved.here).toBeUndefined();
     });
 
-    it("keeps the summary when the click moves", () => {
-      const loaded = reducer(initial(), seedabilityActions.setStats(stats));
+    it("leaves the layer drawn when the click moves", () => {
+      const loaded = reducer(initial(), seedabilityActions.setHere(here));
       const moved = reducer(loaded, soundingActions.setPoint([-99.1, 35.2]));
 
-      expect(moved.stats?.candidateKm2).toBe(52560);
+      expect(moved.visible).toBe(true);
     });
 
-    it("records loading and error for the point separately", () => {
+    it("records loading and error for the point", () => {
       const loading = reducer(
         initial(),
         seedabilityActions.setHereLoading(true)
       );
       expect(loading.hereLoading).toBe(true);
-      expect(loading.loading).toBe(false);
 
       const failed = reducer(
         loading,
         seedabilityActions.setHereError("no scene")
       );
       expect(failed.hereError).toBe("no scene");
-      expect(failed.error).toBe(null);
+    });
+
+    // A failed read is about the cell that failed. The next click has to be
+    // able to clear it, or one dead source leaves an error over every later
+    // point.
+    it("clears the error when the click moves", () => {
+      const failed = reducer(
+        initial(),
+        seedabilityActions.setHereError("no scene")
+      );
+      const moved = reducer(failed, soundingActions.setPoint([-99.1, 35.2]));
+
+      expect(moved.hereError).toBe(null);
     });
   });
 });

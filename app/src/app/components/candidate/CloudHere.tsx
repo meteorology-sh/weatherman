@@ -40,10 +40,10 @@ const ANSWER: Record<Verdict, string> = {
 /**
  * The join over the clicked point.
  *
- * The panel below reports each layer across the whole model domain, which is a
- * statement about the country. This is the same five tests asked of the one
- * 12 km cell an operator is looking at: what is in the cloud there, what ruled
- * it out, when each source saw it and which cell it is.
+ * The layers below report their own field across the whole model domain, which
+ * is a statement about the country. This is the same five tests asked of the
+ * one 12 km cell an operator is looking at: what is in the cloud there, what
+ * ruled it out, when each source saw it and which cell it is.
  */
 export const CloudHere = () => {
   const here = useAppSelector((state) => state.seedability.here);
@@ -52,14 +52,14 @@ export const CloudHere = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 p-4">
+      <div className="flex items-center gap-2">
         <span className="loading loading-spinner loading-sm"></span>
         Reading every source over that point…
       </div>
     );
   }
 
-  if (error) return <div className="text-error p-4">{error}</div>;
+  if (error) return <div className="text-error">{error}</div>;
   if (!here) return null;
 
   const seedable = here.verdict === "candidate";

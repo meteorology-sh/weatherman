@@ -4,13 +4,10 @@ import { BAND_LABEL } from "@/lib/arcgis/bands";
 // Components
 import { ArcGIS } from "@/app/components/Map";
 import { CandidateLayers } from "./CandidateLayers";
-import { CandidateField } from "./CandidateField";
+import { ClickedPoint } from "./ClickedPoint";
 import { CloudBase } from "./CloudBase";
-import { CloudHere } from "./CloudHere";
 import { CloudTop } from "./CloudTop";
-import { Convective } from "./Convective";
 import { Liquid } from "./Liquid";
-import { Sounding } from "./Sounding";
 import { Radar } from "./Radar";
 
 export const Candidate = () => {
@@ -36,8 +33,8 @@ export const Candidate = () => {
                   </li>
                   <li>
                     Leave SUPERCOOLED LIQUID WATER on underneath it. Amber with
-                    no green over it was rejected, and the panel below says
-                    which test rejected it.
+                    no green over it was rejected, and clicking it says which
+                    test rejected it.
                   </li>
                   <li>
                     Switch the input layers off one at a time to see what each
@@ -59,25 +56,22 @@ export const Candidate = () => {
             </div>
           </div>
         </div>
-        <CandidateLayers />
-        <div className="divider my-1" />
-        {/* The clicked point first. It is the one part of this panel about the
+        {/* One rule between sections, drawn by the container rather than
+            written between them. Most of this panel is conditional — a layer
+            switched off says nothing, and neither does the clicked point before
+            anything is clicked — and a border on an element that was never
+            rendered cannot be left behind as a stack of empty rules.
+
+            The clicked point leads: it is the one part of this panel about the
             cloud an operator is looking at rather than about the domain. */}
-        <CloudHere />
-        <div className="divider my-1" />
-        <Sounding />
-        <div className="divider my-1" />
-        <Convective />
-        <div className="divider my-1" />
-        <CandidateField />
-        <div className="divider my-1" />
-        <CloudBase />
-        <div className="divider my-1" />
-        <CloudTop />
-        <div className="divider my-1" />
-        <Liquid />
-        <div className="divider my-1" />
-        <Radar />
+        <div className="flex flex-col divide-y divide-base-300 [&>*]:py-4">
+          <CandidateLayers />
+          <ClickedPoint />
+          <CloudBase />
+          <CloudTop />
+          <Liquid />
+          <Radar />
+        </div>
       </div>
       <div className="col-span-2">
         <ArcGIS mode="candidate" />

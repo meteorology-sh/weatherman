@@ -59,17 +59,30 @@ that one 12 km cell — what the cloud there is made of, which test ruled it out
 if any, and when each source saw it. That readout leads the panel because it is
 the only part of it about the cloud an operator is looking at.
 
-**The layer summaries below it are figures about the whole model domain, and
-they do not report shares of it.** What fraction of the country has cloud over
-it, or has a radar looking at it, decides nothing a sortie does; the areas and
-the extremes are what an operator chooses between, and the cell is where the
-question is actually answered.
+**Nothing about a point is drawn until one is picked.** There is no _this point_
+until someone clicks, and a column, a set of diagnostics and a verdict over the
+centre of the country are dashes about a cell nobody asked for. The column _is_
+read over that default point on arrival, because that build is the national
+profile grid every later click is answered from — warming it, not drawing it, is
+the difference between a first click costing ~30 s and costing milliseconds.
+
+**The join is summarised over a clicked cell and nowhere else on this map.** How
+much of the country passed every test is a fact about the country, and an
+operator flies one cell. The domain-wide summary is still built, and the replay
+panel reports it there, where the question really is what a whole hour looked
+like.
+
+**The layer summaries below the readout are figures about the whole model
+domain, and they do not report shares of it.** What fraction of the country has
+cloud over it, or has a radar looking at it, decides nothing a sortie does; the
+areas and the extremes are what an operator chooses between, and the cell is
+where the question is actually answered.
 
 **The seeding-opportunity layer is the answer the other four are inputs to**, drawn over
 all of them. It is the only layer that starts on: the map opens on its answer,
 and the operator switches on whichever inputs they want to check it against.
 Switching the amber back on reads the two together — amber with no green over it
-is liquid the join rejected, and the panel says which condition ruled it out.
+is liquid the join rejected, and clicking it says which condition ruled it out.
 
 **Cloud base sits at the bottom because it is the question asked first** — can an
 aircraft climb into this cloud at all — and the layers above are answers about a
@@ -228,8 +241,9 @@ levels. The join filters cells; it does not rescore them. That is what makes the
 two readable against each other.
 
 **Rejections are charged to exactly one test**, in the order above, so they
-partition and the panel can say what emptied the map. A blank candidate layer
-over an amber liquid layer is a bug report otherwise.
+partition. That is what lets a cell be told the one thing that ruled it out, and
+what lets the replay panel say what emptied a whole hour. A blank candidate
+layer over an amber liquid layer is a bug report otherwise.
 
 **It exists at the analysis hour only.** It leans on an observed cloud top, and
 satellites cannot forecast. `at` replays the whole join at a past hour instead.
@@ -245,7 +259,7 @@ at the analysis hour.
 
 **Absence of radar coverage does not veto.** A third of the mosaic's box has no
 radar over it, and no coverage is not a report of clear air — so those cells stay
-candidates and the panel reports how much candidate ground was unchecked rather
+candidates and the summary counts how much candidate ground was unchecked rather
 than cleared. Over a clicked cell the two are named apart: a quiet radar reads
 as no echo, and ground no radar covers says so.
 

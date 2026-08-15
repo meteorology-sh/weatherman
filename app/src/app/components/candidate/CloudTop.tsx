@@ -37,20 +37,20 @@ export const CloudTop = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 p-4">
+      <div className="flex items-center gap-2">
         <span className="loading loading-spinner loading-sm"></span>
         Reading the satellite scene…
       </div>
     );
   }
 
-  if (error) return <div className="text-error p-4">{error}</div>;
+  if (error) return <div className="text-error">{error}</div>;
   if (!stats) return null;
 
   const age = minutesOld(stats.validTime);
 
   return (
-    <div className="p-4 flex flex-col gap-2">
+    <div className="flex flex-col gap-2">
       <h3 className="font-semibold">CLOUD TOPS</h3>
 
       {stats.cloudPct === 0 ? (
