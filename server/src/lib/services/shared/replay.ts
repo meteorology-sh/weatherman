@@ -24,3 +24,28 @@ export function parseAt(value: unknown): Date | undefined {
   }
   return at;
 }
+
+/**
+ * The analysis hour a timestamp is closest to.
+ *
+ * **The model and the instruments do not run at the same rate, and one `at`
+ * has to serve both.** ABI scans every 5 minutes and the radar mosaic arrives
+ * every 2, so both can answer about 18:43 directly. HRRR analyses once an
+ * hour, so it cannot, and truncating sends 18:43 to the 18z analysis — the
+ * further of the two, 43 minutes away, when 19z is 17.
+ *
+ * So the join rounds this half and leaves the observed half on the true
+ * timestamp. A whole hour rounds to itself, which is every request the replay
+ * page makes.
+ *
+ * This is the closest reading of the atmosphere at that moment, which is a
+ * different thing from what a forecaster could have had in front of them: HRRR
+ * posts ~50 minutes after the hour, so nobody had 19z at 18:43. That gap is a
+ * limit on operating from this, not on measuring against it.
+ */
+export function nearestHour(at: Date): Date {
+  const hour = new Date(at);
+  hour.setUTCMinutes(0, 0, 0);
+  if (at.getUTCMinutes() >= 30) hour.setUTCHours(hour.getUTCHours() + 1);
+  return hour;
+}

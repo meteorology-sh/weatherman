@@ -27,6 +27,7 @@ import { Goes } from "../goes/cloudtop";
 import { GoesPhase } from "../goes/phase";
 import { Mrms } from "../mrms/radar";
 import { assertInDomain, inGrid, cellAt, OutsideDomain } from "../shared/grid";
+import { nearestHour } from "../shared/replay";
 import {
   emptyPoint,
   emptyStats,
@@ -248,10 +249,16 @@ export class CandidateService {
    * profile grid, and the service collapses those onto one download.
    */
   private async build(at?: Date): Promise<Scene> {
+    // The model half rounds to its analysis hour and the observed half keeps
+    // the timestamp it was given. See `nearestHour` for why they differ: a
+    // request at 18:43 gets the 19z analysis, the ABI scan nearest 18:43 and
+    // the mosaic nearest 18:43, rather than putting all three on 18:00.
+    const cycle = at && nearestHour(at);
+
     const [liquid, base, band, tops, radar, phase] = await Promise.all([
-      Hrrr.liquidField(ANALYSIS_HOUR, at),
-      Hrrr.diagnosticField("cloudBase", ANALYSIS_HOUR, at),
-      Hrrr.bandField(ANALYSIS_HOUR, at),
+      Hrrr.liquidField(ANALYSIS_HOUR, cycle),
+      Hrrr.diagnosticField("cloudBase", ANALYSIS_HOUR, cycle),
+      Hrrr.bandField(ANALYSIS_HOUR, cycle),
       Goes.topField(at),
       Mrms.reflectivityField(at),
       observedPhase(at),
@@ -321,10 +328,10 @@ export class CandidateService {
     // join decides *whether* a cell is a candidate, this describes the ones that
     // are, and nothing it reads may change the decision.
     const [mixedCape, vil, stormU, stormV] = await Promise.all([
-      Hrrr.diagnosticField("mixedCape", ANALYSIS_HOUR, at),
-      Hrrr.diagnosticField("vil", ANALYSIS_HOUR, at),
-      Hrrr.diagnosticField("stormU", ANALYSIS_HOUR, at),
-      Hrrr.diagnosticField("stormV", ANALYSIS_HOUR, at),
+      Hrrr.diagnosticField("mixedCape", ANALYSIS_HOUR, cycle),
+      Hrrr.diagnosticField("vil", ANALYSIS_HOUR, cycle),
+      Hrrr.diagnosticField("stormU", ANALYSIS_HOUR, cycle),
+      Hrrr.diagnosticField("stormV", ANALYSIS_HOUR, cycle),
     ]);
 
     return {

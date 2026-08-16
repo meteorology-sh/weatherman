@@ -29,18 +29,52 @@ export function cycleFor(at) {
   };
 }
 
+/**
+ * How long to wait for one answer.
+ *
+ * A cold build of five sources off the archive runs 40–60 s, so this is
+ * generous rather than tight. **It exists because `fetch` has none.** A build
+ * can wedge — an archive connection that stalls never resolves and never
+ * rejects — and because concurrent requests for a cycle are collapsed onto one
+ * promise, every later request for that cycle waits on the same dead one. A
+ * sweep with no timeout sits there indefinitely, using no CPU and printing
+ * nothing, which is indistinguishable from working.
+ */
+const TIMEOUT_MS = Number(process.env.WEATHERMAN_TIMEOUT_MS ?? 240_000);
+
 export async function point(lat, lon, at) {
   const url = new URL("/candidate/point", SERVER);
   url.searchParams.set("lat", lat);
   url.searchParams.set("lon", lon);
   url.searchParams.set("at", at);
 
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (res.status === 404) return { outsideDomain: true };
   if (!res.ok) {
     throw new Error(`${res.status}: ${(await res.text()).slice(0, 200)}`);
   }
   return res.json();
+}
+
+/**
+ * How far each input the join used sat from the moment the flare left.
+ *
+ * Read back off the answer rather than assumed, because only the server knows
+ * which scan it actually reached: it picks the nearest one either side and
+ * refuses anything more than 30 minutes away, so the gap is a result and not a
+ * property of the request.
+ */
+export function gapsFor(at, answer) {
+  if (!answer || answer.error || answer.outsideDomain) return null;
+  const t = new Date(at).getTime();
+  const minutes = (iso) =>
+    iso ? Math.round((new Date(iso).getTime() - t) / 60000) : null;
+
+  return {
+    model: minutes(answer.validTime),
+    satellite: minutes(answer.sceneTime),
+    radar: minutes(answer.radarTime),
+  };
 }
 
 /** A release with no position cannot be asked about; it is counted, not dropped. */
@@ -63,17 +97,34 @@ export function locatedReleases(day) {
  * `onRow` is called as each answer lands so a caller can print progress
  * without this having to know how it wants to look.
  */
-export async function evaluateDay(day, onRow) {
+export async function evaluateDay(day, onRow, { precise = false } = {}) {
   const rows = [];
 
+  // A wedged build fails every release of that cycle, not just the first, and
+  // each failure costs the full timeout. Once a cycle has timed out there is
+  // nothing to learn by asking it again, so the rest of its releases are
+  // failed straight away and the day carries on to the next cycle.
+  const wedged = new Set();
+
   for (const release of locatedReleases(day)) {
+    // Hourly asks share one build per cycle. A precise ask is its own build,
+    // because the scene is cached under the timestamp it was asked for — so
+    // this trades one download per hour for one per flare, and buys a radar
+    // scan from the minute of the release instead of the top of the hour.
+    const asked = precise ? release.at : release.cycle;
+
     let answer;
-    try {
-      answer = await point(release.lat, release.lon, release.cycle);
-    } catch (error) {
-      answer = { error: error.message };
+    if (!precise && wedged.has(release.cycle)) {
+      answer = { error: "cycle timed out earlier" };
+    } else {
+      try {
+        answer = await point(release.lat, release.lon, asked);
+      } catch (error) {
+        answer = { error: error.message };
+        if (error.name === "TimeoutError") wedged.add(release.cycle);
+      }
     }
-    const row = { release, answer };
+    const row = { release, asked, answer, gaps: gapsFor(release.at, answer) };
     rows.push(row);
     onRow?.(row);
   }

@@ -1,7 +1,7 @@
 import { describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
 
-import { parseAt } from "../lib/services/shared/replay";
+import { parseAt, nearestHour } from "../lib/services/shared/replay";
 import {
   assertAt,
   floorHour,
@@ -49,6 +49,44 @@ describe("floorHour", () => {
     assert.equal(
       floorHour(new Date("2025-05-15T18:00:00Z")).toISOString(),
       "2025-05-15T18:00:00.000Z"
+    );
+  });
+});
+
+describe("nearestHour", () => {
+  it("rounds up past the half hour", () => {
+    assert.equal(
+      nearestHour(new Date("2025-04-19T18:43:00Z")).toISOString(),
+      "2025-04-19T19:00:00.000Z"
+    );
+  });
+
+  it("rounds down before the half hour", () => {
+    assert.equal(
+      nearestHour(new Date("2025-04-19T18:17:00Z")).toISOString(),
+      "2025-04-19T18:00:00.000Z"
+    );
+  });
+
+  it("leaves an exact hour alone, which is every hour the replay page asks for", () => {
+    assert.equal(
+      nearestHour(new Date("2025-04-19T18:00:00Z")).toISOString(),
+      "2025-04-19T18:00:00.000Z"
+    );
+  });
+
+  it("carries a timestamp to the nearer analysis, where truncating carries it to the further one", () => {
+    // The pair is the point. 18:43 is 17 minutes from the 19z analysis and 43
+    // from the 18z, and the join reads the model through one of these two.
+    const at = new Date("2025-04-19T18:43:00Z");
+    assert.equal(nearestHour(at).getUTCHours(), 19);
+    assert.equal(floorHour(at).getUTCHours(), 18);
+  });
+
+  it("rolls into the next day", () => {
+    assert.equal(
+      nearestHour(new Date("2025-04-19T23:45:00Z")).toISOString(),
+      "2025-04-20T00:00:00.000Z"
     );
   });
 });
