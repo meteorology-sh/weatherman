@@ -1,3 +1,8 @@
 # Downloaded reports and run output. `data/` is the committed input.
 cache/
 out/
+
+# The map's build output. `app/node_modules` is a committed symlink to /app's,
+# not an install — see the README.
+app/dist/
+app/node_modules/.vite/

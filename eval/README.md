@@ -10,8 +10,17 @@ docker-compose up                      # or cd server && yarn dev
 node eval/releases.mjs                 # ground truth  → data/releases-2025.json
 node eval/counties.mjs                 # target areas  → data/counties-tx.geojson
 node eval/points.mjs 2025-04-19        # per release   → out/points-<date>.json
+node eval/season.mjs                   # every day     → out/season-2025.json
+node eval/veto.mjs                     # observed half → out/veto-recheck.json
 node eval/field.mjs  2025-04-22 21 22 23 00   # per hour → out/field-<date>.json
 node eval/snowie.mjs 2017-01-20 22 23 00 01   # HRRR only → out/snowie-<date>.json
+```
+
+To look at it rather than read it, run both servers and the map:
+
+```bash
+node eval/server.mjs                   # flight record + scores, port 3100
+cd eval/app && yarn dev                # the map, port 5174
 ```
 
 ## What each one does
@@ -44,6 +53,22 @@ would give a seeded day and a declined day two different denominators, and the
 comparison that matters — coverage where they flew against coverage where they
 did not, the same hour — cannot be read off two different footprints.
 
+**`veto.mjs`** asks again about every verdict that rested on an observation —
+the radar vetoes and the candidates — at the minute each flare actually left.
+It skips the cells charged to no liquid: those are the model's own answer, and
+the model resolves to the same analysis hour either way.
+
+**`server.mjs`** serves the flight record and whatever the sweeps have scored,
+on port 3100. It holds no weather. **`app/`** is the map that draws it: a Vite
+SPA on port 5174 that points its layers at the Weatherman server and lays the
+flares on top.
+
+The app installs nothing — `eval/app/node_modules` is a symlink to `/app`'s, and
+`@` resolves to `/app/src`, so the renderers and the layer urls are the app's
+own objects rather than copies. A page built to show where we disagree with an
+operator must not also disagree with the app it is inspecting, and a second
+install could drift a version and repaint a band.
+
 **`snowie.mjs`** reads the liquid contour frame over the Payette basin. The
 join cannot run in January 2017 — no GOES cloud top before 2023-03-23, no MRMS
 before 2020-10-14 — so it reports the HRRR half and names the missing inputs
@@ -57,10 +82,22 @@ order, so each hour is built once and every later release in it is answered
 from cache in milliseconds. Do not parallelise across dates — it multiplies
 the builds instead of sharing them.
 
-**A release is scored against the nearest analysis hour.** `at` names the HRRR
-cycle and the join runs at the analysis hour only, so 1843Z is scored against
-19z, 17 minutes away. Every row carries its `gapMinutes`, and that gap is the
-largest source of slop in the test.
+**The model half and the observed half do not move together.** `at` resolves
+HRRR to its nearest analysis hour — 1843Z is scored against 19z, 17 minutes
+away, and nothing can make that closer, because HRRR analyses once an hour. The
+satellite scans every 5 minutes and the radar mosaic arrives every 2, so both
+answer about 1843Z directly.
+
+**So ask at the release, not at the hour.** Rounding the request to 19:00 pulls
+the satellite and the radar to the top of the hour with it, and they move in
+that time: one 19 April release reads a +9 °C liquid top and 31 dBZ at 19:00
+and a −11 °C ice top and 41 dBZ at its own 1843Z. Every row carries the gap to
+each of the three sources, read back off the answer rather than assumed.
+
+The cost is that precision is not free. A scene is cached under the timestamp
+asked for, so an hourly sweep builds once per cycle and shares it across every
+flare in that hour, while a precise sweep builds once per flare. `season.mjs`
+is hourly for that reason and `veto.mjs` is precise where it has to be.
 
 **Two releases in the 2025 season have no coordinates.** The report gives a
 time, a plane, a payload and a county and no position. They stay in the flare
