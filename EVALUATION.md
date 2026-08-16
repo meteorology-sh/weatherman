@@ -405,6 +405,66 @@ seeds cloud-base inflow and lets the updraft carry the AgI up. It does mean the
 release point and the physics are ten thousand feet apart, and the map answers
 about the cell, not about where the air in it is going.
 
+### The whole season, and the answer it first gave
+
+Every seeded day of 2025 scored at its nearest analysis hour: 33 days, 497
+releases. One day, 20 September, is 11 timeouts and carries no answer.
+
+| verdict     |   n | share |
+| ----------- | --: | ----: |
+| `noLiquid`  | 390 | 78.5% |
+| `raining`   |  89 | 17.9% |
+| `candidate` |   7 |  1.4% |
+| error       |  11 |  2.2% |
+
+Four cases could not separate a structural disagreement from an unlucky
+airmass. A season can, and it says the disagreement is structural: in four
+fifths of all releases the model holds no supercooled liquid in the seeding
+band over the cell at all, and the radar takes most of the rest.
+
+### The observed half was being read from the wrong minute
+
+**`at` bound all five inputs to one timestamp, and they do not run at the same
+rate.** HRRR analyses once an hour. ABI scans every 5 minutes and the radar
+mosaic arrives every 2. Truncating a request at 1843Z sent the model to the 18z
+analysis — the further of the two — so the sweep rounded every release to the
+top of the hour to reach 19z, and pulled the satellite and the radar up there
+with it. Every observed reading in the table above was taken up to half an hour
+from the flare it was scored against.
+
+The join now rounds the model half and leaves the observed half on the
+timestamp it was given. Re-asking the 96 verdicts that rested on an observation
+— the radar vetoes and the candidates; cells charged to `noLiquid` never reach
+an observation — moves the radar to within **0–2 minutes** of the release,
+median 1, and gives this:
+
+| was         | is now      |   n |
+| ----------- | ----------- | --: |
+| `raining`   | `raining`   |  81 |
+| `candidate` | `raining`   |   7 |
+| `raining`   | `candidate` |   5 |
+
+**The count barely moved and not one candidate survived.** All 7 were artefacts
+of the wrong minute: the six on 10 June read −14 dBZ — no echo at all — at the
+top of the hour and 29–33 dBZ when the flares actually left. Five others,
+rejected at the hour on 45–48 dBZ, read −2 to 20 dBZ at the release and are
+candidates. Two of them carry **802 g/m²** of in-band liquid, the top contour
+band; the seven they replace sat at 14 and 339.
+
+So the season's pooled figures were roughly right and every individual answer
+underneath them was wrong. That is the shape of a result that looks stable and
+is noise, and it is the reason the flights are now drawn on a map rather than
+only counted.
+
+**The radar veto itself survives.** 81 of 93 stand at the true minute, so the
+17.9% is a real disagreement with the operators and not an artefact.
+
+**What this does not settle.** Observed cloud tops moved a median of 6 °C and up
+to 41 °C between the hour and the minute. The 114 releases whose tops read
+warmer than −5 °C were mostly charged to `noLiquid` and so were never re-asked,
+and that count is built from exactly the reading that proved this volatile. It
+should not be quoted until all 497 are re-scored at their own timestamps.
+
 ### What the four cases say together
 
 **The primary hypothesis was half right.** The rain veto does reject seeded
@@ -481,8 +541,24 @@ county }`, plus the sounding indices and the narrative's timed cell
 - **`counties.mjs`** fetches the 13 county boundaries from Census TIGERweb,
   keyless, one request each.
 - **`points.mjs`**, **`field.mjs`**, **`snowie.mjs`** are the three cases.
+- **`season.mjs`** runs the whole 2025 season at its analysis hours, one build
+  per cycle shared across every flare in it. **`veto.mjs`** re-asks the verdicts
+  that rested on an observation at the minute each flare left, which is one
+  build apiece.
+- **`server.mjs`** and **`app/`** are the map: the flight record and the scores
+  on 3100, and a Vite page on 5174 that points its layers at the Weatherman
+  server and lays the flares over them. The page installs nothing —
+  `eval/app/node_modules` is a symlink to `/app`'s and `@` resolves to
+  `/app/src`, so it draws with the app's own renderers rather than copies of
+  them. A tool for finding disagreements must not introduce one between itself
+  and the thing it inspects.
 
 The output lives in `eval/out/`; `eval/data/` is the committed input.
+
+**Counting was not enough.** The season's pooled verdicts were stable while
+every individual answer under them was wrong, and no table shows that. The map
+does: it draws the layers at the release minute with the flare on top and the
+crew's own radio call beside it.
 
 **The reports are not always self-consistent.** Six county flare counts in the
 season disagree with their own report's table, and on 13 August the stated day
@@ -555,6 +631,16 @@ design to feed it.
 - **Cloud-top phase describes the highest deck**, so under an anvil it is about
   cirrus, not about the turret (`MEASUREMENTS.md` §4). T1 and T3 both sit under
   anvils by the operator's own account.
+- **This measures the atmosphere, not what a forecaster could have had.** A
+  release is scored against the analysis whose valid time is nearest it, which
+  is the best reading of that moment. It is not always a reading anyone could
+  have used: HRRR posts ~50 minutes after the hour, so nobody held the 19z
+  analysis at 1843Z. The gap is a limit on operating from this platform, not on
+  measuring against it, and the two must not be quoted as one number.
+- **An observed reading is only as good as the minute it came from.** Cloud tops
+  move a median of 6 °C between the top of the hour and the release, and up to
+  41 °C. Any figure drawn from the satellite or the radar has to name the
+  timestamp it was asked at.
 - **HRRRv2 is not HRRRv4** (§6).
 - **Three days is three days.** `MEASUREMENTS.md` §6 says to score this product
   over a Texas year, and that a single day can carry most of a year's footprint.
