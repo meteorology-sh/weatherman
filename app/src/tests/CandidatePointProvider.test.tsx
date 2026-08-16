@@ -4,6 +4,7 @@ import { createTestStore, renderWithStore } from "./utils";
 
 // Store
 import { soundingActions } from "@/lib/store/features/sounding";
+import { seedabilityActions } from "@/lib/store/features/seedability";
 
 // Providers
 import { CandidatePointProvider } from "@/lib/context/CandidatePointProvider";
@@ -145,5 +146,39 @@ describe("CandidatePointProvider", () => {
       expect(store.getState().seedability.here).toBeTruthy();
     });
     expect(store.getState().seedability.hereLoading).toBe(false);
+  });
+
+  // The map cannot tell that the server rebuilt underneath it, and the answer
+  // to a click is the only thing that arrives already knowing.
+  it("names the build the answer came off", async () => {
+    const store = mount();
+    act(() => {
+      store.dispatch(soundingActions.setPoint([-104.99, 39.74]));
+    });
+
+    await waitFor(() => {
+      expect(store.getState().seedability.drawn).toBe(
+        [point.run, point.sceneTime, point.radarTime, point.phaseTime].join("|")
+      );
+    });
+  });
+
+  // A click off the edge of the model says nothing about which build is
+  // current, so it must not overwrite one.
+  it("leaves the build alone when the click lands off the grid", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 404, json: async () => ({}) }))
+    );
+    const store = mount();
+    act(() => {
+      store.dispatch(seedabilityActions.setDrawn("named|before|the|click"));
+      store.dispatch(soundingActions.setPoint([-10, 10]));
+    });
+
+    await waitFor(() => {
+      expect(store.getState().seedability.hereLoading).toBe(false);
+    });
+    expect(store.getState().seedability.drawn).toBe("named|before|the|click");
   });
 });

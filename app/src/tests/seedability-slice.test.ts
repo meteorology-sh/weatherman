@@ -97,4 +97,35 @@ describe("seedability slice", () => {
       expect(moved.hereError).toBe(null);
     });
   });
+
+  // The map draws whatever build it opened on and the server keeps rebuilding
+  // underneath it. Nothing names the build on screen unless this does.
+  describe("the build on screen", () => {
+    it("names no build until something answers", () => {
+      expect(initial().drawn).toBe(null);
+    });
+
+    it("records the build an answer came off", () => {
+      const state = reducer(initial(), seedabilityActions.setDrawn("a|b|c|d"));
+
+      expect(state.drawn).toBe("a|b|c|d");
+    });
+
+    it("replaces it when the server rebuilds", () => {
+      const first = reducer(initial(), seedabilityActions.setDrawn("a|b|c|d"));
+      const rolled = reducer(first, seedabilityActions.setDrawn("a|e|c|d"));
+
+      expect(rolled.drawn).toBe("a|e|c|d");
+    });
+
+    // Moving the click clears the cell's answer because it is about somewhere
+    // else. The build is not about anywhere — it is what the map is drawing —
+    // so a click that lands off the model's grid must not blank it.
+    it("keeps the build when the click moves", () => {
+      const named = reducer(initial(), seedabilityActions.setDrawn("a|b|c|d"));
+      const moved = reducer(named, soundingActions.setPoint([-99.1, 35.2]));
+
+      expect(moved.drawn).toBe("a|b|c|d");
+    });
+  });
 });

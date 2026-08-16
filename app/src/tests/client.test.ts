@@ -1,5 +1,6 @@
 // Client
 import {
+  CandidateBuild,
   CandidateConfirmedUrl,
   CandidateFieldUrl,
   GetCandidatePoint,
@@ -386,6 +387,48 @@ describe("candidate field urls", () => {
   it("names a replayed outline by its hour", () => {
     expect(ReplayConfirmedUrl("2025-05-15T18:00:00.000Z")).toBe(
       "/candidate/field/confirmed?at=2025-05-15T18%3A00%3A00.000Z"
+    );
+  });
+});
+
+// A build is only as current as its slowest source, so all four times name it.
+// Comparing one would leave the map drawing a stale field whenever the source
+// that rolled was not the one being watched.
+describe("naming a candidate build", () => {
+  const build = {
+    run: "2026-08-12T04:00:00.000Z",
+    sceneTime: "2026-08-12T04:01:17.900Z",
+    radarTime: "2026-08-12T04:00:39.000Z",
+    phaseTime: "2026-08-12T04:01:17.900Z",
+  };
+
+  it("is the same string for the same build", () => {
+    expect(CandidateBuild(build)).toBe(CandidateBuild({ ...build }));
+  });
+
+  it("changes when the satellite sweep rolls", () => {
+    expect(CandidateBuild({ ...build, sceneTime: "later" })).not.toBe(
+      CandidateBuild(build)
+    );
+  });
+
+  it("changes when the radar scan rolls", () => {
+    expect(CandidateBuild({ ...build, radarTime: "later" })).not.toBe(
+      CandidateBuild(build)
+    );
+  });
+
+  it("changes when the model cycle rolls", () => {
+    expect(CandidateBuild({ ...build, run: "later" })).not.toBe(
+      CandidateBuild(build)
+    );
+  });
+
+  // The phase scan is the one source the join can do without, so its absence
+  // has to be a build like any other rather than an unnameable one.
+  it("names a build with no phase scan", () => {
+    expect(CandidateBuild({ ...build, phaseTime: null })).not.toBe(
+      CandidateBuild(build)
     );
   });
 });

@@ -30,6 +30,7 @@ import { cloudBaseActions } from "@/lib/store/features/cloudbase";
 import { cloudTopActions } from "@/lib/store/features/cloudtop";
 import { domainActions } from "@/lib/store/features/domain";
 import { radarActions } from "@/lib/store/features/radar";
+import { seedabilityActions } from "@/lib/store/features/seedability";
 import { soundingActions } from "@/lib/store/features/sounding";
 
 // Fakes
@@ -359,6 +360,87 @@ describe("ArcGIS in forecast mode", () => {
 
     expect(forecastLayer.url).toBe("");
     expect(precipLayer.url).toBe("");
+  });
+});
+
+// The server rebuilds the join as its sources roll, and the candidate layers
+// hold whatever geometry they fetched on load. When the two come apart the
+// panel describes one build over ground drawn from another, which is how green
+// ends up captioned as frozen.
+describe("ArcGIS following the candidate build", () => {
+  const A = "run|scene-a|radar-a|phase-a";
+  const B = "run|scene-b|radar-a|phase-b";
+
+  const drawn = (store: ReturnType<typeof createTestStore>, build: string) =>
+    act(() => {
+      store.dispatch(seedabilityActions.setDrawn(build));
+    });
+
+  // The first build named is the one the layers already fetched on load, so
+  // going after it again would be a second download of the same frame.
+  it("does not refetch the build the layers opened on", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    fieldLayer.refresh.mockClear();
+    confirmedLayer.refresh.mockClear();
+    drawn(store, A);
+
+    expect(fieldLayer.refresh).not.toHaveBeenCalled();
+    expect(confirmedLayer.refresh).not.toHaveBeenCalled();
+  });
+
+  it("redraws the field and its outline when the server rebuilds", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    drawn(store, A);
+    fieldLayer.refresh.mockClear();
+    confirmedLayer.refresh.mockClear();
+    drawn(store, B);
+
+    expect(fieldLayer.refresh).toHaveBeenCalled();
+    expect(confirmedLayer.refresh).toHaveBeenCalled();
+  });
+
+  // Both are traced from the same build. Sending one and not the other would
+  // put an outline from one satellite sweep around a field from another.
+  it("sends the outline after the field it annotates", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    drawn(store, A);
+    fieldLayer.refresh.mockClear();
+    confirmedLayer.refresh.mockClear();
+    drawn(store, B);
+
+    expect(confirmedLayer.refresh.mock.calls.length).toBe(
+      fieldLayer.refresh.mock.calls.length
+    );
+  });
+
+  it("stays put while the build is unchanged", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    drawn(store, A);
+    fieldLayer.refresh.mockClear();
+    drawn(store, A);
+
+    expect(fieldLayer.refresh).not.toHaveBeenCalled();
+  });
+
+  // A rolled radar scan is a different answer about which candidates are
+  // raining, so the field it draws changed even though the sweep did not.
+  it("follows a source other than the satellite rolling", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    drawn(store, A);
+    fieldLayer.refresh.mockClear();
+    drawn(store, "run|scene-a|radar-b|phase-a");
+
+    expect(fieldLayer.refresh).toHaveBeenCalled();
   });
 });
 

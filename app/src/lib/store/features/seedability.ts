@@ -15,6 +15,22 @@ type SeedabilityState = {
    */
   visible: boolean;
   /**
+   * Which build the candidate layers are drawn from, as `CandidateBuild` spells
+   * it. Null until the first answer off the server names one.
+   *
+   * The server rebuilds the join as its sources roll — a new satellite sweep
+   * every 5 minutes, a new radar scan every 2 — and the layers fetch their
+   * geometry once. Without this the map keeps showing the build it opened on
+   * while every click is answered from the current one, and the two contradict
+   * each other about a cell: an outline around ground the readout calls frozen,
+   * green over a cell the readout says holds nothing to seed.
+   *
+   * So the build rides in the store and the map follows it. It is a string
+   * rather than the times themselves because nothing compares the parts — the
+   * only question asked of it is whether it is still the same build.
+   */
+  drawn: string | null;
+  /**
    * The join read over the clicked cell, and the only reading of the join the
    * panel carries. One cell, so it fits in the store; a summary of the whole
    * domain would be a statement about the country rather than about the cloud
@@ -32,6 +48,7 @@ type SeedabilityState = {
  */
 const initialState: SeedabilityState = {
   visible: true,
+  drawn: null,
   here: undefined,
   hereLoading: false,
   hereError: null,
@@ -43,6 +60,9 @@ const seedabilitySlice = createSlice({
   reducers: {
     setVisible(state, action: PayloadAction<boolean>) {
       state.visible = action.payload;
+    },
+    setDrawn(state, action: PayloadAction<string>) {
+      state.drawn = action.payload;
     },
     setHere(state, action: PayloadAction<CandidatePoint>) {
       state.here = action.payload;

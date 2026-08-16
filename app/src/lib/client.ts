@@ -175,6 +175,30 @@ export async function GetCandidatePoint(
 }
 
 /**
+ * Which build an answer came off, as one comparable string.
+ *
+ * The join is only as current as its slowest source, so a build is named by all
+ * four: the model cycle, the satellite sweep, the radar scan and the phase
+ * sweep. Any one of them rolling is a different picture of the sky, and the
+ * layers have to be sent after it.
+ *
+ * Both the summary and the point readout carry these times, and they spell the
+ * phase sweep differently — `phase.sceneTime` on one, `phaseTime` on the other.
+ * Reconciling that is exactly the kind of transform that belongs here rather
+ * than at two call sites that could drift apart.
+ */
+export function CandidateBuild(build: {
+  run: string;
+  sceneTime: string;
+  radarTime: string;
+  phaseTime: string | null;
+}): string {
+  return [build.run, build.sceneTime, build.radarTime, build.phaseTime].join(
+    "|"
+  );
+}
+
+/**
  * The edge of the model, as one polygon.
  *
  * Drawn as the line inside which a click is answered. It never changes, so it

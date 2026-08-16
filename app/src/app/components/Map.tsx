@@ -60,6 +60,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const drawnCloudUrl = useRef<string | null>(null);
   const drawnPrecipUrl = useRef<string | null>(null);
   const drawnReplayAt = useRef<string | null>(null);
+  const drawnBuild = useRef<string | null>(null);
 
   const dispatch = useAppDispatch();
   const coordinates = useAppSelector((state) => state.interactions.coordinates);
@@ -70,6 +71,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const liquid = useAppSelector((state) => state.candidate.liquid);
   const radar = useAppSelector((state) => state.radar.visible);
   const field = useAppSelector((state) => state.seedability.visible);
+  const build = useAppSelector((state) => state.seedability.drawn);
   const ring = useAppSelector((state) => state.domain.ring);
   const ready = useAppSelector((state) => state.replay.ready);
   const replayCloudBase = useAppSelector((state) => state.replay.cloudBase);
@@ -214,6 +216,29 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ForecastPrecipLayer.url = precipUrl;
     ForecastPrecipLayer.refresh();
   }, [precipUrl]);
+
+  // Send the candidate layers after the build the store says is current.
+  //
+  // Their urls never change — they are pinned to the analysis hour — so this
+  // refetches the same two routes rather than repointing them. The server has
+  // rebuilt the join underneath, and the ground these draw is what changed.
+  //
+  // The first build named is the one they already fetched on load, so it is
+  // recorded and nothing is refetched. After that a change means the server
+  // answered a click off a newer build than the map is showing, and the map
+  // goes and gets it: an outline drawn from a satellite sweep the readout is
+  // no longer talking about is how green ground comes to be captioned as
+  // frozen. The store carries the whole build, so a rolled radar scan moves
+  // these too — the field is drawn from every source, not just the sweep.
+  useEffect(() => {
+    if (build === null || drawnBuild.current === build) return;
+    const first = drawnBuild.current === null;
+    drawnBuild.current = build;
+    if (first) return;
+
+    CandidateFieldLayer.refresh();
+    CandidateConfirmedLayer.refresh();
+  }, [build]);
 
   // Point the replay layers at the hour that is ready to draw.
   //
