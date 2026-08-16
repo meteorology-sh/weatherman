@@ -308,6 +308,28 @@ observation behind it. One switch drives both: an outline with no field under it
 would mark ground the map is not drawing. It is an annotation and never a
 subset, and clicking inside or outside it returns a candidate either way.
 
+**The outline is about phase, not temperature.** It encloses cells whose top the
+satellite classifies as supercooled or mixed. Liquid stays liquid well past
+−20 °C, so a colder top can be inside the outline and a warmer one outside it —
+that is the outline working, not failing. Cloud-top temperature ranks cloud and
+cannot separate a turret that has frozen from one that has not; this can.
+
+**The map is drawn from one build and the panel answers from the current one,
+so the map follows the build.** The server rebuilds the join as its sources roll
+— a satellite sweep every 5 minutes, a radar scan every 2 — while the layers
+fetch their geometry once. A build is named by all four times together, and when
+a click's answer names a newer one than the layers hold, the field and its
+outline are refetched. Nothing polls: a map nobody has clicked can be sitting on
+the build it opened on, and the panel prints every source's scan time so that is
+visible rather than implied.
+
+**A rejection for "no cloud seen" is a rejection by the pressure retrieval.**
+That retrieval has no answer over a large share of low warm liquid cloud, so the
+phase scan can be describing the top of a cloud the cloud-top layer reports
+clear sky over. The panel prints both, and a cell rejected this way is usually
+one a warm top would have rejected anyway — but the reason it gives is about the
+instrument (`MEASUREMENTS.md` §4).
+
 #### Two seeding strategies, and which one this map serves
 
 Texas seeds **growing convective turrets**: cloud base 4,000–12,000 ft, a top
@@ -424,7 +446,8 @@ The cloud-top layer is the only one assembled from two sources, and the only one
 whose geometry is observed:
 
 ```
-noaa-goes19 listing → newest ABI-L2-ACHP2KMC scene (4.1 MB NetCDF4)
+noaa-goes19 listing → newest sweep both products filed [services/goes/sweep.ts]
+             → its ABI-L2-ACHP2KMC scene (4.1 MB NetCDF4)
              → h5wasm → cloud-top pressure + projection constants
              → ABI fixed grid → HRRR's 12 km grid   [services/goes/abi.ts]
              → Hrrr.column() supplies TMP at that pressure
@@ -432,12 +455,13 @@ noaa-goes19 listing → newest ABI-L2-ACHP2KMC scene (4.1 MB NetCDF4)
              → GET /cloudtop/temperature → CandidateCloudTopLayer.url
 ```
 
-The phase scene is read off the same bucket by the same machinery, and is the
-one GOES product with no layer and no route — the join reads it and the panel
-reports it:
+The phase scene is read off the same bucket by the same machinery, from the
+**same sweep** — the two are never asked separately, or the join would report a
+cloud top and a cloud phase measured five minutes apart. It is the one GOES
+product with no layer and no route: the join reads it and the panel reports it.
 
 ```
-noaa-goes19 listing → nearest ABI-L2-ACTPC scene (666 KB NetCDF4)
+noaa-goes19 listing → the same sweep's ABI-L2-ACTPC scene (666 KB NetCDF4)
              → h5wasm → one class per pixel + projection constants
                                                 [services/goes/scene.ts]
              → ABI fixed grid → HRRR's 12 km grid, commonest class per cell
@@ -474,8 +498,18 @@ GET /candidate/point?lat&lon → the cached join, read at one cell
 **The build keeps the arrays it joined**, not just the contours, which is what
 lets a click be answered from the picture on screen rather than from a fresh
 read of five sources. They are references to grids each source already caches,
-so keeping them costs nothing, and it is the reason green ground and a green
-readout cannot disagree about a cell.
+so keeping them cost nothing.
+
+That settles a cell **within** a build. Across builds it takes the store: the
+summary route names the build the layers opened on, every click's answer names
+the build it came off, and a change sends the field and its outline back for the
+new geometry.
+
+```
+GET /candidate/field/stats → SeedabilityProvider → seedability.drawn
+GET /candidate/point       → CandidatePointProvider → seedability.drawn
+                           → Map.tsx refreshes the field and its outline
+```
 
 **Cache policy follows the source's own cycle.** A given HRRR run+hour never
 changes, so frames cache forever and evict only when the run rolls. Profile grids

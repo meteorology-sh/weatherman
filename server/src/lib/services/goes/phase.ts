@@ -266,11 +266,18 @@ export function classify(
  * cell indexes straight into the image.
  *
  * **A class cannot be averaged, so this counts instead.** A cell is clear
- * unless most of its pixels hold cloud — the same majority rule the cloud-top
- * layer uses, so the two products cannot disagree about where there is cloud at
- * all — and the cell then takes the commonest class among the cloudy pixels.
- * Commonest rather than a share above some cutoff, because a cutoff would be a
- * number nothing in the literature sets.
+ * unless most of its pixels hold cloud, and it then takes the commonest class
+ * among the cloudy ones. Commonest rather than a share above some cutoff,
+ * because a cutoff would be a number nothing in the literature sets.
+ *
+ * **The majority rule has the same shape as the cloud-top layer's and does not
+ * give the same answer.** There a pixel counts as cloudy when the height
+ * retrieval produced a pressure; here it counts when the classifier called it
+ * anything other than clear sky, which includes the pixels it declined to
+ * classify. The two retrievals also fail over different ground, and the height
+ * one is weakest over low warm liquid cloud. So a cell can carry an observed
+ * liquid top while the cloud-top layer reports clear sky over it, and the panel
+ * prints both — see `MEASUREMENTS.md` §4.
  */
 export function resample(
   grid: AbiGrid,

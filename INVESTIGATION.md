@@ -401,6 +401,41 @@ as −5…−12 °C where the code reads `SEEDING.coldestC` = **−18** (lines 9
 "Cold edge of the seeding band, −12 °C" and returns the −18 °C height. The behaviour
 is correct; the documentation is stale, and it is stale on the type that consumers read.
 
+### 5.8 Two ways the map and the panel came to disagree about a cell
+
+Both were found by clicking the candidate map near Denver on 2026-08-16 and reading
+answers that contradicted the ground under the cursor. Both are measurements against
+the live server, not inference from the code.
+
+**The outline and the readout were describing different builds.** The candidate
+layers fetch their GeoJSON once and were never refreshed; the point route is answered
+from whatever build the server holds when the click lands, and the join caches for
+2 minutes over sources that roll every 2 to 5. Two fetches of `/candidate/field/confirmed`
+nine minutes apart shared 42 of 63 polygons — 21 gone, 27 new. So a third of the
+outline turns over inside ten minutes while the drawn copy stands still, which is how
+a click inside the outline came back "the top of this cloud has already frozen."
+
+**The two ABI products were a sweep apart.** Polling the bucket at 15-second cadence
+from 02:32Z to 02:47Z, the newest ACTP scan ran ahead of the newest ACHP scan on every
+one of the four 5-minute cycles observed, for 45–75 seconds each — the phase file
+lands first and the pressure file follows. That is roughly a 20% duty cycle, and the
+join's 2-minute cache pins a mismatched pair in place once it forms.
+
+Two further measurements sit behind numbers quoted elsewhere:
+
+- Sampling 121 interior points of the confirmed outline, 8 resolved to a cell that was
+  not confirmed — three reading `ice`, four not candidates at all — every one of them
+  0.6–3.2 km inside the drawn edge. The contour puts its boundary at the midpoint
+  between cell centres in grid space, while the click resolves the nearest centre in
+  lat/lon with a `cos(lat)` scale; on a Lambert grid those two are not the same cell
+  near an edge. Isolated single-cell diamonds are clean — ~110 points inside each of
+  five of them all resolved to their own cell — so this is an edge effect on
+  multi-cell polygons only.
+- Probing 588 cells across CONUS, 67 carried no cloud-top pressure while ACTP saw
+  cloud: 32 of 74 liquid-topped cells, 34 of 260 ice-topped, 1 of 26 supercooled. No
+  cell had a temperature ACTP called clear. This is the "no cloud seen here" the panel
+  printed over a cell it simultaneously described as having a liquid top.
+
 ---
 
 ## 6. What a physical ground station adds

@@ -142,6 +142,31 @@ takes the commonest class among its cloudy pixels — and break ties toward the
 colder class, so a coin toss costs a candidate its confirmation rather than
 manufacturing one.
 
+**The two ABI cloud-top products disagree about where there is cloud at all.**
+Cloud-top pressure and cloud-top phase are separate retrievals over the same
+pixels, and the pressure one is the more reserved: it returns a fill value
+wherever the height algorithm fails to converge, and those failures concentrate
+over low warm liquid cloud. Roughly two in five cells whose top the phase
+product calls liquid carry no cloud-top pressure at all, against about one in
+eight of the cells it calls ice and one in twenty-five of the cells it calls
+supercooled. It runs one way — a cell with a cloud-top temperature is not
+called clear by the phase product.
+
+So **"the satellite sees no cloud here" is a statement about the pressure
+retrieval, not about the sky.** A cell can be rejected for it while the phase
+scan is describing the top of that same cloud, and both readings belong on the
+panel labelled as what they are.
+
+**Read the two products from one sweep.** ABI scans CONUS every 5 minutes and
+publishes each product as its own file; the phase file lands about a minute
+ahead of the pressure file, so taking each product's newest file pairs a cloud
+top from one sweep with a phase from the next for about a minute in five. Five
+minutes is enough for a cell's cloud to drift into its neighbour at ordinary
+storm speeds and enough for a turret to glaciate, which is the change the phase
+observation exists to catch. Resolve the newest sweep both products have
+published and read both from it — a scan up to five minutes old beats two scans
+reported as one moment.
+
 **HRRR diagnoses a cloud base over roughly twice the ground it diagnoses a
 cloud top.** Both are bitmapped fields in `wrfsfc`, and the base is the denser
 of the two by a wide margin. So depth — the other half of C2 — cannot be a

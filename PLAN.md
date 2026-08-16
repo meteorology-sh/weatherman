@@ -543,6 +543,26 @@ about real-world seedability can be made.
 4. **Candidate ramp shape.** Nested vs disjoint, decided on measured coverage in
    Phase 5 — but Phase 2 ships before that, so it needs a provisional choice.
    Recommend nested, revisited once the climatology lands.
+5. **What rejects a cell the pressure retrieval has no answer over.** Probing 588
+   cells of one scene, 32 of the 74 cells whose top ACTP called liquid carried no
+   ACHP pressure, against 34 of 260 ice-topped and 1 of 26 supercooled — so
+   `noCloudSeen` is currently doing the work of a warm-top rejection over low
+   warm cloud, under a reason that is about the instrument. Gating it on both
+   products agreeing there is no cloud is three lines in `verdict()`, but the
+   next test needs a cloud-top temperature the cell does not have, so it opens
+   the real question: what is a candidate whose top temperature is unknown? For
+   a warm liquid top the outcome does not change — `topTooWarm` rejects it
+   either way. It changes for cold tops ACHP could not retrieve, which would
+   become candidates with no observed top at all. Needs a physics decision, not
+   a patch.
+6. **Whether the candidate map should refresh on its own.** It follows the build
+   when a click reveals a newer one, which closes the case an operator can
+   actually see. A map nobody has clicked still sits on the build it opened on.
+   Polling would close that, and nothing in the app polls today: every provider
+   is fetch-once-with-a-guard, because StrictMode double-invokes effects. The
+   cost is not the interval — it is an outline moving under the cursor
+   unprompted, which is a UX decision. A real-time build of this product would
+   push builds instead of polling for them.
 
 ---
 
