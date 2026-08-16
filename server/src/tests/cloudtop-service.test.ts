@@ -211,7 +211,7 @@ describe("scene naming", () => {
     "OR_ABI-L2-ACHP2KMC-M6_G19_s20262250051179_e20262250053552_c20262250055335.nc";
 
   // The scan time is the layer's valid time, and it only appears in the name —
-  // latestKey has to compare scenes before downloading one.
+  // the sweep has to compare scenes before downloading one.
   it("reads the scan start out of the file name", () => {
     assert.equal(sceneTime(key), "2026-08-13T00:51:17.900Z");
   });

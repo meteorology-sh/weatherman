@@ -136,7 +136,7 @@ export function text(node: H5Dataset, name: string): string {
 }
 
 /** Every key under a prefix. The listing is XML and only the keys are wanted. */
-export async function list(prefix: string): Promise<string[]> {
+async function list(prefix: string): Promise<string[]> {
   const res = await fetch(
     `${BUCKET}/?list-type=2&prefix=${encodeURIComponent(prefix)}`
   );
@@ -161,69 +161,18 @@ function prefix(product: string, t: Date): string {
 }
 
 /**
- * Newest published scene key for a product.
+ * Every scene key a product published in the hour containing `t`.
  *
- * Keys sort lexicographically by their embedded start time, so the last one in
- * the hour's listing is the newest. The walk back covers the hour boundary — at
- * 00:02 UTC the current hour may hold nothing yet — and gives up rather than
- * silently serving something stale.
+ * The listing prefix is hour-resolved, so an hour is the smallest thing that
+ * can be asked for and every walk over the archive is a walk over hours.
+ *
+ * This is the only way into the listing, and it hands back an hour rather than
+ * a chosen scene on purpose: **which** scan gets read is `sweep.ts`'s decision,
+ * because it is a decision about both products at once and no single product
+ * can make it alone.
  */
-export async function latestKey(product: string): Promise<string> {
-  const now = Date.now();
-  for (let back = 0; back < 4; back++) {
-    const keys = await list(prefix(product, new Date(now - back * 3_600_000)));
-    if (keys.length) return keys[keys.length - 1];
-  }
-  throw new Error(`No GOES ${product} scene published in the last 4 hours`);
-}
-
-/**
- * The scene nearest `at`.
- *
- * The listing prefix is already hour-resolved, so this lists the hour and the
- * one before it — a scan starting at 13:56 is the nearest neighbour of 14:00
- * and lives under the previous hour's prefix.
- *
- * `tolerance` is the caller's, because it is a statement about that product's
- * cadence: a scene further away than that means a gap in the record, and
- * answering with the closest thing would caption an unrelated scan with the
- * time that was asked for.
- */
-export async function keyAt(
-  product: string,
-  at: Date,
-  tolerance: number
-): Promise<string> {
-  if (Number.isNaN(at.getTime())) {
-    throw new Error("`at` must be an ISO 8601 timestamp");
-  }
-  const want = at.getTime();
-  const keys: string[] = [];
-  for (const offset of [-1, 0]) {
-    keys.push(
-      ...(await list(prefix(product, new Date(want + offset * 3_600_000))))
-    );
-  }
-
-  let best: { key: string; delta: number } | null = null;
-  for (const key of keys) {
-    const t = Date.parse(sceneTime(key));
-    if (Number.isNaN(t)) continue;
-    const delta = Math.abs(t - want);
-    if (!best || delta < best.delta) best = { key, delta };
-  }
-
-  if (!best) {
-    throw new Error(`No archived GOES scene near ${at.toISOString()}`);
-  }
-  if (best.delta > tolerance) {
-    throw new Error(
-      `Nearest GOES scene to ${at.toISOString()} is ` +
-        `${Math.round(best.delta / 60_000)} min away — refusing to caption it ` +
-        `as that time`
-    );
-  }
-  return best.key;
+export async function keysInHour(product: string, t: Date): Promise<string[]> {
+  return list(prefix(product, t));
 }
 
 /**

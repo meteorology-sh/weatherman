@@ -28,27 +28,20 @@
 // Services
 import { Hrrr } from "../hrrr/forecast";
 import { pixelAt } from "./abi";
-import {
-  download,
-  gridOf,
-  keyAt,
-  latestKey,
-  readScene,
-  sceneTime,
-  scalar,
-  text,
-} from "./scene";
+import { download, gridOf, readScene, sceneTime, scalar, text } from "./scene";
+import { PHASE_PRODUCT, latestPairedKey, pairedKeyAt } from "./sweep";
 
 // Types
 import type { Grid, Geo } from "../shared/contour";
 import type { AbiGrid } from "./abi";
 
 /**
- * `ABI-L2-ACTPC` is cloud-top phase, CONUS sector, 2 km — 666 KB a scene, six
- * times smaller than the cloud-top pressure scene, on the same bucket at the
- * same 5-minute cadence.
+ * Cloud-top phase. The constant and the reason for it live in `sweep.ts`, which
+ * owns both halves of a scan — this service reads one of them and never chooses
+ * which scan it reads. That is what keeps the phase this file reports and the
+ * cloud-top height the other reports from being measured at different moments.
  */
-const PRODUCT = "ABI-L2-ACTPC";
+const PRODUCT = PHASE_PRODUCT;
 
 /** One scene's cadence, matching the cloud-top service for the same reason. */
 const CACHE_TTL_MS = 5 * 60_000;
@@ -163,7 +156,7 @@ export class CloudPhaseService {
    * not be rescanned.
    */
   private async replay(at: Date): Promise<Scene> {
-    const key = await keyAt(PRODUCT, at, SCENE_TOLERANCE_MS);
+    const key = await pairedKeyAt(PRODUCT, at, SCENE_TOLERANCE_MS);
 
     const cached = this.archive.get(key);
     if (cached) return cached;
@@ -186,7 +179,7 @@ export class CloudPhaseService {
   }
 
   private async build(key?: string, at?: Date): Promise<Scene> {
-    const sceneKey = key ?? (await latestKey(PRODUCT));
+    const sceneKey = key ?? (await latestPairedKey(PRODUCT));
 
     // The profile grid is only wanted for its geometry — this product carries
     // no temperature and needs none. It is the same build the cloud-top layer
