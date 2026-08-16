@@ -314,6 +314,22 @@ satellite classifies as supercooled or mixed. Liquid stays liquid well past
 that is the outline working, not failing. Cloud-top temperature ranks cloud and
 cannot separate a turret that has frozen from one that has not; this can.
 
+**Within a few kilometres of any drawn edge, a click can be answered by the cell
+next door.** The two disagree about where a cell ends. A contour is traced at
+the midpoint between cell centres in grid space; a click is answered by the
+nearest cell centre in latitude and longitude. HRRR's grid is Lambert, so its
+rows and columns rotate against true north away from the standard meridian, and
+those two rules pick different cells in a rim roughly 3 km wide inside the drawn
+boundary. A click just inside green there can report a cell that was rejected,
+or one holding nothing to seed.
+
+It needs a boundary that runs along a cell edge, so it is a multi-cell effect:
+an isolated one-cell shape sits entirely inside its own cell and every click in
+it reads that cell. **The readout is right about the cell it names** — it prints
+the cell's own centre, which is what an operator should fly to — so the fix when
+the two disagree is to trust the coordinates in the panel over the pixel under
+the cursor.
+
 **The map is drawn from one build and the panel answers from the current one,
 so the map follows the build.** The server rebuilds the join as its sources roll
 — a satellite sweep every 5 minutes, a radar scan every 2 — while the layers
