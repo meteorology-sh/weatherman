@@ -314,21 +314,23 @@ satellite classifies as supercooled or mixed. Liquid stays liquid well past
 that is the outline working, not failing. Cloud-top temperature ranks cloud and
 cannot separate a turret that has frozen from one that has not; this can.
 
-**Within a few kilometres of any drawn edge, a click can be answered by the cell
-next door.** The two disagree about where a cell ends. A contour is traced at
-the midpoint between cell centres in grid space; a click is answered by the
-nearest cell centre in latitude and longitude. HRRR's grid is Lambert, so its
-rows and columns rotate against true north away from the standard meridian, and
-those two rules pick different cells in a rim roughly 3 km wide inside the drawn
-boundary. A click just inside green there can report a cell that was rejected,
-or one holding nothing to seed.
+**A point is read against the cell whose footprint covers it.** A cell's
+footprint is the 3 km block that was averaged into it — a square in the grid's
+own rows and columns — and that is the square the contours are traced from, so
+the readout and the bands are answering in the same space. Not the nearest cell
+_centre_ in latitude and longitude: HRRR's grid is Lambert, its rows lean away
+from the central meridian, and near a boundary the nearest centre is a different
+cell from the one the ground belongs to.
 
-It needs a boundary that runs along a cell edge, so it is a multi-cell effect:
-an isolated one-cell shape sits entirely inside its own cell and every click in
-it reads that cell. **The readout is right about the cell it names** — it prints
-the cell's own centre, which is what an operator should fly to — so the fix when
-the two disagree is to trust the coordinates in the panel over the pixel under
-the cursor.
+**A band's drawn edge is smoothed, and near a concave corner it overhangs a cell
+it excludes.** The tracer cuts across a corner rather than turning it, so where a
+band bends inward — around a hole, along a one-cell diagonal — the fill covers
+part of a neighbouring cell that failed a test. A click there reads that
+neighbour, correctly: the cell is excluded and the band is what is drawn
+loosely. No cell lookup closes this, because there is nothing wrong with the
+lookup; it is the price of a smooth boundary over a 12 km grid, and it is worst
+exactly where the candidate field is thinnest. **The coordinates in the panel
+are the answer**, not the pixel under the cursor.
 
 **The map is drawn from one build and the panel answers from the current one,
 so the map follows the build.** The server rebuilds the join as its sources roll

@@ -247,6 +247,65 @@ export function nearestCell(geo: Geo, lat: number, lon: number): number {
 }
 
 /**
+ * Index of the grid cell whose **footprint** contains a point.
+ *
+ * This is what a readout wants and `nearestCell` is not it. A cell's footprint
+ * is the 3 km block that was averaged into it — a square in the grid's own row
+ * and column space — and the contours are traced in that same space, with each
+ * band edge drawn midway between two cell centres. The nearest *centre* in
+ * latitude and longitude is a different question, and near a cell boundary the
+ * two answer differently, so a point inside a drawn band could be reported
+ * against a neighbouring cell that the band excluded.
+ *
+ * **Solved in the grid's own space, without a projection inverse.** Take the
+ * nearest cell as a starting guess, then read the two vectors that step one
+ * cell along its row and one along its column straight off the lat/lon arrays.
+ * They span the local grid, so the point's offset from that cell's centre
+ * resolves into "how many cells along the row, how many along the column", and
+ * rounding both lands on the cell containing it. The starting guess only has to
+ * be within a cell for the rounding to correct it, which `nearestCell` always
+ * is.
+ *
+ * At the grid's edge the step goes to the neighbour behind and the vector is
+ * negated, so the basis means the same thing everywhere.
+ */
+export function cellAt(geo: Geo, lat: number, lon: number): number {
+  const { nx, ny } = geo;
+  const seed = nearestCell(geo, lat, lon);
+  const i0 = seed % nx;
+  const j0 = Math.floor(seed / nx);
+
+  const [i1, si] = i0 + 1 < nx ? [i0 + 1, 1] : [i0 - 1, -1];
+  const [j1, sj] = j0 + 1 < ny ? [j0 + 1, 1] : [j0 - 1, -1];
+  // A grid one cell across in either direction spans nothing to solve in.
+  if (i1 < 0 || j1 < 0) return seed;
+
+  const at = (i: number, j: number) => j * nx + i;
+  const here = at(i0, j0);
+  const alongRow: [number, number] = [
+    si * (geo.lons[at(i1, j0)] - geo.lons[here]),
+    si * (geo.lats[at(i1, j0)] - geo.lats[here]),
+  ];
+  const alongColumn: [number, number] = [
+    sj * (geo.lons[at(i0, j1)] - geo.lons[here]),
+    sj * (geo.lats[at(i0, j1)] - geo.lats[here]),
+  ];
+
+  const det = alongRow[0] * alongColumn[1] - alongRow[1] * alongColumn[0];
+  // Degenerate only if the two steps are parallel, which no real grid is.
+  if (det === 0) return seed;
+
+  const dx = lon - geo.lons[here];
+  const dy = lat - geo.lats[here];
+  const along = (dx * alongColumn[1] - dy * alongColumn[0]) / det;
+  const across = (alongRow[0] * dy - alongRow[1] * dx) / det;
+
+  const i = Math.min(Math.max(i0 + Math.round(along), 0), nx - 1);
+  const j = Math.min(Math.max(j0 + Math.round(across), 0), ny - 1);
+  return at(i, j);
+}
+
+/**
  * Parse `grib_get_data` output ("lat lon value" per line, row-major) directly
  * into block averages, so the 1.9M-point grid is never held in memory. `scale`
  * converts the GRIB units to the units we contour in, and is applied to the

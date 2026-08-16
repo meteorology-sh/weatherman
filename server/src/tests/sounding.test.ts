@@ -8,7 +8,12 @@ import {
   SCOUT_LADDER_MB,
   SOUNDING_LEVELS,
 } from "../lib/services/hrrr/profile";
-import { inGrid, nearestCell, perimeter } from "../lib/services/shared/grid";
+import {
+  cellAt,
+  inGrid,
+  nearestCell,
+  perimeter,
+} from "../lib/services/shared/grid";
 
 // Types
 import type { SoundingLevel } from "../lib/services/hrrr/profile";
@@ -129,6 +134,70 @@ describe("nearestCell", () => {
     const cell = nearestCell(geo, 40.5, -98.4);
 
     assert.equal(geo.lats[cell], 40);
+  });
+});
+
+/**
+ * The cell a readout is about: the one whose footprint covers the point, which
+ * is the same square the contours are traced from.
+ *
+ * The grid here is **rotated**, like the real one — HRRR's rows run along the
+ * Lambert projection rather than along a parallel. That is what separates this
+ * from `nearestCell`: on a rotated grid the nearest centre and the containing
+ * footprint are different cells near a boundary, and a readout that answers
+ * with the first can contradict a band drawn from the second.
+ */
+describe("cellAt", () => {
+  const TURN = (30 * Math.PI) / 180;
+  const nx = 3;
+  const ny = 3;
+  const lons = new Float32Array(nx * ny);
+  const lats = new Float32Array(nx * ny);
+
+  // One degree per cell, the whole lattice turned 30 degrees.
+  for (let j = 0; j < ny; j++) {
+    for (let i = 0; i < nx; i++) {
+      lons[j * nx + i] = -100 + i * Math.cos(TURN) - j * Math.sin(TURN);
+      lats[j * nx + i] = 40 + i * Math.sin(TURN) + j * Math.cos(TURN);
+    }
+  }
+  const geo = { nx, ny, lats, lons };
+
+  /** The point `along` cells down the row and `across` the column from a cell. */
+  const offset = (i: number, j: number, along: number, across: number) =>
+    [
+      lats[j * nx + i] + along * Math.sin(TURN) + across * Math.cos(TURN),
+      lons[j * nx + i] + along * Math.cos(TURN) - across * Math.sin(TURN),
+    ] as const;
+
+  it("answers with the cell a point sits in", () => {
+    const [lat, lon] = offset(1, 1, 0.1, 0.1);
+
+    assert.equal(cellAt(geo, lat, lon), 4);
+  });
+
+  // The case the readout was getting wrong. Toward the corner of a rotated
+  // cell, a neighbour's centre is closer on the ground while the point is still
+  // inside this cell's own footprint — and the footprint is what was contoured.
+  it("keeps a point in its own cell where a neighbour's centre is nearer", () => {
+    const [lat, lon] = offset(1, 1, 0.45, 0.45);
+
+    assert.notEqual(nearestCell(geo, lat, lon), 4);
+    assert.equal(cellAt(geo, lat, lon), 4);
+  });
+
+  it("crosses to the neighbour once the point does", () => {
+    const [lat, lon] = offset(1, 1, 0.55, 0);
+
+    assert.equal(cellAt(geo, lat, lon), 5);
+  });
+
+  // The basis is read from a neighbour, and an edge cell has one on one side
+  // only. Stepping backwards and negating has to give the same answer.
+  it("resolves against the edge of the grid", () => {
+    const [lat, lon] = offset(2, 2, -0.1, -0.1);
+
+    assert.equal(cellAt(geo, lat, lon), 8);
   });
 });
 

@@ -38,7 +38,7 @@ import {
   blockAverage,
   blockAverageSparse,
   inGrid,
-  nearestCell,
+  cellAt,
   OutsideDomain,
   perimeter,
 } from "../shared/grid";
@@ -442,7 +442,7 @@ export class ForecastService {
     ]);
     const geo = this.geo!;
     if (!inGrid(geo, lat, lon)) throw new OutsideDomain(lat, lon);
-    const cell = nearestCell(geo, lat, lon);
+    const cell = cellAt(geo, lat, lon);
 
     // The grid holds levels up to 100 mb for the cloud-top layer; the readout
     // shows only the ones a drone flies in. See PROFILE_LEVELS.

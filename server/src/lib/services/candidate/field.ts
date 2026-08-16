@@ -26,12 +26,7 @@ import { SEEDING } from "../hrrr/slw";
 import { Goes } from "../goes/cloudtop";
 import { GoesPhase } from "../goes/phase";
 import { Mrms } from "../mrms/radar";
-import {
-  assertInDomain,
-  inGrid,
-  nearestCell,
-  OutsideDomain,
-} from "../shared/grid";
+import { assertInDomain, inGrid, cellAt, OutsideDomain } from "../shared/grid";
 import {
   emptyPoint,
   emptyStats,
@@ -174,7 +169,7 @@ export class CandidateService {
     const { frame, cells } = await this.scene(at);
     const { geo, inputs } = cells;
     if (!inGrid(geo, lat, lon)) throw new OutsideDomain(lat, lon);
-    const cell = nearestCell(geo, lat, lon);
+    const cell = cellAt(geo, lat, lon);
 
     const where = {
       run: frame.run,
