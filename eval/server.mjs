@@ -123,6 +123,7 @@ function releaseFeatures(day, rows, from, to) {
     })
     .map((release, index) => {
       const answer = rows?.get(release.at);
+      const reach = gaps(release.at, answer);
       return {
         type: "Feature",
         id: index + 1,
@@ -148,7 +149,13 @@ function releaseFeatures(day, rows, from, to) {
           cloudTopC: answer?.cloudTopC ?? null,
           topPhase: answer?.topPhase ?? null,
           dbz: answer?.dbz ?? null,
-          gaps: gaps(release.at, answer),
+          // Flat, one field per source. A map feature's attributes cannot hold
+          // a nested object — the layer fails to load rather than ignoring it —
+          // so the grouped form is kept for `/day/<date>`, which is read as
+          // JSON and never drawn.
+          gapModel: reach?.model ?? null,
+          gapSatellite: reach?.satellite ?? null,
+          gapRadar: reach?.radar ?? null,
         },
       };
     });

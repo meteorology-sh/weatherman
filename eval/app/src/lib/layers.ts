@@ -100,6 +100,9 @@ const RELEASE_FIELDS = [
   { name: "cloudTopC", type: "double" as const },
   { name: "topPhase", type: "string" as const },
   { name: "dbz", type: "double" as const },
+  { name: "gapModel", type: "integer" as const },
+  { name: "gapSatellite", type: "integer" as const },
+  { name: "gapRadar", type: "integer" as const },
 ];
 
 export const ReleaseLayer = new GeoJSONLayer({
