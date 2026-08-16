@@ -39,7 +39,7 @@ Compose.
   are implementation rather than information.
 - **Docs are axioms, not logs.** State the rule that holds now. No "decided",
   "rejected", "verified", "was X until Y". Evidence and dates belong in
-  `PLAN.md` and `INVESTIGATION.md`, which are allowed to argue.
+  `PLAN.md`, `INVESTIGATION.md` and `EVALUATION.md`, which are allowed to argue.
 
 ## Repository layout
 
@@ -52,6 +52,7 @@ weatherman/
   WEATHERMAN.md              # What the app is, and what each layer claims
   MEASUREMENTS.md            # Physics and sampling limits on any layer
   PLAN.md / INVESTIGATION.md # Where the arguing happens
+  EVALUATION.md              # How the platform is tested against real seeding
 ```
 
 ## Running it

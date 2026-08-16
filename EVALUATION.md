@@ -1,0 +1,565 @@
+# Evaluation — do we paint the ground the aircraft actually seeded
+
+Four cases, the numbers each one reports, and what came back. §5 holds the
+results; everything before it is the design, and everything after is what the
+results did not settle.
+
+`WEATHERMAN.md` says what the app claims and `MEASUREMENTS.md` says what the
+free feeds can answer. This document is allowed to argue, like `PLAN.md` and
+`INVESTIGATION.md`.
+
+---
+
+## 1. The question
+
+> **At the minute a pilot released a flare, at the point they released it, was
+> that 12 km cell painted as a candidate — and if not, which test rejected it?**
+
+That is the whole test. It is a targeting question, and the app answers it
+directly: `GET /candidate/point?lat&lon&at=` reads the join over the cell whose
+footprint covers a point and returns the verdict, the modelled liquid, the
+cloud base, the observed cloud top, the observed top phase and the measured
+reflectivity.
+
+**Outcomes are out of scope.** Nothing free and national measures supercooled
+liquid water (`MEASUREMENTS.md` §2), and rainfall cannot be attributed to
+seeding from a handful of cases — attribution needs a randomised or
+target/control design over seasons. There is no rainfall claim anywhere in this
+plan. §7 says what it would take to add one later.
+
+### The primary hypothesis
+
+**Most seeded points will come back rejected, charged to `raining`, and that
+will be the finding.** §5 says how this landed — half right, and the half that
+was wrong is the more interesting one.
+
+The join crosses a cell off at 20 dBZ, because radar echo means the cloud has
+already converted its liquid and seeding has no headroom. Texas does not work
+that way. Operators seed the **growing turret on the flank of a complex that is
+already raining hard** — on 19 April 2025 the seeded cells carried 63–72 dBZ
+and echo tops of 16.5–17.5 km at the moment they were being seeded. A 12 km
+cell cannot separate a new turret from the mature core 8 km away, and MRMS
+averaged in Z over that block will be dominated by the core.
+
+If that is what comes back, the conclusion is not that the operators are wrong.
+It is that `RAIN_DBZ` encodes the question "has this cloud already spent its
+liquid" and answers it at a resolution that cannot see the part of the storm
+being worked. That is a real finding about the product and it is worth all four
+cases on its own.
+
+---
+
+## 2. The ground truth is far better than a county and a day
+
+WTWMA publishes a per-day report for every operational day of the 2025 season.
+It is a minute-by-minute narrative, and it ends with a table that gives
+**every flare release with a UTC minute and a position to four decimal places**:
+
+```
+Flight Information:  Time (Z) Plane Flare Location Type/Number County
+1843 49P 31.0982 / -100.8598 2G Irion
+1845 49P 31.1313 / -100.8382 2G Irion
+1919 49P 31.1272 / -101.7577 3G + 1H Reagan
+1941 49P 30.9884 / -102.0185 2G Crockett
+```
+
+That is a point, a time and a payload — exactly the three things
+`/candidate/point` needs. One glaciogenic flare is 5.5 g AgI; one hygroscopic
+flare is 500 g NaCl.
+
+The narrative carries more that is directly comparable to fields the app
+already reads:
+
+- **Pilot-reported cloud base**, in flight: on 19 April, "bases 4000 ft
+  (1225 m), temp 75 °F/24 °C" at 1838Z, then "bases are 6000 ft (1830 m) and
+  temp is 59 °F/15 °C" at 1919Z. A measured cloud base against our modelled
+  one, over a known point at a known minute.
+- **The 12Z KMAF and KDRT soundings**, tabulated — freezing level, **−15 °C
+  height**, LCL, CCL, cloud base, warm cloud depth, 700 mb temperature. The
+  −15 °C height sits inside our seeding band, so this is a radiosonde check on
+  the band's altitude. On 19 April: KMAF 5,986 m, KDRT 6,370 m. On 22 April:
+  5,950 m and 6,300 m.
+- **TITAN cell attributes** at intervals through the day, as
+  `echo top (km), VIL (kg/m²), max dBZ` — the three quantities the app reads as
+  `RETOP`, `VIL` and MRMS reflectivity.
+- **Watches and warnings**, timed and by county.
+
+So the test resolves to the individual flare, not to the county-day. That is a
+different quality of evaluation from what the summary page alone would support.
+
+**The reports are text PDFs**, so a small script can lift the release tables
+without anyone transcribing them by hand.
+
+---
+
+## 3. The four cases
+
+| #   | Date              | Releases | What it is                                  |
+| --- | ----------------- | -------- | ------------------------------------------- |
+| T1  | 19 Apr 2025       | 13       | Season opener. Severe, tornadic, and seeded |
+| T2  | 11 Aug 2025       | 46       | The widest day — 7 counties, 1831Z to 0005Z |
+| T3  | 22 Apr 2025       | **0**    | Flew, looked, declined — and said why       |
+| L1  | 19/20/31 Jan 2017 | n/a      | SNOWIE. Measured supercooled liquid         |
+
+### T1 — 19 April 2025, Irion / Reagan / Crockett
+
+Thirteen releases between 1843Z and 1949Z, 27 glaciogenic and 2 hygroscopic
+flares into 3 clouds, from N8549P.
+
+This is the case that tests the primary hypothesis head-on. At 2020Z the report
+records the seeded cells as **16.5–17.5 km tops, 93–287 kg/m² VIL, 63–72 dBZ**,
+and notes the other echoes in Sterling County are "underneath the large anvil
+from the Reagan Co storm." Severe thunderstorm warnings were out for
+north-central Crockett from 1851Z; a tornado warning covered SE Sterling / NW
+Tom Green / N-central Irion from 2100Z; a flash flood warning followed.
+
+Two things to read from it. First, the verdict at each of the thirteen points.
+Second, the anvil note — the report is describing, from the ground, exactly the
+viewing-geometry failure `MEASUREMENTS.md` §4 attributes to the cloud-top phase
+product. Our confirmation outline should be drawing ice over Sterling County
+while turrets grow underneath it.
+
+### T2 — 11 August 2025, seven counties
+
+Forty-six releases across two sorties from N....41P, 1831Z through 0005Z the
+next day, over Sterling, Glasscock, Irion, Tom Green, Schleicher, Crockett and
+Terrell. 84 glaciogenic and 7 hygroscopic flares into 23 clouds.
+
+The widest day of the season, and the one with enough releases to say something
+about the shape of the answer rather than about three clouds. It also spans
+seven hours, so it tests the join across a whole diurnal cycle of HRRR analyses
+rather than at one instant.
+
+### T3 — 22 April 2025, the null
+
+**They launched, flew 1 h 27 m, investigated, and seeded nothing.** The report
+gives the reason in the operator's own words:
+
+> "At 2311Z, decided to send plane back to SJT, anything developing is embedded
+> within and underneath the large anvil, plus lots of lightning."
+
+This is a far stronger null than a day nobody flew. A no-fly day confounds
+opportunity with aircraft availability and crew duty; this one records a trained
+observer looking at the target area and declining it, with the reason attached.
+
+**The test is asymmetric and that is fine.** If the map is empty over the target
+through that window, it agrees. If the map is full, the rejection accounting has
+to explain what the operator was looking at and turning down — and "embedded
+under an anvil with lightning" is not one of our five tests, so a candidate
+field that lights up on 22 April is not necessarily wrong. It is measuring
+something the operator's decision does not.
+
+Note the contrast the two April days set up: on the 19th they seeded cells at
+63–72 dBZ; on the 22nd they declined cells at 66–70 dBZ. Reflectivity is not
+what separated those two days, and our join has nothing else to separate them
+with.
+
+**Alternates**, if more Texas ground is wanted: 26 May 2025 (37 releases, Tom
+Green / Irion / Glasscock) and 11 June 2025 (32 releases, five counties).
+
+### L1 — SNOWIE, January 2017
+
+Glaciogenic seeding of orographic cloud over the Payette basin, Idaho, with AgI
+released from aircraft flying ~50 km tracks perpendicular to the mean wind.
+Friedrich et al. (2020) isolated the seeding signal in radar and gauge data:
+
+| Date        | Seeding | Passes | Water generated            | Natural precip   |
+| ----------- | ------- | ------ | -------------------------- | ---------------- |
+| 19 Jan 2017 | 20 min  | 6      | 123,220 m³ (100 acre-feet) | light, ~1.3 mm/h |
+| 20 Jan 2017 | 86 min  | 8      | 241,260 m³ (196 acre-feet) | almost none      |
+| 31 Jan 2017 | 24 min  | 2      | 339,540 m³ (275 acre-feet) | light, <1 mm/h   |
+
+**Lead with 20 January**: almost no natural precipitation, and the longest
+seeding period of the three.
+
+This is included for one reason. SNOWIE is the only campaign that **measured**
+supercooled liquid water in cloud that was then seeded, and supercooled liquid
+in the band is the app's central variable and the one thing it can never check
+against an observation anywhere else. A candidate-finder that goes blank over
+the one basin where the liquid was measured has a problem worth knowing about,
+even though the regime is winter orographic rather than summer convective.
+
+**Only the HRRR half runs** (§6). Take the seeding-line times and the radar
+observational domain from the paper; the basin sits at roughly 44.0–44.8 °N,
+116.4–115.4 °W, which should be pinned against Figure 1 before any area is
+computed.
+
+---
+
+## 4. What each case measures
+
+### Per release (T1, T2)
+
+For every row of the flight table, call `/candidate/point?lat&lon&at=` and
+record:
+
+- **`verdict`** — `candidate`, `noLiquid`, or which of the five tests rejected
+  it. This is the headline, and the distribution across releases is the result.
+- **`slwGM2`** — how much in-band liquid the model put there. A rejected cell
+  that still carries liquid is a different story from one that carries none.
+- **`cloudBaseFt`** against the pilot's reported base, where the narrative gives
+  one at a matching time and place.
+- **`cloudTopC`** and **`topPhase`** — and on T1, whether the phase over
+  Sterling County reads ice while turrets are growing under the anvil.
+- **`dbz` and `radarCovered`** against the TITAN max dBZ in the narrative at the
+  nearest quoted time.
+
+**Round the release time to the nearest hour and use that cycle.** `at` names
+the HRRR cycle, and the join runs at the analysis hour only; the satellite and
+radar resolve to the nearest scan and refuse anything more than 30 minutes away.
+A release at 1843Z is 17 minutes from the 19z analysis and 43 from the 18z, so
+it belongs to 19z. Record the gap on every row — it is the largest source of
+slop in the whole test.
+
+### Per case, over the target area
+
+Run the join at each hour of the window, clip the field to the county polygons,
+and report:
+
+- **`candidateKm2` inside the counties worked that day**, hour by hour.
+- **Candidate coverage % inside those counties against coverage % over the rest
+  of the target area.** A ratio near 1 means the field is not discriminating —
+  it covers the target because it covers everything.
+- **The rejection partition, clipped to the same ground.** These partition by
+  construction, so an empty map is always explainable. On T3 this is the entire
+  result.
+- **`medianBaseFt` and `windowPct`** against the state's published
+  4,000–12,000 ft operational window.
+- **`medianBandBaseFt`** against the 12Z **−15 °C height** from the KMAF and
+  KDRT soundings printed in that day's own report. This is the one figure in
+  the whole evaluation checked against a radiosonde.
+- **`phase.confirmedKm2` against `phase.glaciatedKm2`.** The only observation of
+  phase in the system. It cannot rule anything out and must not be scored as if
+  it could.
+
+### For L1
+
+The join cannot run, so the metrics are the HRRR half only:
+
+- **In-band liquid water path over the basin at each seeding hour**, from
+  `/forecast/liquid` clipped to the basin box, against the paper's seeding
+  times. Binary first — is there any — then quantitative.
+- **The band's altitude** over the basin from `/forecast/sounding`, against the
+  flight altitudes in the paper. If HRRR puts −5…−18 °C where the aircraft were
+  not, the field is right about the liquid and wrong about where to fly.
+- **Cloud base** from `/forecast/cloudbase`, which in orographic cloud should
+  sit near or below ridge height.
+- Report the absent inputs as absent. A SNOWIE row with three blank columns is
+  the honest output.
+
+---
+
+## 5. What came back
+
+Run on 16 August 2026 against the archive. Reproduce with `eval/points.mjs`,
+`eval/field.mjs` and `eval/snowie.mjs`; raw output is in `eval/out/`.
+
+### Not one seeded point was painted a candidate
+
+Fifty-nine releases across the two Texas days, and the map called none of them.
+**That is the result, and the two days fail it in opposite ways.**
+
+| Case      | Releases | candidate | `raining` | `noLiquid` |
+| --------- | -------- | --------- | --------- | ---------- |
+| T1 19 Apr | 13       | **0**     | 7 (54%)   | 6 (46%)    |
+| T2 11 Aug | 46       | **0**     | 9 (20%)   | 37 (80%)   |
+
+**The `raining` rejections are the strong finding, and the rejection order is
+what makes them precise.** Tests run in a fixed order and a cell is charged to
+the first one it fails, so a verdict of `raining` means the cell passed every
+other test. Those sixteen cells had in-band liquid, a cloud base below the
+band's cold edge, and an observed cloud top cold enough to reach the band.
+The radar crossed them off and nothing else did:
+
+- **T1:** 206–693 g/m² of in-band liquid, at 45–49 dBZ, under tops of −18 to
+  −27 °C.
+- **T2:** 14–406 g/m², at 30–44 dBZ, under tops of −55 to −61 °C.
+
+Sixteen of fifty-nine releases — 27% — were a single threshold away from being
+called candidates. `RAIN_DBZ` is 20.
+
+**The `noLiquid` rejections are two different stories.** On T1 all six carried
+an observed cloud top of **+4 to +9 °C** — warmer than the band's warm edge, so
+the band was above the cloud entirely, and the satellite classified those tops
+`liquid`. Those are the four Irion releases at 1843–1850Z and two in Reagan:
+young turrets seeded before they had grown into the band at all. On T2 not one
+release had a warm top — they ran −5 to −61 °C — and the satellite classified
+**every one of the 46 as `ice`**. Sixteen of the 46 had no modelled cloud base
+at all.
+
+So T1 is half "already raining" and half "not yet a cloud", and T2 is one
+enormous glaciated anvil.
+
+### The map found the counties while missing the cells
+
+Sampled over all 13 counties in the release list, deduplicated to the 12 km
+cells the join answers from — 413 cells per hour. `worked` is the candidate
+share over the counties that day's aircraft flew in; `elsewhere` is the rest of
+the target area the same hour.
+
+| T1 19 Apr | candidate | worked    | elsewhere | peak liquid |
+| --------- | --------- | --------- | --------- | ----------- |
+| 18Z       | 0.24%     | 0%        | 0.31%     | 23 g/m²     |
+| **19Z**   | 0.97%     | **2.13%** | 0.63%     | 1,239 g/m²  |
+| **20Z**   | 1.94%     | **2.13%** | 1.88%     | 1,041 g/m²  |
+| 21Z       | 1.94%     | 3.19%     | 1.57%     | 1,595 g/m²  |
+
+Seeding ran 1843–1949Z, so 19Z and 20Z are the hours that matter. At 19Z the
+counties they worked carried **3.4× the candidate coverage of the rest of the
+target area**; by 20Z that had flattened to 1.1×.
+
+**On T1 the map was pointing at the right part of west Texas during the right
+hour while getting every individual release cell wrong.** Those are different
+claims and only the coarser one survives.
+
+**T2 does not repeat it.** Seeding ran 1831Z–0005Z across two sorties:
+
+| T2 11 Aug | candidate | worked | elsewhere | peak liquid |
+| --------- | --------- | ------ | --------- | ----------- |
+| 18Z       | 0.48%     | **0%** | 0.97%     | 748 g/m²    |
+| 19Z       | 1.69%     | **0%** | 3.4%      | 122 g/m²    |
+| 20Z       | 0.73%     | 0.97%  | 0.49%     | 508 g/m²    |
+| 21Z       | 0.24%     | 0.48%  | 0%        | 156 g/m²    |
+| 22Z       | 0.24%     | 0.48%  | 0%        | 1,633 g/m²  |
+| 23Z       | 0.97%     | 1.93%  | 0%        | 489 g/m²    |
+
+For the first two hours of the first sortie the discrimination is **inverted**:
+the counties the aircraft was working had no candidate ground at all while the
+rest of the target area had 0.97% and 3.4%. The map was pointing away from the
+operation. From 20Z on it flips and every candidate cell in the target area is
+inside a worked county — but by then the coverage is under 1%, so it is
+agreement over a handful of cells.
+
+**So the county-scale result is one good day and one bad one.** It is worth
+having and it is not a finding yet.
+
+### The null does not separate
+
+T3 flew for 1 h 27 m and seeded nothing, and the map was not empty over the
+ground it declined:
+
+| T3 22 Apr | candidate | peak liquid |
+| --------- | --------- | ----------- |
+| 21Z       | 0.73%     | 922 g/m²    |
+| 22Z       | 2.91%     | 1,667 g/m²  |
+| 23Z       | 2.18%     | 1,392 g/m²  |
+| 00Z       | 4.36%     | 1,269 g/m²  |
+
+Compare hour for hour against T1 and the discrimination is weak in both
+directions. At 21Z the seeded day shows more (1.94% against 0.73%), but T3
+climbs to 4.36% by 00Z — **more candidate coverage than any hour of the day
+they actually seeded** — and its peak modelled liquid, 1,667 g/m², is the
+highest figure anywhere in these cases.
+
+The operator's reason is not one of our five tests: _"anything developing is
+embedded within and underneath the large anvil, plus lots of lightning."_ The
+map has nothing that says "under an anvil" and nothing that says "lightning".
+It cannot reach that decision, and on this evidence it does not approximate it
+either.
+
+### SNOWIE: the liquid is there, at the very bottom of the ramp
+
+L1 runs on HRRR alone — no cloud top, no phase, no radar in January 2017.
+Share of the 238 basin samples carrying drawable in-band liquid:
+
+| 20 Jan 2017              | 21Z  | 22Z  | 23Z  | 00Z  | 01Z  | 02Z  | 03Z       |
+| ------------------------ | ---- | ---- | ---- | ---- | ---- | ---- | --------- |
+| samples with band liquid | 1.3% | 0.8% | 3.4% | 5.5% | 2.5% | 8.0% | **29.4%** |
+| highest contour reached  | 10   | 10   | 10   | 10   | 10   | 10   | **50**    |
+
+**HRRR does put supercooled liquid where SNOWIE measured it, and it puts almost
+all of it in the lowest contour the app draws.** The liquid layer's first level
+is 10 g/m², which is also the join's threshold for counting a cell as holding
+liquid at all, so the Payette basin sits exactly on the edge of being drawn.
+
+The vertical structure is right: the band runs 7,174–14,082 ft over terrain at
+5,802 ft, so it is genuinely above the ridges and reachable, which is the
+geometry that makes winter orographic seeding work.
+
+The seeding-line times are not pinned to this sweep — they need to come off the
+paper's figures — so the 03Z maximum is not yet evidence of a match. 20Z and
+04Z could not be built: `wrfsfc` is missing from the archive for those cycles
+while `wrfprs` is present, which is an archive hole and is recorded as one.
+
+### Two cross-checks against instruments, and both hold
+
+- **Cloud base.** The pilot reported bases of 4,000 ft at 1838Z; the model gave
+  **4,408 ft** at the 1843Z release five minutes later. 408 ft apart.
+- **The band's altitude.** The 12Z KMAF sounding in the report puts −15 °C at
+  5,986 m — 19,639 ft — with the freezing level at 12,011 ft. So the seeding
+  band sat roughly 14,000–21,000 ft MSL. **The flares went in at 4,100–6,000 ft**,
+  about 10,000 ft below the bottom of the band.
+
+That last number is not a discrepancy, it is the design of the operation: Texas
+seeds cloud-base inflow and lets the updraft carry the AgI up. It does mean the
+release point and the physics are ten thousand feet apart, and the map answers
+about the cell, not about where the air in it is going.
+
+### What the four cases say together
+
+**The primary hypothesis was half right.** The rain veto does reject seeded
+cells wholesale — 27% of releases were rejected by it alone, carrying
+substantial modelled liquid. But it is not the only thing standing between the
+map and the operation, and on T2 it is not even the main one.
+
+Three distinct gaps, in order of how much ground they cover:
+
+1. **The map answers about now; the operator is betting on later.** Six T1
+   releases went into cloud whose top was still warmer than −5 °C. There was
+   nothing to seed _yet_, and the aircraft was there because there was about to
+   be. Nothing in the app expresses growth, and `WEATHERMAN.md` already says so.
+2. **The anvil defeats the observed inputs.** All 46 T2 releases sat under tops
+   classified `ice`. Cloud-top temperature and cloud-top phase were both
+   describing an anvil rather than the turrets underneath — the exact failure
+   `MEASUREMENTS.md` §4 predicts, now measured against 46 known seeding points.
+3. **The rain veto is a resolution problem before it is a threshold problem.**
+   A growing turret on the flank of a raining complex shares a 12 km cell with
+   the core. Lowering `RAIN_DBZ` would not fix that and raising it would not
+   either; the cell cannot hold both answers.
+
+**None of this calibrates a threshold**, and three days cannot. What it does is
+tell us the disagreement is structural rather than a tuning error, which is a
+more useful thing to have learned from four cases than a number.
+
+---
+
+## 6. What the archive can reach
+
+Checked against the live buckets on 16 August 2026.
+
+| Source                                | Archive begins | Consequence                       |
+| ------------------------------------- | -------------- | --------------------------------- |
+| HRRR (`noaa-hrrr-bdp-pds`)            | **2014-07-30** | The model half reaches everything |
+| GOES-16 `ABI-L2-ACTPC` (phase)        | 2017           | Phase reaches back further than…  |
+| GOES-16 `ABI-L2-ACHP2KMC` (cloud top) | **2023-03-23** | …the cloud top. This binds.       |
+| GOES-19 `ABI-L2-ACHP2KMC` / `ACTPC`   | 2025-01-01     | The bucket the code reads         |
+| MRMS `MergedBaseReflectivityQC_00.50` | **2020-10-14** | No radar veto before this         |
+
+**All three Texas cases are inside the shipped replay window**, which floors at
+2025-04-07 (`ReplayCalendar.tsx:16`). Verified: HRRR, both GOES products and
+MRMS all have data on 19 April, 22 April and 11 August 2025.
+
+**January 2017 has HRRR and nothing else.** No cloud-top pressure, no cloud-top
+phase, no radar. The HRRR half is genuinely intact that far back — the
+2017-01-19 12z `wrfprs` carries `CLMR` on all 40 levels and `TMP` on the same 39
+pressure levels the 2025 files do, and the `wrfsfc` file carries `HGT:cloud
+base`, `PRES:cloud top`, `RETOP`, `VIL`, `CAPE` and `USTM`/`VSTM`. The archive's
+`CLMR` naming is already keyed by origin in `bytes.ts`.
+
+**It is not the same model.** January 2017 is HRRRv2 against HRRRv4 in 2025,
+with different microphysics. A weak SLW field over the Payette basin is at least
+as likely to be HRRRv2 as it is to be the app.
+
+---
+
+## 7. What the harness is, and what is still missing
+
+Nothing in the app changed to run any of this. `/candidate/point` already
+answers the central question, and `eval/README.md` says how to drive it.
+
+### What exists
+
+`eval/` holds plain node scripts, outside both packages and both test suites,
+talking to a running server over HTTP with no new dependency anywhere.
+
+- **`releases.mjs`** pulls each day's PDF, inflates the content streams and
+  reads the flight table into `{ at, lat, lon, glaciogenic, hygroscopic,
+county }`, plus the sounding indices and the narrative's timed cell
+  attributes. **499 releases over the 2025 season, zero parse failures.** Each
+  report states its flare count three times and the script checks all three
+  against each other, so a dropped row cannot pass as a quiet day.
+- **`counties.mjs`** fetches the 13 county boundaries from Census TIGERweb,
+  keyless, one request each.
+- **`points.mjs`**, **`field.mjs`**, **`snowie.mjs`** are the three cases.
+
+The output lives in `eval/out/`; `eval/data/` is the committed input.
+
+**The reports are not always self-consistent.** Six county flare counts in the
+season disagree with their own report's table, and on 13 August the stated day
+total is one flare short of both other figures in the same document. The table
+is the record — it is the half with a minute and a position on every row — and
+the disagreements are printed rather than reconciled away.
+
+### What L1 needs, which is nothing
+
+`/forecast/liquid`, `/forecast/cloudbase` and `/forecast/sounding` all take
+`at`, resolve to the archive with no lower bound (`forecast.ts:316`) and answer
+from HRRR alone. SNOWIE runs through those three routes today. `/candidate/*`
+will not work, and should not be made to — `field.ts:251` gathers all five
+inputs in one `Promise.all`, and a join missing the cloud-top test is a
+different product.
+
+### What the results now argue for
+
+**Pin the SNOWIE seeding times.** The 03Z liquid maximum is suggestive and
+unearned until the seeding lines come off the paper's figures. This is the
+cheapest outstanding item and it decides whether L1 says anything at all.
+
+**More Texas days, and they are already parsed.** Thirty-four seeded days and
+one more `_NS` day are sitting in `releases-2025.json` unqueried. Two days is
+not enough to tell a structural gap from two unlucky airmasses, and the
+county-scale discrimination came out positive on one and inverted on the other
+— which is exactly the split that more days would settle.
+
+**Then the GOES bucket.** `scene.ts:22` hardcodes `noaa-goes19`. Making it a
+function of the date — `noaa-goes16` before 2025-04-07 — drops the calendar
+floor to 2023-03-23 and opens the 2023 and 2024 seasons, which have the same
+published reports.
+
+### Still not now: rainfall
+
+`CONUS/MultiSensor_QPE_01H_Pass2_00.00/` sits in the `noaa-mrms-pds` bucket the
+radar service already reads, in the same gzipped GRIB2 form, from 2020-10-14,
+gauge-corrected. A service and a route are straightforward. **The hard part is
+not the data**, it is that no honest claim comes out of it without a
+target/control design, so build it when there is a design to feed it.
+
+`scene.ts:22` hardcodes `noaa-goes19`. Making the bucket a function of the date
+— `noaa-goes16` before 2025-04-07 — would drop the calendar floor to 2023-03-23
+and open the 2023 and 2024 Texas seasons, which have the same published reports.
+
+For rainfall, `CONUS/MultiSensor_QPE_01H_Pass2_00.00/` sits in the
+`noaa-mrms-pds` bucket the radar service already reads, in the same gzipped
+GRIB2 form, from 2020-10-14, gauge-corrected. A service and a route are
+straightforward. **The hard part is not the data**, it is that no honest claim
+comes out of it without a target/control design, so build it when there is a
+design to feed it.
+
+---
+
+## 8. Confounds to write on the results, not discover afterwards
+
+- **The 12 km cell is the resolution limit of the whole test.** A release point
+  and the mature core it was flown beside land in the same cell. Every
+  disagreement charged to `raining` has to be read with that in mind.
+- **The permit excludes severe storms; the candidate field does not** — and on
+  19 April the operators seeded inside a severe watch, under warnings, anyway.
+  Neither the permit nor our field is describing what actually happened.
+- **Hygroscopic flares are out of scope.** The platform models the glaciogenic
+  process only. Releases marked `H` are warm-cloud work and should not be
+  expected to line up; the tables distinguish them, so exclude them and say so.
+- **The seeding altitude is not the seeding band.** Flares are fired into
+  cloud-base inflow at ~4,000–6,000 ft and 15–24 °C; the band is where the AgI
+  ends up after the updraft carries it, thousands of feet higher. A release
+  point is where the aircraft was, not where the physics happens.
+- **Cloud-top phase describes the highest deck**, so under an anvil it is about
+  cirrus, not about the turret (`MEASUREMENTS.md` §4). T1 and T3 both sit under
+  anvils by the operator's own account.
+- **HRRRv2 is not HRRRv4** (§6).
+- **Three days is three days.** `MEASUREMENTS.md` §6 says to score this product
+  over a Texas year, and that a single day can carry most of a year's footprint.
+  These are worked examples that say whether the platform points in the right
+  direction. They are not a score, and nothing in them calibrates a threshold —
+  including `RAIN_DBZ`, however the primary hypothesis lands.
+
+---
+
+## Sources
+
+- [WTWMA 2025 operations, with the per-day reports](https://westtxwxmod.com/?page_id=23)
+- Friedrich et al. (2020), _Quantifying snowfall from orographic cloud seeding_,
+  PNAS 117(10) 5190–5195 — [PMC7071876](https://pmc.ncbi.nlm.nih.gov/articles/PMC7071876/)
+- [SNOWIE project, NCAR RAL](https://ral.ucar.edu/projects/seeded-and-natural-orographic-wintertime-storms-the-idaho-experiment-snowie)
+- [TDLR — rain enhancement operations in Texas](https://www.tdlr.texas.gov/weather/summary.htm)
+- [Census TIGERweb State_County service](https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer)
+- Buckets: `noaa-hrrr-bdp-pds`, `noaa-goes16`, `noaa-goes19`, `noaa-mrms-pds`
