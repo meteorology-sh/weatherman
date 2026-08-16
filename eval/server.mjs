@@ -33,9 +33,24 @@ const PORT = Number(process.env.EVAL_PORT ?? 3100);
 const { days } = JSON.parse(
   await readFile(join(HERE, "data", "releases-2025.json"), "utf8")
 );
-const counties = await readFile(
-  join(HERE, "data", "counties-tx.geojson"),
-  "utf8"
+/**
+ * The county boundaries, with an id stamped on each.
+ *
+ * TIGERweb sends a name and a GEOID and no object id, and a GeoJSONLayer that
+ * is told which field is its id will not load without one. Numbered here rather
+ * than in `counties.mjs` so the committed file stays exactly what the Census
+ * served.
+ */
+const counties = JSON.stringify(
+  await readFile(join(HERE, "data", "counties-tx.geojson"), "utf8").then(
+    (text) => {
+      const collection = JSON.parse(text);
+      collection.features.forEach((feature, index) => {
+        feature.properties = { OBJECTID: index + 1, ...feature.properties };
+      });
+      return collection;
+    }
+  )
 );
 
 const seeded = days.filter((day) => day.seeded);

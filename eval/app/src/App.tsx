@@ -44,7 +44,7 @@ export const App = () => {
    * one: what was under the aircraft at this moment, with the layers drawn for
    * this moment and nothing from two hours later sitting on top of them.
    */
-  const window =
+  const shown =
     nearOnly && cursor
       ? {
           from: new Date(
@@ -106,18 +106,25 @@ export const App = () => {
           date={date}
           cursor={cursor}
           active={active}
-          window={window}
+          shown={shown}
           onPick={pick}
         />
 
         <div className="absolute top-3 left-3 z-10 rounded bg-base-200/95 p-2">
           <div className="flex flex-col gap-1">
+            {/* Muted until a moment is picked, because until then there is no
+                frame for these to draw and a live-looking switch that changes
+                nothing reads as a broken one. */}
             {WEATHER.map(({ key, label }) => (
-              <label key={key} className="flex items-center gap-2 text-xs">
+              <label
+                key={key}
+                className={`flex items-center gap-2 text-xs ${cursor ? "" : "opacity-50"}`}
+              >
                 <input
                   type="checkbox"
                   className="toggle toggle-xs"
                   checked={active.has(key)}
+                  disabled={!cursor}
                   onChange={() => toggle(key)}
                 />
                 {label}
@@ -157,7 +164,7 @@ export const App = () => {
         )}
         {day && (
           <>
-            <div className="max-h-1/2 overflow-y-auto border-b border-base-content/20">
+            <div className="max-h-[50%] shrink-0 overflow-y-auto border-b border-base-content/20">
               <Timeline
                 day={day}
                 cursor={cursor}

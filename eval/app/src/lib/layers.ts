@@ -35,6 +35,9 @@ import {
   ReplayRadarUrl,
 } from "@/lib/client";
 
+// Client — this page's own
+import { CountiesUrl } from "./client";
+
 /**
  * What a flare was, as a marker.
  *
@@ -106,16 +109,29 @@ export const ReleaseLayer = new GeoJSONLayer({
   geometryType: "point",
   objectIdField: "OBJECTID",
   fields: RELEASE_FIELDS,
-  visible: true,
+  // Off until a day is picked. A GeoJSONLayer with no url has nothing to load,
+  // and a visible layer with nothing in it reads as a day with no flights.
+  visible: false,
 });
 
+/**
+ * The counties the aircraft are permitted to work.
+ *
+ * The only layer here with a url at construction: the boundaries are the same
+ * whichever day is being looked at, so nothing ever repoints it.
+ */
 export const CountyLayer = new GeoJSONLayer({
   title: "Target counties",
+  url: CountiesUrl(),
   copyright: "US Census TIGERweb",
   renderer: countyRenderer,
   geometryType: "polygon",
   objectIdField: "OBJECTID",
-  fields: [{ name: "OBJECTID", type: "oid" }],
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "BASENAME", type: "string" },
+    { name: "GEOID", type: "string" },
+  ],
   visible: true,
 });
 
