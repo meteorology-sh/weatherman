@@ -179,10 +179,12 @@ against an observation anywhere else. A candidate-finder that goes blank over
 the one basin where the liquid was measured has a problem worth knowing about,
 even though the regime is winter orographic rather than summer convective.
 
-**Only the HRRR half runs** (§6). Take the seeding-line times and the radar
-observational domain from the paper; the basin sits at roughly 44.0–44.8 °N,
-116.4–115.4 °W, which should be pinned against Figure 1 before any area is
-computed.
+**Only the HRRR half runs** (§6). The seeding windows are 1619–1812Z on
+19 January, **0000–0200Z on 20 January** and 2117–2151Z on 31 January — note
+that the 20 January case is seeded in the first two hours of that UTC day, not
+in its afternoon, which is the trap the first sweep fell into. The basin sits
+at roughly 44.0–44.8 °N, 116.4–115.4 °W and should be pinned against the
+paper's Figure 1 before any area is computed.
 
 ---
 
@@ -357,29 +359,37 @@ map has nothing that says "under an anvil" and nothing that says "lightning".
 It cannot reach that decision, and on this evidence it does not approximate it
 either.
 
-### SNOWIE: the liquid is there, at the very bottom of the ramp
+### SNOWIE: not yet answered — the first sweep missed the seeding window
 
-L1 runs on HRRR alone — no cloud top, no phase, no radar in January 2017.
-Share of the 238 basin samples carrying drawable in-band liquid:
+L1 runs on HRRR alone — no cloud top, no phase, no radar in January 2017 — and
+the routes work back that far. **The first sweep asked the wrong hours.**
 
-| 20 Jan 2017              | 21Z  | 22Z  | 23Z  | 00Z  | 01Z  | 02Z  | 03Z       |
-| ------------------------ | ---- | ---- | ---- | ---- | ---- | ---- | --------- |
-| samples with band liquid | 1.3% | 0.8% | 3.4% | 5.5% | 2.5% | 8.0% | **29.4%** |
-| highest contour reached  | 10   | 10   | 10   | 10   | 10   | 10   | **50**    |
+The seeding times are in the paper and they are not where the case dates put
+them:
 
-**HRRR does put supercooled liquid where SNOWIE measured it, and it puts almost
-all of it in the lowest contour the app draws.** The liquid layer's first level
-is 10 g/m², which is also the join's threshold for counting a cell as holding
-liquid at all, so the Payette basin sits exactly on the edge of being drawn.
+| Case        | Seeding, UTC                                      |
+| ----------- | ------------------------------------------------- |
+| 19 Jan 2017 | 1619Z to ~1812Z                                   |
+| 20 Jan 2017 | **0000Z to 0200Z** — the night of the 19th onward |
+| 31 Jan 2017 | ~2117Z to 2151Z                                   |
 
-The vertical structure is right: the band runs 7,174–14,082 ft over terrain at
-5,802 ft, so it is genuinely above the ridges and reachable, which is the
-geometry that makes winter orographic seeding work.
+The sweep covered 2017-01-20 21Z through 2017-01-21 03Z, which is a full day
+after the 20 January case ended. What it measured is real — in-band liquid over
+the basin rising to 29.4% of samples, almost all of it in the lowest 10 g/m²
+contour — but it is about hours nobody seeded, so it says nothing about SNOWIE
+and is not reported as if it did.
 
-The seeding-line times are not pinned to this sweep — they need to come off the
-paper's figures — so the 03Z maximum is not yet evidence of a match. 20Z and
-04Z could not be built: `wrfsfc` is missing from the archive for those cycles
-while `wrfprs` is present, which is an archive hole and is recorded as one.
+Two things from that sweep do stand, because neither depends on the hour:
+
+- **The vertical structure is right.** The band ran 7,174–14,082 ft over terrain
+  at 5,802 ft — above the ridges and reachable, which is the geometry that makes
+  winter orographic seeding work at all.
+- **The archive has holes.** `wrfsfc` is missing for two of the cycles asked for
+  while `wrfprs` is present. The scripts record that hour as unbuildable and
+  carry on.
+
+Re-running against 0000–0200Z on 20 January, and the other two cases, is the
+outstanding item. It is cheap — three hours of cycles per case.
 
 ### Two cross-checks against instruments, and both hold
 
@@ -491,9 +501,9 @@ different product.
 
 ### What the results now argue for
 
-**Pin the SNOWIE seeding times.** The 03Z liquid maximum is suggestive and
-unearned until the seeding lines come off the paper's figures. This is the
-cheapest outstanding item and it decides whether L1 says anything at all.
+**Re-run SNOWIE against the right hours.** The seeding windows are now pinned
+(§3) and the first sweep missed all three. Three hours of cycles per case, and
+it decides whether L1 says anything at all.
 
 **More Texas days, and they are already parsed.** Thirty-four seeded days and
 one more `_NS` day are sitting in `releases-2025.json` unqueried. Two days is
