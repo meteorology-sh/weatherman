@@ -30,9 +30,29 @@ export const App = () => {
   const [cursor, setCursor] = useState<string | null>(null);
   const [picked, setPicked] = useState<Release | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [nearOnly, setNearOnly] = useState(false);
   const [active, setActive] = useState<Set<LayerKey>>(
     () => new Set<LayerKey>(["liquid", "radar"])
   );
+
+  /**
+   * Which flares to draw.
+   *
+   * The whole day by default, because the track is the context — where they
+   * worked and where they did not is half of what there is to see. Narrowed to
+   * the half hour either side of the cursor when the question is the narrower
+   * one: what was under the aircraft at this moment, with the layers drawn for
+   * this moment and nothing from two hours later sitting on top of them.
+   */
+  const window =
+    nearOnly && cursor
+      ? {
+          from: new Date(
+            new Date(cursor).getTime() - 30 * 60_000
+          ).toISOString(),
+          to: new Date(new Date(cursor).getTime() + 30 * 60_000).toISOString(),
+        }
+      : null;
 
   useEffect(() => {
     GetDays()
@@ -86,7 +106,7 @@ export const App = () => {
           date={date}
           cursor={cursor}
           active={active}
-          window={null}
+          window={window}
           onPick={pick}
         />
 
@@ -104,16 +124,24 @@ export const App = () => {
               </label>
             ))}
           </div>
-          {cursor && (
-            <div className="mt-2 border-t border-base-content/20 pt-2 font-mono text-xs">
-              {cursor.slice(11, 16)}Z
-            </div>
-          )}
-          {!cursor && (
-            <div className="mt-2 border-t border-base-content/20 pt-2 text-xs">
-              pick a moment
-            </div>
-          )}
+          <div className="mt-2 border-t border-base-content/20 pt-2">
+            {cursor ? (
+              <>
+                <div className="font-mono text-xs">{cursor.slice(11, 16)}Z</div>
+                <label className="mt-1 flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-xs"
+                    checked={nearOnly}
+                    onChange={() => setNearOnly((on) => !on)}
+                  />
+                  flares within 30 min
+                </label>
+              </>
+            ) : (
+              <div className="text-xs">pick a moment</div>
+            )}
+          </div>
         </div>
       </main>
 
