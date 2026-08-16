@@ -12,6 +12,7 @@ import { candidate } from "../routers/candidate";
 
 // Services
 import { Seedability } from "../lib/services/candidate/field";
+import { OutsideDomain } from "../lib/services/shared/grid";
 
 // Types
 import type {
@@ -227,18 +228,32 @@ describe("candidate router", () => {
   });
 
   // A point outside CONUS has no cell, and snapping it to the domain's edge
-  // would report west Texas' cloud for a click on Hawaii.
-  it("responds 500 when the point is outside the domain", async (t) => {
+  // would report west Texas' cloud for a click on Hawaii. It is a 404 and not a
+  // 500: asking about somewhere the model does not reach is a fair question,
+  // and the map has to be able to tell it apart from a source being down.
+  it("responds 404 when the point is outside the domain", async (t) => {
     t.mock.method(Seedability, "point", async () => {
-      throw new Error("No HRRR data at 21, -158 — the domain is CONUS");
+      throw new OutsideDomain(21, -158);
     });
 
     const res = await fetch(`${origin}/candidate/point?lat=21&lon=-158`);
 
-    assert.equal(res.status, 500);
+    assert.equal(res.status, 404);
     assert.deepEqual(await res.json(), {
       error: "No HRRR data at 21, -158 — the domain is CONUS",
     });
+  });
+
+  // The distinction the panel leans on: a failure here is still a 500, so
+  // "outside the model" cannot be used to swallow a broken source.
+  it("still responds 500 when the point fails for any other reason", async (t) => {
+    t.mock.method(Seedability, "point", async () => {
+      throw new Error("GOES listing failed");
+    });
+
+    const res = await fetch(`${origin}/candidate/point?lat=32&lon=-101`);
+
+    assert.equal(res.status, 500);
   });
 
   it("responds 500 with the message when a source is down", async (t) => {

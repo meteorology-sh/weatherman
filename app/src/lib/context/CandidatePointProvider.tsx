@@ -35,11 +35,11 @@ export function CandidatePointProvider({
     async function load() {
       try {
         dispatch(seedabilityActions.setHereLoading(true));
-        dispatch(
-          seedabilityActions.setHere(
-            await GetCandidatePoint(point[0], point[1])
-          )
-        );
+        const here = await GetCandidatePoint(point[0], point[1]);
+        // Null is the answer for a point outside the model's grid. Nothing to
+        // report and nothing to apologise for, so the panel stays as it was
+        // rather than being handed an error about a click off the edge.
+        if (here) dispatch(seedabilityActions.setHere(here));
       } catch (error) {
         dispatch(
           seedabilityActions.setHereError(

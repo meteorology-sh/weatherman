@@ -28,6 +28,7 @@ import { forecastActions } from "@/lib/store/features/forecast";
 import { candidateActions } from "@/lib/store/features/candidate";
 import { cloudBaseActions } from "@/lib/store/features/cloudbase";
 import { cloudTopActions } from "@/lib/store/features/cloudtop";
+import { domainActions } from "@/lib/store/features/domain";
 import { radarActions } from "@/lib/store/features/radar";
 import { soundingActions } from "@/lib/store/features/sounding";
 
@@ -47,6 +48,9 @@ import {
 
 // Components
 import { ArcGIS } from "@/app/components/Map";
+
+// Types
+import type { DomainRing } from "@/lib/types";
 
 describe("ArcGIS", () => {
   it("centers a dark national map on the continental U.S.", () => {
@@ -104,7 +108,9 @@ describe("ArcGIS", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     const layers = map().layers ?? [];
-    expect(layers[layers.length - 1]).toBe(confirmedLayer);
+    expect(layers.indexOf(confirmedLayer)).toBeGreaterThan(
+      layers.indexOf(fieldLayer)
+    );
   });
 
   // Cloud base answers "can I get into this cloud at all", which is the
@@ -433,6 +439,15 @@ describe("ArcGIS precipitation", () => {
   });
 });
 
+/** A ring around the middle of the country, standing in for HRRR's grid. */
+const ring: DomainRing = [
+  [-120, 25],
+  [-70, 25],
+  [-70, 50],
+  [-120, 50],
+  [-120, 25],
+];
+
 /** A map click, shaped the way ArcGIS hands one back. */
 const clickAt = (longitude: number, latitude: number) =>
   view().handlers.click?.({ mapPoint: { longitude, latitude } });
@@ -467,6 +482,40 @@ describe("ArcGIS sounding point", () => {
     });
 
     expect(store.getState().sounding.point).toEqual([-98.58, 39.83]);
+  });
+
+  // The bug this fixes: a click on the ocean used to fetch a point the model
+  // has no cell for, and the panel showed the 500 that came back. There is
+  // nothing to say about a cell outside the grid, so nothing is what happens —
+  // the point does not move, and the last cell an operator picked stays on the
+  // panel.
+  it("ignores a click outside the model's edge", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      store.dispatch(domainActions.setRing(ring));
+      clickAt(-104.9903, 39.7392);
+    });
+    act(() => {
+      clickAt(-160, 21);
+    });
+
+    expect(store.getState().sounding.point).toEqual([-104.99, 39.74]);
+  });
+
+  // Until the ring lands there is nothing to test against, and refusing every
+  // click would make the map dead on a slow connection. The server refuses the
+  // same points, so the ring saves a round trip rather than deciding anything.
+  it("lets a click through before the model's edge has loaded", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      clickAt(-160, 21);
+    });
+
+    expect(store.getState().sounding.point).toEqual([-160, 21]);
   });
 
   it("releases the handler when the map goes away", () => {

@@ -8,7 +8,7 @@ import {
   SCOUT_LADDER_MB,
   SOUNDING_LEVELS,
 } from "../lib/services/hrrr/profile";
-import { nearestCell } from "../lib/services/shared/grid";
+import { inGrid, nearestCell, perimeter } from "../lib/services/shared/grid";
 
 // Types
 import type { SoundingLevel } from "../lib/services/hrrr/profile";
@@ -129,6 +129,69 @@ describe("nearestCell", () => {
     const cell = nearestCell(geo, 40.5, -98.4);
 
     assert.equal(geo.lats[cell], 40);
+  });
+});
+
+/**
+ * The grid's own edge. `nearestCell` always answers, so these are the tests
+ * that stop it answering about somewhere the model does not reach.
+ */
+describe("the edge of the grid", () => {
+  /** A 3x3 patch of a lat/lon grid, one degree apart. */
+  const geo = {
+    nx: 3,
+    ny: 3,
+    lats: Float32Array.from([39, 39, 39, 40, 40, 40, 41, 41, 41]),
+    lons: Float32Array.from([-100, -99, -98, -100, -99, -98, -100, -99, -98]),
+  };
+
+  it("covers a point inside the grid", () => {
+    assert.equal(inGrid(geo, 40.02, -99.02), true);
+  });
+
+  // The bug this is here for: a click on the ocean used to snap to the nearest
+  // edge cell and be reported as that cell's weather.
+  it("does not cover a point far outside it", () => {
+    assert.equal(inGrid(geo, 21, -158), false);
+  });
+
+  // Cells are 12 km apart, so a point half a cell's diagonal out is the
+  // farthest one inside can be. A degree of latitude is ~111 km, so a tenth of
+  // a degree past the edge is ~11 km — outside.
+  it("does not cover a point just past the last cell", () => {
+    assert.equal(inGrid(geo, 41.1, -99), false);
+  });
+
+  it("walks the edge as a closed ring", () => {
+    const ring = perimeter(geo, 1);
+
+    // Eight edge cells, and the first repeated to close it. The centre is not
+    // on the edge and must not appear.
+    assert.equal(ring.length, 9);
+    assert.deepEqual(ring[0], ring[ring.length - 1]);
+    assert.equal(
+      ring.some(([lon, lat]) => lon === -99 && lat === 40),
+      false
+    );
+  });
+
+  // Thinning the walk is what keeps the ring small enough to hold in the app.
+  // It must still close, and still trace the same four corners.
+  it("keeps every corner when the walk is thinned", () => {
+    const ring = perimeter(geo, 2);
+
+    assert.deepEqual(ring[0], ring[ring.length - 1]);
+    for (const corner of [
+      [-100, 39],
+      [-98, 39],
+      [-98, 41],
+      [-100, 41],
+    ]) {
+      assert.equal(
+        ring.some(([lon, lat]) => lon === corner[0] && lat === corner[1]),
+        true
+      );
+    }
   });
 });
 

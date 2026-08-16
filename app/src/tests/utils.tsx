@@ -7,6 +7,7 @@ import { Provider } from "react-redux";
 import candidateReducer from "@/lib/store/features/candidate";
 import cloudBaseReducer from "@/lib/store/features/cloudbase";
 import cloudTopReducer from "@/lib/store/features/cloudtop";
+import domainReducer from "@/lib/store/features/domain";
 import interactionsReducer from "@/lib/store/features/interactions";
 import forecastReducer from "@/lib/store/features/forecast";
 import radarReducer from "@/lib/store/features/radar";
@@ -53,6 +54,7 @@ export function createTestStore() {
       candidate: candidateReducer,
       cloudbase: cloudBaseReducer,
       cloudtop: cloudTopReducer,
+      domain: domainReducer,
       interactions: interactionsReducer,
       forecast: forecastReducer,
       radar: radarReducer,

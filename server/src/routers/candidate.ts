@@ -3,6 +3,7 @@ import express, { Request, Response } from "express";
 
 // Services
 import { Seedability } from "../lib/services/candidate/field";
+import { OutsideDomain } from "../lib/services/shared/grid";
 import { parseAt } from "../lib/services/shared/replay";
 
 export const candidate = express.Router();
@@ -60,6 +61,14 @@ candidate.get("/point", async (req: Request, res: Response) => {
     );
     res.send(point);
   } catch (error) {
+    // A click off the edge of the model is a fair question with the answer "not
+    // here", so it is a 404 rather than a 500. The map draws that edge and the
+    // panel says nothing when a click lands outside it; both need to be able to
+    // tell this apart from a source being down.
+    if (error instanceof OutsideDomain) {
+      res.status(404).json({ error: error.message });
+      return;
+    }
     res
       .status(500)
       .json({ error: error instanceof Error ? error.message : String(error) });

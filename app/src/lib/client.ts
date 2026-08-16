@@ -4,6 +4,8 @@ import type {
   CandidateStats,
   CloudBaseStats,
   CloudTopStats,
+  DomainFrame,
+  DomainRing,
   ForecastMeta,
   SlwStats,
   RadarStats,
@@ -88,13 +90,16 @@ export async function GetSounding(
   lon: number,
   lat: number,
   hour: number
-): Promise<Sounding> {
+): Promise<Sounding | null> {
   const query = new URLSearchParams({
     lat: String(lat),
     lon: String(lon),
     hour: String(hour),
   });
   const res = await fetch(`/forecast/sounding?${query}`);
+  // Outside the model's grid — the same answer, and the same null, as
+  // `GetCandidatePoint`.
+  if (res.status === 404) return null;
   if (!res.ok) {
     throw new Error(`Failed to fetch the sounding: ${res.status}`);
   }
@@ -155,14 +160,37 @@ export async function GetCandidateStats(at?: string): Promise<CandidateStats> {
 export async function GetCandidatePoint(
   lon: number,
   lat: number
-): Promise<CandidatePoint> {
+): Promise<CandidatePoint | null> {
   const query = new URLSearchParams({ lat: String(lat), lon: String(lon) });
   const res = await fetch(`/candidate/point?${query}`);
+  // The one non-OK status that is not an error. A click off the edge of the
+  // model is answered "not here", and null is that answer — the caller has
+  // nothing to show and nothing to apologise for.
+  if (res.status === 404) return null;
   if (!res.ok) {
     throw new Error(`Failed to fetch the point: ${res.status}`);
   }
   const point: CandidatePoint = await res.json();
   return point;
+}
+
+/**
+ * The edge of the model, as one polygon.
+ *
+ * Drawn as the line inside which a click is answered. It never changes, so it
+ * is fetched once and the layer that draws it reads the same route.
+ */
+export function DomainUrl(): string {
+  return "/forecast/domain";
+}
+
+export async function GetDomain(): Promise<DomainRing> {
+  const res = await fetch(DomainUrl());
+  if (!res.ok) {
+    throw new Error(`Failed to fetch the model domain: ${res.status}`);
+  }
+  const frame: DomainFrame = await res.json();
+  return frame.features[0].geometry.coordinates[0];
 }
 
 /**

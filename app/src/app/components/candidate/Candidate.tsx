@@ -5,11 +5,6 @@ import { BAND_LABEL } from "@/lib/arcgis/bands";
 import { ArcGIS } from "@/app/components/Map";
 import { CandidateLayers } from "./CandidateLayers";
 import { ClickedPoint } from "./ClickedPoint";
-import { CloudBase } from "./CloudBase";
-import { Field } from "./Field";
-import { CloudTop } from "./CloudTop";
-import { Liquid } from "./Liquid";
-import { Radar } from "./Radar";
 
 export const Candidate = () => {
   return (
@@ -63,16 +58,15 @@ export const Candidate = () => {
             anything is clicked — and a border on an element that was never
             rendered cannot be left behind as a stack of empty rules.
 
-            The clicked point leads: it is the one part of this panel about the
-            cloud an operator is looking at rather than about the domain. */}
+            The panel is the switches and the clicked point, and nothing else.
+            An operator flies one cloud, so a figure about the whole grid — how
+            much ground in the country passed, how much cloud the satellite sees
+            anywhere — answers a question nobody on this page is asking. Those
+            summaries are still built, and the replay panel reports them, where
+            the question really is what a whole hour looked like. */}
         <div className="flex flex-col divide-y divide-base-300 [&>*]:py-4">
           <CandidateLayers />
           <ClickedPoint />
-          <Field />
-          <CloudBase />
-          <CloudTop />
-          <Liquid />
-          <Radar />
         </div>
       </div>
       <div className="col-span-2">

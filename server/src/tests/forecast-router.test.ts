@@ -19,6 +19,7 @@ import {
   Sounding,
 } from "../lib/services/hrrr/forecast";
 import { CloudBaseStats } from "../lib/services/hrrr/diagnostics";
+import { OutsideDomain } from "../lib/services/shared/grid";
 
 const meta: ForecastMeta = {
   run: "2026-07-17T00:00:00.000Z",
@@ -451,17 +452,28 @@ describe("forecast router sounding", () => {
   });
 
   // Outside CONUS there is no HRRR column, and the service says so rather than
-  // handing back the nearest edge cell.
-  it("responds 500 with the message for a point off the domain", async (t) => {
+  // handing back the nearest edge cell. A 404, like the candidate point: the
+  // question is fair and the answer is "not here".
+  it("responds 404 for a point off the domain", async (t) => {
     t.mock.method(Hrrr, "sounding", async () => {
-      throw new Error("No HRRR data at 21, -158 — the domain is CONUS");
+      throw new OutsideDomain(21, -158);
     });
 
     const res = await fetch(`${origin}/forecast/sounding?lat=21&lon=-158`);
 
-    assert.equal(res.status, 500);
+    assert.equal(res.status, 404);
     assert.deepEqual(await res.json(), {
       error: "No HRRR data at 21, -158 — the domain is CONUS",
     });
+  });
+
+  it("still responds 500 when the sounding fails for any other reason", async (t) => {
+    t.mock.method(Hrrr, "sounding", async () => {
+      throw new Error("the HRRR bucket is unreachable");
+    });
+
+    const res = await fetch(`${origin}/forecast/sounding?lat=39&lon=-98`);
+
+    assert.equal(res.status, 500);
   });
 });

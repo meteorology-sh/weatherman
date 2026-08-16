@@ -3,6 +3,7 @@ import {
   CandidateConfirmedUrl,
   CandidateFieldUrl,
   GetCandidatePoint,
+  GetDomain,
   GetCandidateStats,
   ReplayCandidateUrl,
   ReplayConfirmedUrl,
@@ -221,6 +222,18 @@ describe("GetSounding", () => {
       "Failed to fetch the sounding: 500"
     );
   });
+
+  // The one non-OK status that is not a failure: outside HRRR's grid there is
+  // no column to read, and null says so without the caller raising an error
+  // about a click on the ocean.
+  it("answers null for a point outside the model", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 404, json: async () => ({}) }))
+    );
+
+    expect(await GetSounding(-158, 21, 0)).toBe(null);
+  });
 });
 
 describe("GetCandidatePoint", () => {
@@ -249,6 +262,45 @@ describe("GetCandidatePoint", () => {
     await expect(GetCandidatePoint(-101.42, 32.05)).rejects.toThrow(
       "Failed to fetch the point: 500"
     );
+  });
+
+  it("answers null for a point outside the model", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 404, json: async () => ({}) }))
+    );
+
+    expect(await GetCandidatePoint(-158, 21)).toBe(null);
+  });
+});
+
+describe("GetDomain", () => {
+  it("reads the ring out of the polygon the server sends", async () => {
+    const ring = [
+      [-120, 25],
+      [-70, 25],
+      [-70, 50],
+      [-120, 25],
+    ];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              properties: {},
+              geometry: { type: "Polygon", coordinates: [ring] },
+            },
+          ],
+        }),
+      }))
+    );
+
+    expect(await GetDomain()).toEqual(ring);
   });
 });
 

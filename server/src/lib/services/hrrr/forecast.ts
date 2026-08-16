@@ -37,7 +37,10 @@ import {
   assertInDomain,
   blockAverage,
   blockAverageSparse,
+  inGrid,
   nearestCell,
+  OutsideDomain,
+  perimeter,
 } from "../shared/grid";
 import {
   METRES_TO_FEET,
@@ -257,8 +260,29 @@ type Profile = ProfileGrid & {
   surfaceFt: Float32Array;
 };
 
+/**
+ * The model's own edge, ready for a GeoJSON layer to draw.
+ *
+ * A FeatureCollection of one polygon so it goes on the map like every other
+ * layer here, and carries no run or valid time because the grid is the same
+ * shape for every run — a timestamp on it would invite the reader to wonder
+ * which hour the edge belongs to.
+ */
+export type DomainFrame = {
+  type: "FeatureCollection";
+  features: [
+    {
+      type: "Feature";
+      properties: Record<string, never>;
+      geometry: { type: "Polygon"; coordinates: [[number, number][]] };
+    },
+  ];
+};
+
 export class ForecastService {
   private geo: Geo | null = null;
+  /** The grid never changes between runs, so its edge is built once. */
+  private domainFrame: DomainFrame | null = null;
   private runs = new RunDiscovery();
   /**
    * Keyed `${runIso}:${field}:${hour}`. A given run+field+hour never changes,
@@ -417,6 +441,7 @@ export class ForecastService {
       this.surface(hour, at),
     ]);
     const geo = this.geo!;
+    if (!inGrid(geo, lat, lon)) throw new OutsideDomain(lat, lon);
     const cell = nearestCell(geo, lat, lon);
 
     // The grid holds levels up to 100 mb for the cloud-top layer; the readout
@@ -478,6 +503,35 @@ export class ForecastService {
       tempAt: (cell: number, mb: number) =>
         temperatureAtMb(profile.levels, profile.tempC, cell, mb),
     };
+  }
+
+  /**
+   * The edge of the model, as one polygon.
+   *
+   * Every readout on the candidate map answers a click by snapping it to a
+   * cell, so where the cells stop is a fact an operator needs before clicking
+   * rather than after. Drawn, it is a line; the same edge tested against a
+   * point is {@link inGrid}, and both are read off the same cells so the line
+   * cannot promise an answer the readout then refuses.
+   *
+   * Cached for the life of the process: HRRR's Lambert grid is fixed, so this
+   * is the same ring for every run. It costs one `wrfsfc` build the first time,
+   * which is the build the cloud-base layer pays for anyway.
+   */
+  async domain(): Promise<DomainFrame> {
+    if (this.domainFrame) return this.domainFrame;
+    await this.surface(0);
+    this.domainFrame = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: {},
+          geometry: { type: "Polygon", coordinates: [perimeter(this.geo!)] },
+        },
+      ],
+    };
+    return this.domainFrame;
   }
 
   /** The domain-wide profile grid every click on this hour is answered from. */

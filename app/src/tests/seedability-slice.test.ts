@@ -3,42 +3,7 @@ import reducer, { seedabilityActions } from "@/lib/store/features/seedability";
 import { soundingActions } from "@/lib/store/features/sounding";
 
 // Types
-import type { CandidatePoint, CandidateStats } from "@/lib/types";
-
-const stats: CandidateStats = {
-  run: "2025-05-15T18:00:00.000Z",
-  validTime: "2025-05-15T18:00:00.000Z",
-  sceneTime: "2025-05-15T18:01:17.900Z",
-  radarTime: "2025-05-15T18:00:39.000Z",
-  coveragePct: 0.31,
-  candidateKm2: 52560,
-  peak: 340,
-  liquidKm2: 249120,
-  rejected: {
-    noCloudBase: 41184,
-    baseAboveBand: 8496,
-    noCloudSeen: 96912,
-    topTooWarm: 34848,
-    raining: 15120,
-  },
-  blindKm2: 2880,
-  medianBaseFt: 5800,
-  windowPct: 61.4,
-  medianBandBaseFt: 17100,
-  ceilingFt: 18000,
-  reachablePct: 72.9,
-  peakMixedCapeJKg: 1840,
-  peakVilKgM2: 3.2,
-  stormMotionKt: 24,
-  stormMotionTowardDeg: 65,
-  phase: {
-    sceneTime: "2025-05-15T18:01:17.900Z",
-    confirmedKm2: 31680,
-    glaciatedKm2: 15840,
-    unresolvedKm2: 5040,
-    missedKm2: 8640,
-  },
-};
+import type { CandidatePoint } from "@/lib/types";
 
 const initial = () => reducer(undefined, { type: "@@INIT" });
 
@@ -130,51 +95,6 @@ describe("seedability slice", () => {
       const moved = reducer(failed, soundingActions.setPoint([-99.1, 35.2]));
 
       expect(moved.hereError).toBe(null);
-    });
-  });
-
-  /**
-   * The whole domain's summary, which the live map carries alongside the point.
-   * It is a different question from the clicked cell, so it has its own fields
-   * and its own loading and error rather than sharing the point's.
-   */
-  describe("the domain summary", () => {
-    it("starts empty", () => {
-      expect(initial().stats).toBe(undefined);
-      expect(initial().statsLoading).toBe(false);
-      expect(initial().statsError).toBe(null);
-    });
-
-    it("holds the summary it is given", () => {
-      const state = reducer(initial(), seedabilityActions.setStats(stats));
-
-      expect(state.stats).toEqual(stats);
-    });
-
-    it("carries its own loading and error", () => {
-      const loading = reducer(
-        initial(),
-        seedabilityActions.setStatsLoading(true)
-      );
-      expect(loading.statsLoading).toBe(true);
-      expect(loading.hereLoading).toBe(false);
-
-      const failed = reducer(
-        loading,
-        seedabilityActions.setStatsError("GOES listing failed")
-      );
-      expect(failed.statsError).toBe("GOES listing failed");
-      expect(failed.hereError).toBe(null);
-    });
-
-    // The summary is about the hour, not about the cell, so moving the click
-    // must not throw it away — clearing it would refetch a ~40 s build on every
-    // click.
-    it("survives the click moving", () => {
-      const loaded = reducer(initial(), seedabilityActions.setStats(stats));
-      const moved = reducer(loaded, soundingActions.setPoint([-99.1, 35.2]));
-
-      expect(moved.stats).toEqual(stats);
     });
   });
 });

@@ -256,3 +256,19 @@ export interface CloudTopStats {
   /** Coldest cloud top on the grid, °C. Null when there is no cloud at all. */
   coldestTopC: number | null;
 }
+
+/** Mirrors DomainFrame in server/src/lib/services/hrrr/forecast.ts */
+export interface DomainFrame {
+  type: "FeatureCollection";
+  features: {
+    type: "Feature";
+    properties: Record<string, never>;
+    geometry: { type: "Polygon"; coordinates: [number, number][][] };
+  }[];
+}
+
+/**
+ * The model's edge as a closed ring of [lon, lat] — the order an ArcGIS click
+ * gives a point in, so the two go straight into a point-in-ring test.
+ */
+export type DomainRing = [number, number][];

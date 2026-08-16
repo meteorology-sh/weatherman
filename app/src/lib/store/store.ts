@@ -2,6 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import candidateReducer from "./features/candidate";
 import cloudBaseReducer from "./features/cloudbase";
 import cloudTopReducer from "./features/cloudtop";
+import domainReducer from "./features/domain";
 import interactionsReducer from "./features/interactions";
 import forecastReducer from "./features/forecast";
 import radarReducer from "./features/radar";
@@ -17,6 +18,7 @@ export const store = configureStore({
     candidate: candidateReducer,
     cloudbase: cloudBaseReducer,
     cloudtop: cloudTopReducer,
+    domain: domainReducer,
     interactions: interactionsReducer,
     forecast: forecastReducer,
     radar: radarReducer,

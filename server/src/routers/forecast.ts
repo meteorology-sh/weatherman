@@ -3,6 +3,7 @@ import express, { Request, Response } from "express";
 
 // Services
 import { Hrrr } from "../lib/services/hrrr/forecast";
+import { OutsideDomain } from "../lib/services/shared/grid";
 import { parseAt } from "../lib/services/shared/replay";
 
 export const forecast = express.Router();
@@ -102,6 +103,19 @@ forecast.get("/cloudbase/stats", async (req: Request, res: Response) => {
 // The profile over one point: the altitudes a drone is actually given. Reads
 // the same model as the contours, so the readout and the map agree about where
 // the band is — the whole reason it is not a second opinion from Open-Meteo.
+// The edge of the model itself. No hour and no `at`: the Lambert grid is the
+// same shape for every run, so this is one polygon that never moves. The map
+// draws it as the line clicks are answered inside.
+forecast.get("/domain", async (_req: Request, res: Response) => {
+  try {
+    res.send(await Hrrr.domain());
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
 forecast.get("/sounding", async (req: Request, res: Response) => {
   try {
     const hour = Number(req.query.hour ?? 0);
@@ -113,6 +127,12 @@ forecast.get("/sounding", async (req: Request, res: Response) => {
     );
     res.send(sounding);
   } catch (error) {
+    // Same as the candidate point: a click off the edge of the model is a fair
+    // question answered "not here", not a failure.
+    if (error instanceof OutsideDomain) {
+      res.status(404).json({ error: error.message });
+      return;
+    }
     res
       .status(500)
       .json({ error: error instanceof Error ? error.message : String(error) });

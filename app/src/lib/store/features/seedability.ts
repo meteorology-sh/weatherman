@@ -4,7 +4,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { soundingActions } from "./sounding";
 
 // Types
-import type { CandidatePoint, CandidateStats } from "@/lib/types";
+import type { CandidatePoint } from "@/lib/types";
 
 type SeedabilityState = {
   /**
@@ -23,19 +23,6 @@ type SeedabilityState = {
   here: CandidatePoint | undefined;
   hereLoading: boolean;
   hereError: string | null;
-  /**
-   * The whole domain's summary of the same build.
-   *
-   * It answers a different question from `here` — what the hour looks like
-   * everywhere, rather than what is over one cell — and the panel needs both:
-   * the point says whether to fly to *that* cloud, and this says what the join
-   * threw away and what the satellite makes of what it kept. The replay page
-   * has carried it since the join shipped; the live map has to as well, or the
-   * page that says "right now" is the one with the least on it.
-   */
-  stats: CandidateStats | undefined;
-  statsLoading: boolean;
-  statsError: string | null;
 };
 
 /**
@@ -48,9 +35,6 @@ const initialState: SeedabilityState = {
   here: undefined,
   hereLoading: false,
   hereError: null,
-  stats: undefined,
-  statsLoading: false,
-  statsError: null,
 };
 
 const seedabilitySlice = createSlice({
@@ -68,15 +52,6 @@ const seedabilitySlice = createSlice({
     },
     setHereError(state, action: PayloadAction<string | null>) {
       state.hereError = action.payload;
-    },
-    setStats(state, action: PayloadAction<CandidateStats>) {
-      state.stats = action.payload;
-    },
-    setStatsLoading(state, action: PayloadAction<boolean>) {
-      state.statsLoading = action.payload;
-    },
-    setStatsError(state, action: PayloadAction<string | null>) {
-      state.statsError = action.payload;
     },
   },
   // Moving the click is what makes the readout fetch, exactly as it is for the

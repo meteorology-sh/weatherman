@@ -59,6 +59,16 @@ that one 12 km cell — what the cloud there is made of, which test ruled it out
 if any, and when each source saw it. That readout leads the panel because it is
 the only part of it about the cloud an operator is looking at.
 
+**A click outside the model does nothing.** The grid is a Lambert quadrilateral
+and every readout answers by snapping a click to the nearest cell, so a click on
+the ocean would otherwise be answered with the nearest edge cell's weather. The
+server refuses it — a 404, because asking about somewhere the model does not
+reach is a fair question with the answer "not here", and a 500 would tell an
+operator the server broke when nothing did. The map holds the same edge as a
+ring and does not send the request at all: the point does not move, so the last
+cell an operator picked stays on the panel rather than being replaced by an
+error or by a blank.
+
 **Nothing about a point is drawn until one is picked.** There is no _this point_
 until someone clicks, and a column, a set of diagnostics and a verdict over the
 centre of the country are dashes about a cell nobody asked for. The column _is_
@@ -66,17 +76,14 @@ read over that default point on arrival, because that build is the national
 profile grid every later click is answered from — warming it, not drawing it, is
 the difference between a first click costing ~30 s and costing milliseconds.
 
-**The join is summarised over a clicked cell and nowhere else on this map.** How
-much of the country passed every test is a fact about the country, and an
-operator flies one cell. The domain-wide summary is still built, and the replay
-panel reports it there, where the question really is what a whole hour looked
-like.
-
-**The layer summaries below the readout are figures about the whole model
-domain, and they do not report shares of it.** What fraction of the country has
-cloud over it, or has a radar looking at it, decides nothing a sortie does; the
-areas and the extremes are what an operator chooses between, and the cell is
-where the question is actually answered.
+**This panel carries no figure about the whole domain.** How much ground in the
+country passed every test, how much cloud the satellite sees anywhere, what
+share of the grid a radar is looking at — an operator flies one cloud, and none
+of it decides anything a sortie does. It reads worse than useless next to a
+clicked point: a heading like CLOUD TOPS over a number is indistinguishable from
+the same heading over a cell, so a domain total sitting under a click is read as
+that cell's. Every one of those summaries is still built and the replay panel
+reports them, where the question really is what a whole hour looked like.
 
 **The seeding-opportunity layer is the answer the other four are inputs to**, drawn over
 all of them. It is the only layer that starts on: the map opens on its answer,

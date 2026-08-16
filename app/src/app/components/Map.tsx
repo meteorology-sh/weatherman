@@ -6,6 +6,9 @@ import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
 import { forecastActions } from "@/lib/store/features/forecast";
 import { soundingActions } from "@/lib/store/features/sounding";
 
+// Geometry
+import { insideRing } from "@/lib/geometry";
+
 // Client
 import {
   ForecastCloudsUrl,
@@ -67,6 +70,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const liquid = useAppSelector((state) => state.candidate.liquid);
   const radar = useAppSelector((state) => state.radar.visible);
   const field = useAppSelector((state) => state.seedability.visible);
+  const ring = useAppSelector((state) => state.domain.ring);
   const ready = useAppSelector((state) => state.replay.ready);
   const replayCloudBase = useAppSelector((state) => state.replay.cloudBase);
   const replayCloudTop = useAppSelector((state) => state.replay.cloudTop);
@@ -285,9 +289,13 @@ export const ArcGIS = ({ mode }: PropsT) => {
   //
   // Candidate map only: the profile is the analysis hour, so offering it on the
   // forecast map would answer a question about now under a slider set to +12 h.
-  // The handler is attached once and reads `mode` through a ref-free closure —
-  // it is registered inside the mount effect's own scope, so re-registering on
-  // every render would leak handles.
+  //
+  // A click outside the model's edge does nothing at all — it does not move the
+  // point, so the readout for the last cell an operator picked stays where it
+  // is. There is no answer to give outside the grid, and the two ways of saying
+  // so are both worse than silence: an error reads as a broken server, and a
+  // cleared panel reads as an answer of "nothing here". The line on the map is
+  // what says where clicking works.
   useEffect(() => {
     if (mode !== "candidate" || !viewRef.current) return;
 
@@ -295,6 +303,10 @@ export const ArcGIS = ({ mode }: PropsT) => {
       // A click outside the projection's valid area has no map point at all.
       const { longitude, latitude } = event.mapPoint ?? {};
       if (longitude == null || latitude == null) return;
+      // Before the ring lands, let the click through: the server refuses the
+      // same points and the panel treats that refusal the same way, so the ring
+      // saves a round trip rather than deciding anything the server does not.
+      if (ring && !insideRing(ring, longitude, latitude)) return;
       dispatch(
         soundingActions.setPoint([
           Math.round(longitude * 100) / 100,
@@ -304,7 +316,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     });
 
     return () => handle.remove();
-  }, [mode, dispatch]);
+  }, [mode, ring, dispatch]);
 
   // Fly to a selected location
   useEffect(() => {

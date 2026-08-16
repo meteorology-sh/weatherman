@@ -121,21 +121,105 @@ export function blockAverageSparse(
 }
 
 /**
- * Refuse a point the grid does not cover.
+ * A point the grid does not cover.
  *
- * The HRRR domain is CONUS, so a point outside it has no column and no cell.
- * Refusing is the honest answer; `nearestCell` would otherwise happily return an
- * edge cell and report Kansas' sounding for a click on Hawaii. Every readout
- * that snaps a click to a cell calls this first, so the two cannot differ about
- * where the domain ends.
+ * Its own class so a router can tell it apart from a failure. Asking about
+ * somewhere the model does not reach is a fair question with the answer "not
+ * here", and answering it with a 500 tells an operator the server broke when
+ * nothing did.
+ */
+export class OutsideDomain extends Error {
+  constructor(lat: number, lon: number) {
+    super(`No HRRR data at ${lat}, ${lon} — the domain is CONUS`);
+    this.name = "OutsideDomain";
+  }
+}
+
+/**
+ * Refuse a point the grid cannot cover, before anything is built.
+ *
+ * A cheap bounding box, and deliberately generous: it exists to reject a click
+ * on Hawaii without paying for a 40 s decode first, not to trace the domain.
+ * The grid is a Lambert quadrilateral and this is a lat/lon rectangle, so the
+ * corners of the box lie outside the grid — {@link inGrid} is what actually
+ * decides, once there is a grid to decide against.
  */
 export function assertInDomain(lat: number, lon: number) {
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
     throw new Error("A map point needs a numeric lat and lon");
   }
   if (lat < 21 || lat > 53 || lon < -135 || lon > -60) {
-    throw new Error(`No HRRR data at ${lat}, ${lon} — the domain is CONUS`);
+    throw new OutsideDomain(lat, lon);
   }
+}
+
+/** Ground covered by one block-averaged cell along one side, km. */
+const CELL_KM = BLOCK * 3;
+
+/**
+ * The farthest a point inside the grid can be from the nearest cell centre:
+ * half a cell's diagonal. Beyond it the point is outside the grid, however
+ * close the edge cell happens to be.
+ */
+export const SNAP_KM = (CELL_KM / 2) * Math.SQRT2;
+
+/** Degrees to km on the ground. The grid is 12 km, so flat earth is exact enough. */
+function separationKm(
+  lat: number,
+  lon: number,
+  toLat: number,
+  toLon: number
+): number {
+  const dy = toLat - lat;
+  const dx = (toLon - lon) * Math.cos((lat * Math.PI) / 180);
+  return Math.hypot(dy, dx) * 111.32;
+}
+
+/**
+ * Whether the grid actually covers a point.
+ *
+ * `nearestCell` always returns a cell, so it reports Kansas for a click on
+ * Hudson Bay unless something asks how far away that cell was. Inside the grid
+ * the answer is at most half a cell's diagonal; anything farther is a click off
+ * the edge of the model, and it is the only test that follows the Lambert
+ * boundary without doing any projection maths.
+ */
+export function inGrid(geo: Geo, lat: number, lon: number): boolean {
+  const cell = nearestCell(geo, lat, lon);
+  return separationKm(lat, lon, geo.lats[cell], geo.lons[cell]) <= SNAP_KM;
+}
+
+/**
+ * The grid's outer edge as a closed ring of [lon, lat], for drawing.
+ *
+ * The four edges walked in order — south, east, north, west — from the cells
+ * themselves, so the ring bends the way the Lambert grid does and nothing here
+ * knows what a Lambert projection is. `step` thins the walk: the boundary is
+ * smooth at 12 km, so every fourth cell draws the same line for a quarter of
+ * the coordinates. Each edge stops one short of its far corner, which is the
+ * next edge's first point, so every corner appears exactly once.
+ */
+export function perimeter(geo: Geo, step = 4): [number, number][] {
+  const { nx, ny } = geo;
+  const at = (i: number, j: number): [number, number] => {
+    const k = j * nx + i;
+    return [
+      Math.round(geo.lons[k] * 10000) / 10000,
+      Math.round(geo.lats[k] * 10000) / 10000,
+    ];
+  };
+
+  const ring: [number, number][] = [];
+  const walk = (n: number, pick: (t: number) => [number, number]) => {
+    for (let t = 0; t < n - 1; t += step) ring.push(pick(t));
+  };
+
+  walk(nx, (i) => at(i, 0));
+  walk(ny, (j) => at(nx - 1, j));
+  walk(nx, (i) => at(nx - 1 - i, ny - 1));
+  walk(ny, (j) => at(0, ny - 1 - j));
+  ring.push(ring[0]);
+  return ring;
 }
 
 /**
