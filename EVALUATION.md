@@ -65,6 +65,29 @@ seeding decision itself.
 
 In four fifths of all releases the model holds no supercooled liquid in the
 seeding band over the cell at all, and the radar takes most of the rest.
+
+### The rain veto excludes the geometry the operators actually seed
+
+Where the model does hold liquid over a release, **the reflectivity is never
+near the cutoff — it is well past it.** Across the releases carrying liquid at
+both analyses a flare sits between, the measured reflectivity runs 20 to 47 dBZ
+with a median of 32. `RAIN_DBZ` is 20. Not one of these cells is a marginal
+call.
+
+So the disqualifier is not catching cells that crept over a line. It is
+describing, correctly, that these clouds are raining hard — and the operators
+seed them anyway, deliberately, because they are working the growing turret on
+the flank of a complex whose core is already precipitating. A 12 km cell cannot
+separate the two: the block-averaged reflectivity is dominated by the core, 8 km
+from the turret the aircraft is actually in.
+
+**`RAIN_DBZ` therefore encodes a real question at a resolution that cannot
+answer it.** The question — has this cloud already spent its liquid — is sound.
+The reading it is asked of covers both the spent core and the unspent turret, so
+a cell that is half of each answers as though it were all core. Nothing about
+raising or lowering the threshold fixes that; the cells are at 32 dBZ, not 21.
+
+This is a finding about the product, not about the operators.
 Re-asking the observed half at each flare's true minute moves individual answers
 freely — 7 candidates become `raining` and 5 go the other way, with no overlap
 between the old and new candidate sets — while leaving the pooled shares roughly
@@ -685,6 +708,22 @@ inputs in one `Promise.all`, and a join missing the cloud-top test is a
 different product.
 
 ### What the results now argue for
+
+**A second pass that does not disqualify on rain.** The join crosses a cell off
+at 20 dBZ and the cells the operators work sit at a median of 32, so the veto is
+removing the whole population rather than trimming its edge. `bracket.mjs`
+already scores this as a separate test — seedable cloud with every other layer
+agreeing, before reflectivity is consulted — because the rejection order puts
+rain last and a cell charged to `raining` has passed everything before it. That
+makes the second pass exact rather than an estimate: it is already computed, and
+the two numbers can be quoted side by side.
+
+What it cannot be is a quiet loosening of the threshold. A cell at 32 dBZ is
+raining and saying otherwise would be false; the honest form is **two answers,
+one that asks whether the cloud is worth seeding and one that asks whether it
+has already spent its liquid**, with the second reported rather than used to
+suppress the first. That also matches what the operator does — they see the echo
+and fly it anyway.
 
 **Re-run SNOWIE against the right hours.** The seeding windows are now pinned
 (§3) and the first sweep missed all three. Three hours of cycles per case, and
