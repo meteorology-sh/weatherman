@@ -1,12 +1,74 @@
 # Evaluation — do we paint the ground the aircraft actually seeded
 
-Four cases, the numbers each one reports, and what came back. §5 holds the
-results; everything before it is the design, and everything after is what the
-results did not settle.
+**The findings are directly below.** Everything after them is how they were
+produced: the question in §1, the ground truth in §2, the worked cases and the
+season sweeps in §3–§5, the harness and how to rerun it in §7, and the limits in
+§8.
 
 `WEATHERMAN.md` says what the app claims and `MEASUREMENTS.md` says what the
 free feeds can answer. This document is allowed to argue, like `PLAN.md` and
 `INVESTIGATION.md`.
+
+---
+
+## Results
+
+### One layer is verified against an instrument; the layer that decides the answer is not
+
+| Layer                                        | Independent check                   |   n | Offset    | Standing              |
+| -------------------------------------------- | ----------------------------------- | --: | --------- | --------------------- |
+| Seeding band — freezing level, −15 °C height | KMAF / KDRT radiosonde              |  64 | 20–30 min | **Verified**          |
+| Profile temperature at 700 mb                | KMAF / KDRT radiosonde              |  63 | 20–30 min | **Verified**          |
+| Reflectivity                                 | Reported cell dBZ                   | 289 | 1–2 min   | **Verified**          |
+| Supercooled liquid in the band               | Nothing in the record measures it   |   0 | —         | **No counterpart**    |
+| Cloud-top phase                              | Nothing in the record measures it   |   0 | —         | **No counterpart**    |
+| Cloud base                                   | Pilot radio calls, twice all season |   2 | —         | Anecdote, not a check |
+| Warm cloud depth                             | In their briefing, absent from ours |   — | —         | Not produced          |
+
+**The band is right and the liquid inside it is unchecked.** Those two sentences
+carry the whole evaluation. Band geometry decides _where_ the liquid integral is
+taken; the integral itself rejects 78.5% of all cells and no radiosonde, radar or
+satellite in the Texas record can confirm or refute it.
+
+### The seeding band is where the radiosonde puts it
+
+68 ascents attempted over the 2025 season, 64 scored. 12Z lands on an HRRR
+analysis hour, so neither side is rounded to meet the other.
+
+| Reading            |   n |    Bias | Median \|err\| |     Worst |
+| ------------------ | --: | ------: | -------------: | --------: |
+| Freezing level     |  64 |   −31 m |           45 m |     286 m |
+| −15 °C height      |  64 |   −26 m |           57 m |     324 m |
+| 700 mb temperature |  63 | −0.3 °C |         0.4 °C |    2.8 °C |
+| Surface CAPE       |  64 |    +238 |            240 | 2953 J/kg |
+
+Taken as a layer rather than as two edges, **the band we draw overlaps the band
+the sonde measured by a median 95.7%** of their union, over a layer whose median
+depth is 2,537 m. All 64 clear 80% and 56 clear 90%. Bias near zero on both
+edges means the misses are scatter, not a standing offset, so there is nothing
+to correct for.
+
+This is agreement with the instrument the crews are briefed on. Every daily
+report opens with that sounding table, and the rows the operator prints are the
+seeding decision itself.
+
+### The season, scored at its analysis hours
+
+33 days, 497 releases. 20 September carries no answer — 11 timeouts.
+
+| Verdict     |   n | Share |
+| ----------- | --: | ----: |
+| `noLiquid`  | 390 | 78.5% |
+| `raining`   |  89 | 17.9% |
+| `candidate` |   7 |  1.4% |
+| error       |  11 |  2.2% |
+
+In four fifths of all releases the model holds no supercooled liquid in the
+seeding band over the cell at all, and the radar takes most of the rest.
+Re-asking the observed half at each flare's true minute moves individual answers
+freely — 7 candidates become `raining` and 5 go the other way, with no overlap
+between the old and new candidate sets — while leaving the pooled shares roughly
+where they were. **Every individual answer was wrong and the totals hid it.**
 
 ---
 
@@ -93,6 +155,13 @@ without anyone transcribing them by hand.
 ---
 
 ## 3. The four cases
+
+**These are worked examples, not the score.** They were picked to find out
+whether the harness could answer the question at all, and they did that. The
+numbers to quote are the season-wide ones in the results block at the top: four
+days cannot separate a structural disagreement from an unlucky airmass, and
+`MEASUREMENTS.md` §6 says to score this product over a Texas year. Read this
+section for how a single day is examined, not for how the platform performs.
 
 | #   | Date              | Releases | What it is                                  |
 | --- | ----------------- | -------- | ------------------------------------------- |
