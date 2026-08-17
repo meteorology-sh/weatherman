@@ -1,5 +1,5 @@
 // React
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 // Hooks
 import { useAppSelector } from "~/lib/store/hooks";
@@ -15,12 +15,55 @@ import { LayerPanel } from "./LayerPanel";
 import { PaintedMap } from "./PaintedMap";
 import { Proximity } from "./Proximity";
 
-type CountyShape = { name: string; rings: [number, number][][] };
+// Layout
+import { fitExtent } from "./fit";
+
+type CountyShape = {
+  name: string;
+  rings: [number, number][][];
+  /** Where to write the name — the centre of the county's largest ring. */
+  label: [number, number];
+};
+
+/**
+ * A label point for a county.
+ *
+ * The centre of the widest ring's bounding box. A true centroid would be more
+ * careful, but Texas counties are near-rectangles and the difference is smaller
+ * than the text — and a county split across several rings should be labelled on
+ * its mainland rather than between its parts.
+ */
+function labelPoint(rings: [number, number][][]): [number, number] {
+  let best: [number, number] = [0, 0];
+  let widest = -1;
+  for (const ring of rings) {
+    const lons = ring.map((p) => p[0]);
+    const lats = ring.map((p) => p[1]);
+    const west = Math.min(...lons);
+    const east = Math.max(...lons);
+    const span = east - west;
+    if (span > widest) {
+      widest = span;
+      best = [(west + east) / 2, (Math.min(...lats) + Math.max(...lats)) / 2];
+    }
+  }
+  return best;
+}
 
 const hhmm = (iso: string) => `${iso.slice(11, 13)}${iso.slice(14, 16)}Z`;
 
 /** A little room around the day's releases, so nothing sits on the edge. */
 const MARGIN = 0.6;
+
+/**
+ * How tall a map may get, in pixels.
+ *
+ * The floor keeps a wide, shallow day from becoming a letterbox strip; the
+ * ceiling keeps a tall, narrow one from running off the bottom of the screen.
+ * Between them the map takes the full width it is given.
+ */
+const MIN_HEIGHT = 380;
+const MAX_HEIGHT = 640;
 
 /**
  * Do operators seed near what we paint?
@@ -39,6 +82,25 @@ export const Overlap = () => {
     (state) => state.day
   );
   const [counties, setCounties] = useState<CountyShape[] | null>(null);
+  const [available, setAvailable] = useState(0);
+
+  /**
+   * The width the maps have to fill.
+   *
+   * Measured rather than assumed: the panel is fixed but the window is not, and
+   * a map sized from a guess is either short of the edge or scrolling past it.
+   * A callback ref with a cleanup — React 19 runs it on detach — so the observer
+   * does not outlive the node.
+   */
+  const measure = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    setAvailable(node.clientWidth);
+    const observer = new ResizeObserver(([entry]) =>
+      setAvailable(entry.contentRect.width)
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -58,9 +120,11 @@ export const Overlap = () => {
             f.geometry.type === "Polygon"
               ? [f.geometry.coordinates as number[][][]]
               : (f.geometry.coordinates as number[][][][]);
+          const rings = polygons.flat() as [number, number][][];
           return {
             name: f.properties.BASENAME,
-            rings: polygons.flat() as [number, number][][],
+            rings,
+            label: labelPoint(rings),
           };
         })
       );
@@ -91,6 +155,15 @@ export const Overlap = () => {
     };
   }, [painted]);
 
+  /** The same box for every analysis, so the maps can be read against each other. */
+  const fitted = useMemo(
+    () =>
+      extent && available
+        ? fitExtent(extent, available, MIN_HEIGHT, MAX_HEIGHT)
+        : null,
+    [extent, available]
+  );
+
   return (
     <div className="h-full flex">
       <aside className="w-80 shrink-0 border-r border-base-300 overflow-y-auto">
@@ -98,7 +171,7 @@ export const Overlap = () => {
       </aside>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="p-6 flex flex-col gap-6 max-w-5xl">
+        <div className="p-6 flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <h1 className="text-2xl font-semibold">
               Do operators seed near what we paint?
@@ -176,7 +249,7 @@ export const Overlap = () => {
                       </span>
                     </div>
 
-                    <div className="flex flex-col gap-6">
+                    <div className="flex flex-col gap-6" ref={measure}>
                       {painted.analyses.map((analysis) => (
                         <div key={analysis.at} className="flex flex-col gap-2">
                           <div className="flex items-baseline gap-3">
@@ -194,7 +267,7 @@ export const Overlap = () => {
                           <PaintedMap
                             painted={painted}
                             analysis={analysis}
-                            extent={extent}
+                            fitted={fitted}
                             counties={counties}
                           />
                         </div>

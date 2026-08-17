@@ -27,6 +27,10 @@ export const Navigation = () => {
 
   // A day that has not been painted has no frames to draw, so it cannot be
   // opened. The page says how many there are and how to build one.
+  //
+  // The picker is given a fixed width rather than `w-auto`: auto shrank the box
+  // below the padding DaisyUI reserves for its chevron, and the arrow ended up
+  // sitting off the text's baseline.
   const painted = days?.filter((day) => day.painted) ?? [];
 
   // A programme with no flight record has nothing behind the two finding links,
@@ -55,7 +59,7 @@ export const Navigation = () => {
 
       {onFlares && painted.length > 0 && (
         <select
-          className="select select-xs select-bordered font-mono w-auto"
+          className="select select-sm select-bordered font-mono w-56"
           aria-label="Flying day"
           value={date ?? ""}
           onChange={(e) => dispatch(dayActions.setDate(e.target.value))}

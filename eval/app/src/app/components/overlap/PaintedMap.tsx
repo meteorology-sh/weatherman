@@ -10,6 +10,9 @@ import { LAYERS } from "~/lib/layers";
 // ArcGIS
 import { soloColor } from "@/lib/arcgis/bands";
 
+// Layout
+import type { Fitted } from "./fit";
+
 // Types
 import type { Analysis, Flare, Painted } from "~/lib/types";
 
@@ -41,19 +44,21 @@ import type { Analysis, Flare, Painted } from "~/lib/types";
  * and the arrowhead is where every distance is measured from.
  */
 
-type CountyShape = { name: string; rings: [number, number][][] };
-type Extent = { west: number; east: number; south: number; north: number };
-
-const HEIGHT = 460;
+type CountyShape = {
+  name: string;
+  rings: [number, number][][];
+  label: [number, number];
+};
 
 type PropsT = {
   painted: Painted;
   analysis: Analysis;
-  extent: Extent;
+  /** The box every map on the page shares, already grown to fill the page. */
+  fitted: Fitted | null;
   counties: CountyShape[] | null;
 };
 
-export const PaintedMap = ({ painted, analysis, extent, counties }: PropsT) => {
+export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
   const {
     visible,
     drift,
@@ -61,19 +66,15 @@ export const PaintedMap = ({ painted, analysis, extent, counties }: PropsT) => {
   } = useAppSelector((state) => state.map);
   const [hover, setHover] = useState<string | null>(null);
 
-  // Longitude squeezed by cos(latitude) so a county is the shape it is on the
-  // ground rather than stretched sideways.
-  const squeeze = Math.cos(
-    ((extent.south + extent.north) / 2) * (Math.PI / 180)
-  );
-  const width = Math.round(
-    (HEIGHT * (extent.east - extent.west) * squeeze) /
-      (extent.north - extent.south)
-  );
+  // Nothing to draw until the page has been measured. One render, at mount.
+  if (!fitted) return null;
+
+  const { extent, width, height } = fitted;
+
   const px = (lon: number) =>
     ((lon - extent.west) / (extent.east - extent.west)) * width;
   const py = (lat: number) =>
-    ((extent.north - lat) / (extent.north - extent.south)) * HEIGHT;
+    ((extent.north - lat) / (extent.north - extent.south)) * height;
 
   const draw = (ring: [number, number][]) =>
     `${ring
@@ -101,8 +102,8 @@ export const PaintedMap = ({ painted, analysis, extent, counties }: PropsT) => {
       <div className="overflow-x-auto bg-black">
         <svg
           width={width}
-          height={HEIGHT}
-          viewBox={`0 0 ${width} ${HEIGHT}`}
+          height={height}
+          viewBox={`0 0 ${width} ${height}`}
           role="img"
           aria-label={`Layers at ${analysis.at} with the flare releases charged to it`}
         >
@@ -144,6 +145,37 @@ export const PaintedMap = ({ painted, analysis, extent, counties }: PropsT) => {
                   />
                 ))
             )}
+
+          {/*
+           * County names, for the ones whose middle is on screen.
+           *
+           * An outline with no name is a shape rather than a place, and the
+           * releases are logged by county — so without these there is no way to
+           * check a flare against the record it came from. Drawn under the
+           * layers so a fill never has to compete with a word, and
+           * `pointer-events: none` so a name never swallows a hover.
+           */}
+          {showCounties &&
+            counties
+              ?.filter(
+                (county) =>
+                  county.label[0] >= extent.west &&
+                  county.label[0] <= extent.east &&
+                  county.label[1] >= extent.south &&
+                  county.label[1] <= extent.north
+              )
+              .map((county) => (
+                <text
+                  key={`label-${county.name}`}
+                  x={px(county.label[0])}
+                  y={py(county.label[1])}
+                  textAnchor="middle"
+                  pointerEvents="none"
+                  className="fill-base-content/45 text-[10px] tracking-wide"
+                >
+                  {county.name.toUpperCase()}
+                </text>
+              ))}
 
           {/*
            * The layers, in the order the replay map stacks them. A layer's
