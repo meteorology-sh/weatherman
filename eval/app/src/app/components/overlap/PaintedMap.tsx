@@ -13,9 +13,6 @@ import { soloColor } from "@/lib/arcgis/bands";
 // Types
 import type { Analysis, Flare, Painted } from "~/lib/types";
 
-// Components
-import { toneFor } from "./distance";
-
 /**
  * One analysis hour: the layers we painted, and the flares charged to it.
  *
@@ -31,16 +28,17 @@ import { toneFor } from "./distance";
  * are built from, so a band that moves in Weatherman moves on this map. Levels
  * are drawn low to high and left to composite exactly as they composite there.
  *
- * **Each flare is coloured by how far it was from the paint, not by whether it
- * was in it.** A release just outside a contour and one on the far side of the
- * county are both "outside", and only the distance separates a map that is
- * slightly wrong from one that is looking at the wrong weather.
+ * **The releases carry no verdict in their colour.** They are white dots: what
+ * the operator did, stated as a fact and left alone. Colouring them by distance
+ * put our answer on top of their record and competed with the very bands being
+ * judged, which is the wrong way round for a page asking whether the bands are
+ * right. Every layer's distance is in the readout instead.
  *
- * **The white line is the clock, drawn.** A release at 1843Z is being compared
+ * **The white arrow is the clock, drawn.** A release at 1843Z is being compared
  * against a 19Z field, seventeen minutes later, and at twenty knots the air has
- * moved ten kilometres in between — most of a grid cell. The line runs from
- * where the flare was dropped to where that air is at the moment of the frame
- * underneath it, and the distance is measured from its far end.
+ * moved ten kilometres in between — most of a grid cell. It runs from where the
+ * flare was dropped to where that air is at the moment of the frame underneath,
+ * and the arrowhead is where every distance is measured from.
  */
 
 type CountyShape = { name: string; rings: [number, number][][] };
@@ -109,14 +107,24 @@ export const PaintedMap = ({ painted, analysis, extent, counties }: PropsT) => {
           aria-label={`Layers at ${analysis.at} with the flare releases charged to it`}
         >
           <defs>
-            {/* White, because the app is dark and every band under it is dark. */}
+            {/*
+             * White, because the app is dark and every band under it is dark.
+             *
+             * `markerUnits="userSpaceOnUse"` rather than the default: markers
+             * scale by stroke width unless told not to, so a 1.4 px line drew a
+             * seven-pixel head and the arrow read as a plain line pointing
+             * nowhere in particular. Sized in map pixels, it is unmistakably an
+             * arrow — which matters, because the direction is the whole content
+             * of the mark.
+             */}
             <marker
               id="drift-head"
               viewBox="0 0 10 10"
-              refX="9"
+              refX="8"
               refY="5"
-              markerWidth="5"
-              markerHeight="5"
+              markerWidth="11"
+              markerHeight="11"
+              markerUnits="userSpaceOnUse"
               orient="auto-start-reverse"
             >
               <path d="M0 0 L10 5 L0 10 z" fill="white" />
@@ -183,66 +191,96 @@ export const PaintedMap = ({ painted, analysis, extent, counties }: PropsT) => {
               ) : null
             )}
 
-          {analysis.flares.map((flare) => {
-            const near = flare.near.liquid;
-            const tone = toneFor(near, painted.proximity.cellKm);
-            const [lon, lat] = flare.compared;
-            return (
-              <g
-                key={flare.at}
-                onMouseEnter={() => setHover(flare.at)}
-                onMouseLeave={() => setHover(null)}
-              >
-                <circle
-                  cx={px(lon)}
-                  cy={py(lat)}
-                  r={hover === flare.at ? 13 : 10}
-                  className={`fill-none ${tone.stroke}`}
-                  strokeWidth={1.3}
-                  opacity={0.6}
-                />
-                <circle
-                  cx={px(lon)}
-                  cy={py(lat)}
-                  r={5.5}
-                  className={tone.fill}
-                  stroke="white"
-                  strokeWidth={1.2}
-                />
-              </g>
-            );
-          })}
+          {/*
+           * The releases themselves, drawn where the aircraft actually dropped
+           * them.
+           *
+           * **White, with no verdict in the colour.** Colouring a release by how
+           * far it was from one layer put our answer on top of the operator's
+           * fact, and it competed with the bands underneath — which are the
+           * thing being judged. The distance is in the readout instead, for
+           * every layer at once.
+           *
+           * The arrowhead marks where that air is at the analysis time, and that
+           * is where the distances are measured from. Two glyphs, one each: a
+           * dot for what the operator did, a head for what we compared it to.
+           */}
+          {analysis.flares.map((flare) => (
+            <g
+              key={flare.at}
+              onMouseEnter={() => setHover(flare.at)}
+              onMouseLeave={() => setHover(null)}
+            >
+              <circle
+                cx={px(flare.lon)}
+                cy={py(flare.lat)}
+                r={hover === flare.at ? 12 : 9}
+                className="fill-none stroke-white"
+                strokeWidth={1}
+                opacity={hover === flare.at ? 0.9 : 0.35}
+              />
+              <circle
+                cx={px(flare.lon)}
+                cy={py(flare.lat)}
+                r={5}
+                fill="white"
+                stroke="black"
+                strokeWidth={1.2}
+              />
+            </g>
+          ))}
         </svg>
       </div>
 
-      <div className="text-xs font-mono min-h-[3rem] bg-base-200 p-2">
+      {/*
+       * Pinned to the map's own width. The svg is sized from the extent's aspect
+       * ratio, so a readout at the container's width ran well past the picture
+       * it belongs to and read as page furniture rather than as part of the map.
+       */}
+      <div
+        className="text-xs font-mono bg-base-200 p-2 flex flex-col gap-1"
+        style={{ width, maxWidth: "100%", minHeight: "4rem" }}
+      >
         {hovered ? (
           <>
-            {hovered.timeZ}Z · {hovered.county} County · {hovered.plane} ·{" "}
-            {hovered.payload}
-            <br />
-            {hovered.near.liquid
-              ? hovered.near.liquid.inside
-                ? "inside painted liquid"
-                : `${hovered.near.liquid.km} km from painted liquid` +
-                  (hovered.near.liquid.kmAtRelease !== hovered.near.liquid.km
-                    ? ` (${hovered.near.liquid.kmAtRelease} km before drifting)`
-                    : "")
-              : "no liquid frame at this hour"}
-            {hovered.drift?.stormMotionKt != null && (
-              <>
-                {" "}
-                · {hovered.offsetMinutes! > 0 ? "+" : ""}
-                {hovered.offsetMinutes} min to the analysis at{" "}
-                {hovered.drift.stormMotionKt} kt toward{" "}
-                {hovered.drift.stormMotionTowardDeg}°
-              </>
-            )}
+            <div>
+              {hovered.timeZ}Z · {hovered.county} County · {hovered.plane} ·{" "}
+              {hovered.payload}
+              {hovered.drift?.stormMotionKt != null && (
+                <>
+                  {" "}
+                  · {hovered.offsetMinutes! > 0 ? "+" : ""}
+                  {hovered.offsetMinutes} min to the analysis, drifting{" "}
+                  {hovered.drift.stormMotionKt} kt toward{" "}
+                  {hovered.drift.stormMotionTowardDeg}°
+                </>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {LAYERS.map((layer) => {
+                const near = hovered.near[layer.key];
+                return (
+                  <span
+                    key={layer.key}
+                    className={visible[layer.key] ? "" : "opacity-60"}
+                  >
+                    {layer.legend.name.toLowerCase()}{" "}
+                    <span className="font-semibold">
+                      {!near || near.km === null
+                        ? "not painted"
+                        : near.inside
+                          ? "inside"
+                          : `${near.km} km`}
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
           </>
         ) : (
           <span className="opacity-70">
-            Hover a flare for how far it was from the paint, and how far the air
-            was carried to meet the analysis.
+            Hover a release for how far it was from every layer, measured at the
+            arrowhead.
           </span>
         )}
       </div>

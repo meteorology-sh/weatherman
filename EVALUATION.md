@@ -4,11 +4,13 @@ Two questions, in order.
 
 1. **Is the seeding band in the right place?** Check it against the weather
    balloons the operator briefs on every morning.
-2. **Do the flares fall inside what we paint?** Paint the liquid at both model
-   hours a flare sits between, then see whether the release point is inside.
+2. **Do operators seed near what we paint?** Measure the distance from every
+   release to the nearest edge of each layer, at the minute and place it left
+   the aircraft.
 
-The first is answered and the answer is yes. The second is answered and the
-answer is almost never — for a reason worth knowing.
+The first is answered and the answer is yes. The second splits: they seed close
+to the liquid we paint and never inside the finished join, because the join
+rules out rain and rain is what they fly into.
 
 `WEATHERMAN.md` says what the app claims. `MEASUREMENTS.md` says what the free
 feeds can answer. This file says what happened when we checked.
@@ -73,7 +75,7 @@ Instability is wide and nothing in the product leans on it.
 
 ---
 
-## Finding 2 — the flares almost never fall inside what we paint
+## Finding 2 — they seed near our liquid, and inside the rain we veto
 
 The model publishes once an hour. Aircraft do not wait for it. A flare released
 at 1843Z is 17 minutes from one reading and 43 from the other, and picking
@@ -127,31 +129,47 @@ moment of the frame. On 19 April the offsets run 10 to 25 minutes, which at
 13–25 knots is 5 to 15 km. That is most of a grid cell, so it is not a
 correction that can be skipped.
 
-**One day is built this way so far.** 19 April, 13 releases with a position:
+**Two days are built this way so far**, 36 releases with a position.
 
-| Layer                    | Released inside it | Within one 12 km cell | Median distance |
-| ------------------------ | -----------------: | --------------------: | --------------: |
-| Cloud base               |              13/13 |                 13/13 |            0 km |
-| Cloud tops               |               7/13 |                 13/13 |            0 km |
-| Supercooled liquid water |               9/13 |                  9/13 |            0 km |
-| Radar reflectivity       |              13/13 |                 13/13 |            0 km |
-| Seeding opportunity      |               0/13 |                  2/13 |         20.2 km |
+| Layer                    | 19 Apr, 13 releases | 22 May, 23 releases |
+| ------------------------ | ------------------: | ------------------: |
+| Cloud base               |               13/13 |               22/23 |
+| Cloud tops               |                7/13 |               23/23 |
+| Supercooled liquid water |                9/13 |               18/23 |
+| Radar reflectivity       |               13/13 |               21/23 |
+| Seeding opportunity      |                0/13 |                0/23 |
 
-Read across, the day is coherent. Every release was in modelled cloud and in
-measured echo. Nine of thirteen were inside painted supercooled liquid. None
-were inside the join, because the join vetoes rain and all thirteen were in it.
+Read across, both days are coherent. Almost every release was in modelled cloud
+and in measured echo. None were inside the join on either day, because the join
+vetoes rain and they were flying in it.
 
-The four that missed liquid missed it by a long way — 75 to 77 km, one pass over
-Irion County between 1843Z and 1850Z. The other nine were inside. **The misses
-are not a rim of near-misses around the contour; they are a separate event.**
-Drifting them to the analysis time made them worse, not better, because the
-storm motion carried them further from the liquid.
+**The two days disagree about the liquid, and the disagreement is the finding.**
 
-**This does not yet say which side is wrong.** Either we are painting liquid in
-the wrong place, or the crew was working something the model has nothing about.
-A 12 km analysis and one day cannot separate those, and nothing here should be
-read as having done so. What it does establish is that the disagreement is
-concentrated rather than uniform — the same shape the season table shows.
+On 22 May every one of the 23 releases was within 2.8 km of painted liquid — 18
+inside it and the other five a fraction of a cell out. At 12 km resolution that
+is not a miss at all.
+
+On 19 April nine were inside and **four were 75 to 77 km away**, one pass over
+Irion County between 1843Z and 1850Z. Nothing sits between. So the misses are not
+a rim of near-misses around a contour that is slightly the wrong shape; they are
+a separate event, on one day, in one pass.
+
+Combined: **32 of 36 releases fall within one cell of painted liquid, and all
+four exceptions are that single pass.**
+
+**This does not say which side is wrong.** Either we painted no liquid where the
+crew found some, or they were working something the model has nothing about. A
+12 km analysis and two days cannot separate those, and nothing here should be
+read as having done so. What it establishes is that the disagreement is
+concentrated rather than uniform, which is the same shape the season table shows
+and the reason it can be diagnosed at all.
+
+**The drift correction is worth less than it looks on a slow day.** On 22 May the
+storm motion runs 4 to 10 knots, so twenty minutes moves a release about 3 km —
+under a quarter of a cell. Four releases that sat exactly on the contour before
+drifting sat just outside it after. That is the correction operating at the noise
+floor, and on days like it the undrifted number is as good. On 19 April, at 13 to
+25 knots, it is 5 to 15 km and it matters.
 
 ### Why: we rule out rain, and they seed rain on purpose
 

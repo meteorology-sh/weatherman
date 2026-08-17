@@ -14,7 +14,6 @@ import { DayPicker } from "./DayPicker";
 import { LayerPanel } from "./LayerPanel";
 import { PaintedMap } from "./PaintedMap";
 import { Proximity } from "./Proximity";
-import { TONES } from "./distance";
 
 type CountyShape = { name: string; rings: [number, number][][] };
 
@@ -141,36 +140,39 @@ export const Overlap = () => {
 
                   <Section
                     heading="Where they were"
-                    subtitle="One map per analysis, on the same extent. A release is charged to the analysis nearest its own minute, and the white line carries it the remaining minutes along the storm motion — so the dot sits where that air is at the moment of the frame under it."
+                    subtitle="One map per analysis, on the same extent. The dot is where a flare was released; the arrow carries it the remaining minutes along the storm motion to the moment of the frame under it, which is where every distance is measured."
                   >
                     <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs items-center pb-1">
-                      {TONES.map((tone) => (
-                        <span
-                          key={tone.label}
-                          className="flex items-center gap-2"
-                        >
-                          <span
-                            className={`inline-block w-3 h-3 rounded-full ${tone.fill.replace(
-                              "fill-",
-                              "bg-"
-                            )}`}
-                          />
-                          {tone.label}
-                        </span>
-                      ))}
                       <span className="flex items-center gap-2">
-                        <svg width="26" height="10" aria-hidden="true">
+                        <svg width="14" height="14" aria-hidden="true">
+                          <circle
+                            cx="7"
+                            cy="7"
+                            r="5"
+                            fill="white"
+                            stroke="black"
+                            strokeWidth="1.2"
+                          />
+                        </svg>
+                        Where a flare was released
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <svg width="30" height="12" aria-hidden="true">
                           <line
                             x1="1"
-                            y1="5"
+                            y1="6"
                             x2="20"
-                            y2="5"
+                            y2="6"
                             stroke="white"
                             strokeWidth="1.6"
                           />
-                          <path d="M20 1 L26 5 L20 9 z" fill="white" />
+                          <path d="M19 1 L29 6 L19 11 z" fill="white" />
                         </svg>
-                        Carried to the analysis time
+                        Where that air is at the analysis — distances measured
+                        here
+                      </span>
+                      <span className="opacity-80">
+                        Hover a release for its distance to every layer.
                       </span>
                     </div>
 
