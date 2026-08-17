@@ -17,38 +17,14 @@ import { Proximity } from "./Proximity";
 
 // Layout
 import { fitExtent } from "./fit";
+import { labelPoint } from "./label";
 
 type CountyShape = {
   name: string;
   rings: [number, number][][];
-  /** Where to write the name — the centre of the county's largest ring. */
+  /** Where to write the name — the interior point farthest from any edge. */
   label: [number, number];
 };
-
-/**
- * A label point for a county.
- *
- * The centre of the widest ring's bounding box. A true centroid would be more
- * careful, but Texas counties are near-rectangles and the difference is smaller
- * than the text — and a county split across several rings should be labelled on
- * its mainland rather than between its parts.
- */
-function labelPoint(rings: [number, number][][]): [number, number] {
-  let best: [number, number] = [0, 0];
-  let widest = -1;
-  for (const ring of rings) {
-    const lons = ring.map((p) => p[0]);
-    const lats = ring.map((p) => p[1]);
-    const west = Math.min(...lons);
-    const east = Math.max(...lons);
-    const span = east - west;
-    if (span > widest) {
-      widest = span;
-      best = [(west + east) / 2, (Math.min(...lats) + Math.max(...lats)) / 2];
-    }
-  }
-  return best;
-}
 
 const hhmm = (iso: string) => `${iso.slice(11, 13)}${iso.slice(14, 16)}Z`;
 
