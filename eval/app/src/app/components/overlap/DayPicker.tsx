@@ -9,50 +9,56 @@ import { dayActions } from "~/lib/store/features/day";
  *
  * **A day says what it is missing rather than looking empty.** A day nobody has
  * painted yet is not a day with no liquid, and the two have to stay
- * distinguishable or a command not yet run reads as a finding.
+ * distinguishable or a command not yet run reads as a finding. Unpainted days
+ * are listed and cannot be opened, with the command that would build one.
  */
 export const DayPicker = () => {
   const days = useAppSelector((state) => state.day.days);
   const date = useAppSelector((state) => state.day.date);
+  const region = useAppSelector((state) => state.day.region);
   const dispatch = useAppDispatch();
 
   if (!days) {
     return (
-      <div className="p-4 flex items-center gap-3">
+      <div className="flex items-center gap-3">
         <span className="loading loading-spinner loading-sm" />
         <span className="text-sm">Loading days…</span>
       </div>
     );
   }
 
+  const painted = days.filter((day) => day.painted);
+  const rest = days.length - painted.length;
+
   return (
-    <ul className="menu menu-sm w-full p-0">
-      {days.map((day) => (
-        <li key={day.date}>
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-2">
+        {painted.map((day) => (
           <button
+            key={day.date}
             type="button"
-            className={`flex justify-between items-center rounded-none ${
-              date === day.date ? "active" : ""
+            className={`btn btn-sm ${
+              date === day.date ? "btn-active" : "btn-outline"
             }`}
             onClick={() => dispatch(dayActions.setDate(day.date))}
           >
             <span className="font-mono">{day.date}</span>
-            <span className="flex items-center gap-2">
-              <span className="text-xs opacity-80">{day.flares} flares</span>
-              {day.held !== null && day.held > 0 && (
-                <span className="badge badge-success badge-sm">{day.held}</span>
-              )}
-              {day.painted ? (
-                <span className="badge badge-info badge-sm badge-outline">
-                  painted
-                </span>
-              ) : (
-                <span className="badge badge-ghost badge-sm">not painted</span>
-              )}
-            </span>
+            <span className="badge badge-sm">{day.flares} flares</span>
           </button>
-        </li>
-      ))}
-    </ul>
+        ))}
+      </div>
+
+      {rest > 0 && (
+        <p className="text-xs">
+          {rest} more flying {rest === 1 ? "day is" : "days are"} logged this
+          season and not painted yet. Building one is{" "}
+          <code className="font-mono">
+            node eval/held.mjs &lt;date&gt; --region={region}
+          </code>
+          , which fetches five layers at every analysis that day's flares sit
+          between.
+        </p>
+      )}
+    </div>
   );
 };

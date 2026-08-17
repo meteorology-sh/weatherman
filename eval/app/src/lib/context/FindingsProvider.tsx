@@ -1,35 +1,46 @@
 // React
 import { useEffect } from "react";
 
+// Router
+import { useParams } from "react-router";
+
 // Hooks
 import { useAppDispatch, useAppSelector } from "~/lib/store/hooks";
 
 // Store
 import { findingsActions } from "~/lib/store/features/findings";
+import { regionsActions } from "~/lib/store/features/regions";
 
 // Client
 import { GetBand, GetOverlap, NotRunYet } from "~/lib/client";
 
 /**
- * Loads both findings once and syncs them into the store.
+ * Loads both findings for the region in the url, and syncs them into the store.
  *
  * Either can be missing on its own — the harness runs are independent — so a
  * missing one is recorded and the other still loads. Only a real failure sets
  * `error`.
+ *
+ * It wraps the region's routes, so navigating to another programme unmounts it
+ * and the next one loads from scratch. The region comes from the url rather than
+ * a prop for the same reason: the address is what selects the dataset.
  */
 export function FindingsProvider({ children }: { children: React.ReactNode }) {
-  const band = useAppSelector((state) => state.findings.band);
-  const overlap = useAppSelector((state) => state.findings.overlap);
+  const { region } = useParams();
+  const loaded = useAppSelector((state) => state.findings.region);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    async function load() {
+    if (!region) return;
+    dispatch(regionsActions.setActive(region));
+
+    async function load(on: string) {
       try {
-        dispatch(findingsActions.setLoading(true));
+        dispatch(findingsActions.setLoading(on));
 
         const [bandResult, overlapResult] = await Promise.allSettled([
-          GetBand(),
-          GetOverlap(),
+          GetBand(on),
+          GetOverlap(on),
         ]);
 
         const missing: string[] = [];
@@ -58,12 +69,14 @@ export function FindingsProvider({ children }: { children: React.ReactNode }) {
           )
         );
       } finally {
-        dispatch(findingsActions.setLoading(false));
+        dispatch(findingsActions.setLoaded(on));
       }
     }
 
-    if (!band && !overlap) load(); // guard: StrictMode double-invokes effects
-  }, [band, overlap, dispatch]);
+    // guard: StrictMode double-invokes effects, and a region already loaded
+    // should not be fetched again on every render.
+    if (loaded !== region) load(region);
+  }, [region, loaded, dispatch]);
 
   return <>{children}</>;
 }

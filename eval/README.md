@@ -14,6 +14,7 @@ node eval/season.mjs                   # every day     → out/season-2025.json
 node eval/veto.mjs                     # observed half → out/veto-recheck.json
 node eval/reconcile.mjs                # vs soundings  → out/reconcile-2025.json
 node eval/bracket.mjs                  # both analyses → out/bracket-2025.json
+node eval/held.mjs   2025-04-19        # every layer   → out/held-<date>.json
 node eval/field.mjs  2025-04-22 21 22 23 00   # per hour → out/field-<date>.json
 node eval/snowie.mjs 2017-01-20 22 23 00 01   # HRRR only → out/snowie-<date>.json
 ```
@@ -24,6 +25,12 @@ To look at it rather than read it, run both servers and the map:
 node eval/server.mjs                   # flight record + scores, port 3100
 cd eval/app && yarn dev                # the map, port 5174
 ```
+
+Everything is scoped to a region — `--region=wtwma` on the harness, `/wtwma/...`
+in the app. `data/regions.json` is the roster, and West Texas is the only one
+with a parsed flight record so far. The rest are listed rather than hidden, so
+the gap in coverage is visible; each needs its report source found and read
+before anything here can be measured against it.
 
 ## What each one does
 
@@ -82,16 +89,35 @@ order puts rain last, so a cell charged to `raining` passed everything before it
 `--day=2025-08-11` scores one day; `--resume` continues from what is already in
 `out/bracket-2025.json`.
 
+**`held.mjs`** builds one flying day into everything a map needs. For each hour
+the day's flares sit between it fetches all five layers the replay map draws —
+cloud base, cloud tops, supercooled liquid, radar, and the join — windows them to
+the region, and writes them alongside the release points.
+
+It also samples HRRR's 0–6 km storm motion at each release point and carries it
+forward to the end of the bracket. That is what lets the map draw an arrow from
+the cloud that was seeded to where that air had got to an hour later, instead of
+leaving a reader to guess which blob in the second frame is which blob from the
+first.
+
+Flare classifications are read back out of `bracket-2025.json` rather than
+recomputed, so the map cannot tell a different story from the table.
+
 **`server.mjs`** serves the flight record and whatever the sweeps have scored,
 on port 3100. It holds no weather. **`app/`** is the map that draws it: a Vite
-SPA on port 5174 that points its layers at the Weatherman server and lays the
-flares on top.
+SPA on port 5174, one route per region, with a findings page, the sounding
+comparison and the flare map under each.
 
 The app installs nothing — `eval/app/node_modules` is a symlink to `/app`'s, and
-`@` resolves to `/app/src`, so the renderers and the layer urls are the app's
-own objects rather than copies. A page built to show where we disagree with an
-operator must not also disagree with the app it is inspecting, and a second
+`@` resolves to `/app/src`. That is not a packaging trick, it is the point: the
+layer switches, the ramps, the band levels, the colours and the layer names are
+imported from `app/src/lib/arcgis` and `app/src/app/components/panel`, so a band
+that moves in Weatherman moves here. A page built to show where we disagree with
+an operator must not also disagree with the app it is inspecting, and a second
 install could drift a version and repaint a band.
+
+It pulls no ArcGIS runtime. The map is SVG over rings `held.mjs` already wrote to
+disk — there is no layer to load, no url to repoint and no view to keep alive.
 
 **`snowie.mjs`** reads the liquid contour frame over the Payette basin. The
 join cannot run in January 2017 — no GOES cloud top before 2023-03-23, no MRMS
@@ -116,11 +142,17 @@ curl localhost:3000/healthcheck   # "Hello, world!"
 | The observed half, re-asked at the true minute            | `node eval/veto.mjs`                     | one build per flare |
 | Whether a flare sat inside a region held at both analyses | `node eval/bracket.mjs`                  | 125 builds          |
 | One day of that                                           | `node eval/bracket.mjs --day=2025-08-11` | 8 builds            |
+| A day drawn as a map — five layers at every analysis      | `node eval/held.mjs 2025-04-19`          | one build per hour  |
 
 **Cost is builds, not minutes.** A cold build is 30–60 s and everything else is
 milliseconds, so the honest unit is how many distinct hours a run has to
 construct. `bracket.mjs` asks 994 questions but only builds 125 hours, because
 every release in an hour is answered from that hour's cached scene.
+
+`held.mjs` fetches the join first even though it draws it last. The join reads
+every source the other four layers read, so building it warms all of them and
+five layers cost one build per hour rather than five — on 19 April that is 51–55
+seconds for the join and under a second for the rest of the hour.
 
 **Re-scoring is separate from re-fetching.** `reconcile.mjs --score` recomputes
 the whole summary — the per-reading table and the band overlap — from

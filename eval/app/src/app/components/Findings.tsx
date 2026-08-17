@@ -1,5 +1,5 @@
 // Router
-import { Link } from "react-router";
+import { Link, useParams } from "react-router";
 
 // Hooks
 import { useAppSelector } from "~/lib/store/hooks";
@@ -16,8 +16,12 @@ const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
  * what a reader came for and the method is one click away on either card.
  */
 export const Findings = () => {
+  const { region } = useParams();
   const { band, overlap, loading, missing, error } = useAppSelector(
     (state) => state.findings
+  );
+  const open = useAppSelector((state) =>
+    state.regions.all?.find((entry) => entry.id === region)
   );
 
   if (loading || error) {
@@ -31,21 +35,49 @@ export const Findings = () => {
     );
   }
 
+  // A programme whose reports have not been read yet has no findings to show,
+  // and saying so is different from showing two empty cards.
+  if (open && !open.evaluable) {
+    return (
+      <div className="h-full overflow-y-auto">
+        <div className="max-w-2xl p-8 flex flex-col gap-4">
+          <h1 className="text-2xl font-semibold">{open.name}</h1>
+          <p className="text-sm">
+            Nothing has been measured against this programme. Its daily reports
+            have not been found and parsed into a flight record, so there are no
+            flare coordinates to check the map against and no sounding table to
+            check the seeding band against.
+          </p>
+          <p className="text-sm">
+            Wiring one up means adding its report source to{" "}
+            <code className="font-mono">eval/data/regions.json</code> and
+            teaching <code className="font-mono">eval/releases.mjs</code> to
+            read its report layout.
+          </p>
+          <Link to="/" className="btn btn-sm btn-outline self-start">
+            Back to the roster
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-4xl mx-auto p-8 flex flex-col gap-8">
         <div className="prose max-w-none">
           <h1 className="mb-1">Does the map agree with what Texas flies?</h1>
           <p className="text-base-content/90">
-            Two questions, in order. Both are answered against the West Texas
-            programme's own daily reports for the 2025 season.
+            Two questions, in order. Both are answered against{" "}
+            {open ? `the ${open.name}'s` : "the programme's"} own daily reports
+            for the {open?.season ?? ""} season.
           </p>
         </div>
 
         <Status loading={false} missing={missing} error={null} />
 
         <Link
-          to="/band"
+          to={`/${region}/band`}
           className="card bg-base-200 hover:bg-base-300 transition-colors"
         >
           <div className="card-body">
@@ -101,7 +133,7 @@ export const Findings = () => {
         </Link>
 
         <Link
-          to="/overlap"
+          to={`/${region}/flares`}
           className="card bg-base-200 hover:bg-base-300 transition-colors"
         >
           <div className="card-body">

@@ -14,6 +14,30 @@ export type Outcome = "held" | "flipped" | "absent" | "unusable";
 
 export type Tally = Record<Exclude<Outcome, never>, number>;
 
+/* ---------- regions ---------- */
+
+/**
+ * One weather modification programme.
+ *
+ * `evaluable` is false until its reports have been parsed into a flight record.
+ * Texas licenses several programmes and only one has been read so far, so a
+ * region that cannot be evaluated is still listed — the roster is the honest
+ * picture of coverage, and hiding the gaps would make one operator's season
+ * look like the whole state.
+ */
+export type Region = {
+  id: string;
+  name: string;
+  short: string;
+  base: string | null;
+  source: string | null;
+  season: number | null;
+  window: { west: number; east: number; south: number; north: number } | null;
+  evaluable: boolean;
+  days: number;
+  flares: number;
+};
+
 /* ---------- finding 1 ---------- */
 
 export type Reading = {
@@ -158,29 +182,55 @@ export type Day = {
 /* ---------- the painted frames ---------- */
 
 export type PaintedLevel = {
+  /** The band's value, which is what matches it to a colour. */
   level: number;
   /** Polygons, each a list of rings, each a list of [lon, lat]. */
   polygons: [number, number][][][];
 };
 
+export type Frame = {
+  validTime: string;
+  levels: PaintedLevel[];
+  /** Set when that layer could not be built for that hour. */
+  error?: string;
+};
+
+/**
+ * Where the air over a release point had gone by the end of the bracket.
+ *
+ * HRRR's own 0–6 km storm motion at that cell, carried forward at constant speed
+ * and bearing. `to` is null when the model has the air standing still, because a
+ * bearing off a still vector is not a direction.
+ */
+export type Drift = {
+  stormMotionKt: number | null;
+  stormMotionTowardDeg: number | null;
+  hours: number;
+  km?: number;
+  to: [number, number] | null;
+};
+
+export type Flare = {
+  at: string;
+  timeZ: string;
+  lon: number;
+  lat: number;
+  county: string;
+  plane: string;
+  glaciogenic: number;
+  hygroscopic: number;
+  payload: string;
+  held: Record<string, Outcome> | null;
+  drift: Drift | null;
+};
+
 export type Painted = {
   date: string;
-  layer: string;
-  unit: string;
-  label: string;
-  frames: Record<string, { validTime: string; levels: PaintedLevel[] }>;
-  intervals: {
-    from: string;
-    to: string;
-    flares: {
-      at: string;
-      timeZ: string;
-      lon: number;
-      lat: number;
-      county: string;
-      plane: string;
-      payload: string;
-      held: Record<string, Outcome> | null;
-    }[];
-  }[];
+  region: string;
+  window: { west: number; east: number; south: number; north: number };
+  layers: { key: string; name: string; property: string; unit: string }[];
+  hours: string[];
+  /** By hour, then by layer key. */
+  frames: Record<string, Record<string, Frame>>;
+  intervals: { from: string; to: string; flares: Flare[] }[];
 };

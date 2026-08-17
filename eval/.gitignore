@@ -6,3 +6,4 @@ out/
 # not an install — see the README.
 app/dist/
 app/node_modules/.vite/
+app/tsconfig.tsbuildinfo

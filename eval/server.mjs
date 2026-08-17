@@ -34,10 +34,36 @@ const M_PER_FT = 0.3048;
 
 /* ---------- committed input, read once ---------- */
 
-const { days } = JSON.parse(
-  await readFile(join(HERE, "data", "releases-2025.json"), "utf8")
+/**
+ * The programmes this evaluation can run against, and the flight record each
+ * one has been parsed into.
+ *
+ * **A region with no parsed record is still listed.** Texas licenses several
+ * programmes and only one of them has been read out of its reports so far; a
+ * roster that hid the others would make one operator's season look like the
+ * whole state. The app routes to them and says what is missing.
+ */
+const { regions } = JSON.parse(
+  await readFile(join(HERE, "data", "regions.json"), "utf8")
 );
-const seeded = days.filter((day) => day.seeded);
+
+const loaded = new Map();
+for (const region of regions) {
+  if (!region.releases) {
+    loaded.set(region.id, { region, seeded: null });
+    continue;
+  }
+  const { days } = JSON.parse(
+    await readFile(join(HERE, "data", region.releases), "utf8")
+  );
+  loaded.set(region.id, { region, seeded: days.filter((day) => day.seeded) });
+}
+
+/** A region's parsed season, or null when it has none. */
+const evaluable = (id) => {
+  const entry = loaded.get(id);
+  return entry?.seeded ? entry : null;
+};
 
 /**
  * The county boundaries, with an id stamped on each.
@@ -124,8 +150,8 @@ const READINGS = [
   { key: "cape", label: "Surface instability", unit: "J/kg" },
 ];
 
-async function band() {
-  const data = await run("reconcile-2025.json");
+async function band({ region }) {
+  const data = await run(region.runs.reconcile);
   if (!data) return null;
 
   const rows = data.rows;
@@ -176,8 +202,8 @@ function tally(rows, key) {
   return counts;
 }
 
-async function overlap() {
-  const data = await run("bracket-2025.json");
+async function overlap({ region }) {
+  const data = await run(region.runs.bracket);
   if (!data) return null;
 
   const rows = data.days.flatMap((day) => day.rows);
@@ -223,11 +249,14 @@ async function overlap() {
 
 /* ---------- one day ---------- */
 
-async function day(date) {
+/** The file a run wrote for one date, e.g. `held-{date}.json`. */
+const forDate = (template, date) => template.replace("{date}", date);
+
+async function day({ region, seeded }, date) {
   const record = seeded.find((entry) => entry.date === date);
   if (!record) return null;
 
-  const bracket = await run("bracket-2025.json");
+  const bracket = await run(region.runs.bracket);
   const scored = bracket?.days.find((entry) => entry.date === date);
   const byTime = new Map(
     (scored?.rows ?? []).map((row) => [row.release.at, row])
@@ -241,7 +270,7 @@ async function day(date) {
     unlocated: record.releases.filter((release) => !release.located),
     // Whether the painted frames for this day have been built. The app offers
     // the map only when they have, rather than opening an empty one.
-    painted: Boolean(await run(`held-${date}.json`)),
+    painted: Boolean(await run(forDate(region.runs.held, date))),
     releases: record.releases
       .filter((release) => release.located)
       .map((release) => {
@@ -300,62 +329,107 @@ const server = createServer(async (req, res) => {
     if (path === "/healthcheck") return send(200, { ok: true });
     if (path === "/counties.geojson") return send(200, counties);
 
-    if (path === "/band") {
-      const found = await band();
-      return found
-        ? send(200, found)
-        : send(404, {
-            error: "no reconcile run yet — node eval/reconcile.mjs",
-          });
-    }
-
-    if (path === "/overlap") {
-      const found = await overlap();
-      return found
-        ? send(200, found)
-        : send(404, { error: "no bracket run yet — node eval/bracket.mjs" });
-    }
-
-    if (path === "/days") {
-      const bracket = await run("bracket-2025.json");
+    // The roster. Every programme, whether or not its reports have been parsed,
+    // so the app can route to one that has not been and say what is missing.
+    if (path === "/regions") {
       return send(
         200,
-        await Promise.all(
-          seeded.map(async (record) => {
-            const scored = bracket?.days.find(
-              (entry) => entry.date === record.date
-            );
-            return {
-              date: record.date,
-              flares: record.releases.filter((r) => r.located).length,
-              unlocated: record.releases.filter((r) => !r.located).length,
-              observations: record.observations?.length ?? 0,
-              scored: Boolean(scored),
-              painted: Boolean(await run(`held-${record.date}.json`)),
-              held: scored ? tally(scored.rows, "liquid").held : null,
-              briefing: briefing(record),
-            };
-          })
-        )
+        regions.map(({ id, name, short, base, source, season, window }) => ({
+          id,
+          name,
+          short,
+          base: base ?? null,
+          source: source ?? null,
+          season: season ?? null,
+          window: window ?? null,
+          evaluable: Boolean(evaluable(id)),
+          days: evaluable(id)?.seeded.length ?? 0,
+          flares:
+            evaluable(id)?.seeded.reduce(
+              (n, d) => n + d.releases.filter((r) => r.located).length,
+              0
+            ) ?? 0,
+        }))
       );
     }
 
-    const painted = path.match(/^\/day\/(\d{4}-\d{2}-\d{2})\/painted$/);
-    if (painted) {
-      const found = await run(`held-${painted[1]}.json`);
-      return found
-        ? send(200, found)
-        : send(404, {
-            error: `not painted yet — node eval/held.mjs ${painted[1]}`,
-          });
-    }
+    // Everything below is one programme's season. The region is in the path
+    // rather than a query parameter because it selects the whole dataset, not a
+    // filter on one — a page for a region is a different page.
+    const scoped = path.match(/^\/region\/([a-z0-9-]+)(\/.*)?$/);
+    if (scoped) {
+      const entry = evaluable(scoped[1]);
+      if (!entry) {
+        return send(404, {
+          error: loaded.has(scoped[1])
+            ? `${loaded.get(scoped[1]).region.name} has no parsed flight record yet`
+            : `no region "${scoped[1]}"`,
+        });
+      }
+      const { region, seeded } = entry;
+      const rest = scoped[2] ?? "";
 
-    const one = path.match(/^\/day\/(\d{4}-\d{2}-\d{2})$/);
-    if (one) {
-      const found = await day(one[1]);
-      return found
-        ? send(200, found)
-        : send(404, { error: `no report for ${one[1]}` });
+      if (rest === "/band") {
+        const found = await band(entry);
+        return found
+          ? send(200, found)
+          : send(404, {
+              error: "no reconcile run yet — node eval/reconcile.mjs",
+            });
+      }
+
+      if (rest === "/overlap") {
+        const found = await overlap(entry);
+        return found
+          ? send(200, found)
+          : send(404, { error: "no bracket run yet — node eval/bracket.mjs" });
+      }
+
+      if (rest === "/days") {
+        const bracket = await run(region.runs.bracket);
+        return send(
+          200,
+          await Promise.all(
+            seeded.map(async (record) => {
+              const scored = bracket?.days.find(
+                (item) => item.date === record.date
+              );
+              return {
+                date: record.date,
+                flares: record.releases.filter((r) => r.located).length,
+                unlocated: record.releases.filter((r) => !r.located).length,
+                observations: record.observations?.length ?? 0,
+                scored: Boolean(scored),
+                painted: Boolean(
+                  await run(forDate(region.runs.held, record.date))
+                ),
+                held: scored ? tally(scored.rows, "liquid").held : null,
+                briefing: briefing(record),
+              };
+            })
+          )
+        );
+      }
+
+      const painted = rest.match(/^\/day\/(\d{4}-\d{2}-\d{2})\/painted$/);
+      if (painted) {
+        const found = await run(forDate(region.runs.held, painted[1]));
+        return found
+          ? send(200, found)
+          : send(404, {
+              error:
+                `not painted yet — node eval/held.mjs ${painted[1]} ` +
+                `--region=${region.id}`,
+            });
+      }
+
+      const one = rest.match(/^\/day\/(\d{4}-\d{2}-\d{2})$/);
+      if (one) {
+        const found = await day(entry, one[1]);
+        return found
+          ? send(200, found)
+          : send(404, { error: `no report for ${one[1]}` });
+      }
     }
 
     send(404, { error: `no route for ${path}` });
@@ -367,9 +441,13 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(
-    `eval data on http://localhost:${PORT} — ` +
-      `${seeded.length} flying days, ` +
-      `${seeded.reduce((n, d) => n + d.releases.length, 0)} flares`
-  );
+  console.log(`eval data on http://localhost:${PORT}`);
+  for (const { region, seeded } of loaded.values()) {
+    console.log(
+      seeded
+        ? `  ${region.id.padEnd(11)} ${seeded.length} flying days, ` +
+            `${seeded.reduce((n, d) => n + d.releases.length, 0)} flares`
+        : `  ${region.id.padEnd(11)} no flight record parsed`
+    );
+  }
 });

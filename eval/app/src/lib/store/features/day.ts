@@ -13,6 +13,8 @@ import type { Day, DaySummary, Painted } from "~/lib/types";
  * selection around it. Nothing dispatches per ring.
  */
 type DayState = {
+  /** Which region the loaded days belong to. Changing it clears everything. */
+  region: string | null;
   days: DaySummary[] | null;
   date: string | null;
   day: Day | null;
@@ -25,6 +27,7 @@ type DayState = {
 };
 
 const initialState: DayState = {
+  region: null,
   days: null,
   date: null,
   day: null,
@@ -39,6 +42,18 @@ const daySlice = createSlice({
   name: "day",
   initialState,
   reducers: {
+    /** Switching programme drops the other one's season entirely. */
+    setRegion(state, action: PayloadAction<string>) {
+      if (state.region === action.payload) return;
+      state.region = action.payload;
+      state.days = null;
+      state.date = null;
+      state.day = null;
+      state.painted = null;
+      state.interval = 0;
+      state.missing = null;
+      state.error = null;
+    },
     setDays(state, action: PayloadAction<DaySummary[]>) {
       state.days = action.payload;
     },

@@ -17,8 +17,9 @@ feeds can answer. This file says what happened when we checked.
 
 ## The ground truth
 
-The West Texas Weather Modification Association publishes a report for every day
-it flies. Each report carries:
+Texas licenses several weather modification programmes and everything below is
+one of them. The West Texas Weather Modification Association publishes a report
+for every day it flies. Each report carries:
 
 - **every flare** — position, UTC minute, aircraft, and whether it was silver
   iodide or salt
@@ -177,7 +178,14 @@ node eval/releases.mjs                 # the PDFs  → data/releases-2025.json
 node eval/reconcile.mjs                # finding 1 → out/reconcile-2025.json
 node eval/reconcile.mjs --score        # finding 1 again, instantly, no fetching
 node eval/bracket.mjs                  # finding 2 → out/bracket-2025.json
-node eval/held.mjs 2025-04-19          # one day painted → out/held-<date>.json
+node eval/held.mjs 2025-04-19          # one day, every layer → out/held-<date>.json
+```
+
+To look at it rather than read it:
+
+```bash
+node eval/server.mjs                   # the findings, port 3100
+cd eval/app && yarn dev                # the maps, port 5174
 ```
 
 **Cost is downloads, not minutes.** Reading one hour out of the archive takes
