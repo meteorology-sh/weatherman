@@ -19,8 +19,6 @@ type DayState = {
   date: string | null;
   day: Day | null;
   painted: Painted | null;
-  /** Which pair of analyses the map is drawing, as an index into `intervals`. */
-  interval: number;
   loading: boolean;
   missing: string | null;
   error: string | null;
@@ -32,7 +30,6 @@ const initialState: DayState = {
   date: null,
   day: null,
   painted: null,
-  interval: 0,
   loading: false,
   missing: null,
   error: null,
@@ -50,7 +47,6 @@ const daySlice = createSlice({
       state.date = null;
       state.day = null;
       state.painted = null;
-      state.interval = 0;
       state.missing = null;
       state.error = null;
     },
@@ -62,7 +58,6 @@ const daySlice = createSlice({
       state.date = action.payload;
       state.day = null;
       state.painted = null;
-      state.interval = 0;
       state.missing = null;
       state.error = null;
     },
@@ -71,10 +66,6 @@ const daySlice = createSlice({
     },
     setPainted(state, action: PayloadAction<Painted | null>) {
       state.painted = action.payload;
-      state.interval = 0;
-    },
-    setInterval(state, action: PayloadAction<number>) {
-      state.interval = action.payload;
     },
     setLoading(state, action: PayloadAction<boolean>) {
       state.loading = action.payload;

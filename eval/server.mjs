@@ -252,6 +252,63 @@ async function overlap({ region }) {
 /** The file a run wrote for one date, e.g. `held-{date}.json`. */
 const forDate = (template, date) => template.replace("{date}", date);
 
+/* ---------- how near the flares were ---------- */
+
+/**
+ * The day's distances, summarised per layer.
+ *
+ * Computed here rather than in the page for the reason everything else is: a
+ * figure quoted anywhere has to come from one place, or the map and the prose
+ * drift apart while both look right.
+ *
+ * **One cell is the yardstick, not a judgement about seeding.** The layers are
+ * contoured on a 12 km grid, so the map cannot resolve anything finer, and a
+ * release within a cell of the paint is inside it as far as this map can tell.
+ * Two cells is carried as the next honest step out. Neither is a claim about how
+ * near an aircraft ought to be.
+ */
+function proximity(painted) {
+  const flares = (painted.analyses ?? []).flatMap((entry) => entry.flares);
+  const cell = painted.cellKm;
+  const layers = {};
+
+  for (const layer of painted.layers ?? []) {
+    const measured = flares
+      .map((flare) => flare.near?.[layer.key])
+      .filter((near) => near && near.km !== null);
+    const kms = measured.map((near) => near.km).sort((a, b) => a - b);
+
+    layers[layer.key] = {
+      n: measured.length,
+      inside: measured.filter((near) => near.inside).length,
+      withinCell: kms.filter((km) => km <= cell).length,
+      withinTwoCells: kms.filter((km) => km <= 2 * cell).length,
+      median: kms.length ? kms[Math.floor(kms.length / 2)] : null,
+      worst: kms.length ? kms[kms.length - 1] : null,
+    };
+  }
+
+  const offsets = flares
+    .map((flare) => flare.offsetMinutes)
+    .filter((minutes) => minutes !== null && minutes !== undefined)
+    .map(Math.abs)
+    .sort((a, b) => a - b);
+
+  return {
+    cellKm: cell,
+    flares: flares.length,
+    layers,
+    // How far each release had to be carried to meet its analysis. The point of
+    // printing it is that it bounds what the drift correction could be worth.
+    offset: offsets.length
+      ? {
+          median: offsets[Math.floor(offsets.length / 2)],
+          worst: offsets[offsets.length - 1],
+        }
+      : null,
+  };
+}
+
 async function day({ region, seeded }, date) {
   const record = seeded.find((entry) => entry.date === date);
   if (!record) return null;
@@ -415,7 +472,7 @@ const server = createServer(async (req, res) => {
       if (painted) {
         const found = await run(forDate(region.runs.held, painted[1]));
         return found
-          ? send(200, found)
+          ? send(200, { ...found, proximity: proximity(found) })
           : send(404, {
               error:
                 `not painted yet — node eval/held.mjs ${painted[1]} ` +

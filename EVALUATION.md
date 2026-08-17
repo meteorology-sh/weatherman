@@ -111,6 +111,48 @@ The 17 that held are not spread out. Five days carry all of them — 19 April
 24 October (1 of 17). **The other 29 days contribute nothing.** Whatever the
 disagreement is, it is not an even error rate, which means it can be diagnosed.
 
+### Asking how near instead of whether inside
+
+"Inside or outside" is one bit, and it cannot tell a map that is slightly wrong
+from a map that is looking at the wrong weather. A release 3 km outside a
+contour and one 80 km outside are the same answer above and completely
+different results.
+
+So the second pass asks distance instead, and asks it at the minute and place
+each flare actually left the aircraft. Each release is charged to the nearest
+analysis rather than to both sides of a gap — 1843Z goes to 19Z, 17 minutes
+away, not to 18Z at 43 — and the remaining minutes are closed with HRRR's own
+0–6 km storm motion, which carries the release point to where that air is at the
+moment of the frame. On 19 April the offsets run 10 to 25 minutes, which at
+13–25 knots is 5 to 15 km. That is most of a grid cell, so it is not a
+correction that can be skipped.
+
+**One day is built this way so far.** 19 April, 13 releases with a position:
+
+| Layer                    | Released inside it | Within one 12 km cell | Median distance |
+| ------------------------ | -----------------: | --------------------: | --------------: |
+| Cloud base               |              13/13 |                 13/13 |            0 km |
+| Cloud tops               |               7/13 |                 13/13 |            0 km |
+| Supercooled liquid water |               9/13 |                  9/13 |            0 km |
+| Radar reflectivity       |              13/13 |                 13/13 |            0 km |
+| Seeding opportunity      |               0/13 |                  2/13 |         20.2 km |
+
+Read across, the day is coherent. Every release was in modelled cloud and in
+measured echo. Nine of thirteen were inside painted supercooled liquid. None
+were inside the join, because the join vetoes rain and all thirteen were in it.
+
+The four that missed liquid missed it by a long way — 75 to 77 km, one pass over
+Irion County between 1843Z and 1850Z. The other nine were inside. **The misses
+are not a rim of near-misses around the contour; they are a separate event.**
+Drifting them to the analysis time made them worse, not better, because the
+storm motion carried them further from the liquid.
+
+**This does not yet say which side is wrong.** Either we are painting liquid in
+the wrong place, or the crew was working something the model has nothing about.
+A 12 km analysis and one day cannot separate those, and nothing here should be
+read as having done so. What it does establish is that the disagreement is
+concentrated rather than uniform — the same shape the season table shows.
+
 ### Why: we rule out rain, and they seed rain on purpose
 
 **All 17 flares that held liquid were rejected for rain**, at one hour or both.

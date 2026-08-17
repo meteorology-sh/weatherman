@@ -89,19 +89,32 @@ order puts rain last, so a cell charged to `raining` passed everything before it
 `--day=2025-08-11` scores one day; `--resume` continues from what is already in
 `out/bracket-2025.json`.
 
-**`held.mjs`** builds one flying day into everything a map needs. For each hour
-the day's flares sit between it fetches all five layers the replay map draws —
-cloud base, cloud tops, supercooled liquid, radar, and the join — windows them to
-the region, and writes them alongside the release points.
+**`held.mjs`** builds one flying day into everything a map needs, and answers
+"how near did they seed" rather than "did they seed inside". Each release is
+charged to the analysis nearest its own minute — the server's own rounding rule,
+so 1843Z goes to 19Z at 17 minutes rather than 18Z at 43 — and for each such
+analysis it fetches all five layers the replay map draws, windows them to the
+region, and measures the distance from the release to the nearest edge of each.
+Inside is distance zero.
 
-It also samples HRRR's 0–6 km storm motion at each release point and carries it
-forward to the end of the bracket. That is what lets the map draw an arrow from
-the cloud that was seeded to where that air had got to an hour later, instead of
-leaving a reader to guess which blob in the second frame is which blob from the
-first.
+The leftover minutes are closed with HRRR's 0–6 km storm motion, sampled at the
+release point and run over the signed offset to the analysis. On 19 April that
+offset is 10–25 minutes and the motion 13–25 kt, so it moves a release 5–15 km —
+most of a grid cell, and enough to cross a contour on its own. Both distances
+are written: drifted, and undrifted for comparison.
 
-Flare classifications are read back out of `bracket-2025.json` rather than
-recomputed, so the map cannot tell a different story from the table.
+**What "any of this layer at all" means depends on the layer**, and the script
+carries a `shape` per layer for it. Nested bands stack, so the outermost contour
+already contains every other one and measuring to it is measuring to the whole
+layer. Disjoint bands do not — cloud base's first level is only the cloud under
+6,000 ft — so those are unioned first. Measuring a disjoint layer as if it
+nested silently reports the distance to one band while claiming to report the
+distance to the layer.
+
+Season verdicts are read back out of `bracket-2025.json` rather than recomputed,
+so a release can be lined up against the season table. They are not what the map
+draws: the sweep answers the stricter both-hours question and this page answers
+distance at one.
 
 **`server.mjs`** serves the flight record and whatever the sweeps have scored,
 on port 3100. It holds no weather. **`app/`** is the map that draws it: a Vite

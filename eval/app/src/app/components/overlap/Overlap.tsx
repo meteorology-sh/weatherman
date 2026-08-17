@@ -1,8 +1,11 @@
-// Hooks
-import { useAppDispatch, useAppSelector } from "~/lib/store/hooks";
+// React
+import { useEffect, useMemo, useState } from "react";
 
-// Store
-import { dayActions } from "~/lib/store/features/day";
+// Hooks
+import { useAppSelector } from "~/lib/store/hooks";
+
+// Client
+import { CountiesUrl } from "~/lib/client";
 
 // Components
 import { Status } from "../Status";
@@ -10,40 +13,84 @@ import { Section } from "../Section";
 import { DayPicker } from "./DayPicker";
 import { LayerPanel } from "./LayerPanel";
 import { PaintedMap } from "./PaintedMap";
+import { Proximity } from "./Proximity";
+import { TONES } from "./distance";
+
+type CountyShape = { name: string; rings: [number, number][][] };
 
 const hhmm = (iso: string) => `${iso.slice(11, 13)}${iso.slice(14, 16)}Z`;
 
-/** What each flare's ring and dot mean, in the words the finding is stated in. */
-const KEY = [
-  {
-    className: "bg-success",
-    label: "Liquid at both hours",
-    hint: "We painted supercooled liquid here before the release and again after it.",
-  },
-  {
-    className: "bg-warning",
-    label: "One hour only",
-    hint: "Painted at one analysis and not the other, so the answer depends on which.",
-  },
-  {
-    className: "bg-error",
-    label: "Neither hour",
-    hint: "We painted no liquid in this cell at either end of the bracket.",
-  },
-];
+/** A little room around the day's releases, so nothing sits on the edge. */
+const MARGIN = 0.6;
 
 /**
- * Finding 2 — whether a flare was released inside what we had painted.
+ * Do operators seed near what we paint?
  *
- * The page is a map and its controls, and deliberately not a table. A table of
- * verdicts answers "how many" when the question on this page is "where", and the
- * two readings a release sits between are a shape moving across the ground
- * rather than a pair of rows.
+ * **A distance question, not a containment one.** Whether a flare landed inside
+ * a contour is one bit, and it cannot tell a map that is slightly wrong from a
+ * map that is looking at the wrong weather. How far it was can.
+ *
+ * **Nothing has to be selected to read the answer.** Each release is compared
+ * against the analysis nearest its own minute, so the choice is made by the
+ * clock rather than by the reader, and every analysis the day used is drawn —
+ * one map each, on a shared extent so they can be read against each other.
  */
 export const Overlap = () => {
-  const { date, day, painted, interval, loading, missing, error } =
-    useAppSelector((state) => state.day);
-  const dispatch = useAppDispatch();
+  const { date, day, painted, loading, missing, error } = useAppSelector(
+    (state) => state.day
+  );
+  const [counties, setCounties] = useState<CountyShape[] | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      const res = await fetch(CountiesUrl());
+      if (!res.ok) return;
+      const collection = await res.json();
+      setCounties(
+        collection.features.map((feature: never) => {
+          const f = feature as {
+            properties: { BASENAME: string };
+            geometry: {
+              type: string;
+              coordinates: number[][][] | number[][][][];
+            };
+          };
+          const polygons =
+            f.geometry.type === "Polygon"
+              ? [f.geometry.coordinates as number[][][]]
+              : (f.geometry.coordinates as number[][][][]);
+          return {
+            name: f.properties.BASENAME,
+            rings: polygons.flat() as [number, number][][],
+          };
+        })
+      );
+    }
+    if (!counties) load();
+  }, [counties]);
+
+  /**
+   * One extent for every map on the page.
+   *
+   * Framed on the releases rather than on the contours: a ring is kept whole
+   * when any of it is in the region window, so the geometry reaches well past
+   * where anybody flew. Sharing it across the analyses is what lets two maps be
+   * compared — a frame that refit itself each hour would move the ground under
+   * the reader.
+   */
+  const extent = useMemo(() => {
+    if (!painted) return null;
+    const flares = painted.analyses.flatMap((entry) => entry.flares);
+    if (!flares.length) return null;
+    const lons = flares.flatMap((f) => [f.lon, f.compared[0]]);
+    const lats = flares.flatMap((f) => [f.lat, f.compared[1]]);
+    return {
+      west: Math.min(...lons) - MARGIN,
+      east: Math.max(...lons) + MARGIN,
+      south: Math.min(...lats) - MARGIN,
+      north: Math.max(...lats) + MARGIN,
+    };
+  }, [painted]);
 
   return (
     <div className="h-full flex">
@@ -55,19 +102,21 @@ export const Overlap = () => {
         <div className="p-6 flex flex-col gap-6 max-w-5xl">
           <div className="flex flex-col gap-2">
             <h1 className="text-2xl font-semibold">
-              Do the flares fall inside what we paint?
+              Do operators seed near what we paint?
             </h1>
             <p className="text-sm max-w-2xl">
               Every layer below is the one Weatherman itself draws, fetched from
-              the product's own server at the hours around each release. The
-              flares are the operator's logged coordinates. If the two agree,
-              the dots land in the paint.
+              the product's own server. Each flare is measured to the nearest
+              edge of the painted region — inside is zero. Either the map is
+              wrong and the operators are working from something we do not have,
+              or the map is right and they are not flying where it says. The
+              distance is what tells those apart.
             </p>
           </div>
 
           <Section
             heading="The day"
-            subtitle="Painting a day means building every layer at every analysis its flares sit between, so only days that have been built can be opened."
+            subtitle="Painting a day means building every layer at every analysis its flares are charged to, so only days that have been built can be opened."
           >
             <DayPicker />
           </Section>
@@ -81,53 +130,32 @@ export const Overlap = () => {
                 what="Reading the day"
               />
 
-              {painted && painted.intervals.length > 0 && (
+              {painted && extent && (
                 <>
                   <Section
-                    heading="The bracket"
-                    subtitle="The model publishes once an hour and the aircraft do not wait for it. Each button is one gap between analyses, and the count is how many of its flares had liquid painted at both ends."
+                    heading="How near they were"
+                    subtitle="Distance from each release to the nearest edge of the painted region. A cell is 12 km — the grid every layer is contoured on — so anything inside one cell is inside the paint as far as this map can resolve."
                   >
-                    <div className="flex flex-wrap gap-2">
-                      {painted.intervals.map((entry, index) => {
-                        const held = entry.flares.filter(
-                          (f) => f.held?.liquid === "held"
-                        ).length;
-                        return (
-                          <button
-                            key={entry.from}
-                            type="button"
-                            className={`btn btn-sm ${
-                              index === interval ? "btn-active" : "btn-outline"
-                            }`}
-                            onClick={() =>
-                              dispatch(dayActions.setInterval(index))
-                            }
-                          >
-                            {hhmm(entry.from)} → {hhmm(entry.to)}
-                            <span className="badge badge-sm">
-                              {held}/{entry.flares.length}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <Proximity painted={painted} />
                   </Section>
 
                   <Section
-                    heading="The map"
-                    subtitle="The earlier analysis is dashed, the later one solid, and where they overlap the fills double. The black arrow runs from each release point along the storm motion, so it points at where that air had gone by the later hour."
+                    heading="Where they were"
+                    subtitle="One map per analysis, on the same extent. A release is charged to the analysis nearest its own minute, and the white line carries it the remaining minutes along the storm motion — so the dot sits where that air is at the moment of the frame under it."
                   >
-                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs items-center pb-2">
-                      {KEY.map((entry) => (
+                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs items-center pb-1">
+                      {TONES.map((tone) => (
                         <span
-                          key={entry.label}
+                          key={tone.label}
                           className="flex items-center gap-2"
-                          title={entry.hint}
                         >
                           <span
-                            className={`inline-block w-3 h-3 rounded-full ${entry.className}`}
+                            className={`inline-block w-3 h-3 rounded-full ${tone.fill.replace(
+                              "fill-",
+                              "bg-"
+                            )}`}
                           />
-                          {entry.label}
+                          {tone.label}
                         </span>
                       ))}
                       <span className="flex items-center gap-2">
@@ -137,16 +165,39 @@ export const Overlap = () => {
                             y1="5"
                             x2="20"
                             y2="5"
-                            stroke="black"
+                            stroke="white"
                             strokeWidth="1.6"
                           />
-                          <path d="M20 1 L26 5 L20 9 z" fill="black" />
+                          <path d="M20 1 L26 5 L20 9 z" fill="white" />
                         </svg>
-                        Where that air drifted
+                        Carried to the analysis time
                       </span>
                     </div>
 
-                    <PaintedMap painted={painted} interval={interval} />
+                    <div className="flex flex-col gap-6">
+                      {painted.analyses.map((analysis) => (
+                        <div key={analysis.at} className="flex flex-col gap-2">
+                          <div className="flex items-baseline gap-3">
+                            <h3 className="font-mono text-sm font-semibold">
+                              {hhmm(analysis.at)}
+                            </h3>
+                            <span className="text-xs">
+                              {analysis.flares.length}{" "}
+                              {analysis.flares.length === 1
+                                ? "release"
+                                : "releases"}{" "}
+                              charged to this analysis
+                            </span>
+                          </div>
+                          <PaintedMap
+                            painted={painted}
+                            analysis={analysis}
+                            extent={extent}
+                            counties={counties}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </Section>
 
                   <Section
@@ -155,19 +206,19 @@ export const Overlap = () => {
                   >
                     <ul className="text-sm list-disc pl-5 flex flex-col gap-1">
                       <li>
-                        The cells are 12 km across. A release point and a mature
-                        core an aircraft was standing off from land in the same
-                        cell, and the map cannot separate them.
+                        A distance of zero means the release was inside the
+                        outermost contour, which is 10 g/m² — enough liquid to
+                        draw, not enough to call a target.
                       </li>
                       <li>
-                        The drift arrow carries one storm-motion reading at
-                        constant speed and bearing for the whole gap. A system
-                        that turned or accelerated is not described by it.
+                        The white line carries one storm-motion reading at
+                        constant speed and bearing. Over twenty-odd minutes that
+                        is a small error, but it is an error.
                       </li>
                       <li>
                         Nothing here is an outcome. It says where the operator
                         flew against where we painted, not whether the seeding
-                        worked.
+                        worked, and not which of the two is right.
                       </li>
                     </ul>
                   </Section>
@@ -177,7 +228,7 @@ export const Overlap = () => {
               {day && day.unlocated.length > 0 && (
                 <p className="text-xs">
                   {day.unlocated.length} more releases are logged this day
-                  without a position, so they cannot be placed on the map.
+                  without a position, so they cannot be placed or measured.
                 </p>
               )}
             </>

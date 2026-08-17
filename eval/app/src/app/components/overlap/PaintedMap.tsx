@@ -1,11 +1,8 @@
 // React
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 
 // Hooks
 import { useAppSelector } from "~/lib/store/hooks";
-
-// Client
-import { CountiesUrl } from "~/lib/client";
 
 // Layers
 import { LAYERS } from "~/lib/layers";
@@ -14,120 +11,71 @@ import { LAYERS } from "~/lib/layers";
 import { soloColor } from "@/lib/arcgis/bands";
 
 // Types
-import type { Flare, Painted } from "~/lib/types";
+import type { Analysis, Flare, Painted } from "~/lib/types";
+
+// Components
+import { toneFor } from "./distance";
 
 /**
- * One flying day: the layers we painted at two analyses, and the flares released
- * between them.
+ * One analysis hour: the layers we painted, and the flares charged to it.
  *
  * **Drawn in SVG rather than through ArcGIS, deliberately.** These frames are
  * already plain rings on disk — `held.mjs` fetched, windowed and rounded them —
  * so there is no layer to load, no url to repoint and no view to keep alive. The
  * product's map is the right tool for live layers over a basemap; this is a
- * fixed set of frames with points on top, and drawing it directly removes a
- * lifecycle that has nothing to manage.
+ * fixed frame with points on top, and drawing it directly removes a lifecycle
+ * that has nothing to manage.
  *
  * **The colours are not chosen here.** Every fill is `soloColor` over the band
  * table in `@/lib/arcgis/bands`, which is the same table the product's renderers
  * are built from, so a band that moves in Weatherman moves on this map. Levels
  * are drawn low to high and left to composite exactly as they composite there.
  *
- * **The earlier analysis is dashed and the later one solid.** They are an hour
- * apart and the weather moved in between; painting them identically would read
- * as one thicker cloud. Where the two agree the fills double and the region
- * darkens, and that darker region is the answer the page is after — liquid that
- * was there across the whole gap, so which hour a release is charged to stops
- * mattering.
+ * **Each flare is coloured by how far it was from the paint, not by whether it
+ * was in it.** A release just outside a contour and one on the far side of the
+ * county are both "outside", and only the distance separates a map that is
+ * slightly wrong from one that is looking at the wrong weather.
  *
- * **The black arrow is what makes the two frames one picture.** It runs from the
- * release point along HRRR's own storm motion for the length of the bracket, so
- * it points from the cloud that was seeded at the first hour to where that air
- * had got to by the second. Without it a reader has to guess which blob in the
- * later frame is which blob from the earlier one.
+ * **The white line is the clock, drawn.** A release at 1843Z is being compared
+ * against a 19Z field, seventeen minutes later, and at twenty knots the air has
+ * moved ten kilometres in between — most of a grid cell. The line runs from
+ * where the flare was dropped to where that air is at the moment of the frame
+ * underneath it, and the distance is measured from its far end.
  */
 
 type CountyShape = { name: string; rings: [number, number][][] };
+type Extent = { west: number; east: number; south: number; north: number };
 
-const HEIGHT = 620;
-const MARGIN = 0.6;
+const HEIGHT = 460;
 
-type PropsT = { painted: Painted; interval: number };
+type PropsT = {
+  painted: Painted;
+  analysis: Analysis;
+  extent: Extent;
+  counties: CountyShape[] | null;
+};
 
-export const PaintedMap = ({ painted, interval }: PropsT) => {
+export const PaintedMap = ({ painted, analysis, extent, counties }: PropsT) => {
   const {
     visible,
-    ends,
     drift,
     counties: showCounties,
   } = useAppSelector((state) => state.map);
-  const [counties, setCounties] = useState<CountyShape[] | null>(null);
   const [hover, setHover] = useState<string | null>(null);
-
-  const showing = painted.intervals[interval];
-
-  /**
-   * The extent, taken from the flares rather than the frames.
-   *
-   * A contour ring is kept whole when any of it is in the region window, so the
-   * geometry reaches well past where anybody flew. Framing on the flares keeps
-   * the map on the part of the day being asked about.
-   */
-  const window_ = useMemo(() => {
-    const flares = painted.intervals.flatMap((entry) => entry.flares);
-    if (!flares.length) return null;
-    const lons = flares.flatMap((f) => [f.lon, f.drift?.to?.[0] ?? f.lon]);
-    const lats = flares.flatMap((f) => [f.lat, f.drift?.to?.[1] ?? f.lat]);
-    return {
-      west: Math.min(...lons) - MARGIN,
-      east: Math.max(...lons) + MARGIN,
-      south: Math.min(...lats) - MARGIN,
-      north: Math.max(...lats) + MARGIN,
-    };
-  }, [painted]);
-
-  useEffect(() => {
-    async function load() {
-      const res = await fetch(CountiesUrl());
-      if (!res.ok) return;
-      const collection = await res.json();
-      setCounties(
-        collection.features.map((feature: never) => {
-          const f = feature as {
-            properties: { BASENAME: string };
-            geometry: {
-              type: string;
-              coordinates: number[][][] | number[][][][];
-            };
-          };
-          const polygons =
-            f.geometry.type === "Polygon"
-              ? [f.geometry.coordinates as number[][][]]
-              : (f.geometry.coordinates as number[][][][]);
-          return {
-            name: f.properties.BASENAME,
-            rings: polygons.flat() as [number, number][][],
-          };
-        })
-      );
-    }
-    if (!counties) load();
-  }, [counties]);
-
-  if (!window_ || !showing) return null;
 
   // Longitude squeezed by cos(latitude) so a county is the shape it is on the
   // ground rather than stretched sideways.
   const squeeze = Math.cos(
-    ((window_.south + window_.north) / 2) * (Math.PI / 180)
+    ((extent.south + extent.north) / 2) * (Math.PI / 180)
   );
   const width = Math.round(
-    (HEIGHT * (window_.east - window_.west) * squeeze) /
-      (window_.north - window_.south)
+    (HEIGHT * (extent.east - extent.west) * squeeze) /
+      (extent.north - extent.south)
   );
   const px = (lon: number) =>
-    ((lon - window_.west) / (window_.east - window_.west)) * width;
+    ((lon - extent.west) / (extent.east - extent.west)) * width;
   const py = (lat: number) =>
-    ((window_.north - lat) / (window_.north - window_.south)) * HEIGHT;
+    ((extent.north - lat) / (extent.north - extent.south)) * HEIGHT;
 
   const draw = (ring: [number, number][]) =>
     `${ring
@@ -140,27 +88,15 @@ export const PaintedMap = ({ painted, interval }: PropsT) => {
   const inView = (ring: [number, number][]) =>
     ring.some(
       ([lon, lat]) =>
-        lon >= window_.west &&
-        lon <= window_.east &&
-        lat >= window_.south &&
-        lat <= window_.north
+        lon >= extent.west &&
+        lon <= extent.east &&
+        lat >= extent.south &&
+        lat <= extent.north
     );
 
-  /** Which analyses to paint, earlier first so the later one lands on top. */
-  const hours: string[] =
-    ends === "from"
-      ? [showing.from]
-      : ends === "to"
-        ? [showing.to]
-        : [showing.from, showing.to];
-
-  const held: Record<string, string> = {
-    held: "fill-success",
-    flipped: "fill-warning",
-    absent: "fill-error",
-  };
-
-  const hovered: Flare | undefined = showing.flares.find((f) => f.at === hover);
+  const hovered: Flare | undefined = analysis.flares.find(
+    (f) => f.at === hover
+  );
 
   return (
     <div className="flex flex-col gap-2">
@@ -170,13 +106,10 @@ export const PaintedMap = ({ painted, interval }: PropsT) => {
           height={HEIGHT}
           viewBox={`0 0 ${width} ${HEIGHT}`}
           role="img"
-          aria-label={
-            `Modelled and observed layers at ${showing.from} and ${showing.to}, ` +
-            `with flare release points and storm motion`
-          }
+          aria-label={`Layers at ${analysis.at} with the flare releases charged to it`}
         >
           <defs>
-            {/* One arrowhead, reused. Black so it reads over every band. */}
+            {/* White, because the app is dark and every band under it is dark. */}
             <marker
               id="drift-head"
               viewBox="0 0 10 10"
@@ -186,7 +119,7 @@ export const PaintedMap = ({ painted, interval }: PropsT) => {
               markerHeight="5"
               orient="auto-start-reverse"
             >
-              <path d="M0 0 L10 5 L0 10 z" fill="black" />
+              <path d="M0 0 L10 5 L0 10 z" fill="white" />
             </marker>
           </defs>
 
@@ -205,40 +138,36 @@ export const PaintedMap = ({ painted, interval }: PropsT) => {
             )}
 
           {/*
-           * The layers, in the order the replay map stacks them, each analysis
-           * in turn. A layer's levels are drawn low to high so the fills
-           * composite the way ArcGIS composites them.
+           * The layers, in the order the replay map stacks them. A layer's
+           * levels are drawn low to high so the fills composite the way ArcGIS
+           * composites them.
            */}
-          {hours.map((hour, order) =>
-            LAYERS.filter((layer) => visible[layer.key]).map((layer) => {
-              const frame = painted.frames[hour]?.[layer.key];
-              if (!frame || frame.error) return null;
-              return frame.levels.map((level) => {
-                const band = layer.bands.find((b) => b.value === level.level);
-                if (!band) return null;
-                const earlier = hours.length > 1 && order === 0;
-                return level.polygons.map((polygon, index) => (
-                  <path
-                    key={`${hour}-${layer.key}-${level.level}-${index}`}
-                    d={polygon.map(draw).join(" ")}
-                    fillRule="evenodd"
-                    fill={soloColor(layer.rgb, band.alpha)}
-                    stroke={soloColor(layer.rgb, 0.85)}
-                    strokeWidth={earlier ? 0.7 : 1.1}
-                    strokeDasharray={earlier ? "3 3" : undefined}
-                  />
-                ));
-              });
-            })
-          )}
+          {LAYERS.filter((layer) => visible[layer.key]).map((layer) => {
+            const frame = painted.frames[analysis.at]?.[layer.key];
+            if (!frame || frame.error) return null;
+            return frame.levels.map((level) => {
+              const band = layer.bands.find((b) => b.value === level.level);
+              if (!band) return null;
+              return level.polygons.map((polygon, index) => (
+                <path
+                  key={`${layer.key}-${level.level}-${index}`}
+                  d={polygon.map(draw).join(" ")}
+                  fillRule="evenodd"
+                  fill={soloColor(layer.rgb, band.alpha)}
+                  stroke={soloColor(layer.rgb, 0.85)}
+                  strokeWidth={1}
+                />
+              ));
+            });
+          })}
 
           {/*
-           * Where the air over each release point had gone by the second
-           * analysis. Drawn under the flare markers so a short arrow is not
-           * hidden by the dot it starts from.
+           * From where the flare was dropped to where that air is at the moment
+           * of the frame under it. Drawn beneath the markers so a short line is
+           * not swallowed by the dot it starts from.
            */}
           {drift &&
-            showing.flares.map((flare) =>
+            analysis.flares.map((flare) =>
               flare.drift?.to ? (
                 <line
                   key={`drift-${flare.at}`}
@@ -246,43 +175,43 @@ export const PaintedMap = ({ painted, interval }: PropsT) => {
                   y1={py(flare.lat)}
                   x2={px(flare.drift.to[0])}
                   y2={py(flare.drift.to[1])}
-                  stroke="black"
+                  stroke="white"
                   strokeWidth={1.4}
                   markerEnd="url(#drift-head)"
-                  opacity={hover && hover !== flare.at ? 0.35 : 0.9}
+                  opacity={hover && hover !== flare.at ? 0.4 : 0.95}
                 />
               ) : null
             )}
 
-          {showing.flares.map((flare) => (
-            <g
-              key={flare.at}
-              onMouseEnter={() => setHover(flare.at)}
-              onMouseLeave={() => setHover(null)}
-            >
-              <circle
-                cx={px(flare.lon)}
-                cy={py(flare.lat)}
-                r={hover === flare.at ? 13 : 10}
-                className={`fill-none ${
-                  held[flare.held?.liquid ?? ""]?.replace("fill", "stroke") ??
-                  "stroke-base-content"
-                }`}
-                strokeWidth={1.3}
-                opacity={0.6}
-              />
-              <circle
-                cx={px(flare.lon)}
-                cy={py(flare.lat)}
-                r={5.5}
-                className={
-                  held[flare.held?.liquid ?? ""] ?? "fill-base-content"
-                }
-                stroke="black"
-                strokeWidth={1.5}
-              />
-            </g>
-          ))}
+          {analysis.flares.map((flare) => {
+            const near = flare.near.liquid;
+            const tone = toneFor(near, painted.proximity.cellKm);
+            const [lon, lat] = flare.compared;
+            return (
+              <g
+                key={flare.at}
+                onMouseEnter={() => setHover(flare.at)}
+                onMouseLeave={() => setHover(null)}
+              >
+                <circle
+                  cx={px(lon)}
+                  cy={py(lat)}
+                  r={hover === flare.at ? 13 : 10}
+                  className={`fill-none ${tone.stroke}`}
+                  strokeWidth={1.3}
+                  opacity={0.6}
+                />
+                <circle
+                  cx={px(lon)}
+                  cy={py(lat)}
+                  r={5.5}
+                  className={tone.fill}
+                  stroke="white"
+                  strokeWidth={1.2}
+                />
+              </g>
+            );
+          })}
         </svg>
       </div>
 
@@ -292,21 +221,28 @@ export const PaintedMap = ({ painted, interval }: PropsT) => {
             {hovered.timeZ}Z · {hovered.county} County · {hovered.plane} ·{" "}
             {hovered.payload}
             <br />
-            liquid {hovered.held?.liquid ?? "—"} · before the rain veto{" "}
-            {hovered.held?.cloudReady ?? "—"} · every test{" "}
-            {hovered.held?.candidate ?? "—"}
+            {hovered.near.liquid
+              ? hovered.near.liquid.inside
+                ? "inside painted liquid"
+                : `${hovered.near.liquid.km} km from painted liquid` +
+                  (hovered.near.liquid.kmAtRelease !== hovered.near.liquid.km
+                    ? ` (${hovered.near.liquid.kmAtRelease} km before drifting)`
+                    : "")
+              : "no liquid frame at this hour"}
             {hovered.drift?.stormMotionKt != null && (
               <>
                 {" "}
-                · drifting {hovered.drift.stormMotionKt} kt toward{" "}
+                · {hovered.offsetMinutes! > 0 ? "+" : ""}
+                {hovered.offsetMinutes} min to the analysis at{" "}
+                {hovered.drift.stormMotionKt} kt toward{" "}
                 {hovered.drift.stormMotionTowardDeg}°
               </>
             )}
           </>
         ) : (
           <span className="opacity-70">
-            Hover a flare for what we had painted under it, and where that air
-            went.
+            Hover a flare for how far it was from the paint, and how far the air
+            was carried to meet the analysis.
           </span>
         )}
       </div>

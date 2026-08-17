@@ -196,18 +196,32 @@ export type Frame = {
 };
 
 /**
- * Where the air over a release point had gone by the end of the bracket.
+ * Where the air over a release point is at the analysis it is compared against.
  *
- * HRRR's own 0–6 km storm motion at that cell, carried forward at constant speed
- * and bearing. `to` is null when the model has the air standing still, because a
- * bearing off a still vector is not a direction.
+ * HRRR's own 0–6 km storm motion at that cell, carried over the signed offset
+ * between the release minute and the analysis hour. `to` is null when the model
+ * has the air standing still, because a bearing off a still vector is not a
+ * direction.
  */
 export type Drift = {
   stormMotionKt: number | null;
   stormMotionTowardDeg: number | null;
-  hours: number;
+  offsetMinutes: number;
   km?: number;
   to: [number, number] | null;
+};
+
+/** How far a release was from one layer, in kilometres. Zero means inside. */
+export type Nearness = {
+  /**
+   * What "any of this layer at all" meant here. Nested bands stack, so the
+   * outermost contour is the whole layer; disjoint ones had to be unioned.
+   */
+  measuredTo: string;
+  inside: boolean;
+  km: number | null;
+  /** The same distance without the drift correction, for comparison. */
+  kmAtRelease: number | null;
 };
 
 export type Flare = {
@@ -220,17 +234,46 @@ export type Flare = {
   glaciogenic: number;
   hygroscopic: number;
   payload: string;
-  held: Record<string, Outcome> | null;
+  /** Minutes from the release to its analysis. Negative means the analysis is earlier. */
+  offsetMinutes: number | null;
   drift: Drift | null;
+  /** Where the release point sits at the analysis time, after drifting. */
+  compared: [number, number];
+  near: Record<string, Nearness | null>;
+  /** What the season sweep said, for lining one release up against the table. */
+  season: Record<string, Outcome> | null;
+};
+
+/** One analysis hour, and the releases charged to it. */
+export type Analysis = { at: string; flares: Flare[] };
+
+export type LayerProximity = {
+  n: number;
+  inside: number;
+  withinCell: number;
+  withinTwoCells: number;
+  median: number | null;
+  worst: number | null;
+};
+
+export type Proximity = {
+  cellKm: number;
+  flares: number;
+  layers: Record<string, LayerProximity>;
+  offset: { median: number; worst: number } | null;
 };
 
 export type Painted = {
   date: string;
   region: string;
   window: { west: number; east: number; south: number; north: number };
+  /** The grid the layers are contoured on — the yardstick for "near". */
+  cellKm: number;
   layers: { key: string; name: string; property: string; unit: string }[];
   hours: string[];
   /** By hour, then by layer key. */
   frames: Record<string, Record<string, Frame>>;
-  intervals: { from: string; to: string; flares: Flare[] }[];
+  analyses: Analysis[];
+  /** Computed by the eval server from the file above, never by the page. */
+  proximity: Proximity;
 };
