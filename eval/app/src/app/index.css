@@ -1,0 +1,25 @@
+@import "tailwindcss";
+@plugin "daisyui/index.js" {
+  themes: dark --default;
+}
+@plugin "@tailwindcss/typography";
+
+/**
+ * Same pin as the product, and load-bearing for the same reason: the chrome
+ * hardcodes black, so a fallback to DaisyUI's light default would resolve
+ * `text-base-content` to dark text on it.
+ */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Panel text is undimmed — the classes that dim themselves are undimmed once
+   here rather than fought per component. */
+.stat-title,
+.stat-desc,
+.prose {
+  opacity: 1;
+}

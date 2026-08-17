@@ -9,55 +9,50 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 /**
- * The eval map's dev server.
+ * The evaluation app.
  *
- * **It installs nothing.** `node_modules` is a symlink to `/app`'s, and `@`
- * points at `/app`'s source, so this page draws with the same ArcGIS build and
- * the same renderer objects the app under test draws with. A second install
- * could drift a minor version and repaint a band, and every difference this
- * page exists to show would then be partly its own.
+ * **It installs nothing.** `node_modules` is a committed symlink to `/app`'s,
+ * and `@` resolves into `/app/src`, so the renderers, the layer urls and the
+ * types here are the product's own objects rather than copies. A page built to
+ * find disagreements between the map and an operator must not introduce one
+ * between itself and the map it is inspecting, and a second install could drift
+ * a version and repaint a band.
  *
- * Two proxies, because two servers answer here: the weather comes from
- * Weatherman on 3000, and the flight record and our scores come from
- * `eval/server.mjs` on 3100. Nothing merges them server-side — the whole point
- * is to lay one over the other and look.
+ * `~` is this app's own source, so the two origins stay visible at every import.
  */
-const APP = path.resolve(__dirname, "../../app");
-const WEATHERMAN = process.env.SERVER_ORIGIN || "http://localhost:3000";
-const EVAL = process.env.EVAL_ORIGIN || "http://localhost:3100";
-
-/** A cold replay build reads five sources out of the archive one range at a time. */
-const COLD_BUILD_MS = 240_000;
-
-const weatherman = {
-  target: WEATHERMAN,
-  changeOrigin: true,
-  timeout: COLD_BUILD_MS,
-  proxyTimeout: COLD_BUILD_MS,
-};
-
 export default defineConfig({
   resolve: {
     alias: {
-      "@": path.resolve(APP, "src"),
       "~": path.resolve(__dirname, "src"),
+      "@": path.resolve(__dirname, "../../app/src"),
     },
   },
   plugins: [react(), tailwindcss()],
   server: {
     host: "0.0.0.0",
     port: 5174,
-    hmr: { host: "localhost", port: 5174 },
+    cors: true,
     proxy: {
-      "/candidate": weatherman,
-      "/cloudtop": weatherman,
-      "/forecast": weatherman,
-      "/radar": weatherman,
+      // The findings and the flight record. Local files, so this is instant.
       "/eval": {
-        target: EVAL,
+        target: process.env.EVAL_ORIGIN || "http://localhost:3100",
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/eval/, ""),
+        rewrite: (route) => route.replace(/^\/eval/, ""),
       },
+      // The weather itself, from the product's own server. A replayed hour is a
+      // cold read out of the archive, so these wait as long as the app does.
+      ...Object.fromEntries(
+        ["/candidate", "/cloudtop", "/forecast", "/radar"].map((prefix) => [
+          prefix,
+          {
+            target: process.env.SERVER_ORIGIN || "http://localhost:3000",
+            changeOrigin: true,
+            timeout: 240_000,
+            proxyTimeout: 240_000,
+          },
+        ])
+      ),
     },
+    watch: { usePolling: true },
   },
 });
