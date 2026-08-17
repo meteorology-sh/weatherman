@@ -66,32 +66,67 @@ seeding decision itself.
 In four fifths of all releases the model holds no supercooled liquid in the
 seeding band over the cell at all, and the radar takes most of the rest.
 
+Re-asking the observed half at each flare's true minute moves individual answers
+freely — 7 candidates become `raining` and 5 go the other way, with no overlap
+between the old and new candidate sets — while leaving the pooled shares roughly
+where they were. **Every individual answer was wrong and the totals hid it.**
+
+### Asking both analyses instead of choosing one
+
+A release at 1843Z is 17 minutes from one analysis and 43 from the other, and
+picking either reports a choice as though it were free. Asking both and keeping
+what they agree on removes the argument: a condition present at 18Z and again at
+19Z was present across the whole gap. All 497 releases of the season, 492 with an
+answer at both ends.
+
+| Test                                  | Held         | Flipped | Absent |
+| ------------------------------------- | ------------ | ------: | -----: |
+| Supercooled liquid in the band        | 17 (3.5%)    |     120 |    355 |
+| Seedable cloud, before the radar veto | 17 (3.5%)    |     115 |    360 |
+| Seedable, radar included              | **0 (0.0%)** |      16 |    476 |
+
+Three things fall out of that table.
+
+**Not one release in the season sat in a cell the join called seedable at both
+ends.** Zero, out of 492.
+
+**The first two rows are the same number.** Every cell that held liquid across
+the bracket also passed cloud base, band position, cloud seen and top
+temperature at both ends. Those four tests never once did any work. The join is
+not a cascade of six filters in practice — it is liquid, and then rain.
+
+**A quarter of releases flip.** 120 of 492 carried liquid at one analysis and
+none at the other, so for those the answer depends entirely on which hour you
+charge the release to. That is the 17-minute problem measured rather than
+argued, and it is the reason single-hour figures should not be quoted.
+
+The 17 that held are not spread across the season. Five days carry all of them —
+19 April (7 of 13), 22 May (5 of 23), 29 August (3 of 25), 11 August (1 of 46)
+and 24 October (1 of 17). The remaining 29 days contribute nothing. Whatever the
+disagreement is, it is not a uniform error rate.
+
 ### The rain veto excludes the geometry the operators actually seed
 
-Where the model does hold liquid over a release, **the reflectivity is never
-near the cutoff — it is well past it.** Across the releases carrying liquid at
-both analyses a flare sits between, the measured reflectivity runs 20 to 47 dBZ
-with a median of 32. `RAIN_DBZ` is 20. Not one of these cells is a marginal
-call.
+**All 17 of those releases were charged to `raining` at one hour or both.** That
+is the entire distance between the second row of the table and the third.
 
-So the disqualifier is not catching cells that crept over a line. It is
-describing, correctly, that these clouds are raining hard — and the operators
-seed them anyway, deliberately, because they are working the growing turret on
-the flank of a complex whose core is already precipitating. A 12 km cell cannot
-separate the two: the block-averaged reflectivity is dominated by the core, 8 km
-from the turret the aircraft is actually in.
+Across both readings of those 17, measured reflectivity runs 15 to 49 dBZ with a
+median of 35, and 30 of the 33 readings are at or above the 20 dBZ cutoff. These
+are not cells that crept over a line — the disqualifier is describing, correctly,
+that they are raining hard.
+
+The operators seed them anyway, deliberately, because they are working the
+growing turret on the flank of a complex whose core is already precipitating. A
+12 km cell cannot separate the two: the block-averaged reflectivity is dominated
+by the core, 8 km from the turret the aircraft is in.
 
 **`RAIN_DBZ` therefore encodes a real question at a resolution that cannot
 answer it.** The question — has this cloud already spent its liquid — is sound.
 The reading it is asked of covers both the spent core and the unspent turret, so
 a cell that is half of each answers as though it were all core. Nothing about
-raising or lowering the threshold fixes that; the cells are at 32 dBZ, not 21.
+moving the threshold fixes that when the median cell sits at 35 dBZ.
 
 This is a finding about the product, not about the operators.
-Re-asking the observed half at each flare's true minute moves individual answers
-freely — 7 candidates become `raining` and 5 go the other way, with no overlap
-between the old and new candidate sets — while leaving the pooled shares roughly
-where they were. **Every individual answer was wrong and the totals hid it.**
 
 ---
 
