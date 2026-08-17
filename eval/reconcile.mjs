@@ -1,15 +1,27 @@
 /**
- * The layers, against the only instrument that can check them with no time gap.
+ * The layers, against the instrument the operator briefs its own sorties on.
  *
  * `node eval/reconcile.mjs` — with the server running. Writes
- * `eval/out/reconcile-2025.json`.
+ * `eval/out/reconcile-2025.json`. `--score` re-prints the summary from that
+ * file without fetching anything.
  *
  * **Every other comparison in this evaluation is bounded by a clock.** The
  * model analyses once an hour, so a flare at 1843Z is read against 19z whatever
  * we do, and 17 minutes is a long time in a growing turret. The radiosondes are
- * the exception: the reports carry KMAF and KDRT indices from the 12Z ascent,
- * and 12Z **is** an HRRR analysis hour. Same moment, same quantity, different
- * instrument.
+ * the exception: every daily report opens with a sounding table for KMAF and
+ * KDRT, and its 12Z ascent lands on an HRRR analysis hour, so neither side has
+ * to be rounded to meet the other.
+ *
+ * The offset is small rather than absent. A sonde is released about 45 minutes
+ * before the nominal hour and reaches the seeding band minutes into the flight,
+ * so the true separation is 20–30 minutes. It is survivable here because a
+ * thermal profile at 4–7 km moves tens of metres in an hour, where a growing
+ * turret swings 40 dBZ in the same span.
+ *
+ * The rows the operator prints are the seeding decision itself — the freezing
+ * level and the −15 °C height bound the glaciogenic window, and the warm cloud
+ * depth is what a hygroscopic flare works — so this measures agreement with
+ * what the crews are actually launched on.
  *
  * What it can and cannot reach:
  *
@@ -108,12 +120,15 @@ const PAIRS = [
     key: "freezingLevel",
     label: "freezing level",
     unit: "m",
+    reported: (s) => s.freezingLevelM,
+    ours: (h) => (h.freezingFt === null ? null : h.freezingFt * M_PER_FT),
     // A freezing level at or below sea level is not a reading over west Texas —
     // the ground is above 200 m at both sites and the season runs April to
     // October. Where the report prints one it is a bad lift out of the PDF, and
-    // scoring it would charge the model for our own parse.
-    reported: (s) => (s.freezingLevelM > 0 ? s.freezingLevelM : null),
-    ours: (h) => (h.freezingFt === null ? null : h.freezingFt * M_PER_FT),
+    // scoring it would charge the model for our own parse. Dropped at scoring
+    // rather than at the fetch so the reading is still written to the output,
+    // and so a stored sweep and a fresh one produce the same table.
+    keep: (cell) => cell.reported > 0,
   },
   {
     key: "minus15Height",
@@ -158,17 +173,30 @@ const PAIRS = [
   },
 ];
 
+const OUTFILE = join(OUT, "reconcile-2025.json");
+
+/**
+ * `--score` re-prints the summary from the last run instead of fetching again.
+ *
+ * The sweep is hours of cold archive builds and the arithmetic over its output
+ * is milliseconds. A published number has to be checkable without paying for
+ * the sweep a second time, so the two are separable.
+ */
+const SCORE_ONLY = process.argv.includes("--score");
+
 const { days } = JSON.parse(
   await readFile(join(HERE, "data", "releases-2025.json"), "utf8")
 );
-const seeded = days.filter((day) => day.seeded);
+const seeded = SCORE_ONLY ? [] : days.filter((day) => day.seeded);
+const rows = SCORE_ONLY ? JSON.parse(await readFile(OUTFILE, "utf8")).rows : [];
 
 console.log(
-  `${seeded.length} seeded days, ${Object.keys(SITES).length} sites, ` +
-    `${SOUNDING_HOUR}Z — an analysis hour, so no time gap at all.\n`
+  SCORE_ONLY
+    ? `${rows.length} paired soundings, read back from eval/out/reconcile-2025.json\n`
+    : `${days.filter((day) => day.seeded).length} seeded days, ` +
+        `${Object.keys(SITES).length} sites, ${SOUNDING_HOUR}Z — an HRRR ` +
+        `analysis hour, so neither side is rounded to meet the other.\n`
 );
-
-const rows = [];
 
 for (const day of seeded) {
   const at = `${day.date}T${String(SOUNDING_HOUR).padStart(2, "0")}:00:00.000Z`;
@@ -220,11 +248,13 @@ for (const day of seeded) {
   );
 }
 
-/** Bias, spread and worst case for one pair. */
-function score(key) {
+/** Bias, spread and worst case for one pair, over the readings it accepts. */
+function score(pair) {
   const errors = rows
-    .map((row) => row.compared[key]?.error)
-    .filter((value) => value !== null && value !== undefined)
+    .map((row) => row.compared[pair.key])
+    .filter((cell) => cell && cell.error !== null && cell.error !== undefined)
+    .filter((cell) => (pair.keep ? pair.keep(cell) : true))
+    .map((cell) => cell.error)
     .sort((a, b) => a - b);
 
   if (!errors.length) return null;
@@ -255,7 +285,7 @@ console.log(
 );
 
 for (const pair of PAIRS) {
-  const stats = score(pair.key);
+  const stats = score(pair);
   if (!stats) {
     console.log(`${pair.label.padEnd(20)}   — nothing to compare`);
     continue;
@@ -271,4 +301,75 @@ for (const pair of PAIRS) {
   );
 }
 
-console.log(`\nwritten to eval/out/reconcile-2025.json`);
+/* ---------- the band as a whole ---------- */
+
+/**
+ * How much of the seeding band we drew is the seeding band that was measured.
+ *
+ * The two edges are scored separately above, but a crew does not fly an edge —
+ * it flies the layer between them. Overlap divided by union is the figure that
+ * answers "would an aircraft holding our band have been in theirs": 1.0 is the
+ * same layer, 0.0 is two layers that do not touch. Reported against the union
+ * rather than against theirs alone so that drawing a band far too deep is
+ * penalised rather than rewarded for covering everything.
+ */
+const overlaps = rows
+  .map((row) => {
+    const base = row.compared.freezingLevel;
+    const top = row.compared.minus15Height;
+    if (base?.error === null || top?.error === null) return null;
+    if (!base || !top) return null;
+
+    const lowest = Math.min(base.reported, base.ours);
+    const highest = Math.max(top.reported, top.ours);
+    const shared =
+      Math.min(top.reported, top.ours) - Math.max(base.reported, base.ours);
+    return {
+      date: row.date,
+      site: row.site,
+      depth: top.reported - base.reported,
+      fraction: Math.max(0, shared) / (highest - lowest),
+    };
+  })
+  .filter(Boolean)
+  .sort((a, b) => a.fraction - b.fraction);
+
+if (overlaps.length) {
+  const fractions = overlaps.map((entry) => entry.fraction);
+  const mean =
+    fractions.reduce((sum, value) => sum + value, 0) / overlaps.length;
+  const median = fractions[Math.floor(overlaps.length / 2)];
+  const depths = overlaps.map((entry) => entry.depth).sort((a, b) => a - b);
+  const pct = (value) => `${(value * 100).toFixed(1)}%`;
+
+  console.log(`\n${"-".repeat(70)}`);
+  console.log(
+    `the band as a layer — ${overlaps.length} ascents with both edges\n`
+  );
+  console.log(
+    `  overlap with the measured band   median ${pct(median)}   ` +
+      `mean ${pct(mean)}   worst ${pct(fractions[0])}`
+  );
+  console.log(
+    `  measured band depth              median ${depths[Math.floor(depths.length / 2)]} m   ` +
+      `range ${depths[0]}–${depths[depths.length - 1]} m`
+  );
+  console.log(
+    `  cleared 90% / 80%                ` +
+      `${fractions.filter((value) => value >= 0.9).length} / ` +
+      `${fractions.filter((value) => value >= 0.8).length} of ${overlaps.length}`
+  );
+  console.log(`\n  loosest five:`);
+  for (const entry of overlaps.slice(0, 5)) {
+    console.log(
+      `    ${entry.date} ${entry.site}  ${pct(entry.fraction)}  ` +
+        `over a ${entry.depth} m band`
+    );
+  }
+}
+
+console.log(
+  SCORE_ONLY
+    ? `\nread from eval/out/reconcile-2025.json — nothing fetched`
+    : `\nwritten to eval/out/reconcile-2025.json`
+);

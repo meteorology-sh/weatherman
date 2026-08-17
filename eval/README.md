@@ -12,6 +12,8 @@ node eval/counties.mjs                 # target areas  → data/counties-tx.geoj
 node eval/points.mjs 2025-04-19        # per release   → out/points-<date>.json
 node eval/season.mjs                   # every day     → out/season-2025.json
 node eval/veto.mjs                     # observed half → out/veto-recheck.json
+node eval/reconcile.mjs                # vs soundings  → out/reconcile-2025.json
+node eval/bracket.mjs                  # both analyses → out/bracket-2025.json
 node eval/field.mjs  2025-04-22 21 22 23 00   # per hour → out/field-<date>.json
 node eval/snowie.mjs 2017-01-20 22 23 00 01   # HRRR only → out/snowie-<date>.json
 ```
@@ -58,6 +60,28 @@ the radar vetoes and the candidates — at the minute each flare actually left.
 It skips the cells charged to no liquid: those are the model's own answer, and
 the model resolves to the same analysis hour either way.
 
+**`reconcile.mjs`** scores the layers against the radiosondes. Every WTWMA daily
+report opens with a sounding table — Midland and Del Rio, nine indices each —
+and 12Z is an HRRR analysis hour, so the freezing level, the −15 °C height and
+the 700 mb temperature can be compared with no rounding on either side. It is
+the only check here that does not have to argue about a clock.
+
+Cloud base is carried and printed but not scored: the report's is a
+lifted-parcel level and ours is the base of whatever deck is overhead, so a
+difference is not an error. A reported freezing level at or below sea level is
+dropped as a bad lift out of the PDF rather than charged to the model.
+
+**`bracket.mjs`** asks the join at both analyses a flare sits between — 18Z and
+19Z for an 1843Z release — and reports what the pair agree on. A condition
+present at both ends was present across the whole gap, so the answer does not
+depend on which analysis the release is charged to. Three nested tests run over
+the same pair: liquid in the band, seedable cloud before the radar veto, and
+seedable with the radar included. The middle one is exact because the rejection
+order puts rain last, so a cell charged to `raining` passed everything before it.
+
+`--day=2025-08-11` scores one day; `--resume` continues from what is already in
+`out/bracket-2025.json`.
+
 **`server.mjs`** serves the flight record and whatever the sweeps have scored,
 on port 3100. It holds no weather. **`app/`** is the map that draws it: a Vite
 SPA on port 5174 that points its layers at the Weatherman server and lays the
@@ -73,6 +97,52 @@ install could drift a version and repaint a band.
 join cannot run in January 2017 — no GOES cloud top before 2023-03-23, no MRMS
 before 2020-10-14 — so it reports the HRRR half and names the missing inputs
 rather than working around them.
+
+## Reproducing a published number
+
+Everything here needs a running server and nothing else — no install, no build
+step, no key. Check the server answers before starting anything long:
+
+```bash
+docker-compose up                 # or cd server && yarn dev
+curl localhost:3000/healthcheck   # "Hello, world!"
+```
+
+| To get                                                    | Run                                      | Cost                |
+| --------------------------------------------------------- | ---------------------------------------- | ------------------- |
+| The sounding comparison and the band-overlap figure       | `node eval/reconcile.mjs`                | 68 soundings        |
+| The same summary, from the run already on disk            | `node eval/reconcile.mjs --score`        | instant             |
+| Every verdict, at the nearer analysis hour                | `node eval/season.mjs`                   | 33 days             |
+| The observed half, re-asked at the true minute            | `node eval/veto.mjs`                     | one build per flare |
+| Whether a flare sat inside a region held at both analyses | `node eval/bracket.mjs`                  | 125 builds          |
+| One day of that                                           | `node eval/bracket.mjs --day=2025-08-11` | 8 builds            |
+
+**Cost is builds, not minutes.** A cold build is 30–60 s and everything else is
+milliseconds, so the honest unit is how many distinct hours a run has to
+construct. `bracket.mjs` asks 994 questions but only builds 125 hours, because
+every release in an hour is answered from that hour's cached scene.
+
+**Re-scoring is separate from re-fetching.** `reconcile.mjs --score` recomputes
+the whole summary — the per-reading table and the band overlap — from
+`out/reconcile-2025.json` without touching the network. Any figure quoted from
+this evaluation should be checkable that way; if a number cannot be re-derived
+from committed output plus a flag, it is not reproducible and should not be
+quoted.
+
+**A guard belongs at scoring, not at fetching.** The sounding table is lifted
+from a PDF and occasionally yields something impossible — a freezing level below
+sea level. Readings like that are written to the output and dropped when scored,
+so the raw lift stays inspectable and a stored sweep and a fresh one still print
+the same table.
+
+**Sweeps survive a restart.** `bracket.mjs --resume` and `season.mjs --resume`
+skip days already in their output file. Run long sweeps detached, because
+editing anything under `server/src` restarts nodemon and every in-flight request
+dies with it:
+
+```bash
+(setsid node eval/bracket.mjs --resume > eval/out/bracket.log 2>&1 &)
+```
 
 ## Things that will bite
 
