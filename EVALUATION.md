@@ -391,19 +391,49 @@ Two things from that sweep do stand, because neither depends on the hour:
 Re-running against 0000–0200Z on 20 January, and the other two cases, is the
 outstanding item. It is cheap — three hours of cycles per case.
 
-### Two cross-checks against instruments, and both hold
+### The band is where the sonde puts it
 
-- **Cloud base.** The pilot reported bases of 4,000 ft at 1838Z; the model gave
-  **4,408 ft** at the 1843Z release five minutes later. 408 ft apart.
-- **The band's altitude.** The 12Z KMAF sounding in the report puts −15 °C at
-  5,986 m — 19,639 ft — with the freezing level at 12,011 ft. So the seeding
-  band sat roughly 14,000–21,000 ft MSL. **The flares went in at 4,100–6,000 ft**,
-  about 10,000 ft below the bottom of the band.
+Every daily report opens with a sounding table — Midland and Del Rio, nine
+indices each — and its 12Z ascent lands on an HRRR analysis hour, so neither
+side has to be rounded to meet the other. 68 pairs attempted over the season,
+64 scored, 3 lost to timeouts.
 
-That last number is not a discrepancy, it is the design of the operation: Texas
-seeds cloud-base inflow and lets the updraft carry the AgI up. It does mean the
-release point and the physics are ten thousand feet apart, and the map answers
-about the cell, not about where the air in it is going.
+| reading            |   n |    bias | median \|err\| |     worst |
+| ------------------ | --: | ------: | -------------: | --------: |
+| freezing level     |  64 |   −31 m |           45 m |     286 m |
+| −15 °C height      |  64 |   −26 m |           57 m |     324 m |
+| 700 mb temperature |  63 | −0.3 °C |         0.4 °C |    2.8 °C |
+| surface CAPE       |  64 |    +238 |            240 | 2953 J/kg |
+
+Taken as a layer rather than as two edges, the band we draw overlaps the band
+the sonde measured by a **median 95.7%** of their union, over a layer whose
+median depth is 2,537 m. All 64 clear 80% and 56 clear 90%. Bias near zero on
+both edges means the misses are scatter rather than a standing offset, so there
+is nothing to correct for.
+
+The rows the operator chose to print are the seeding decision itself — the
+freezing level and the −15 °C height bound the glaciogenic window, and the warm
+cloud depth is what a hygroscopic flare works. This is therefore agreement with
+the instrument the crews are briefed on, not with an outside yardstick we went
+looking for.
+
+Two things it does not cover. Cloud base is a different quantity on each side —
+the report's is a lifted-parcel level, ours is the base of whatever deck is
+overhead — so it is printed rather than scored; the pilot radio calls carry a
+cloud base twice in the whole season, both on 19 April, which is an anecdote and
+not a check. And warm cloud depth is in their table and absent from ours, so the
+hygroscopic half of the operation has no counterpart in the app at all.
+
+### The release point sits ten thousand feet below the band
+
+The 12Z KMAF sounding on 19 April puts −15 °C at 5,986 m — 19,639 ft — with the
+freezing level at 12,011 ft, so the seeding band sat roughly 14,000–21,000 ft
+MSL. **The flares went in at 4,100–6,000 ft.**
+
+That is not a discrepancy, it is the design of the operation: Texas seeds
+cloud-base inflow and lets the updraft carry the silver iodide up. It does mean
+the release point and the physics are ten thousand feet apart, and the map
+answers about the cell, not about where the air in it is going.
 
 ### The whole season, and the answer it first gave
 
@@ -545,6 +575,16 @@ county }`, plus the sounding indices and the narrative's timed cell
   per cycle shared across every flare in it. **`veto.mjs`** re-asks the verdicts
   that rested on an observation at the minute each flare left, which is one
   build apiece.
+- **`reconcile.mjs`** scores the profile against the KMAF and KDRT ascents at
+  12Z, the one comparison here that does not have to argue about a clock.
+  `--score` recomputes its whole summary from the last run's output without
+  fetching, so every figure it publishes is checkable without repeating the
+  sweep.
+- **`bracket.mjs`** asks the join at both analyses a release sits between and
+  reports what the pair agree on. A condition present at 18Z and again at 19Z
+  was present across the whole gap, so the answer stops depending on which hour
+  an 1843Z flare is charged to. 994 questions over 125 builds, because releases
+  are grouped by hour and each hour is constructed once.
 - **`server.mjs`** and **`app/`** are the map: the flight record and the scores
   on 3100, and a Vite page on 5174 that points its layers at the Weatherman
   server and lays the flares over them. The page installs nothing —
@@ -641,6 +681,23 @@ design to feed it.
   move a median of 6 °C between the top of the hour and the release, and up to
   41 °C. Any figure drawn from the satellite or the radar has to name the
   timestamp it was asked at.
+- **The sounding comparison has a small offset, not none.** A sonde is released
+  about 45 minutes before its nominal hour and reaches the seeding band minutes
+  into the ascent, so the separation from the 12Z analysis is 20–30 minutes. It
+  is survivable where the flare comparison's 17 minutes is not, because a
+  thermal profile at 4–7 km moves tens of metres in an hour while a growing
+  turret swings 40 dBZ in the same span. Quote it as a close comparison, never
+  as a simultaneous one.
+- **The sounding indices are a human reading of the ascent.** They are lifted
+  from the operator's own report rather than from raw sonde data, and they carry
+  that reading's mistakes — one Del Rio row states a freezing level below sea
+  level. Impossible values are dropped when scored, which means the check is
+  against the operator's understanding of the atmosphere, which is also what the
+  aircraft were launched on.
+- **Two sites and one hour do not cover the operation.** Midland and Del Rio
+  bracket the target counties without being inside most of them, and 12Z is
+  morning while seeding flies in the afternoon. The band comparison validates
+  vertical structure, not skill at the hour and place a flare is released.
 - **HRRRv2 is not HRRRv4** (§6).
 - **Three days is three days.** `MEASUREMENTS.md` §6 says to score this product
   over a Texas year, and that a single day can carry most of a year's footprint.
