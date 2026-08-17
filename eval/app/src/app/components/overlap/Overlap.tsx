@@ -115,7 +115,7 @@ export const Overlap = () => {
 
           <Section
             heading="The day"
-            subtitle="Painting a day means building every layer at every analysis its flares are charged to, so only days that have been built can be opened."
+            subtitle="Switch days from the picker in the bar above. Painting a day means building every layer at every analysis its flares are charged to, so only days that have been built can be opened."
           >
             <DayPicker />
           </Section>
@@ -168,8 +168,8 @@ export const Overlap = () => {
                           />
                           <path d="M19 1 L29 6 L19 11 z" fill="white" />
                         </svg>
-                        Where that air is at the analysis — distances measured
-                        here
+                        Storm motion at that release, over the minutes to the
+                        analysis — distances measured at the head
                       </span>
                       <span className="opacity-80">
                         Hover a release for its distance to every layer.

@@ -32,11 +32,24 @@ export function DayProvider({ children }: { children: React.ReactNode }) {
     if (region) dispatch(dayActions.setRegion(region));
   }, [region, dispatch]);
 
+  /**
+   * The day list, refetched every time the page is opened.
+   *
+   * **Not guarded on `days` being empty**, and that is the point: which days are
+   * painted changes whenever `held.mjs` runs, and a list cached from before a
+   * run shows the day that was built as though it were the only one there is.
+   * The route is opened rarely and the answer is a local file, so paying for it
+   * each time is cheaper than being wrong about what exists.
+   */
   useEffect(() => {
+    let cancelled = false;
+
     async function load(on: string) {
       try {
-        dispatch(dayActions.setDays(await GetDays(on)));
+        const fresh = await GetDays(on);
+        if (!cancelled) dispatch(dayActions.setDays(fresh));
       } catch (error) {
+        if (cancelled) return;
         dispatch(
           dayActions.setError(
             error instanceof Error ? error.message : "Failed to load days"
@@ -45,20 +58,24 @@ export function DayProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    if (region && loaded === region && !days) load(region);
-  }, [region, loaded, days, dispatch]);
+    if (region && loaded === region) load(region);
+    return () => {
+      cancelled = true;
+    };
+  }, [region, loaded, dispatch]);
 
   /**
-   * Open on the only painted day, when there is exactly one.
+   * Open on a painted day rather than on nothing.
    *
-   * The page exists to show a map, and a landing state with a single button that
-   * has to be pressed to reveal it is a step with no decision in it. With two or
-   * more painted days there is a real choice and it stays with the reader.
+   * The page exists to show a map, and landing on an empty one with a control
+   * the reader has to find first buries the thing they came for. Which day is
+   * arbitrary, so it is the first — the picker in the chrome makes the rest
+   * visible and one click away.
    */
   useEffect(() => {
     if (date || !days) return;
     const painted = days.filter((entry) => entry.painted);
-    if (painted.length === 1) dispatch(dayActions.setDate(painted[0].date));
+    if (painted.length) dispatch(dayActions.setDate(painted[0].date));
   }, [days, date, dispatch]);
 
   useEffect(() => {

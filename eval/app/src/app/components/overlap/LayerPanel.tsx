@@ -77,9 +77,13 @@ export const LayerPanel = () => {
         </label>
         {drift && (
           <p className="text-xs">
-            HRRR's 0–6 km storm motion at each release point, run forward to the
-            end of the bracket. The arrow points from the cloud that was seeded
-            to where that air had got to by the later analysis.
+            Sampled at each release separately, so every arrow is that cell's
+            own vector rather than one wind for the map. It is HRRR's 0–6 km
+            storm motion — where a cloud is being carried, which is not the same
+            as the wind at any single level. Its length is how far that air
+            travels in the minutes between the release and the analysis under
+            it, so a short arrow means a slow day or a close analysis, not a
+            small effect.
           </p>
         )}
         <label className="flex items-center gap-2 cursor-pointer">
