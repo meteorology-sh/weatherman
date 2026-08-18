@@ -252,7 +252,11 @@ cd eval/app && yarn dev                # the maps, port 5174
 30–60 seconds; every later question about that same hour is instant. `bracket.mjs`
 asks 994 questions but downloads 125 hours, because flares cluster.
 
-`--resume` continues a run that was interrupted. `eval/README.md` has the rest.
+`--resume` continues a run that was interrupted.
+
+**Building the remaining flying days is one command per day.** Two of the 34 are
+built; `held.mjs` takes any of the other 32 the same way. `eval/README.md` has
+the procedure, and the rest of the detail.
 
 ---
 
