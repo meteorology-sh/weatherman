@@ -81,6 +81,7 @@
         "north": 32.4
       },
       "runs": {
+        "reconcile": "reconcile-transpecos-2025.json",
         "held": "held-transpecos-{date}.json"
       }
     },
@@ -154,6 +155,7 @@
         "note": "The flight tables print a bearing and a range from April on and never say from where. Projected from Pleasanton, the town the reports head themselves with, 76.9% of the season's radial rows land inside the county their own row names; from the municipal airport four kilometres south-west, 64.1%, and from San Antonio, Hondo or any of the three nearest radars, under 2%. Bearings are used as printed. About six degrees of eastward rotation raises the agreement to 89.7%, which is both what a magnetic display would look like and what a slightly misplaced origin would look like, and the reports say neither \u2014 the Panhandle, projected the same way from a different point by a different programme, wants about the same six degrees. `registration.mjs` is where those figures come from."
       },
       "runs": {
+        "reconcile": "reconcile-stwma-2025.json",
         "held": "held-stwma-{date}.json"
       }
     },
@@ -186,6 +188,7 @@
       },
       "note": "Positions are read exactly as printed, and on three of the seven days that is demonstrably not decimal degrees. The reports write `32.69NX100.47W` in May and early June and `32.36, 100.38` on 30 June and 1 July, and the second form fits the county each row names only when its fractional part is read as minutes \u2014 11 of 12 rows on 30 June land in the target area that way against 6 read as degrees. Nothing in the row says which it is, and a row whose fractions are both under .60 is a valid reading either way, so no notation is inferred and nothing is rewritten. The cost is that 58.5% of releases land in the county their own row names, against 94% and 96% for the two programmes that write coordinates one way all season. `registration.mjs` is where that figure comes from.",
       "runs": {
+        "reconcile": "reconcile-plains-2025.json",
         "held": "held-plains-{date}.json"
       }
     }

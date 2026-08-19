@@ -8,7 +8,8 @@ Two questions, in order, asked of all five programmes Texas licenses.
    release to the nearest edge of each layer, at the minute and place it left
    the aircraft.
 
-The first is answered and the answer is yes. The second splits three ways: they
+The first is answered and the answer is yes, in all four programmes that fly a
+balloon. The second splits three ways: they
 fly inside the cloud and the echo we draw; on 10 of 34 days they fly in the
 liquid we paint and on the other 24 they are cells away from it; and they are
 almost never inside the finished join, because the join rules out rain and rain
@@ -46,39 +47,68 @@ in the totals and out of the point results.
 
 ---
 
-## Finding 1 — the seeding band is where the balloons put it
+## Finding 1 — the seeding band is where the balloons put it, in every programme that flies one
 
 The seeding band is the layer of cloud cold enough for silver iodide to work:
 from the freezing level up to about −15 °C. Everything the product does depends
 on drawing that layer in the right part of the sky.
 
 The National Weather Service flies a balloon from Midland and from Del Rio twice
-a day. It carries a thermometer through that exact layer. The operator reads
-those two ascents every morning and decides whether to fly on them.
+a day. It carries a thermometer through that exact layer, and the operators read
+those ascents every morning and decide whether to fly on them. The 12Z ascent
+lands on a model analysis hour, so both sides can be compared without rounding
+either.
 
-The 12Z ascent lands on a model analysis hour, so both sides can be compared
-without rounding either. **68 pairs attempted over the season, 64 scored.**
+**Four of the five programmes brief on a balloon and all four are checked here.**
+West Texas reads Midland and Del Rio, Trans-Pecos and the Rolling Plains read
+Midland, South Texas reads Del Rio.
 
-| Reading               | Balloons | Our bias | Typical miss |     Worst |
-| --------------------- | -------: | -------: | -----------: | --------: |
-| Freezing level        |       64 |    −31 m |     **45 m** |     286 m |
-| −15 °C height         |       64 |    −26 m |     **57 m** |     324 m |
-| Temperature at 700 mb |       63 |  −0.3 °C |   **0.4 °C** |    2.8 °C |
-| Surface instability   |       64 |     +238 |          240 | 2953 J/kg |
+| Programme      | Ascents | Freezing level | −15 °C height | Band overlap | Cleared 90% |
+| -------------- | ------: | -------------: | ------------: | -----------: | ----------: |
+| West Texas     |      64 |   −31 m / 45 m |  −26 m / 57 m |    **95.7%** |    56 of 64 |
+| Trans-Pecos    |      39 |   −25 m / 32 m |  −10 m / 48 m |    **96.9%** |    36 of 39 |
+| South Texas    |      11 |   −20 m / 40 m |  −33 m / 26 m |    **95.3%** |    11 of 11 |
+| Rolling Plains |       7 |   −23 m / 15 m |  −66 m / 55 m |    **97.7%** |      6 of 7 |
 
-Taken as a layer rather than as two edges, **the band we draw overlaps the band
-the balloon measured by a median of 95.7%.** The layer is about 2,500 m deep.
-All 64 ascents overlap by more than 80%, and 56 of them by more than 90%.
+Each edge column is bias, then the typical miss. Band overlap is the median
+share of the measured layer our layer covers, taken against the union of the
+two, so a band drawn far too deep is penalised rather than rewarded for
+covering everything. The layer is about 2,400 m deep throughout.
 
-Bias sits near zero on both edges, so the misses are scatter rather than a
-standing offset. There is nothing to correct for.
+**Bias sits within 70 m of zero on every edge of every programme**, so the
+misses are scatter rather than a standing offset. There is nothing to correct
+for, and nothing that is a west Texas peculiarity.
 
-**This is agreement with the instrument the crews are actually briefed on** —
-not with an outside yardstick. The rows the operator prints are the seeding
-decision: the freezing level and the −15 °C height bound the window where silver
-iodide does anything.
+**The Panhandle is the exception and is deliberately not here.** It briefs on a
+NAM forecast column rather than an ascent. Checking HRRR against NAM compares
+two models and would report their agreement as accuracy, so `reconcile.mjs`
+refuses that region rather than running it with a footnote.
 
-Instability is wide and nothing in the product leans on it.
+**The four programmes are not four independent samples.** Midland serves West
+Texas, Trans-Pecos and the Rolling Plains, so a morning all three flew is one
+balloon counted three times: 121 scored ascents, 101 distinct. The per-programme
+rows are still worth reading — they say the result is not an artefact of one
+target area — but they may not be added together.
+
+**One ascent is excluded on physical grounds.** South Texas prints a freezing
+level of 4072 m and a −15 °C height of 4944 m on 31 March: 872 m apart, which is
+17.2 °C/km. The dry adiabatic lapse rate is 9.8 °C/km and is the steepest a deep
+layer sustains, so one of those two numbers is a typo. Our column agrees with
+the freezing level to 47 m and disagrees with the −15 °C height by 1548 m, but
+using that to decide which of their numbers to keep would be judging the ground
+truth by the model and then reporting the agreement as accuracy. The whole
+morning is dropped from both edges and named in the output instead.
+
+### What this rules out for Finding 3
+
+Finding 3 reports that agreement with painted liquid varies by a factor of two
+across the state. **It is not because the band is drawn in the wrong place.**
+West Texas and the Rolling Plains have all but the same band accuracy — 95.7%
+and 97.7% median overlap, edge biases within 10 m of each other — and their
+crews' releases fall within a cell of painted liquid 36.0% and 56.3% of the
+time. The layer is in the same right place in both. What differs is how much
+supercooled water the model puts inside it, which is the one thing no sounding
+in the record can check.
 
 ---
 

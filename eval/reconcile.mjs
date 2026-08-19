@@ -1,16 +1,28 @@
 /**
  * The layers, against the instrument the operator briefs its own sorties on.
  *
- * `node eval/reconcile.mjs` — with the server running. Writes
- * `eval/out/reconcile-2025.json`. `--score` re-prints the summary from that
- * file without fetching anything.
+ * `node eval/reconcile.mjs [--region=wtwma] [--resume]` — with the server
+ * running. Writes the file `data/regions.json` names for that region.
+ * `--score` re-prints the summary from it without fetching anything.
  *
  * **Every other comparison in this evaluation is bounded by a clock.** The
  * model analyses once an hour, so a flare at 1843Z is read against 19z whatever
  * we do, and 17 minutes is a long time in a growing turret. The radiosondes are
- * the exception: every daily report opens with a sounding table for KMAF and
- * KDRT, and its 12Z ascent lands on an HRRR analysis hour, so neither side has
- * to be rounded to meet the other.
+ * the exception: every daily report opens with a sounding table, and its 12Z
+ * ascent lands on an HRRR analysis hour, so neither side has to be rounded to
+ * meet the other.
+ *
+ * **This can only be run where the region briefs on a balloon.** Four of the
+ * five print a radiosonde — West Texas reads Midland and Del Rio, Trans-Pecos
+ * and the Rolling Plains read Midland, South Texas reads Del Rio. The Panhandle
+ * prints a NAM forecast column instead, and checking HRRR against NAM compares
+ * two models rather than a model against an instrument, so it is refused here
+ * rather than run and caveated.
+ *
+ * **The site is the balloon's, not the target area's.** The Rolling Plains fly
+ * 200 km from Midland and brief on Midland anyway, so Midland is where our
+ * column is sampled — the question is whether we agree with the instrument the
+ * crew actually read, not with the air over the cell.
  *
  * The offset is small rather than absent. A sonde is released about 45 minutes
  * before the nominal hour and reaches the seeding band minutes into the flight,
@@ -50,12 +62,11 @@ const M_PER_FT = 0.3048;
 const TIMEOUT_MS = Number(process.env.WEATHERMAN_TIMEOUT_MS ?? 240_000);
 
 /**
- * The two ascents the reports quote, and where they are released from.
- *
- * Midland and Del Rio are the sites the operator's own morning briefing uses,
- * so these are the numbers the decision to fly was made against.
+ * The radiosonde sites the programmes brief on, and where they are released
+ * from. A region names the ones it reads in `data/regions.json`; anything it
+ * names that is not here is not a balloon and cannot be scored against.
  */
-const SITES = {
+const STATIONS = {
   KMAF: { lat: 31.9425, lon: -102.2019, name: "Midland" },
   KDRT: { lat: 29.3742, lon: -100.9169, name: "Del Rio" },
 };
@@ -120,6 +131,7 @@ const PAIRS = [
     key: "freezingLevel",
     label: "freezing level",
     unit: "m",
+    bandEdge: true,
     reported: (s) => s.freezingLevelM,
     ours: (h) => (h.freezingFt === null ? null : h.freezingFt * M_PER_FT),
     // A freezing level at or below sea level is not a reading over west Texas —
@@ -134,6 +146,7 @@ const PAIRS = [
     key: "minus15Height",
     label: "−15 °C height",
     unit: "m",
+    bandEdge: true,
     reported: (s) => s.minus15HeightM,
     ours: (h) => {
       const ft = isothermFt(h.levels, -15);
@@ -173,8 +186,6 @@ const PAIRS = [
   },
 ];
 
-const OUTFILE = join(OUT, "reconcile-2025.json");
-
 /**
  * `--score` re-prints the summary from the last run instead of fetching again.
  *
@@ -184,26 +195,72 @@ const OUTFILE = join(OUT, "reconcile-2025.json");
  */
 const SCORE_ONLY = process.argv.includes("--score");
 
-const { days } = JSON.parse(
-  await readFile(join(HERE, "data", "releases-2025.json"), "utf8")
+/**
+ * `--resume` keeps the ascents already on disk and fetches only what is
+ * missing. The sweep is long enough that losing it to a restarted machine is a
+ * real cost, and an ascent does not change once read.
+ */
+const RESUME = process.argv.includes("--resume");
+
+const REGION =
+  process.argv.find((arg) => arg.startsWith("--region="))?.slice(9) ?? "wtwma";
+
+const { regions } = JSON.parse(
+  await readFile(join(HERE, "data", "regions.json"), "utf8")
 );
+const region = regions.find((entry) => entry.id === REGION);
+
+if (!region) {
+  console.error(
+    `unknown region "${REGION}" — try ${regions.map((r) => r.id).join(", ")}`
+  );
+  process.exit(1);
+}
+
+const sites = (region.sounding ?? []).filter((code) => STATIONS[code]);
+
+if (!region.releases || sites.length === 0) {
+  const named = (region.sounding ?? []).join(", ") || "nothing";
+  console.error(
+    `${region.name} briefs on ${named}, which is not a radiosonde.\n` +
+      "This measures our column against an instrument; against a model column " +
+      "it would\ncompare two forecasts and report the agreement as accuracy."
+  );
+  process.exit(1);
+}
+
+const OUTFILE = join(OUT, region.runs?.reconcile ?? `reconcile-${REGION}.json`);
+
+const { days } = JSON.parse(
+  await readFile(join(HERE, "data", region.releases), "utf8")
+);
+
+/** What a previous run already read, when asked to keep it. */
+const rows =
+  SCORE_ONLY || RESUME
+    ? (JSON.parse(await readFile(OUTFILE, "utf8").catch(() => "{}")).rows ?? [])
+    : [];
+
+const done = new Set(rows.map((row) => `${row.date} ${row.site}`));
 const seeded = SCORE_ONLY ? [] : days.filter((day) => day.seeded);
-const rows = SCORE_ONLY ? JSON.parse(await readFile(OUTFILE, "utf8")).rows : [];
 
 console.log(
   SCORE_ONLY
-    ? `${rows.length} paired soundings, read back from eval/out/reconcile-2025.json\n`
-    : `${days.filter((day) => day.seeded).length} seeded days, ` +
-        `${Object.keys(SITES).length} sites, ${SOUNDING_HOUR}Z — an HRRR ` +
-        `analysis hour, so neither side is rounded to meet the other.\n`
+    ? `${rows.length} paired soundings, read back from ${OUTFILE}\n`
+    : `${region.name}\n${seeded.length} seeded days, ` +
+        `${sites.join(" and ")} at ${SOUNDING_HOUR}Z — an HRRR ` +
+        `analysis hour, so neither side is rounded to meet the other.` +
+        `${RESUME && rows.length ? `\n${rows.length} ascents already on disk, kept.` : ""}\n`
 );
 
 for (const day of seeded) {
   const at = `${day.date}T${String(SOUNDING_HOUR).padStart(2, "0")}:00:00.000Z`;
 
-  for (const [code, site] of Object.entries(SITES)) {
+  for (const code of sites) {
+    const site = STATIONS[code];
     const reported = day.soundings?.[code];
     if (!reported) continue;
+    if (done.has(`${day.date} ${code}`)) continue;
 
     let ours = null;
     let error = null;
@@ -243,14 +300,67 @@ for (const day of seeded) {
 
   await mkdir(OUT, { recursive: true });
   await writeFile(
-    join(OUT, "reconcile-2025.json"),
-    `${JSON.stringify({ server: SERVER, sites: SITES, rows }, null, 2)}\n`
+    OUTFILE,
+    `${JSON.stringify(
+      {
+        server: SERVER,
+        region: region.id,
+        sites: Object.fromEntries(sites.map((code) => [code, STATIONS[code]])),
+        rows,
+      },
+      null,
+      2
+    )}\n`
   );
 }
+
+/**
+ * An ascent whose printed band cannot be a measured band.
+ *
+ * Fifteen degrees of cooling needs depth. The dry adiabatic lapse rate,
+ * 9.8 °C/km, is the steepest a deep layer sustains — anything steeper is
+ * superadiabatic, which happens in a shallow layer over hot ground and never
+ * through the 4–7 km column this band sits in. So the freezing level and the
+ * −15 °C height cannot be printed closer together than 15 / 9.8 km.
+ *
+ * South Texas prints 4072 m and 4944 m on 31 March: 872 m apart, 17.2 °C/km.
+ * One of those two numbers is a typo and **nothing here can say which**. Our
+ * own column agrees with the freezing level and not with the −15 °C height,
+ * but using that to pick which of their numbers to keep would be judging the
+ * ground truth by the model and then reporting the agreement as accuracy. So
+ * the whole morning is dropped from both edges and from the band, and named in
+ * the output — the same rule as a coordinate kept exactly as printed and left
+ * unscored.
+ */
+const DRY_ADIABATIC_C_PER_KM = 9.8;
+const SHALLOWEST_BAND_M = (15 / DRY_ADIABATIC_C_PER_KM) * 1000;
+
+const impossible = rows
+  .filter((row) => {
+    const base = row.compared.freezingLevel;
+    const top = row.compared.minus15Height;
+    return (
+      base?.reported != null &&
+      top?.reported != null &&
+      top.reported - base.reported < SHALLOWEST_BAND_M
+    );
+  })
+  .map((row) => {
+    const depth =
+      row.compared.minus15Height.reported - row.compared.freezingLevel.reported;
+    return { date: row.date, site: row.site, depth, rate: (15 / depth) * 1000 };
+  });
+
+const unusable = new Set(
+  impossible.map((entry) => `${entry.date} ${entry.site}`)
+);
 
 /** Bias, spread and worst case for one pair, over the readings it accepts. */
 function score(pair) {
   const errors = rows
+    .filter(
+      (row) => !(pair.bandEdge && unusable.has(`${row.date} ${row.site}`))
+    )
     .map((row) => row.compared[pair.key])
     .filter((cell) => cell && cell.error !== null && cell.error !== undefined)
     .filter((cell) => (pair.keep ? pair.keep(cell) : true))
@@ -275,6 +385,14 @@ console.log(`\n${"=".repeat(70)}`);
 console.log(
   `${rows.length} paired soundings, ${rows.filter((row) => row.error).length} failed\n`
 );
+
+for (const entry of impossible) {
+  console.log(
+    `  ${entry.date} ${entry.site} prints a ${Math.round(entry.depth)} m band, ` +
+      `which is ${entry.rate.toFixed(1)} °C/km — steeper than dry adiabatic,\n` +
+      `  so one of its two edges is a typo and neither is scored below.\n`
+  );
+}
 console.log(
   "reading".padEnd(20) +
     "n".padStart(4) +
@@ -319,6 +437,7 @@ const overlaps = rows
     const top = row.compared.minus15Height;
     if (base?.error === null || top?.error === null) return null;
     if (!base || !top) return null;
+    if (unusable.has(`${row.date} ${row.site}`)) return null;
 
     const lowest = Math.min(base.reported, base.ours);
     const highest = Math.max(top.reported, top.ours);
@@ -370,6 +489,6 @@ if (overlaps.length) {
 
 console.log(
   SCORE_ONLY
-    ? `\nread from eval/out/reconcile-2025.json — nothing fetched`
-    : `\nwritten to eval/out/reconcile-2025.json`
+    ? `\nread from ${OUTFILE} — nothing fetched`
+    : `\nwritten to ${OUTFILE}`
 );

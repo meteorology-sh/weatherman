@@ -219,9 +219,10 @@ program is not one of them.
 
 A flight record makes a region readable in the app — the roster counts it, the
 day list fills in, each day carries its releases and what the operator briefed
-on. It does not make it **scored**: `reconcile.mjs` and `bracket.mjs` are West
-Texas's runs, and `held.mjs <date> --region=<id>` is what paints a day of any
-region against the product's own layers.
+on. `held.mjs <date> --region=<id>` is what paints a day of any region against
+the product's own layers, and `reconcile.mjs --region=<id>` is what checks the
+seeding band against the balloon that region briefs on. `bracket.mjs` is still
+West Texas's alone.
 
 Every flying day of all five is painted — **116 flying days, 1,353 releases,
 34 MB** — which is what puts the flight record and the layers on the same map:
@@ -322,23 +323,44 @@ and repaint a band. It pulls no ArcGIS runtime; the map is SVG over rings
 These answered the in-or-out question that came before the distance one.
 `EVALUATION.md` quotes their numbers, and their output is on disk in `out/`.
 
-| Script          | What it asks                                                                                       | Output                |
-| --------------- | -------------------------------------------------------------------------------------------------- | --------------------- |
-| `reconcile.mjs` | The layers against the weather balloons: freezing level, −15 °C height, 700 mb temperature at 12Z. | `reconcile-2025.json` |
-| `bracket.mjs`   | Whether a flare sat inside a region present at _both_ analyses it falls between.                   | `bracket-2025.json`   |
-| `season.mjs`    | Every release, at the nearer analysis hour.                                                        | `season-2025.json`    |
-| `points.mjs`    | One day of that, printed as a breakdown.                                                           | `points-<date>.json`  |
-| `veto.mjs`      | The answers that rested on an observation, re-asked at the minute the flare actually left.         | `veto-recheck.json`   |
-| `field.mjs`     | The whole target area hour by hour, for a day with no releases to ask about.                       | `field-<date>.json`   |
-| `snowie.mjs`    | The liquid contour over the Payette basin in January 2017, model half only.                        | `snowie-<date>.json`  |
+| Script          | What it asks                                                                                                            | Output                         |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `reconcile.mjs` | The seeding band against the weather balloons: freezing level, −15 °C height, 700 mb temperature at 12Z. Region-scoped. | `reconcile-<region>-2025.json` |
+| `bracket.mjs`   | Whether a flare sat inside a region present at _both_ analyses it falls between.                                        | `bracket-2025.json`            |
+| `season.mjs`    | Every release, at the nearer analysis hour.                                                                             | `season-2025.json`             |
+| `points.mjs`    | One day of that, printed as a breakdown.                                                                                | `points-<date>.json`           |
+| `veto.mjs`      | The answers that rested on an observation, re-asked at the minute the flare actually left.                              | `veto-recheck.json`            |
+| `field.mjs`     | The whole target area hour by hour, for a day with no releases to ask about.                                            | `field-<date>.json`            |
+| `snowie.mjs`    | The liquid contour over the Payette basin in January 2017, model half only.                                             | `snowie-<date>.json`           |
 
 `reconcile.mjs --score` recomputes its whole summary from the file already on
 disk without touching the network. Any figure quoted from this evaluation should
 be checkable that way; a number that cannot be re-derived from committed output
 plus a flag is not reproducible and should not be quoted.
 
-`bracket.mjs --resume` and `season.mjs --resume` skip days already in their
-output file, so a long run survives a restart.
+`bracket.mjs --resume`, `season.mjs --resume` and `reconcile.mjs --resume` skip
+what is already in their output file, so a long run survives a restart.
+
+**The seeding band run needs a balloon, and one region has none.**
+
+```bash
+node eval/reconcile.mjs                       # West Texas   — Midland and Del Rio
+node eval/reconcile.mjs --region=transpecos   # Trans-Pecos  — Midland
+node eval/reconcile.mjs --region=stwma        # South Texas  — Del Rio
+node eval/reconcile.mjs --region=plains       # Rolling Plains — Midland
+```
+
+The Panhandle briefs on a NAM forecast column rather than an ascent, so
+`--region=panhandle` refuses rather than comparing two models and calling the
+agreement accuracy. **The site is the balloon's, not the target area's**: the
+Rolling Plains fly 200 km from Midland and brief on Midland anyway, so Midland
+is where our column is sampled. Midland also serves three programmes, so 121
+scored ascents are only 101 distinct ones and the per-region rows may not be
+added together.
+
+A printed band shallower than 1531 m is dropped and named rather than scored —
+15 °C of cooling in less depth than that is steeper than the dry adiabatic lapse
+rate, so one of the two edges is a typo and nothing in the record says which.
 
 ## What to watch out for
 
