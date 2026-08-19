@@ -1,6 +1,6 @@
 # Evaluation — does the map agree with what Texas actually flies
 
-Two questions, in order.
+Two questions, in order, asked of three of the five programmes Texas licenses.
 
 1. **Is the seeding band in the right place?** Check it against the weather
    balloons the operator briefs on every morning.
@@ -13,6 +13,10 @@ fly inside the cloud and the echo we draw; on 10 of 34 days they fly in the
 liquid we paint and on the other 24 they are cells away from it; and they are
 almost never inside the finished join, because the join rules out rain and rain
 is what they fly into.
+
+A third finding falls out of asking the second question in three places at once:
+the layer the product runs on agrees with the crews at one end of Texas and not
+at the other.
 
 `WEATHERMAN.md` says what the app claims. `MEASUREMENTS.md` says what the free
 feeds can answer. This file says what happened when we checked.
@@ -214,6 +218,45 @@ today with no re-run.
 
 ---
 
+## Finding 3 — the liquid disagreement is worst where the air is driest
+
+West Texas is one of five rain-enhancement programmes Texas licenses, and two
+others file reports that can be read: the Trans Pecos association west of the
+Pecos River, and the Panhandle Groundwater Conservation District in the state's
+northern corner. Both have been parsed into flight records and every flying day
+of both is painted against the same five layers. **97 flying days, 1,217
+releases, three programmes, one question.**
+
+| Programme   | Days | Releases | In painted liquid | Within a cell | Median |
+| ----------- | ---: | -------: | ----------------: | ------------: | -----: |
+| West Texas  |   34 |      497 |             14.9% |         36.0% |  34 km |
+| Trans-Pecos |   38 |      465 |             19.6% |         49.2% |  13 km |
+| Panhandle   |   25 |      255 |             34.1% |         75.0% |   4 km |
+
+**The other four layers do not vary this way.** Cloud base, cloud tops and radar
+each land within a cell of 88% to 98% of releases in all three programmes. Only
+the liquid moves, and it moves by a factor of two from one end of the state to
+the other.
+
+The ordering runs with the airmass. The Panhandle sits highest and coldest, and
+seeds storms rolling out of Oklahoma; Trans-Pecos works the Davis Mountains and
+the Pecos valley; West Texas flies the driest of the three. **This says where the
+disagreement is concentrated, not what causes it** — three programmes over one
+season cannot separate a model that carries too little liquid in dry air from
+crews who fly cloud a 12 km analysis cannot see. What it rules out is a fault
+that would be uniform: a contouring bug, a units error, a threshold set wrong
+would hurt the Panhandle exactly as much as West Texas, and it does not.
+
+**The rain veto behaves the same everywhere.** Seventeen releases of 1,217 fall
+inside the finished join — 3, 5 and 9 across the three programmes. Every
+operator in Texas seeds the storm the product rules out.
+
+**The Panhandle result also corroborates its own positions.** Those releases are
+projected from a radar origin the reports never name, inferred by asking which
+origin puts each row in the county its own row names. They agree with painted
+liquid better than either programme that prints coordinates. A projection off the
+wrong origin scatters; this one does not.
+
 ## What nothing can check
 
 | Layer                          | What could check it         | Verdict          |
@@ -273,8 +316,13 @@ painted days at `/region/wtwma/near` and the per-day rows come back with it, so
 nothing quoted here is arithmetic done twice:
 
 ```bash
-curl localhost:3100/region/wtwma/near
+curl localhost:3100/region/wtwma/near        # or /transpecos/, or /panhandle/
 ```
+
+The other two programmes are built the same way — `releases.mjs
+--region=transpecos` and `panhandle.mjs` read their reports, and `held.mjs
+<date> --region=<id>` paints a day. `eval/README.md` has what each programme's
+reports do and do not carry.
 
 ---
 

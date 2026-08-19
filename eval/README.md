@@ -180,18 +180,24 @@ on. It does not make it **scored**: `reconcile.mjs` and `bracket.mjs` are West
 Texas's runs, and `held.mjs <date> --region=<id>` is what paints a day of any
 region against the product's own layers.
 
-One day of each is painted, which is what shows the flight record and the layers
-on the same map:
+Every day of all three is painted — **97 flying days, 1,217 releases, 32 MB** —
+which is what puts the flight record and the layers on the same map:
 
-| Day                      |                Flares | In painted liquid | Within a cell |
-| ------------------------ | --------------------: | ----------------: | ------------: |
-| Trans-Pecos, 17 Aug 2025 | 32 over four analyses |                16 |            27 |
-| Panhandle, 17 Sep 2025   | 44 over five analyses |                24 |            44 |
+| Region      | Days painted | Releases | In painted liquid | Within a cell |
+| ----------- | -----------: | -------: | ----------------: | ------------: |
+| West Texas  |     34 of 34 |      497 |             14.9% |         36.0% |
+| Trans-Pecos |     38 of 38 |      465 |             19.6% |         49.2% |
+| Panhandle   |     25 of 25 |      255 |             34.1% |         75.0% |
 
-The Panhandle day is worth reading twice. Its positions are projected from an
-origin nobody wrote down, and every one of its 44 releases still lands within a
-cell of painted liquid, most of them inside it. A projection off the wrong
-origin scatters; this one does not.
+Cloud base, cloud tops and radar land within a cell of 88% to 98% of releases in
+all three. The liquid is where they part, and the ordering is the finding — the
+median release is 34 km from painted liquid in West Texas, 13 km in Trans-Pecos
+and 4 km in the Panhandle. `EVALUATION.md` is where that is argued.
+
+The Panhandle number is worth reading twice for a second reason. Its positions
+are projected from an origin nobody wrote down, and they agree with the paint
+better than either programme that prints its own coordinates. A projection off
+the wrong origin scatters; this one does not.
 
 **A painted file is named by its region, not by its date.** `regions.json` gives
 each region the name its runs are written under, because two programmes fly the
