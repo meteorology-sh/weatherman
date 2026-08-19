@@ -1,6 +1,6 @@
 # Evaluation — does the map agree with what Texas actually flies
 
-Two questions, in order, asked of three of the five programmes Texas licenses.
+Two questions, in order, asked of all five programmes Texas licenses.
 
 1. **Is the seeding band in the right place?** Check it against the weather
    balloons the operator briefs on every morning.
@@ -14,9 +14,10 @@ liquid we paint and on the other 24 they are cells away from it; and they are
 almost never inside the finished join, because the join rules out rain and rain
 is what they fly into.
 
-A third finding falls out of asking the second question in three places at once:
+A third finding falls out of asking the second question in five places at once:
 the layer the product runs on agrees with the crews at one end of Texas and not
-at the other.
+at the other, and the reason is not the one that fitted when only three
+programmes had been read.
 
 `WEATHERMAN.md` says what the app claims. `MEASUREMENTS.md` says what the free
 feeds can answer. This file says what happened when we checked.
@@ -218,44 +219,64 @@ today with no re-run.
 
 ---
 
-## Finding 3 — the liquid disagreement is worst where the air is driest
+## Finding 3 — the liquid disagreement is concentrated, and not where dryness would put it
 
-West Texas is one of five rain-enhancement programmes Texas licenses, and two
-others file reports that can be read: the Trans Pecos association west of the
-Pecos River, and the Panhandle Groundwater Conservation District in the state's
-northern corner. Both have been parsed into flight records and every flying day
-of both is painted against the same five layers. **97 flying days, 1,217
-releases, three programmes, one question.**
+All five programmes Texas licenses now have a parsed flight record and every
+flying day of every one is painted against the same five layers. **116 flying
+days, 1,353 releases, five programmes, one question.**
 
-| Programme   | Days | Releases | In painted liquid | Within a cell | Median |
-| ----------- | ---: | -------: | ----------------: | ------------: | -----: |
-| West Texas  |   34 |      497 |             14.9% |         36.0% |  34 km |
-| Trans-Pecos |   38 |      465 |             19.6% |         49.2% |  13 km |
-| Panhandle   |   25 |      255 |             34.1% |         75.0% |   4 km |
+| Programme      | Days | Releases | In painted liquid | Within a cell | Median |
+| -------------- | ---: | -------: | ----------------: | ------------: | -----: |
+| West Texas     |   34 |      497 |             14.9% |         36.0% |  34 km |
+| South Texas    |   12 |       83 |             13.0% |         48.1% |  13 km |
+| Trans-Pecos    |   38 |      465 |             19.6% |         49.2% |  13 km |
+| Rolling Plains |    7 |       53 |             16.7% |         56.3% |  11 km |
+| Panhandle      |   25 |      255 |             34.1% |         75.0% |   4 km |
 
-**The other four layers do not vary this way.** Cloud base, cloud tops and radar
-each land within a cell of 88% to 98% of releases in all three programmes. Only
-the liquid moves, and it moves by a factor of two from one end of the state to
-the other.
+**The other layers do not vary this way.** Cloud base lands within a cell of
+88% to 98% of releases in all five, cloud tops 87% to 95%. The one exception is
+Rolling Plains radar at 69.8%, and it is two days of seven — one of them a
+sortie flown after midnight UTC that the analysis paints nothing anywhere near.
+Only the liquid moves everywhere at once, and it moves by a factor of two from
+one end of the state to the other.
 
-The ordering runs with the airmass. The Panhandle sits highest and coldest, and
-seeds storms rolling out of Oklahoma; Trans-Pecos works the Davis Mountains and
-the Pecos valley; West Texas flies the driest of the three. **This says where the
-disagreement is concentrated, not what causes it** — three programmes over one
-season cannot separate a model that carries too little liquid in dry air from
-crews who fly cloud a 12 km analysis cannot see. What it rules out is a fault
-that would be uniform: a contouring bug, a units error, a threshold set wrong
-would hurt the Panhandle exactly as much as West Texas, and it does not.
+**The spread is real at the ends and unresolved in the middle.** Counted by day
+rather than by release — releases within a sortie are all near each other, so a
+day succeeds or fails as one thing — the typical release is within a cell of
+painted liquid on 10 of 34 West Texas days and 15 of 23 Panhandle days. Those
+two are far enough apart, on enough days, to be a difference. The other three
+sit between them on 11, 37 and 6 days: 4 of 11 in South Texas, 19 of 37 in
+Trans-Pecos, 3 of 6 in the Rolling Plains. **Seven days cannot order anything**,
+and the two small programmes are quoted here to say what they are, not to rank
+them.
 
-**The rain veto behaves the same everywhere.** Seventeen releases of 1,217 fall
-inside the finished join — 3, 5 and 9 across the three programmes. Every
-operator in Texas seeds the storm the product rules out.
+**What this rules out is a fault that would be uniform.** A contouring bug, a
+units error or a threshold set wrong would hurt the Panhandle exactly as much as
+West Texas, and it does not.
 
-**The Panhandle result also corroborates its own positions.** Those releases are
-projected from a radar origin the reports never name, inferred by asking which
-origin puts each row in the county its own row names. They agree with painted
-liquid better than either programme that prints coordinates. A projection off the
-wrong origin scatters; this one does not.
+**What it also rules out is the explanation that fitted three programmes.** With
+West Texas, Trans-Pecos and the Panhandle alone the ordering ran with the
+airmass — driest worst, coldest and highest best — and dry air carrying less
+supercooled liquid than the model thinks was the obvious reading. South Texas
+breaks it. It is the most humid target area in the state, works maritime air off
+the Gulf, and it lands beside West Texas rather than beside the Panhandle. Its
+freezing level sits near 13,000 ft against the Panhandle's, and the warm cloud
+below it is two kilometres deep, so a South Texas cloud can be enormous and hold
+very little water in the band the layer paints. That is a reason the airmass
+story is too simple, not a replacement for it. **Where the disagreement is
+concentrated is established; what causes it is not.**
+
+**The rain veto behaves the same everywhere.** Twenty releases of 1,353 fall
+inside the finished join — 3, 5, 9, 0 and 3 across the five. Every operator in
+Texas seeds the storm the product rules out, and the one programme with none
+inside is the one with 83 releases.
+
+**Two programmes' positions corroborate their own projection.** The Panhandle
+and South Texas both print a bearing and a range from an origin their reports
+never name, inferred by asking which candidate puts each row in the county its
+own row names. The Panhandle agrees with painted liquid better than any
+programme that prints coordinates. A projection off the wrong origin scatters;
+neither of these does.
 
 ## What nothing can check
 

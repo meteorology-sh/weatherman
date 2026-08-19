@@ -2780,7 +2780,7 @@
         {
           "at": "2025-05-22T22:00:00.000Z",
           "timeZ": "2200",
-          "said": "convection along Pecos River Pecos/NW Crockett counties: 19.5 km, 116.1 kg/m2, 64 dBZ. Cell in far southern Pecos County exiting into Brewster/Terrell counties. Watches/Warnings: SVR warning central Pecos: 1442-1530 CT SVR warning S-cent Pecos: 1528-1630 CT SVR warning central Pecos: 1539-1645 CT 5/72 5/101 F",
+          "said": "convection along Pecos River Pecos/NW Crockett counties: 19.5 km, 116.1 kg/m2, 64 dBZ. Cell in far southern Pecos County exiting into Brewster/Terrell counties. Watches/Warnings: SVR warning central Pecos: 1442-1530 CT SVR warning S-cent Pecos: 1528-1630 CT SVR warning central Pecos: 1539-1645 CT 5/72 5/101",
           "echoTop": {
             "range": [
               19.5,
@@ -3400,7 +3400,7 @@
         {
           "at": "2025-05-24T01:00:00.000Z",
           "timeZ": "0100",
-          "said": "severe convection across eastern Ward/northern Pecos counties: 19.5 km, 246.7 kg/m2, 68 dBZ. Should move out of the target area in the next 30-60 mins. 3 Watches/Warnings: SVR warning S-cent Pecos: 1834-1930 CT SVR warning N-cent Pecos/E Ward: 1937-2015 CT 33/44; 55/114 F",
+          "said": "severe convection across eastern Ward/northern Pecos counties: 19.5 km, 246.7 kg/m2, 68 dBZ. Should move out of the target area in the next 30-60 mins. 3 Watches/Warnings: SVR warning S-cent Pecos: 1834-1930 CT SVR warning N-cent Pecos/E Ward: 1937-2015 CT 33/44; 55/114",
           "echoTop": {
             "range": [
               19.5,
@@ -4095,7 +4095,7 @@
         {
           "at": "2025-06-02T00:40:00.000Z",
           "timeZ": "0040",
-          "said": "cell east-central Pecos: 11.5 km, 20.2 kg/m2, 59 dBZ; activity NW Reeves/Loving: 5.5-9.5 km, 1.2-13.2 kg/m2, 37-55 dBZ. Activity appears to be gradually winding down. 3 Watches/Warnings: SVR warning NW Pecos/SE Reeves: 1602-1645 CT SVR warning NW Pecos: 1642-1745 CT SVR warning NW Pecos: 1843-1915 CT 1078/1155; 1216/1292 1216/1411; 1286/1421 F",
+          "said": "cell east-central Pecos: 11.5 km, 20.2 kg/m2, 59 dBZ; activity NW Reeves/Loving: 5.5-9.5 km, 1.2-13.2 kg/m2, 37-55 dBZ. Activity appears to be gradually winding down. 3 Watches/Warnings: SVR warning NW Pecos/SE Reeves: 1602-1645 CT SVR warning NW Pecos: 1642-1745 CT SVR warning NW Pecos: 1843-1915 CT 1078/1155; 1216/1292 1216/1411; 1286/1421",
           "echoTop": {
             "range": [
               11.5,
@@ -4457,7 +4457,7 @@
         {
           "at": "2025-06-06T23:00:00.000Z",
           "timeZ": "2300",
-          "said": "activity SW Reeves: 6.5-15.5 km, 2.8-37.9 kg/m2, 43-57 dBZ; strong cell NE Culberson along TX/NM state line: 15.5 km, 80.6 kg/m2, 62 dBZ. Later on in the evening, severe storms crossed Loving County with severe thunderstorm and tornado warnings being issued. Watches/Warnings: N/A N/A F",
+          "said": "activity SW Reeves: 6.5-15.5 km, 2.8-37.9 kg/m2, 43-57 dBZ; strong cell NE Culberson along TX/NM state line: 15.5 km, 80.6 kg/m2, 62 dBZ. Later on in the evening, severe storms crossed Loving County with severe thunderstorm and tornado warnings being issued. Watches/Warnings: N/A N/A",
           "echoTop": {
             "range": [
               6.5,
@@ -4899,7 +4899,7 @@
         {
           "at": "2025-06-22T22:20:00.000Z",
           "timeZ": "2220",
-          "said": "activity in Reeves/W Pecos: 6.5-18.5 km, 1.6-61.3 kg/m2, 37-60 dBZ. Watches/Warnings: Flood Watch Reeves/Culberson: 18Z / 1300 CT 06Z / 0100 CT Tuesday 89/117; 29/173 F",
+          "said": "activity in Reeves/W Pecos: 6.5-18.5 km, 1.6-61.3 kg/m2, 37-60 dBZ. Watches/Warnings: Flood Watch Reeves/Culberson: 18Z / 1300 CT 06Z / 0100 CT Tuesday 89/117; 29/173",
           "echoTop": {
             "range": [
               6.5,
@@ -5426,7 +5426,7 @@
         {
           "at": "2025-06-24T00:20:00.000Z",
           "timeZ": "0020",
-          "said": "activity continues moving N across the NW target area: 5.5-11.5 km, 1.1-22.9 kg/m2, 34-56 dBZ. Watches/Warnings: Flood Watch Culberson/SW Reeves: 1800Z / 1300 CT 0600Z / 0100 CT Wednesday Flash Flood Warning E-central Culberson (I-10): 1620-1930 CT 866/1052 3 F",
+          "said": "activity continues moving N across the NW target area: 5.5-11.5 km, 1.1-22.9 kg/m2, 34-56 dBZ. Watches/Warnings: Flood Watch Culberson/SW Reeves: 1800Z / 1300 CT 0600Z / 0100 CT Wednesday Flash Flood Warning E-central Culberson (I-10): 1620-1930 CT 866/1052 3",
           "echoTop": {
             "range": [
               5.5,
@@ -6802,7 +6802,7 @@
         {
           "at": "2025-06-30T22:40:00.000Z",
           "timeZ": "2240",
-          "said": "activity in western Ward: 6.5-16.5 km, 2.8-60.2 kg/m2, 42-63 dBZ. Smaller cells in northern/western Pecos and central Reeves counties. Watches/Warnings: Flood Watch Reeves/Culberson/Ward/Loving: 1800Z / 1300 CT Monday 0600Z / 0100 CT Tuesday SVR warning SW Reeves: 1544-1615 CT 416/724 416/834; 402/1079 F",
+          "said": "activity in western Ward: 6.5-16.5 km, 2.8-60.2 kg/m2, 42-63 dBZ. Smaller cells in northern/western Pecos and central Reeves counties. Watches/Warnings: Flood Watch Reeves/Culberson/Ward/Loving: 1800Z / 1300 CT Monday 0600Z / 0100 CT Tuesday SVR warning SW Reeves: 1544-1615 CT 416/724 416/834; 402/1079",
           "echoTop": {
             "range": [
               6.5,
@@ -7084,7 +7084,7 @@
         {
           "at": "2025-08-04T01:00:00.000Z",
           "timeZ": "0100",
-          "said": "severe cell along eastern Pecos/Terrell CO line: 17.5 km, 186.5 kg/m2, 68 dBZ. Weak blips across northern Pecos County. Watches/Warnings: SVR warning E-central Pecos: 1904-1945 CT SVR warning E-central Pecos: 1938-2030 CT N/A F",
+          "said": "severe cell along eastern Pecos/Terrell CO line: 17.5 km, 186.5 kg/m2, 68 dBZ. Weak blips across northern Pecos County. Watches/Warnings: SVR warning E-central Pecos: 1904-1945 CT SVR warning E-central Pecos: 1938-2030 CT N/A",
           "echoTop": {
             "range": [
               17.5,
@@ -12776,7 +12776,48 @@
         "hygroscopic": 0,
         "clouds": 1
       },
-      "observations": [],
+      "observations": [
+        {
+          "at": "2025-09-27T00:20:00.000Z",
+          "timeZ": "0020",
+          "said": "precipitation has moved into southern Reeves/far western Pecos counties. 7.5-10.5 km, 1-4 kg/m2, 35-45 dBZ..so mainly light rain (considering base height, some evaporation likely occurring).",
+          "echoTop": {
+            "range": [
+              7.5,
+              10.5
+            ],
+            "unit": "km"
+          },
+          "vilKgM2": [
+            1,
+            4
+          ],
+          "dbz": [
+            35,
+            45
+          ]
+        },
+        {
+          "at": "2025-09-27T01:20:00.000Z",
+          "timeZ": "0120",
+          "said": "area of showers/t-storms continues southeastern Reeves/extreme western Pecos counties: 7.5-10.5 km, 1-9 kg/m2, 35-48 dBZ. Also have recently developed small cell SE Culberson County.",
+          "echoTop": {
+            "range": [
+              7.5,
+              10.5
+            ],
+            "unit": "km"
+          },
+          "vilKgM2": [
+            1,
+            9
+          ],
+          "dbz": [
+            35,
+            48
+          ]
+        }
+      ],
       "flewOnly": false
     },
     {
@@ -12976,7 +13017,108 @@
         "hygroscopic": 1,
         "clouds": 4
       },
-      "observations": [],
+      "observations": [
+        {
+          "at": "2025-09-28T18:00:00.000Z",
+          "timeZ": "1800",
+          "said": "activity continues to develop over western parts of target area: 10.5-12.5 km, 5-33 kg/m2, 55-60 dBZ.",
+          "echoTop": {
+            "range": [
+              10.5,
+              12.5
+            ],
+            "unit": "km"
+          },
+          "vilKgM2": [
+            5,
+            33
+          ],
+          "dbz": [
+            55,
+            60
+          ]
+        },
+        {
+          "at": "2025-09-28T18:40:00.000Z",
+          "timeZ": "1840",
+          "said": "slow-moving cell still in northern Reeves County: 11.5 km, 54 kg/m2, 60 dBZ. Also have area of convection beginning to move off Davis Mountains and now reaches the Reeves/Jeff Davis Co. line. Plane is just entering southeastern Loving County, should be to cell near Orla soon.",
+          "echoTop": {
+            "range": [
+              11.5,
+              11.5
+            ],
+            "unit": "km"
+          },
+          "vilKgM2": [
+            54,
+            54
+          ],
+          "dbz": [
+            60,
+            60
+          ]
+        },
+        {
+          "at": "2025-09-28T19:00:00.000Z",
+          "timeZ": "1900",
+          "said": "slow-moving cell now along Pecos River at Reeves/Loving Co line: 10.5 km, 39.7 kg/m2, 61 dBZ. Cluster of convection northern Davis Mountains into southern Reeves County: 11.5-13.5 km, 18-80 kg/m2, 45-63 dBZ.",
+          "echoTop": {
+            "range": [
+              10.5,
+              10.5
+            ],
+            "unit": "km"
+          },
+          "vilKgM2": [
+            39.7,
+            39.7
+          ],
+          "dbz": [
+            61,
+            61
+          ]
+        },
+        {
+          "at": "2025-09-28T19:20:00.000Z",
+          "timeZ": "1920",
+          "said": "cell by Orla: 10.5 km, 38 kg/m2, 63 dBZ. Activity S Reeves/extreme W Pecos: 10.5- 14.5 km, 2-80 kg/m2, 41-66 dBZ. Starting to see new echoes near PEQ and over southern Culberson County.",
+          "echoTop": {
+            "range": [
+              10.5,
+              10.5
+            ],
+            "unit": "km"
+          },
+          "vilKgM2": [
+            38,
+            38
+          ],
+          "dbz": [
+            63,
+            63
+          ]
+        },
+        {
+          "at": "2025-09-28T19:40:00.000Z",
+          "timeZ": "1940",
+          "said": "seeded cell continues to slowly move across NW Loving County: 28 kft, 26 kg/m2, 60 dBZ. Area of convection over southern Reeves and extreme W Pecos counties. Getting new development over Culberson County and N-central Reeves as well; appears good lift is arriving and resulting in more widespread convection.",
+          "echoTop": {
+            "range": [
+              28,
+              28
+            ],
+            "unit": "kft"
+          },
+          "vilKgM2": [
+            26,
+            26
+          ],
+          "dbz": [
+            60,
+            60
+          ]
+        }
+      ],
       "flewOnly": false
     },
     {

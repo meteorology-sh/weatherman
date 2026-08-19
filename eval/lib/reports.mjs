@@ -1,15 +1,19 @@
 /**
  * A daily operations report, as data.
  *
- * West Texas and Trans-Pecos file the same document — one meteorologist writes
- * both — so one parser reads both. What differs between them is the county list
- * and how many sounding sites the indices table carries, and those come in as a
- * profile rather than being baked in here.
+ * Four of the five Texas programmes file the same document, so one parser
+ * reads them all. What differs between them arrives as a profile rather than
+ * being baked in here: the county list, how many sounding sites the indices
+ * table carries, the window a position has to fall inside, and the point a
+ * bearing and a range are measured from.
  *
- * The part that matters is the `Flight Information` table: every flare
- * release with a UTC minute and a position to four decimal places. That is
- * the ground truth the whole evaluation is scored against, and it is the one
- * thing here that must be parsed exactly rather than approximately.
+ * The part that matters is the `Flight Information` table: every flare release
+ * with a UTC minute and a position. That is the ground truth the whole
+ * evaluation is scored against, and it is the one thing here that must be
+ * parsed exactly rather than approximately. **How the position is written is
+ * the thing that varies most**, five ways across the five programmes and
+ * sometimes twice within one season, so it is read by trying the spellings in
+ * turn rather than by telling each region which one it uses.
  *
  * The narrative is read out too, but loosely — the pilot's reported cloud
  * bases and the TITAN cell attributes come back as timestamped sentences for
@@ -17,6 +21,9 @@
  * sentence to a release automatically would invent a precision the prose does
  * not have.
  */
+
+// Local
+import { project } from "./geo.mjs";
 
 /**
  * A county name is what ends a table row.
@@ -31,21 +38,120 @@ const county = (counties) =>
   counties.map((name) => name.replace(" ", "\\s+")).join("|");
 
 /**
- * `1919 49P 31.1272 / -101.7577 3G + 1H Reagan`
+ * How a programme writes down where a flare went.
+ *
+ * Five spellings across the five programmes, and two of them can appear in one
+ * season: South Texas prints degrees in March and a radial from April on, and
+ * the Rolling Plains stop writing the hemisphere out halfway through June. So
+ * the spellings are tried in turn rather than fixed per region, and the reader
+ * takes whichever one the row is written in.
+ *
+ * **A radial is only read where the region says what it is measured from.**
+ * `32.43X101.12` and `270X35` are the same shape and mean entirely different
+ * things — a place, and a bearing and a range to a place. Nothing in the row
+ * tells them apart. What does is that the Rolling Plains have no origin and
+ * South Texas has one, so `32.43X101.12` is never read as a bearing and
+ * `270X35` is never read as a latitude.
+ */
+const SPELLINGS = [
+  // `31.1272 / -101.7577` — West Texas and Trans-Pecos, signed.
+  {
+    at: /^(-?\d+\.\d+)\s*\/\s*(-?\d+\.\d+)/,
+    read: ([lat, lon]) => [Number(lat), Number(lon)],
+  },
+  // `29.51ºN 99.93ºW` and `32.69NX100.47W` — the hemisphere written out.
+  {
+    at: /^(\d+\.\d+)\s*[º°o]?\s*N\s*[xX]?\s*(\d+\.\d+)\s*[º°o]?\s*W/,
+    read: ([lat, lon]) => [Number(lat), -Number(lon)],
+  },
+  // `32.43X101.12` and `32.36, 100.38` — the Rolling Plains, which stop
+  // writing the hemisphere and then the X, and are west of the meridian
+  // throughout.
+  {
+    at: /^(\d+\.\d+)\s*[xX,]\s*(\d+\.\d+)/,
+    read: ([lat, lon]) => [Number(lat), -Number(lon)],
+  },
+  // `270X35` — a bearing in degrees and a range in nautical miles.
+  {
+    at: /^(\d{1,3})\s*[xX]\s*(\d{1,3})(?!\S)/,
+    read: ([bearing, range], origin) =>
+      project(origin.at, Number(bearing), Number(range)),
+    needsOrigin: true,
+  },
+];
+
+/**
+ * The position a row opens with, and how much of the row it took up, or
+ * nothing if the row opens with something else.
+ */
+function parsePosition(cell, origin) {
+  for (const spelling of SPELLINGS) {
+    if (spelling.needsOrigin && !origin) continue;
+    const found = cell.match(spelling.at);
+    if (found) {
+      return {
+        at: spelling.read(found.slice(1), origin),
+        read: found[0].length,
+      };
+    }
+  }
+  return null;
+}
+
+/** `3G + 1H` — what the row says was burned, where the table has a column for it. */
+const PAYLOAD = /^(?:\d+\s*[GH])(?:\s*\+\s*\d+\s*[GH])*(?!\S)/;
+
+/**
+ * Where a row of the flight table starts: a UTC minute and an aircraft.
+ *
+ * Everything between one of these and the next is that release's own cell, and
+ * that is how the row is read — the fields inside it differ by programme, and
+ * anchoring on all of them at once made the pattern depend on how many
+ * spellings of a position there happened to be.
+ *
+ * **A time cannot start inside a number.** The last four digits of
+ * `-101.3835 2G` are a four-digit run followed by something shaped like an
+ * aircraft, and without the guard every West Texas row is cut in half at its
+ * own longitude.
+ */
+const ROW = /(?<![\d.])(\d{4})\s+(\w*\d+[A-Z])\s+/g;
+
+/**
+ * One row of the flight table.
  *
  * **The position is optional, and that is not tidiness.** On 21 August two
- * rows carry a time, a plane, a payload and a county with no coordinates at
- * all. Requiring the position drops them, and the flare totals then disagree
- * with the report's own summary by exactly those four flares — which is how
- * they were found. They are real releases that cannot be scored as points,
- * and `located` is what tells the two apart.
+ * West Texas rows carry a time, a plane, a payload and a county with no
+ * coordinates at all. Requiring the position drops them, and the flare totals
+ * then disagree with the report's own summary by exactly those four flares —
+ * which is how they were found. They are real releases that cannot be scored
+ * as points, and `located` is what tells the two apart.
+ *
+ * **The payload is optional for the opposite reason.** South Texas and the
+ * Rolling Plains file a row per seeding pass and print no flare count on it;
+ * the counts are in the closing sentence, over the whole day and per county.
+ * Those releases are real and their payload is unknown, which is not the same
+ * as zero, so it comes back as nothing rather than as a number nobody wrote.
+ *
+ * A row with neither is not a release. `1747 41P IN AIR` and `2120 60P RTB`
+ * are in the same table and are the sortie, not a flare.
  */
-const release = (counties) =>
-  new RegExp(
-    String.raw`(\d{4})\s+(\w*\d+[A-Z])\s+(?:(-?\d+\.\d+)\s*/\s*(-?\d+\.\d+)\s+)?` +
-      String.raw`((?:\d+\s*[GH])(?:\s*\+\s*\d+\s*[GH])*)\s+(${county(counties)})`,
-    "g"
-  );
+function parseRow(cell, counties, origin) {
+  const where = parsePosition(cell, origin);
+  const flares = cell
+    .slice(where ? where.read : 0)
+    .trimStart()
+    .match(PAYLOAD);
+  if (!where && !flares) return null;
+
+  const named = cell.match(new RegExp(`\\b(${county(counties)})\\b`));
+
+  return {
+    lat: where ? where.at[0] : null,
+    lon: where ? where.at[1] : null,
+    flares: flares ? parseFlares(flares[0]) : null,
+    county: named ? named[1].replace(/\s+/g, " ") : null,
+  };
+}
 
 /** The prose total that closes the table, e.g. `Tom Green (15G + 1H)`. */
 const claimed = (counties) =>
@@ -84,16 +190,26 @@ const MONTHS = {
   december: 12,
 };
 
-/** Sounding rows are `LABEL KMAF KDRT`, two per line in the source table. */
+/**
+ * Sounding rows are `LABEL KMAF KDRT`, two per line in the source table.
+ *
+ * The label is written a little differently by programme — `(m)` in the north
+ * and `(meters)` in the south, `LCL` with the unit and without, `J/kg` and
+ * `J/Kg` — and every one of those is the same reading. A label that does not
+ * match drops the reading silently, which is how South Texas came to have no
+ * cloud base for a season.
+ */
+const METRES = String.raw`\(m(?:eters)?\)`;
+
 const INDICES = [
-  ["freezingLevelM", String.raw`Freezing\s+Level\s+\(m\)`],
-  ["minus15HeightM", String.raw`-15.?C\s+Height\s+\(m\)`],
-  ["lclM", String.raw`LCL\s+\(m\)`],
-  ["cclM", String.raw`CCL\s+\(m\)`],
-  ["cloudBaseM", String.raw`Cloud\s+Base\s+\(m\)`],
+  ["freezingLevelM", String.raw`Freezing\s+Level\s+${METRES}`],
+  ["minus15HeightM", String.raw`-15.?C\s+Height\s+${METRES}`],
+  ["lclM", String.raw`LCL(?:\s+${METRES})?`],
+  ["cclM", String.raw`CCL(?:\s+${METRES})?`],
+  ["cloudBaseM", String.raw`Cloud\s+Base\s+${METRES}`],
   ["cloudBaseTempC", String.raw`Cloud\s+Base\s+Temp\s+\(.?C\)`],
-  ["warmCloudDepthM", String.raw`Warm\s+Cloud\s+Depth\s+\(m\)`],
-  ["capeJKg", String.raw`CAPE\s+\(J/kg\)`],
+  ["warmCloudDepthM", String.raw`Warm\s+Cloud\s+Depth\s+${METRES}`],
+  ["capeJKg", String.raw`CAPE\s+\(J/[Kk]g\)`],
   ["temp700Mb", String.raw`700\s+mb\s+Temp\s+\(.?C\)`],
 ];
 
@@ -177,15 +293,41 @@ function countBefore(sentence, kind) {
   return match ? number(match[1]) : null;
 }
 
-export function parseDate(text) {
-  const match = text.match(
-    /Seeding\s+Report\s+([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})/
-  );
-  if (!match) return null;
+/**
+ * `Seeding Report September 27, 2025`, and the ways the others punctuate it.
+ *
+ * South Texas and the Rolling Plains put an en dash after `Report`, and South
+ * Texas puts a comma after the month on two days in March. Both are typing,
+ * not meaning.
+ */
+const HEADED = String.raw`Seeding\s+Report\s*[-–—]?\s*([A-Za-z]+),?\s+(\d{1,2}),\s*(\d{4})`;
+
+function dateOf(match) {
   const month = MONTHS[match[1].toLowerCase()];
   if (!month) return null;
   const pad = (n) => String(n).padStart(2, "0");
   return `${match[3]}-${pad(month)}-${pad(Number(match[2]))}`;
+}
+
+export function parseDate(text) {
+  const match = text.match(new RegExp(HEADED));
+  return match ? dateOf(match) : null;
+}
+
+/**
+ * A document holding a run of daily reports, split into its days.
+ *
+ * The Rolling Plains publish one file a season and the Panhandle one a month;
+ * a day is a heading and everything under it until the next heading. A file
+ * holding a single day comes back as one section, so the caller does not have
+ * to know which kind it has.
+ */
+export function splitReports(text) {
+  const headings = [...text.matchAll(new RegExp(HEADED, "g"))];
+  return headings.map((heading, index) => ({
+    date: dateOf(heading),
+    text: text.slice(heading.index, headings[index + 1]?.index ?? text.length),
+  }));
 }
 
 /**
@@ -228,24 +370,38 @@ export function parseSoundings(text, sites) {
  * quotes times and counties in the same breath and would otherwise offer up
  * near-misses; the table is the only place a position appears.
  */
-export function parseReleases(text, date, counties, window) {
+export function parseReleases(text, date, profile) {
   const table = flightTable(text);
   if (!table) return [];
 
-  const rows = [...table.matchAll(release(counties))];
-  if (rows.length === 0) return bracketed(table, date);
+  const starts = [...table.matchAll(ROW)];
+  const releases = [];
 
-  const firstHour = parseHhmm(rows[0][1]).hour;
+  for (const [index, start] of starts.entries()) {
+    const from = start.index + start[0].length;
+    const to = starts[index + 1]?.index ?? table.length;
+    const row = parseRow(
+      table.slice(from, to),
+      profile.counties,
+      profile.origin
+    );
+    if (row) releases.push({ hhmm: start[1], plane: start[2], ...row });
+  }
 
-  return rows.map(([, hhmm, plane, lat, lon, flares, county]) => ({
+  if (releases.length === 0) return bracketed(table, date);
+
+  const firstHour = parseHhmm(releases[0].hhmm).hour;
+
+  return releases.map(({ hhmm, plane, lat, lon, flares, county }) => ({
     at: instant(date, hhmm, firstHour),
     timeZ: hhmm.padStart(4, "0"),
     plane,
-    located: lat !== undefined && inside(Number(lat), Number(lon), window),
-    lat: lat === undefined ? null : Number(lat),
-    lon: lon === undefined ? null : Number(lon),
-    ...parseFlares(flares),
-    county: county.replace(/\s+/g, " "),
+    located: lat !== null && inside(lat, lon, profile.window),
+    lat,
+    lon,
+    glaciogenic: flares ? flares.glaciogenic : null,
+    hygroscopic: flares ? flares.hygroscopic : null,
+    county,
   }));
 }
 
@@ -290,6 +446,21 @@ function bracketed(table, date) {
 }
 
 /**
+ * The heading the flight table sits under.
+ *
+ * **Matched a letter at a time, because it is not always one run.** The
+ * Rolling Plains reports are edited in Word, which splits a word into pieces
+ * and draws them at different places on the page; across the season's seven
+ * days this heading arrives whole, as `Flight Inform` and `ation`, and as `F`
+ * and `light Information`. Where the break falls is not predictable, so
+ * nothing is assumed about it beyond the letters being in order. Everything
+ * after the heading is the table either way.
+ */
+const loosely = (word) => word.split("").join(String.raw`\s*`);
+
+const HEADING = new RegExp(`${loosely("Flight")}\\s*${loosely("Information")}`);
+
+/**
  * The table only, without the sentence that closes it.
  *
  * That sentence repeats every county with a flare count in the same shape a
@@ -297,7 +468,7 @@ function bracketed(table, date) {
  * so the table must not be allowed to read its own summary back as data.
  */
 function flightTable(text) {
-  const start = text.indexOf("Flight Information");
+  const start = text.search(HEADING);
   if (start < 0) return null;
   const body = text.slice(start);
   const end = body.search(/Seeding\s+operations\s+were\s+conducted/);
@@ -334,10 +505,8 @@ export function parseTotals(text, counties) {
  * because the numbers alone lose which cell was being described.
  */
 export function parseObservations(text, date) {
-  const narrative = text.slice(
-    0,
-    text.indexOf("Flight Information") + 1 || undefined
-  );
+  const end = text.search(HEADING);
+  const narrative = text.slice(0, end < 0 ? undefined : end);
   const out = [];
 
   for (const [, hhmm, body] of narrative.matchAll(MOMENT)) {
@@ -373,7 +542,7 @@ export function parseReport(text, fallbackDate, profile) {
   const date = parseDate(text) ?? fallbackDate;
   if (!date) throw new Error("no date in report, and no fallback given");
 
-  const releases = parseReleases(text, date, profile.counties, profile.window);
+  const releases = parseReleases(text, date, profile);
 
   return {
     date,
@@ -390,8 +559,8 @@ export function parseReport(text, fallbackDate, profile) {
 export function sumReleases(releases) {
   return releases.reduce(
     (total, release) => ({
-      glaciogenic: total.glaciogenic + release.glaciogenic,
-      hygroscopic: total.hygroscopic + release.hygroscopic,
+      glaciogenic: total.glaciogenic + (release.glaciogenic ?? 0),
+      hygroscopic: total.hygroscopic + (release.hygroscopic ?? 0),
     }),
     { glaciogenic: 0, hygroscopic: 0 }
   );
@@ -445,8 +614,8 @@ export function reconcile(report) {
       glaciogenic: 0,
       hygroscopic: 0,
     });
-    county.glaciogenic += release.glaciogenic;
-    county.hygroscopic += release.hygroscopic;
+    county.glaciogenic += release.glaciogenic ?? 0;
+    county.hygroscopic += release.hygroscopic ?? 0;
   }
 
   const out = [];

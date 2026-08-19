@@ -542,7 +542,7 @@
         {
           "at": "2025-04-22T00:40:00.000Z",
           "timeZ": "0040",
-          "said": "activity NW Crockett to E Irion counties: 5.5-15.5 km, 0.9-61.8 kg/m2, 66 dBZ. Watches/Warnings: SVR Watch entire target area: 2015Z/1515 CT 0400Z/2300 CT. N/A. F",
+          "said": "activity NW Crockett to E Irion counties: 5.5-15.5 km, 0.9-61.8 kg/m2, 66 dBZ. Watches/Warnings: SVR Watch entire target area: 2015Z/1515 CT 0400Z/2300 CT. N/A.",
           "echoTop": {
             "range": [
               5.5,
@@ -1669,7 +1669,7 @@
         {
           "at": "2025-05-18T01:00:00.000Z",
           "timeZ": "0100",
-          "said": "seeded cell in central Coke County: 20.5 km, 93.2 kg/m2, 62 dBZ. Separate cell to the SW: 16.5 km, 89.7 kg/m2, 64 dBZ. Watches/Warnings: N/A. 3 66, 102 102/122 F",
+          "said": "seeded cell in central Coke County: 20.5 km, 93.2 kg/m2, 62 dBZ. Separate cell to the SW: 16.5 km, 89.7 kg/m2, 64 dBZ. Watches/Warnings: N/A. 3 66, 102 102/122",
           "echoTop": {
             "range": [
               20.5,
@@ -7081,7 +7081,7 @@
         {
           "at": "2025-08-11T01:00:00.000Z",
           "timeZ": "0100",
-          "said": "convection continues to gradually decrease in areal coverage across southern Crockett County: 15.5-16.5 km, 27.7-32.6 kg/m2, 57-58 dBZ. Watches/Warnings: Flood Advisory NW Sterling: 1350-1545 CT Flood Advisory SW Irion: 1637-1830 CT 85/182; no ID; 245; 239; 85/266; 85/272; 85/277; 85/300; 85/308; 85/315; 85/339; 85/343; 412; 85/515; 85/546; 532; 554; 623; 616; 615/721; 615/797; 623/841; 615/867 F",
+          "said": "convection continues to gradually decrease in areal coverage across southern Crockett County: 15.5-16.5 km, 27.7-32.6 kg/m2, 57-58 dBZ. Watches/Warnings: Flood Advisory NW Sterling: 1350-1545 CT Flood Advisory SW Irion: 1637-1830 CT 85/182; no ID; 245; 239; 85/266; 85/272; 85/277; 85/300; 85/308; 85/315; 85/339; 85/343; 412; 85/515; 85/546; 532; 554; 623; 616; 615/721; 615/797; 623/841; 615/867",
           "echoTop": {
             "range": [
               15.5,
@@ -11196,7 +11196,7 @@
         {
           "at": "2025-08-27T00:20:00.000Z",
           "timeZ": "0020",
-          "said": "activity diminishing in target area but still have a few cells in Irion/Tom Green/Sterling: 6.5-15.5 km, 1.6-32.5 kg/m2, 39-58 dBZ; strongest cell NE Sterling (seeded). Watches/Warnings: N/A 58 58/159; cell w/no ID; 559; 616/765; 795/872; 759/859 F",
+          "said": "activity diminishing in target area but still have a few cells in Irion/Tom Green/Sterling: 6.5-15.5 km, 1.6-32.5 kg/m2, 39-58 dBZ; strongest cell NE Sterling (seeded). Watches/Warnings: N/A 58 58/159; cell w/no ID; 559; 616/765; 795/872; 759/859",
           "echoTop": {
             "range": [
               6.5,

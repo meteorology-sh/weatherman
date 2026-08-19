@@ -1,0 +1,1282 @@
+{
+  "source": "https://southtexasweathermodification.com/post.html",
+  "operator": "South Texas Weather Modification Association",
+  "note": "One glaciogenic flare is 5.5 g AgI; one hygroscopic flare is 500 g NaCl.",
+  "days": [
+    {
+      "date": "2025-03-26",
+      "seeded": true,
+      "soundings": {
+        "KDRT": {
+          "freezingLevelM": 3982,
+          "minus15HeightM": 6299,
+          "lclM": 864,
+          "cclM": 923,
+          "cloudBaseM": 1372,
+          "cloudBaseTempC": 16,
+          "warmCloudDepthM": 2610,
+          "capeJKg": 912
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-03-26T18:57:00.000Z",
+          "timeZ": "1857",
+          "plane": "41P",
+          "located": true,
+          "lat": 29.51,
+          "lon": -99.93,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Uvalde"
+        },
+        {
+          "at": "2025-03-26T18:58:00.000Z",
+          "timeZ": "1858",
+          "plane": "41P",
+          "located": true,
+          "lat": 29.58,
+          "lon": -99.91,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Uvalde"
+        },
+        {
+          "at": "2025-03-26T19:00:00.000Z",
+          "timeZ": "1900",
+          "plane": "41P",
+          "located": true,
+          "lat": 29.54,
+          "lon": -99.92,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Uvalde"
+        },
+        {
+          "at": "2025-03-26T19:01:00.000Z",
+          "timeZ": "1901",
+          "plane": "41P",
+          "located": true,
+          "lat": 29.54,
+          "lon": -99.94,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Uvalde"
+        },
+        {
+          "at": "2025-03-26T19:03:00.000Z",
+          "timeZ": "1903",
+          "plane": "41P",
+          "located": true,
+          "lat": 29.56,
+          "lon": -99.93,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Uvalde"
+        }
+      ],
+      "claimed": {},
+      "dayTotal": {
+        "glaciogenic": 10,
+        "hygroscopic": 0,
+        "clouds": 1
+      },
+      "observations": [],
+      "flewOnly": false
+    },
+    {
+      "date": "2025-03-31",
+      "seeded": true,
+      "soundings": {
+        "KDRT": {
+          "freezingLevelM": 4072,
+          "minus15HeightM": 4944,
+          "lclM": 676,
+          "cclM": 2943,
+          "cloudBaseM": 1764,
+          "cloudBaseTempC": 20.5,
+          "warmCloudDepthM": 2308,
+          "capeJKg": 385
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-03-31T22:02:00.000Z",
+          "timeZ": "2202",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.4995,
+          "lon": -99.1367,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-03-31T22:04:00.000Z",
+          "timeZ": "2204",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.4995,
+          "lon": -99.1367,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-03-31T22:09:00.000Z",
+          "timeZ": "2209",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.4543,
+          "lon": -99.0804,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-03-31T22:15:00.000Z",
+          "timeZ": "2215",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.4454,
+          "lon": -99.0103,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-03-31T22:40:00.000Z",
+          "timeZ": "2240",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.4783,
+          "lon": -99.1329,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-03-31T22:43:00.000Z",
+          "timeZ": "2243",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.4783,
+          "lon": -99.1329,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-03-31T22:49:00.000Z",
+          "timeZ": "2249",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.4672,
+          "lon": -99.1186,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        }
+      ],
+      "claimed": {},
+      "dayTotal": {
+        "glaciogenic": 12,
+        "hygroscopic": 1,
+        "clouds": 2
+      },
+      "observations": [],
+      "flewOnly": false
+    },
+    {
+      "date": "2025-04-30",
+      "seeded": true,
+      "soundings": {
+        "KDRT": {
+          "freezingLevelM": 4287,
+          "minus15HeightM": 6380,
+          "lclM": 842,
+          "cclM": 1092,
+          "cloudBaseM": 1875,
+          "cloudBaseTempC": 19.4,
+          "warmCloudDepthM": 2412,
+          "capeJKg": 1428
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-04-30T23:00:00.000Z",
+          "timeZ": "2300",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.5878,
+          "lon": -98.4182,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "McMullen"
+        },
+        {
+          "at": "2025-04-30T23:12:00.000Z",
+          "timeZ": "2312",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.6509,
+          "lon": -98.4663,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "McMullen"
+        }
+      ],
+      "claimed": {},
+      "dayTotal": {
+        "glaciogenic": 3,
+        "hygroscopic": 1,
+        "clouds": 1
+      },
+      "observations": [],
+      "flewOnly": false
+    },
+    {
+      "date": "2025-05-02",
+      "seeded": true,
+      "soundings": {
+        "KDRT": {
+          "freezingLevelM": 4326,
+          "minus15HeightM": 6120,
+          "lclM": 834,
+          "cclM": 1843,
+          "cloudBaseM": 1006,
+          "cloudBaseTempC": 22,
+          "warmCloudDepthM": 3320,
+          "capeJKg": 601
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-05-02T23:30:00.000Z",
+          "timeZ": "2330",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.3862,
+          "lon": -99.0965,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-05-02T23:44:00.000Z",
+          "timeZ": "2344",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.292,
+          "lon": -99.033,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        }
+      ],
+      "claimed": {},
+      "dayTotal": {
+        "glaciogenic": 5,
+        "hygroscopic": 0,
+        "clouds": 1
+      },
+      "observations": [],
+      "flewOnly": false
+    },
+    {
+      "date": "2025-05-06",
+      "seeded": true,
+      "soundings": {
+        "KDRT": {
+          "freezingLevelM": 4231,
+          "minus15HeightM": 6140,
+          "lclM": 526,
+          "cclM": 865,
+          "cloudBaseM": 1036,
+          "cloudBaseTempC": 26.6,
+          "warmCloudDepthM": 3195,
+          "capeJKg": 2825
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-05-06T00:30:00.000Z",
+          "timeZ": "0030",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.8097,
+          "lon": -97.8577,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Karnes"
+        },
+        {
+          "at": "2025-05-06T00:32:00.000Z",
+          "timeZ": "0032",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.8097,
+          "lon": -97.8577,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Karnes"
+        }
+      ],
+      "claimed": {},
+      "dayTotal": {
+        "glaciogenic": 7,
+        "hygroscopic": 0,
+        "clouds": 1
+      },
+      "observations": [],
+      "flewOnly": false
+    },
+    {
+      "date": "2025-05-08",
+      "seeded": true,
+      "soundings": {
+        "KDRT": {
+          "freezingLevelM": 4201,
+          "minus15HeightM": 6100,
+          "lclM": 950,
+          "cclM": 1190,
+          "cloudBaseM": 1354,
+          "cloudBaseTempC": 17.8,
+          "warmCloudDepthM": 2847,
+          "capeJKg": 1002
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-05-08T19:37:00.000Z",
+          "timeZ": "1937",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.0378,
+          "lon": -98.5294,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        },
+        {
+          "at": "2025-05-08T19:45:00.000Z",
+          "timeZ": "1945",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.2001,
+          "lon": -98.4929,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        },
+        {
+          "at": "2025-05-08T20:11:00.000Z",
+          "timeZ": "2011",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.8923,
+          "lon": -98.4372,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        },
+        {
+          "at": "2025-05-08T20:12:00.000Z",
+          "timeZ": "2012",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.8707,
+          "lon": -98.4494,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        },
+        {
+          "at": "2025-05-08T20:18:00.000Z",
+          "timeZ": "2018",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.8707,
+          "lon": -98.4494,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        },
+        {
+          "at": "2025-05-08T20:40:00.000Z",
+          "timeZ": "2040",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.7863,
+          "lon": -97.7665,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Karnes"
+        },
+        {
+          "at": "2025-05-08T20:42:00.000Z",
+          "timeZ": "2042",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.7863,
+          "lon": -97.7665,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Karnes"
+        }
+      ],
+      "claimed": {
+        "Atascosa": {
+          "glaciogenic": 12,
+          "hygroscopic": 1
+        }
+      },
+      "dayTotal": {
+        "glaciogenic": 16,
+        "hygroscopic": 1,
+        "clouds": 5
+      },
+      "observations": [],
+      "flewOnly": false
+    },
+    {
+      "date": "2025-05-10",
+      "seeded": true,
+      "soundings": {
+        "KDRT": {
+          "freezingLevelM": 3099,
+          "minus15HeightM": 6100,
+          "lclM": 878,
+          "cclM": 2217,
+          "cloudBaseM": 2124,
+          "cloudBaseTempC": 8.9,
+          "warmCloudDepthM": 975,
+          "capeJKg": 47
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-05-10T18:44:00.000Z",
+          "timeZ": "1844",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.9656,
+          "lon": -99.1452,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Frio"
+        },
+        {
+          "at": "2025-05-10T18:47:00.000Z",
+          "timeZ": "1847",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.8703,
+          "lon": -99.097,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Frio"
+        },
+        {
+          "at": "2025-05-10T19:12:00.000Z",
+          "timeZ": "1912",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.3367,
+          "lon": -98.9187,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-05-10T19:16:00.000Z",
+          "timeZ": "1916",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.3367,
+          "lon": -98.9187,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-05-10T19:27:00.000Z",
+          "timeZ": "1927",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.3434,
+          "lon": -98.9112,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Bexar"
+        },
+        {
+          "at": "2025-05-10T19:38:00.000Z",
+          "timeZ": "1938",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.2577,
+          "lon": -99.2697,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-05-10T19:42:00.000Z",
+          "timeZ": "1942",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.2577,
+          "lon": -99.2697,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-05-10T19:44:00.000Z",
+          "timeZ": "1944",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.2577,
+          "lon": -99.2697,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-05-10T19:45:00.000Z",
+          "timeZ": "1945",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.2577,
+          "lon": -99.2697,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-05-10T19:46:00.000Z",
+          "timeZ": "1946",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.2577,
+          "lon": -99.2697,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-05-10T20:00:00.000Z",
+          "timeZ": "2000",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.0669,
+          "lon": -99.616,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Uvalde"
+        },
+        {
+          "at": "2025-05-10T20:02:00.000Z",
+          "timeZ": "2002",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.0669,
+          "lon": -99.616,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Uvalde"
+        },
+        {
+          "at": "2025-05-10T20:04:00.000Z",
+          "timeZ": "2004",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.0669,
+          "lon": -99.616,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Uvalde"
+        },
+        {
+          "at": "2025-05-10T20:52:00.000Z",
+          "timeZ": "2052",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.1416,
+          "lon": -98.1321,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wilson"
+        },
+        {
+          "at": "2025-05-10T21:00:00.000Z",
+          "timeZ": "2100",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.0239,
+          "lon": -98.065,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wilson"
+        },
+        {
+          "at": "2025-05-10T21:10:00.000Z",
+          "timeZ": "2110",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.1485,
+          "lon": -97.9874,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wilson"
+        },
+        {
+          "at": "2025-05-10T21:12:00.000Z",
+          "timeZ": "2112",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.1485,
+          "lon": -97.9874,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wilson"
+        },
+        {
+          "at": "2025-05-10T21:13:00.000Z",
+          "timeZ": "2113",
+          "plane": "60P",
+          "located": true,
+          "lat": 29.1485,
+          "lon": -97.9874,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wilson"
+        }
+      ],
+      "claimed": {},
+      "dayTotal": {
+        "glaciogenic": 35,
+        "hygroscopic": 4,
+        "clouds": null
+      },
+      "observations": [],
+      "flewOnly": false
+    },
+    {
+      "date": "2025-06-15",
+      "seeded": true,
+      "soundings": {
+        "KDRT": {
+          "freezingLevelM": 5180,
+          "minus15HeightM": 7200,
+          "lclM": 658,
+          "cclM": 1004,
+          "cloudBaseM": 1347,
+          "cloudBaseTempC": 25,
+          "warmCloudDepthM": 2833,
+          "capeJKg": 2248
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-06-15T18:47:00.000Z",
+          "timeZ": "1847",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.834,
+          "lon": -98.4789,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Bee"
+        },
+        {
+          "at": "2025-06-15T18:55:00.000Z",
+          "timeZ": "1855",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.8905,
+          "lon": -98.5161,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Karnes"
+        },
+        {
+          "at": "2025-06-15T22:25:00.000Z",
+          "timeZ": "2225",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.8945,
+          "lon": -99.3886,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Frio"
+        },
+        {
+          "at": "2025-06-15T22:31:00.000Z",
+          "timeZ": "2231",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.9305,
+          "lon": -99.544,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Frio"
+        },
+        {
+          "at": "2025-06-15T22:46:00.000Z",
+          "timeZ": "2246",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.9178,
+          "lon": -99.1044,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        }
+      ],
+      "claimed": {
+        "Bee": {
+          "glaciogenic": 3,
+          "hygroscopic": 0
+        },
+        "Karnes": {
+          "glaciogenic": 3,
+          "hygroscopic": 0
+        },
+        "Frio": {
+          "glaciogenic": 6,
+          "hygroscopic": 1
+        },
+        "Atascosa": {
+          "glaciogenic": 2,
+          "hygroscopic": 0
+        }
+      },
+      "dayTotal": {
+        "glaciogenic": 14,
+        "hygroscopic": 1,
+        "clouds": 4
+      },
+      "observations": [],
+      "flewOnly": false
+    },
+    {
+      "date": "2025-06-21",
+      "seeded": true,
+      "soundings": {
+        "KDRT": {
+          "freezingLevelM": 4964,
+          "minus15HeightM": 7400,
+          "lclM": 786,
+          "cclM": 2039,
+          "cloudBaseM": 1335,
+          "cloudBaseTempC": 26.7,
+          "warmCloudDepthM": 3629,
+          "capeJKg": 120
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-06-21T19:07:00.000Z",
+          "timeZ": "1907",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.5259,
+          "lon": -99.4742,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-21T19:08:00.000Z",
+          "timeZ": "1908",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.5259,
+          "lon": -99.4742,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-21T19:10:00.000Z",
+          "timeZ": "1910",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.5259,
+          "lon": -99.4742,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-21T19:11:00.000Z",
+          "timeZ": "1911",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.5259,
+          "lon": -99.4742,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-21T19:11:00.000Z",
+          "timeZ": "1911",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.5259,
+          "lon": -99.4742,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-21T19:13:00.000Z",
+          "timeZ": "1913",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.5259,
+          "lon": -99.4742,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-21T19:58:00.000Z",
+          "timeZ": "1958",
+          "plane": "49P",
+          "located": true,
+          "lat": 28.8984,
+          "lon": -98.6729,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        },
+        {
+          "at": "2025-06-21T19:59:00.000Z",
+          "timeZ": "1959",
+          "plane": "49P",
+          "located": true,
+          "lat": 28.8984,
+          "lon": -98.6729,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        },
+        {
+          "at": "2025-06-21T20:03:00.000Z",
+          "timeZ": "2003",
+          "plane": "49P",
+          "located": true,
+          "lat": 28.8984,
+          "lon": -98.6729,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        },
+        {
+          "at": "2025-06-21T20:10:00.000Z",
+          "timeZ": "2010",
+          "plane": "49P",
+          "located": true,
+          "lat": 28.8984,
+          "lon": -98.6729,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        },
+        {
+          "at": "2025-06-21T20:13:00.000Z",
+          "timeZ": "2013",
+          "plane": "49P",
+          "located": true,
+          "lat": 28.8984,
+          "lon": -98.6729,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        },
+        {
+          "at": "2025-06-21T22:13:00.000Z",
+          "timeZ": "2213",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.0947,
+          "lon": -99.3236,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-21T22:14:00.000Z",
+          "timeZ": "2214",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.0947,
+          "lon": -99.3236,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-21T22:14:00.000Z",
+          "timeZ": "2214",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.0947,
+          "lon": -99.3236,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-21T22:16:00.000Z",
+          "timeZ": "2216",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.0947,
+          "lon": -99.3236,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-21T22:17:00.000Z",
+          "timeZ": "2217",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.0947,
+          "lon": -99.3236,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-21T22:29:00.000Z",
+          "timeZ": "2229",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.3015,
+          "lon": -99.0716,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-21T22:30:00.000Z",
+          "timeZ": "2230",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.3015,
+          "lon": -99.0716,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-21T22:31:00.000Z",
+          "timeZ": "2231",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.3015,
+          "lon": -99.0716,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-21T22:45:00.000Z",
+          "timeZ": "2245",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.1673,
+          "lon": -98.7836,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        },
+        {
+          "at": "2025-06-21T22:46:00.000Z",
+          "timeZ": "2246",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.1673,
+          "lon": -98.7836,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        },
+        {
+          "at": "2025-06-21T22:49:00.000Z",
+          "timeZ": "2249",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.1673,
+          "lon": -98.7836,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        },
+        {
+          "at": "2025-06-21T22:50:00.000Z",
+          "timeZ": "2250",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.1673,
+          "lon": -98.7836,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        },
+        {
+          "at": "2025-06-21T22:50:00.000Z",
+          "timeZ": "2250",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.1673,
+          "lon": -98.7836,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        }
+      ],
+      "claimed": {
+        "Medina": {
+          "glaciogenic": 25,
+          "hygroscopic": 3
+        },
+        "Atascosa": {
+          "glaciogenic": 19,
+          "hygroscopic": 1
+        }
+      },
+      "dayTotal": {
+        "glaciogenic": 44,
+        "hygroscopic": 4,
+        "clouds": 5
+      },
+      "observations": [],
+      "flewOnly": false
+    },
+    {
+      "date": "2025-06-29",
+      "seeded": true,
+      "soundings": {
+        "KDRT": {
+          "freezingLevelM": 5008,
+          "minus15HeightM": 7300,
+          "lclM": 888,
+          "cclM": 1746,
+          "cloudBaseM": 1506,
+          "cloudBaseTempC": 28.3,
+          "warmCloudDepthM": 3502,
+          "capeJKg": 662
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-06-29T21:16:00.000Z",
+          "timeZ": "2116",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.3479,
+          "lon": -99.105,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-29T21:20:00.000Z",
+          "timeZ": "2120",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.3152,
+          "lon": -99.1737,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-29T21:24:00.000Z",
+          "timeZ": "2124",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.1292,
+          "lon": -99.1788,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-29T21:35:00.000Z",
+          "timeZ": "2135",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.0325,
+          "lon": -99.3708,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        },
+        {
+          "at": "2025-06-29T21:47:00.000Z",
+          "timeZ": "2147",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.0892,
+          "lon": -99.3825,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Medina"
+        }
+      ],
+      "claimed": {
+        "Medina": {
+          "glaciogenic": 16,
+          "hygroscopic": 2
+        }
+      },
+      "dayTotal": {
+        "glaciogenic": 16,
+        "hygroscopic": 2,
+        "clouds": 3
+      },
+      "observations": [],
+      "flewOnly": false
+    },
+    {
+      "date": "2025-06-30",
+      "seeded": true,
+      "soundings": {
+        "KDRT": {
+          "freezingLevelM": 4833,
+          "minus15HeightM": 7600,
+          "lclM": 732,
+          "cclM": 1038,
+          "cloudBaseM": 1303,
+          "cloudBaseTempC": 26.7,
+          "warmCloudDepthM": 3530,
+          "capeJKg": 491
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-06-30T19:30:00.000Z",
+          "timeZ": "1930",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.083,
+          "lon": -99.0152,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Frio"
+        },
+        {
+          "at": "2025-06-30T19:49:00.000Z",
+          "timeZ": "1949",
+          "plane": "49P",
+          "located": true,
+          "lat": 28.903,
+          "lon": -99.0643,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Frio"
+        },
+        {
+          "at": "2025-06-30T19:55:00.000Z",
+          "timeZ": "1955",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.0516,
+          "lon": -98.7069,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        },
+        {
+          "at": "2025-06-30T20:01:00.000Z",
+          "timeZ": "2001",
+          "plane": "49P",
+          "located": true,
+          "lat": 29.0722,
+          "lon": -98.6506,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Atascosa"
+        }
+      ],
+      "claimed": {
+        "Frio": {
+          "glaciogenic": 14,
+          "hygroscopic": 1
+        },
+        "Atascosa": {
+          "glaciogenic": 16,
+          "hygroscopic": 2
+        }
+      },
+      "dayTotal": {
+        "glaciogenic": 30,
+        "hygroscopic": 3,
+        "clouds": 4
+      },
+      "observations": [],
+      "flewOnly": false
+    },
+    {
+      "date": "2025-07-02",
+      "seeded": true,
+      "soundings": {
+        "KDRT": {
+          "freezingLevelM": 4965,
+          "minus15HeightM": 7650,
+          "lclM": 436,
+          "cclM": 916,
+          "cloudBaseM": 777,
+          "cloudBaseTempC": 26.1,
+          "warmCloudDepthM": 4188,
+          "capeJKg": 36
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-07-02T18:08:00.000Z",
+          "timeZ": "1808",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.8825,
+          "lon": -97.8777,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Karnes"
+        },
+        {
+          "at": "2025-07-02T18:12:00.000Z",
+          "timeZ": "1812",
+          "plane": "60P",
+          "located": true,
+          "lat": 28.9418,
+          "lon": -97.7181,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Karnes"
+        }
+      ],
+      "claimed": {
+        "Karnes": {
+          "glaciogenic": 13,
+          "hygroscopic": 1
+        }
+      },
+      "dayTotal": {
+        "glaciogenic": 13,
+        "hygroscopic": 1,
+        "clouds": 2
+      },
+      "observations": [],
+      "flewOnly": false
+    }
+  ]
+}

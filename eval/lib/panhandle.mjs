@@ -19,6 +19,9 @@
  *   against them the way the West Texas soundings are.
  */
 
+// Local
+import { project } from "./geo.mjs";
+
 /** `SEEDING REPORT June 02, 2025` opens each day inside a monthly file. */
 const DAY = /SEEDING\s+REPORT\s+([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})/g;
 
@@ -62,44 +65,7 @@ const INDICES = [
   ["sbCapeJKg", String.raw`SB\s+CAPE\s+\(J/kg\)`],
 ];
 
-const KM_PER_NM = 1.852;
-const EARTH_KM = 6371;
-
 const pad = (n) => String(n).padStart(2, "0");
-
-/**
- * Where a bearing and a range put a release.
- *
- * Great-circle rather than flat: at 50 nm a flat projection is off by a few
- * hundred metres, which is nothing against a 12 km cell, but the spherical form
- * is no harder and does not have to be explained.
- *
- * **The bearing is used as printed.** Whether the display was set to true or
- * magnetic north is not stated in the reports, and the county each row names is
- * not sharp enough to settle it — so no rotation is applied and the few
- * kilometres that question is worth stay in the number rather than being
- * silently corrected.
- */
-export function project([lat0, lon0], bearingDeg, rangeNm) {
-  const angular = (rangeNm * KM_PER_NM) / EARTH_KM;
-  const bearing = (bearingDeg * Math.PI) / 180;
-  const lat1 = (lat0 * Math.PI) / 180;
-  const lon1 = (lon0 * Math.PI) / 180;
-
-  const lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(angular) +
-      Math.cos(lat1) * Math.sin(angular) * Math.cos(bearing)
-  );
-  const lon2 =
-    lon1 +
-    Math.atan2(
-      Math.sin(bearing) * Math.sin(angular) * Math.cos(lat1),
-      Math.cos(angular) - Math.sin(lat1) * Math.sin(lat2)
-    );
-
-  const round = (value) => Math.round(value * 10000) / 10000;
-  return [round((lat2 * 180) / Math.PI), round((lon2 * 180) / Math.PI)];
-}
 
 /**
  * The UTC instant of a row.

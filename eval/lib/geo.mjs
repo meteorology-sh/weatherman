@@ -9,7 +9,51 @@
  * So the target area is measured by sampling instead — a lattice of points
  * inside the counties, each asked of the join, deduplicated by the cell the
  * join answered from. That counts cells, which is what the field is made of.
+ *
+ * Projecting a bearing and a range onto the globe lives here too. It is the
+ * same kind of thing — coordinates, no source of its own — and two programmes
+ * position their releases that way.
  */
+
+const KM_PER_NM = 1.852;
+const EARTH_KM = 6371;
+
+/**
+ * Where a bearing and a range put a release.
+ *
+ * Great-circle rather than flat: at 50 nm a flat projection is off by a few
+ * hundred metres, which is nothing against a 12 km cell, but the spherical form
+ * is no harder and does not have to be explained.
+ *
+ * **The bearing is used as printed.** Two programmes position their releases
+ * this way and neither states whether the display was set to true or magnetic
+ * north. The county each row names is not sharp enough to settle it either —
+ * about six degrees of eastward rotation fits both records better, which is
+ * what a magnetic display would look like and is also what a slightly wrong
+ * origin would look like. So no rotation is applied, and the few kilometres
+ * that question is worth stay in the number rather than being silently
+ * corrected. `registration.mjs` is what measures the cost.
+ */
+export function project([lat0, lon0], bearingDeg, rangeNm) {
+  const angular = (rangeNm * KM_PER_NM) / EARTH_KM;
+  const bearing = (bearingDeg * Math.PI) / 180;
+  const lat1 = (lat0 * Math.PI) / 180;
+  const lon1 = (lon0 * Math.PI) / 180;
+
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(angular) +
+      Math.cos(lat1) * Math.sin(angular) * Math.cos(bearing)
+  );
+  const lon2 =
+    lon1 +
+    Math.atan2(
+      Math.sin(bearing) * Math.sin(angular) * Math.cos(lat1),
+      Math.cos(angular) - Math.sin(lat1) * Math.sin(lat2)
+    );
+
+  const round = (value) => Math.round(value * 10000) / 10000;
+  return [round((lat2 * 180) / Math.PI), round((lon2 * 180) / Math.PI)];
+}
 
 /** Ray casting, on one ring. Longitude is x, latitude is y. */
 function inRing(ring, lon, lat) {

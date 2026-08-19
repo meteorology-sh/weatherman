@@ -47,15 +47,14 @@ cd eval/app && yarn dev             # the map, port 5174
 
 Everything is scoped to a region — `--region=wtwma` on a script, `/wtwma/…` in
 the app. `data/regions.json` is the roster: the five rain-enhancement programmes
-[TDLR lists for Texas](https://www.tdlr.texas.gov/weather/summary.htm). West
-Texas is the only one with a parsed flight record, and the rest are listed rather
-than hidden so the gap in coverage is visible. Their reports are on disk — what
-each one still needs is a parser for its layout.
+[TDLR lists for Texas](https://www.tdlr.texas.gov/weather/summary.htm), all five
+of which have a parsed flight record.
 
 ## Building another day
 
-This is the work that is left. **Two of the 34 flying days are built; the other
-32 are the same command with a different date.**
+Every flying day of every region is built. **A day is one command, and a day
+that already exists on disk does not need rebuilding** — the run is the same
+whether it is the first or the hundredth.
 
 **1. Check the Weatherman server answers.** Everything below reads from it and a
 run against a dead server fails one hour at a time rather than at the start.
@@ -109,28 +108,54 @@ release point instead, undrifted. A date with no seeded report in
 ## The other Texas programmes
 
 `records.mjs` pulls each programme's 2025 reports into `cache/<region>/`, and
-what can be read out of them is read: **three of the five now have a flight
-record**, and `data/regions.json` says which file each one is in.
+what can be read out of them is read. **All five have a flight record**, and
+`data/regions.json` says which file each one is in.
 
-| Region       | 2025 records                                   | Flight record                        |
-| ------------ | ---------------------------------------------- | ------------------------------------ |
-| `wtwma`      | 36 daily reports                               | **34 days, 499 releases**            |
-| `transpecos` | 48 daily reports, 8 monthly summaries          | **39 days, 472 releases**            |
-| `panhandle`  | 6 months of operations, missions and maps      | **25 days, 255 releases**            |
-| `stwma`      | 12 daily reports, and TDLR's run of the season | no — needs a font-aware PDF reader   |
-| `plains`     | TDLR's year-to-date document                   | no — maps and a scan, no flare table |
+| Region       | 2025 records                                   | Flight record         |
+| ------------ | ---------------------------------------------- | --------------------- |
+| `wtwma`      | 36 daily reports                               | 34 days, 499 releases |
+| `transpecos` | 48 daily reports, 8 monthly summaries          | 39 days, 472 releases |
+| `panhandle`  | 6 months of operations, missions and maps      | 25 days, 255 releases |
+| `stwma`      | 12 daily reports, and TDLR's run of the season | 12 days, 83 releases  |
+| `plains`     | TDLR's year-to-date document                   | 7 days, 53 releases   |
 
 ```bash
 node eval/releases.mjs                     # West Texas
-node eval/releases.mjs --region=transpecos  # Trans-Pecos, same parser
-node eval/panhandle.mjs                     # the Panhandle, its own reader
+node eval/releases.mjs --region=transpecos # Trans-Pecos, same parser
+node eval/releases.mjs --region=stwma      # South Texas, same parser
+node eval/releases.mjs --region=plains     # Rolling Plains, same parser
+node eval/panhandle.mjs                    # the Panhandle, its own reader
 ```
 
-**Trans-Pecos files the same document West Texas does** — one meteorologist
-writes both — so one parser reads both, told which counties end a table row and
-which sounding sites the indices table has columns for. Both come from
-`regions.json`. Every one of its 39 seeded days sums to the flare total its own
-report states.
+**Four of the five file the same document**, because one contractor's
+meteorologists write it, so one parser in `lib/reports.mjs` reads them all. What
+it is told per region is in `regions.json`: which counties end a table row,
+which sounding sites the indices table has columns for, the window a position
+has to fall inside, and where a bearing and a range are measured from. Every one
+of Trans-Pecos's 39 seeded days sums to the flare total its own report states.
+
+### Reading a report that draws glyphs
+
+**Every programme's reports declare an `Identity-H` font, and two of them draw
+the whole page with it.** In those the content stream holds glyph numbers rather
+than characters, so the bytes have to go through the font's `ToUnicode` table
+before they are text at all — reading them directly gives pages of plausible
+bytes that say nothing. It also positions every glyph with its own cursor move,
+so the rule that a cursor move is a space would put one between every letter;
+the spaces are in the glyph stream instead, and the cursor is worth reading only
+for where a line ends.
+
+`lib/pdf.mjs` carries both readers and **asks the document which it is** rather
+than guessing from its fonts. West Texas, Trans-Pecos and the Panhandle draw
+between 1.5% and 4.1% of their characters with a glyph font and are read as
+characters; South Texas and the Rolling Plains draw 98.7% and 100% and are read
+as glyphs. Nothing in between has turned up.
+
+The one document this cannot read is TDLR's run of the South Texas season, which
+packs its page objects into a compressed object stream. It comes back empty
+rather than wrong, and it holds the same twelve days as the dailies beside it.
+
+### What differs between the four
 
 **The Panhandle publishes a month at a time and needs its own reader**, because
 three things about its report change what can be said about a release:
@@ -159,15 +184,33 @@ The district's own April missions file is missing the 30 April report its own
 operations report lists. `panhandle.mjs` prints that rather than passing over it.
 
 **South Texas writes each day as a Google Doc**, and `records.mjs` fetches the
-PDF that Doc exports. The text is real text but sits in CID-keyed fonts that
-`lib/pdf.mjs` reads as glyph numbers, so it needs a font-aware reader rather
-than a regex. Their own page stops at 2 July 2025; TDLR publishes the rest of
-the season as one document, and that one is a scan — 35 pages of JPEG, no text
-at all.
+PDF that Doc exports. Its table prints one row per seeding pass with no flare
+count on it, so a release carries `null` the way a Panhandle one does and the
+counts come from the closing sentence. **Its positions are a bearing and a range
+too**, from April on, off an origin the reports never name — projected from
+Pleasanton, the town the reports head themselves with, 76.9% of radial rows land
+in the county their own row names, against 64.1% from the municipal airport four
+kilometres away and under 2% from San Antonio, Hondo or any of the three nearest
+radars. Bearings are used as printed here as well. That six degrees of eastward
+rotation helps both programmes and neither states its convention is the whole of
+what is known.
 
-**Rolling Plains has no records of its own.** The counties contract the flying to
-WTWMA, and what TDLR hosts is a year-to-date set of maps rather than a flare
-table. Nothing here can be scored against it.
+**Rolling Plains publishes one document a season**, holding a monthly flight
+summary and then all seven daily reports in full. `releases.mjs` splits it on
+the heading each report opens with, which is the same thing the Panhandle's
+monthly files need.
+
+**It is also the one record whose positions change notation mid-season.** The
+reports write `32.69NX100.47W` in May and early June and `32.36, 100.38` on 30
+June and 1 July, and the second form only fits the county its own row names when
+the fractional part is read as minutes — 11 of 12 rows on 30 June land in the
+target area that way, against 6 read as degrees. Nothing in a row says which it
+is, and a row whose fractions are both under .60 is valid either way, so **no
+notation is inferred and nothing is rewritten**. What it costs is in
+`registration.mjs`: 58.5% of Rolling Plains releases land in the county their
+own row names, against 94% and 96% for the two programmes that write coordinates
+one way all season. It is 53 releases of 1,353 and cannot move a conclusion, but
+it is the number to look at first if one of its days reads oddly.
 
 The roster is the five projects TDLR lists. The Southern Ogallala Aquifer Rain
 program is not one of them.
@@ -180,24 +223,30 @@ on. It does not make it **scored**: `reconcile.mjs` and `bracket.mjs` are West
 Texas's runs, and `held.mjs <date> --region=<id>` is what paints a day of any
 region against the product's own layers.
 
-Every day of all three is painted — **97 flying days, 1,217 releases, 32 MB** —
-which is what puts the flight record and the layers on the same map:
+Every flying day of all five is painted — **116 flying days, 1,353 releases,
+34 MB** — which is what puts the flight record and the layers on the same map:
 
-| Region      | Days painted | Releases | In painted liquid | Within a cell |
-| ----------- | -----------: | -------: | ----------------: | ------------: |
-| West Texas  |     34 of 34 |      497 |             14.9% |         36.0% |
-| Trans-Pecos |     38 of 38 |      465 |             19.6% |         49.2% |
-| Panhandle   |     25 of 25 |      255 |             34.1% |         75.0% |
+| Region         | Days painted | Releases | In painted liquid | Within a cell |
+| -------------- | -----------: | -------: | ----------------: | ------------: |
+| West Texas     |     34 of 34 |      497 |             14.9% |         36.0% |
+| Trans-Pecos    |     38 of 38 |      465 |             19.6% |         49.2% |
+| Panhandle      |     25 of 25 |      255 |             34.1% |         75.0% |
+| South Texas    |     12 of 12 |       83 |             13.0% |         48.1% |
+| Rolling Plains |       7 of 7 |       53 |             16.7% |         56.3% |
 
-Cloud base, cloud tops and radar land within a cell of 88% to 98% of releases in
-all three. The liquid is where they part, and the ordering is the finding — the
-median release is 34 km from painted liquid in West Texas, 13 km in Trans-Pecos
-and 4 km in the Panhandle. `EVALUATION.md` is where that is argued.
+Cloud base lands within a cell of 88% to 98% of releases in all five and cloud
+tops 87% to 95%. The liquid is where they part, and the spread is the finding —
+the median release is 34 km from painted liquid in West Texas and 4 km in the
+Panhandle. Counted by day, which is the honest unit because a sortie succeeds or
+fails as one thing, that is 10 of 34 days against 15 of 23. `EVALUATION.md` is
+where it is argued, including why the airmass explanation that fitted the first
+three programmes does not survive the other two.
 
-The Panhandle number is worth reading twice for a second reason. Its positions
-are projected from an origin nobody wrote down, and they agree with the paint
-better than either programme that prints its own coordinates. A projection off
-the wrong origin scatters; this one does not.
+**Six layer errors survive on disk**, all of them the GOES archive having no
+sweep near the hour: the 19Z frame on 26 March and the 22Z and 23Z frames on 31
+March, each costing that hour its cloud tops and its join. Rebuilding them
+returns the same answer, so it is the archive and not the run. The day keeps its
+other layers and the map draws what came back.
 
 **A painted file is named by its region, not by its date.** `regions.json` gives
 each region the name its runs are written under, because two programmes fly the
