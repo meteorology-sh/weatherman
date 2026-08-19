@@ -8,9 +8,11 @@ Two questions, in order.
    release to the nearest edge of each layer, at the minute and place it left
    the aircraft.
 
-The first is answered and the answer is yes. The second splits: they seed close
-to the liquid we paint and never inside the finished join, because the join
-rules out rain and rain is what they fly into.
+The first is answered and the answer is yes. The second splits three ways: they
+fly inside the cloud and the echo we draw; on 10 of 34 days they fly in the
+liquid we paint and on the other 24 they are cells away from it; and they are
+almost never inside the finished join, because the join rules out rain and rain
+is what they fly into.
 
 `WEATHERMAN.md` says what the app claims. `MEASUREMENTS.md` says what the free
 feeds can answer. This file says what happened when we checked.
@@ -125,51 +127,58 @@ each flare actually left the aircraft. Each release is charged to the nearest
 analysis rather than to both sides of a gap — 1843Z goes to 19Z, 17 minutes
 away, not to 18Z at 43 — and the remaining minutes are closed with HRRR's own
 0–6 km storm motion, which carries the release point to where that air is at the
-moment of the frame. On 19 April the offsets run 10 to 25 minutes, which at
-13–25 knots is 5 to 15 km. That is most of a grid cell, so it is not a
-correction that can be skipped.
+moment of the frame. The median release is 15 minutes from its analysis and the
+furthest is 30, which at 10–25 knots is 5 to 15 km. That is most of a grid cell,
+so it is not a correction that can be skipped.
 
-**Two days are built this way so far**, 36 releases with a position.
+**The whole season is built this way: 34 flying days, all 497 releases with a
+position.** Being inside is a distance of zero, so the first column counts
+releases the paint already covers and the second counts those within one 12 km
+cell — which is as fine as anything drawn on this grid can resolve.
 
-| Layer                    | 19 Apr, 13 releases | 22 May, 23 releases |
-| ------------------------ | ------------------: | ------------------: |
-| Cloud base               |               13/13 |               22/23 |
-| Cloud tops               |                7/13 |               23/23 |
-| Supercooled liquid water |                9/13 |               18/23 |
-| Radar reflectivity       |               13/13 |               21/23 |
-| Seeding opportunity      |                0/13 |                0/23 |
+| Layer                    |      Inside | Within a cell |    Median |  Worst |
+| ------------------------ | ----------: | ------------: | --------: | -----: |
+| Cloud base               | 356 (71.6%) |   439 (88.3%) |      0 km |  48 km |
+| Cloud tops               | 324 (65.2%) |   436 (87.7%) |      0 km | 220 km |
+| Radar reflectivity       | 339 (68.2%) |   437 (87.9%) |      0 km | 383 km |
+| Supercooled liquid water |  74 (14.9%) |   179 (36.0%) | **34 km** | 463 km |
+| Seeding opportunity      |    3 (0.6%) |     46 (9.3%) |     75 km | 481 km |
 
-Read across, both days are coherent. Almost every release was in modelled cloud
-and in measured echo. None were inside the join on either day, because the join
-vetoes rain and they were flying in it.
+**Three of the five layers agree with where Texas flies.** Nearly nine releases
+in ten sit within a cell of modelled cloud base, of a satellite cloud top and of
+measured echo. Whatever else is wrong, the geometry, the clock and the drift
+correction are not: a run that put the flares in the wrong place could not land
+them inside three independent fields at once.
 
-**The two days disagree about the liquid, and the disagreement is the finding.**
+**The liquid is the disagreement, and it is the layer the product runs on.** One
+release in seven is inside painted liquid and about one in three is within a
+cell of it. The typical release is 34 km out — three cells, which is not a
+contour of slightly the wrong shape.
 
-On 22 May every one of the 23 releases was within 2.8 km of painted liquid — 18
-inside it and the other five a fraction of a cell out. At 12 km resolution that
-is not a miss at all.
+**It is a disagreement about days, not a rate.** On 10 of the 34 days the
+typical release is within a cell of painted liquid; on the other 24 it is
+further, and those 24 carry 399 of the 497 flares. Six days put _every_ release
+within a cell — 29 April, 22 May, 10 June, 4 August, 18 August and 24 October —
+and ten days put none there at all. On eleven days the median release is more
+than 100 km from any liquid we painted, which is the model holding the liquid
+somewhere else entirely or holding none in the target area.
 
-On 19 April nine were inside and **four were 75 to 77 km away**, one pass over
-Irion County between 1843Z and 1850Z. Nothing sits between. So the misses are not
-a rim of near-misses around a contour that is slightly the wrong shape; they are
-a separate event, on one day, in one pass.
+**Almost nothing is inside the finished join**: 3 releases of 497, on 30 June
+and 18 August. The join vetoes rain and they fly into rain, which the next
+section is about.
 
-Combined: **32 of 36 releases fall within one cell of painted liquid, and all
-four exceptions are that single pass.**
+**This does not say which side is wrong.** Either we paint no liquid where the
+crew found some, or they work something a 12 km analysis has nothing about. What
+the season establishes is the shape of the disagreement — concentrated in whole
+days rather than spread evenly — and a run that fails by the day is a run that
+can be diagnosed by asking what those days had in common.
 
-**This does not say which side is wrong.** Either we painted no liquid where the
-crew found some, or they were working something the model has nothing about. A
-12 km analysis and two days cannot separate those, and nothing here should be
-read as having done so. What it establishes is that the disagreement is
-concentrated rather than uniform, which is the same shape the season table shows
-and the reason it can be diagnosed at all.
-
-**The drift correction is worth less than it looks on a slow day.** On 22 May the
-storm motion runs 4 to 10 knots, so twenty minutes moves a release about 3 km —
-under a quarter of a cell. Four releases that sat exactly on the contour before
-drifting sat just outside it after. That is the correction operating at the noise
-floor, and on days like it the undrifted number is as good. On 19 April, at 13 to
-25 knots, it is 5 to 15 km and it matters.
+**The drift correction is worth less than it looks on a slow day.** Where the
+storm motion runs 4 to 10 knots, twenty minutes moves a release about 3 km —
+under a quarter of a cell, and releases sitting exactly on a contour can cross
+it either way. That is the correction operating at the noise floor. At 13 to
+25 knots it is 5 to 15 km and it decides the answer. Both distances are written
+for every release, drifted and undrifted, so neither has to be taken on trust.
 
 ### Why: we rule out rain, and they seed rain on purpose
 
@@ -241,6 +250,10 @@ node eval/bracket.mjs                  # finding 2 → out/bracket-2025.json
 node eval/held.mjs 2025-04-19          # one day, every layer → out/held-<date>.json
 ```
 
+The whole season is built, one day at a time — `held.mjs` refuses to be useful
+any other way, because two runs at once evict each other's grids from the
+server's cache. `eval/README.md` has the loop and what the log says.
+
 To look at it rather than read it:
 
 ```bash
@@ -250,13 +263,18 @@ cd eval/app && yarn dev                # the maps, port 5174
 
 **Cost is downloads, not minutes.** Reading one hour out of the archive takes
 30–60 seconds; every later question about that same hour is instant. `bracket.mjs`
-asks 994 questions but downloads 125 hours, because flares cluster.
+asks 994 questions but downloads 125 hours, because flares cluster. The 34 days
+of painted layers are 20 MB on disk and about an hour and a half of downloading.
 
 `--resume` continues a run that was interrupted.
 
-**Building the remaining flying days is one command per day.** Two of the 34 are
-built; `held.mjs` takes any of the other 32 the same way. `eval/README.md` has
-the procedure, and the rest of the detail.
+**Every figure in the distance table is one request.** `server.mjs` pools the
+painted days at `/region/wtwma/near` and the per-day rows come back with it, so
+nothing quoted here is arithmetic done twice:
+
+```bash
+curl localhost:3100/region/wtwma/near
+```
 
 ---
 

@@ -483,7 +483,19 @@ for (const hour of hours) {
 }
 
 await mkdir(OUT, { recursive: true });
-const file = join(OUT, `held-${DATE}.json`);
+/**
+ * The name the region's roster entry gives this run, not one built here.
+ *
+ * **Every region has to name its own file or they collide.** Two programmes fly
+ * the same afternoon — 17 August 2025 is a flying day in both West Texas and
+ * Trans-Pecos — and a name built from the date alone means the second run
+ * silently overwrites the first, leaving a file whose `region` says one thing
+ * and whose name says another.
+ */
+const file = join(
+  OUT,
+  (region.runs?.held ?? "held-{date}.json").replace("{date}", DATE)
+);
 // Written compact rather than indented. Five layers at several analyses is most
 // of a megabyte of coordinates, and pretty-printing them triples the file the
 // page has to pull for no reader — nothing opens this by hand.
@@ -521,5 +533,5 @@ console.log(
   `\n${all.length} flares over ${hours.length} analyses\n` +
     `  inside painted liquid: ${inside}\n` +
     `  within one ${CELL_KM} km cell of it: ${withinCell}\n` +
-    `written to eval/out/held-${DATE}.json (${(bytes / 1024 / 1024).toFixed(1)} MB)`
+    `written to ${file} (${(bytes / 1024 / 1024).toFixed(1)} MB)`
 );

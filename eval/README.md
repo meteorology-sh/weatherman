@@ -180,6 +180,25 @@ on. It does not make it **scored**: `reconcile.mjs` and `bracket.mjs` are West
 Texas's runs, and `held.mjs <date> --region=<id>` is what paints a day of any
 region against the product's own layers.
 
+One day of each is painted, which is what shows the flight record and the layers
+on the same map:
+
+| Day                      |                Flares | In painted liquid | Within a cell |
+| ------------------------ | --------------------: | ----------------: | ------------: |
+| Trans-Pecos, 17 Aug 2025 | 32 over four analyses |                16 |            27 |
+| Panhandle, 17 Sep 2025   | 44 over five analyses |                24 |            44 |
+
+The Panhandle day is worth reading twice. Its positions are projected from an
+origin nobody wrote down, and every one of its 44 releases still lands within a
+cell of painted liquid, most of them inside it. A projection off the wrong
+origin scatters; this one does not.
+
+**A painted file is named by its region, not by its date.** `regions.json` gives
+each region the name its runs are written under, because two programmes fly the
+same afternoon — 17 August 2025 is a flying day in both West Texas and
+Trans-Pecos — and a name built from the date alone lets the second run overwrite
+the first.
+
 ## What each script does
 
 These four are the current path:
