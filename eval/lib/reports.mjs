@@ -1,5 +1,10 @@
 /**
- * A WTWMA daily operations report, as data.
+ * A daily operations report, as data.
+ *
+ * West Texas and Trans-Pecos file the same document — one meteorologist writes
+ * both — so one parser reads both. What differs between them is the county list
+ * and how many sounding sites the indices table carries, and those come in as a
+ * profile rather than being baked in here.
  *
  * The part that matters is the `Flight Information` table: every flare
  * release with a UTC minute and a position to four decimal places. That is
@@ -14,43 +19,16 @@
  */
 
 /**
- * The counties WTWMA and the Rolling Plains project fly over.
+ * A county name is what ends a table row.
  *
- * Used to end a table row rather than to validate one: a county name is the
- * last field, some are two words, and the next row's time follows immediately
- * with nothing between them. Matching against the list is what tells "Tom
- * Green 1957" from "Green" followed by a stray number.
+ * Used to end a row rather than to validate one: the county is the last field,
+ * some names are two words, and the next row's time follows immediately with
+ * nothing between them. Matching against the programme's own list is what tells
+ * "Tom Green 1957" from "Green" followed by a stray number. The list is the
+ * region's, from `data/regions.json`.
  */
-const COUNTIES = [
-  "Tom Green",
-  "Baylor",
-  "Coke",
-  "Concho",
-  "Crane",
-  "Crockett",
-  "Fisher",
-  "Glasscock",
-  "Haskell",
-  "Howard",
-  "Irion",
-  "Jones",
-  "Knox",
-  "Menard",
-  "Midland",
-  "Mitchell",
-  "Nolan",
-  "Pecos",
-  "Reagan",
-  "Runnels",
-  "Schleicher",
-  "Scurry",
-  "Sterling",
-  "Sutton",
-  "Terrell",
-  "Upton",
-];
-
-const COUNTY = COUNTIES.map((name) => name.replace(" ", "\\s+")).join("|");
+const county = (counties) =>
+  counties.map((name) => name.replace(" ", "\\s+")).join("|");
 
 /**
  * `1919 49P 31.1272 / -101.7577 3G + 1H Reagan`
@@ -62,19 +40,33 @@ const COUNTY = COUNTIES.map((name) => name.replace(" ", "\\s+")).join("|");
  * they were found. They are real releases that cannot be scored as points,
  * and `located` is what tells the two apart.
  */
-const RELEASE = new RegExp(
-  String.raw`(\d{4})\s+(\w*\d+[A-Z])\s+(?:(-?\d+\.\d+)\s*/\s*(-?\d+\.\d+)\s+)?` +
-    String.raw`((?:\d+\s*[GH])(?:\s*\+\s*\d+\s*[GH])*)\s+(${COUNTY})`,
-  "g"
-);
+const release = (counties) =>
+  new RegExp(
+    String.raw`(\d{4})\s+(\w*\d+[A-Z])\s+(?:(-?\d+\.\d+)\s*/\s*(-?\d+\.\d+)\s+)?` +
+      String.raw`((?:\d+\s*[GH])(?:\s*\+\s*\d+\s*[GH])*)\s+(${county(counties)})`,
+    "g"
+  );
 
 /** The prose total that closes the table, e.g. `Tom Green (15G + 1H)`. */
-const CLAIMED = new RegExp(
-  String.raw`(${COUNTY})\s*\(\s*((?:\d+\s*[GH])(?:\s*\+\s*\d+\s*[GH])*)\s*\)`,
-  "g"
-);
+const claimed = (counties) =>
+  new RegExp(
+    String.raw`(${county(counties)})\s*\(\s*((?:\d+\s*[GH])(?:\s*\+\s*\d+\s*[GH])*)\s*\)`,
+    "g"
+  );
 
 /** `At 1838Z, …` — the narrative's only reliable structure. */
+/**
+ * `2027 26P (2G) JD` — the table Trans-Pecos filed on its first day of 2025.
+ *
+ * Time, aircraft, flare count in brackets, and a county the report abbreviates
+ * and never expands. **It is a fallback, not an alternative**: it runs only when
+ * the standard table yields nothing, because a row with no position would
+ * otherwise swallow rows that have one. The releases it finds are real and
+ * unlocated, and the county is left out rather than guessed from two letters.
+ */
+const BRACKETED =
+  /(\d{4})\s+(\w*\d+[A-Z])\s+[^()\d]*(?:\d+°?\s*\d*)?\s*\((\d+\s*[GH](?:\s*\+\s*\d+\s*[GH])*)\)/g;
+
 const MOMENT = /At\s+(\d{3,4})Z?,\s*([^]*?)(?=\s+At\s+\d{3,4}Z?,|$)/g;
 
 const MONTHS = {
@@ -104,6 +96,16 @@ const INDICES = [
   ["capeJKg", String.raw`CAPE\s+\(J/kg\)`],
   ["temp700Mb", String.raw`700\s+mb\s+Temp\s+\(.?C\)`],
 ];
+
+/**
+ * Instability is deliberately not read.
+ *
+ * The reports print CINH, LI and precipitable water beside the heights, and one
+ * West Texas row reads `CINH (J/kg) 59975 125` — two columns whose first value
+ * cannot be a real inhibition. Whether that is the operator's typo or two
+ * numbers run together in the PDF, nothing in the product leans on those fields,
+ * so reading them would add a number that has to be doubted for no reader.
+ */
 
 /** `16.5-17.5 km, 93-287 kg/m2, 63-72 dBZ` — TITAN, as the report prints it. */
 const CELL = new RegExp(
@@ -151,6 +153,30 @@ function parseFlares(text) {
   return { glaciogenic, hygroscopic };
 }
 
+/** Small counts are sometimes spelled out: "One hygroscopic flare was burned". */
+const WORDS = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+};
+
+const NUMBER = `(\\d+|${Object.keys(WORDS).join("|")})`;
+
+const number = (text) => WORDS[text.toLowerCase()] ?? Number(text);
+
+/** `43 glaciogenic`, `One hygroscopic`, `24glaciogenic` — or nothing. */
+function countBefore(sentence, kind) {
+  const match = sentence.match(new RegExp(`${NUMBER}\\s*${kind}`, "i"));
+  return match ? number(match[1]) : null;
+}
+
 export function parseDate(text) {
   const match = text.match(
     /Seeding\s+Report\s+([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})/
@@ -162,16 +188,36 @@ export function parseDate(text) {
   return `${match[3]}-${pad(month)}-${pad(Number(match[2]))}`;
 }
 
-export function parseSoundings(text) {
-  const soundings = { KMAF: {}, KDRT: {} };
+/**
+ * The indices table, one column per sounding site the region briefs on.
+ *
+ * **How many columns there are has to be told, not guessed.** West Texas prints
+ * Midland and Del Rio side by side; Trans-Pecos prints Midland alone and packs
+ * two label/value pairs onto a line, so a parser that hopefully reads a second
+ * number off a one-site table picks up the next label instead — `-15` from
+ * `-15°C Height` becomes a freezing level at Del Rio.
+ */
+export function parseSoundings(text, sites) {
+  const soundings = Object.fromEntries(sites.map((site) => [site, {}]));
+
   for (const [field, label] of INDICES) {
-    const match = text.match(
-      new RegExp(`${label}\\s+(-?[\\d.]+)(?:\\s+(-?[\\d.]+))?`)
-    );
+    // The first column has to be there; a site that did not fly a balloon that
+    // morning leaves its column blank rather than the row out.
+    const columns =
+      String.raw`\s+(-?[\d.]+)` +
+      sites
+        .slice(1)
+        .map(() => String.raw`(?:\s+(-?[\d.]+))?`)
+        .join("");
+    const match = text.match(new RegExp(`${label}${columns}`));
     if (!match) continue;
-    soundings.KMAF[field] = Number(match[1]);
-    if (match[2] !== undefined) soundings.KDRT[field] = Number(match[2]);
+    sites.forEach((site, index) => {
+      if (match[index + 1] !== undefined) {
+        soundings[site][field] = Number(match[index + 1]);
+      }
+    });
   }
+
   return soundings;
 }
 
@@ -182,12 +228,12 @@ export function parseSoundings(text) {
  * quotes times and counties in the same breath and would otherwise offer up
  * near-misses; the table is the only place a position appears.
  */
-export function parseReleases(text, date) {
+export function parseReleases(text, date, counties, window) {
   const table = flightTable(text);
   if (!table) return [];
 
-  const rows = [...table.matchAll(RELEASE)];
-  if (rows.length === 0) return [];
+  const rows = [...table.matchAll(release(counties))];
+  if (rows.length === 0) return bracketed(table, date);
 
   const firstHour = parseHhmm(rows[0][1]).hour;
 
@@ -195,11 +241,51 @@ export function parseReleases(text, date) {
     at: instant(date, hhmm, firstHour),
     timeZ: hhmm.padStart(4, "0"),
     plane,
-    located: lat !== undefined,
+    located: lat !== undefined && inside(Number(lat), Number(lon), window),
     lat: lat === undefined ? null : Number(lat),
     lon: lon === undefined ? null : Number(lon),
     ...parseFlares(flares),
     county: county.replace(/\s+/g, " "),
+  }));
+}
+
+/**
+ * Whether a printed position is one the region could have flown.
+ *
+ * **A position outside the region's window is kept and not scored.** Trans-Pecos
+ * prints `-1033.7377` for one release on 30 June, between two rows reading
+ * -103.74 — a digit typed twice. Correcting it would be inventing a coordinate;
+ * dropping the row would move the day's flare count away from the total the
+ * report states three lines later. So the number stays exactly as printed and
+ * `located` says it cannot be put on a map, the same way a row with no position
+ * at all is handled.
+ */
+function inside(lat, lon, window) {
+  if (!window) return true;
+  return (
+    lon >= window.west &&
+    lon <= window.east &&
+    lat >= window.south &&
+    lat <= window.north
+  );
+}
+
+/** The earlier table, read only when the current one finds nothing. */
+function bracketed(table, date) {
+  const rows = [...table.matchAll(BRACKETED)];
+  if (rows.length === 0) return [];
+
+  const firstHour = parseHhmm(rows[0][1]).hour;
+
+  return rows.map(([, hhmm, plane, flares]) => ({
+    at: instant(date, hhmm, firstHour),
+    timeZ: hhmm.padStart(4, "0"),
+    plane,
+    located: false,
+    lat: null,
+    lon: null,
+    ...parseFlares(flares),
+    county: null,
   }));
 }
 
@@ -227,13 +313,15 @@ function flightTable(text) {
  * which is what the table sums to. The table is the record; this is here to
  * make the disagreement visible rather than to correct anything.
  */
-export function parseTotals(text) {
+export function parseTotals(text, counties) {
   const start = text.search(/Seeding\s+operations\s+were\s+conducted/);
   if (start < 0) return {};
 
   const totals = {};
-  for (const [, county, flares] of text.slice(start).matchAll(CLAIMED)) {
-    totals[county.replace(/\s+/g, " ")] = parseFlares(flares);
+  for (const [, name, flares] of text
+    .slice(start)
+    .matchAll(claimed(counties))) {
+    totals[name.replace(/\s+/g, " ")] = parseFlares(flares);
   }
   return totals;
 }
@@ -274,19 +362,25 @@ export function parseObservations(text, date) {
   return out;
 }
 
-/** One report, parsed. `seeded` is false for the `_NS` days. */
-export function parseReport(text, fallbackDate) {
+/**
+ * One report, parsed. `seeded` is false for the `_NS` days.
+ *
+ * `profile` is the region's own reading of the layout: which counties end a
+ * table row, which sounding sites the indices table has a column for, and the
+ * window a position has to fall in to be one the region could have flown.
+ */
+export function parseReport(text, fallbackDate, profile) {
   const date = parseDate(text) ?? fallbackDate;
   if (!date) throw new Error("no date in report, and no fallback given");
 
-  const releases = parseReleases(text, date);
+  const releases = parseReleases(text, date, profile.counties, profile.window);
 
   return {
     date,
     seeded: releases.length > 0,
-    soundings: parseSoundings(text),
+    soundings: parseSoundings(text, profile.sounding),
     releases,
-    claimed: parseTotals(text),
+    claimed: parseTotals(text, profile.counties),
     dayTotal: parseDayTotal(text),
     observations: parseObservations(text, date),
   };
@@ -311,16 +405,29 @@ export function sumReleases(releases) {
  * than the per-county one: the county breakdown is hand-tallied and drifts by
  * a flare or two, but the day total is the number the operator reports to
  * TDLR.
+ *
+ * **The sentence is written by hand and comes in every shape a person writes.**
+ * A day with no salt flares names only the glaciogenic ones; a day with one
+ * flare spells the number as a word; one report reads `24glaciogenic` with the
+ * space missing. Reading only the fullest form leaves the check off on nearly
+ * half the days in a season, which is where it is most wanted.
  */
 export function parseDayTotal(text) {
-  const match = text.match(
-    /(\d+)\s+glaciogenic\s+flares?\s+and\s+(\d+)\s+hygroscopic\s+flares?\s+were\s+burned\s+within\s+(\d+)/i
+  const sentence = text.match(/[^.]*\bburned\s+within\b[^.]*/i)?.[0];
+  if (!sentence) return null;
+
+  const glaciogenic = countBefore(sentence, "glaciogenic");
+  const hygroscopic = countBefore(sentence, "hygroscopic");
+  if (glaciogenic === null && hygroscopic === null) return null;
+
+  const clouds = sentence.match(
+    new RegExp(String.raw`within\s+${NUMBER}(?:\s+\w+)?\s+clouds?`, "i")
   );
-  if (!match) return null;
+
   return {
-    glaciogenic: Number(match[1]),
-    hygroscopic: Number(match[2]),
-    clouds: Number(match[3]),
+    glaciogenic: glaciogenic ?? 0,
+    hygroscopic: hygroscopic ?? 0,
+    clouds: clouds ? number(clouds[1]) : null,
   };
 }
 

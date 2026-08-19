@@ -358,14 +358,17 @@ const releases = day.releases.filter((release) => release.located);
  * page is about distance at one.
  */
 const verdicts = new Map();
-try {
-  const bracket = JSON.parse(
-    await readFile(join(OUT, "bracket-2025.json"), "utf8")
-  );
-  const scored = bracket.days.find((entry) => entry.date === DATE);
-  for (const row of scored?.rows ?? []) verdicts.set(row.release.at, row.held);
-} catch {
-  console.log("no bracket sweep on disk — season verdicts will be absent\n");
+if (region.runs?.bracket) {
+  try {
+    const bracket = JSON.parse(
+      await readFile(join(OUT, region.runs.bracket), "utf8")
+    );
+    const scored = bracket.days.find((entry) => entry.date === DATE);
+    for (const row of scored?.rows ?? [])
+      verdicts.set(row.release.at, row.held);
+  } catch {
+    console.log("no bracket sweep on disk — season verdicts will be absent\n");
+  }
 }
 
 // One analysis per release, and only the distinct ones are fetched.
@@ -447,12 +450,16 @@ for (const hour of hours) {
       plane: release.plane,
       glaciogenic: release.glaciogenic,
       hygroscopic: release.hygroscopic,
+      // Null where the report says a flare was released and not how many,
+      // which is every Panhandle row.
       payload:
-        release.glaciogenic && release.hygroscopic
-          ? "both"
-          : release.hygroscopic
-            ? "hygroscopic"
-            : "glaciogenic",
+        release.glaciogenic === null && release.hygroscopic === null
+          ? null
+          : release.glaciogenic && release.hygroscopic
+            ? "both"
+            : release.hygroscopic
+              ? "hygroscopic"
+              : "glaciogenic",
       offsetMinutes: drift?.offsetMinutes ?? null,
       drift,
       /** Where the release point is at the analysis time, if it could drift. */

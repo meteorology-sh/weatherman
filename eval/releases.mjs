@@ -1,10 +1,16 @@
 /**
- * Turn the WTWMA daily reports into the release list everything else scores
+ * Turn a programme's daily reports into the release list everything else scores
  * against.
  *
- * `node eval/releases.mjs` — downloads what it does not already have into
- * `eval/cache/`, parses every report, writes `eval/data/releases-2025.json`.
- * The PDFs are cached because they never change and the site is slow.
+ * `node eval/releases.mjs [--region=wtwma]` — downloads what it does not
+ * already have into `eval/cache/<region>/`, parses every report, writes the
+ * flight record `data/regions.json` names for that region. The PDFs are cached
+ * because they never change and the sites are slow.
+ *
+ * **West Texas and Trans-Pecos file the same document**, so both are read by the
+ * one parser in `lib/reports.mjs`, told which counties end a table row and which
+ * sounding sites the indices table has columns for. A programme whose reports
+ * look different needs its own reader, not another flag here.
  *
  * Run it again after editing the parser; it re-parses from cache without
  * touching the network.
@@ -20,24 +26,46 @@ import { extractText } from "./lib/pdf.mjs";
 import { parseReport, reconcile, sumReleases } from "./lib/reports.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const CACHE = join(HERE, "cache");
 const DATA = join(HERE, "data");
 
-async function pdf(base, { date, id }) {
-  const path = join(CACHE, `wtwma-${date}.pdf`);
+const REGION =
+  process.argv.find((arg) => arg.startsWith("--region="))?.slice(9) ?? "wtwma";
+
+const { regions } = JSON.parse(
+  await readFile(join(DATA, "regions.json"), "utf8")
+);
+const region = regions.find((entry) => entry.id === REGION);
+
+if (!region?.counties) {
+  console.error(
+    `${REGION} has no county list in regions.json — its reports are not read ` +
+      "by this parser"
+  );
+  process.exit(1);
+}
+
+/** One directory per programme, so a second one's reports cannot collide. */
+const CACHE = join(HERE, "cache", region.id);
+
+/** The cached report, or the one download that puts it there. */
+async function pdf({ file, url, date }) {
+  const path = join(CACHE, file);
   try {
     return await readFile(path);
   } catch {
-    const res = await fetch(`${base}/${id}`);
-    if (!res.ok) throw new Error(`${date}: ${res.status} fetching ${id}`);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${date}: ${res.status} fetching ${url}`);
     const body = Buffer.from(await res.arrayBuffer());
     await writeFile(path, body);
     return body;
   }
 }
 
-const manifest = JSON.parse(
-  await readFile(join(DATA, "wtwma-2025.json"), "utf8")
+const manifest = JSON.parse(await readFile(join(DATA, region.reports), "utf8"));
+
+/** Only the daily reports. A monthly summary is prose about days, not a day. */
+const reports = manifest.documents.filter(
+  (document) => document.kind === "daily"
 );
 
 await mkdir(CACHE, { recursive: true });
@@ -46,10 +74,14 @@ const days = [];
 const failures = [];
 const discrepancies = [];
 
-for (const entry of manifest.reports) {
+for (const entry of reports) {
   try {
-    const text = extractText(await pdf(manifest.base, entry));
-    const report = parseReport(text, entry.date);
+    const text = extractText(await pdf(entry));
+    const report = parseReport(text, entry.date, {
+      counties: region.counties,
+      sounding: region.sounding,
+      window: region.window,
+    });
 
     // A report that parsed to nothing is a scanned page or a changed layout,
     // not a quiet day. The `_NS` days are marked in the manifest, so a day
@@ -87,6 +119,15 @@ for (const entry of manifest.reports) {
     for (const line of disagreements)
       discrepancies.push(`${entry.date}: ${line}`);
 
+    for (const release of report.releases.filter(
+      (r) => r.lat !== null && !r.located
+    )) {
+      discrepancies.push(
+        `${entry.date}: ${release.timeZ}Z prints ${release.lat} / ${release.lon}, ` +
+          "which is outside the target area — kept, not scored"
+      );
+    }
+
     const unlocated = report.releases.filter((r) => !r.located).length;
     days.push({
       ...report,
@@ -121,11 +162,11 @@ function counties(report) {
 const releases = days.flatMap((day) => day.releases);
 
 await writeFile(
-  join(DATA, "releases-2025.json"),
+  join(DATA, region.releases),
   `${JSON.stringify(
     {
       source: manifest.source,
-      operator: "West Texas Weather Modification Association",
+      operator: region.name,
       note: "One glaciogenic flare is 5.5 g AgI; one hygroscopic flare is 500 g NaCl.",
       days,
     },

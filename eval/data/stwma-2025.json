@@ -1,0 +1,83 @@
+{
+  "source": "https://southtexasweathermodification.com/post.html",
+  "note": "The association posts each operational day as a Google Doc; `export?format=pdf` renders the same document. Its own page stops at 2 July 2025. The season document is the run of daily seeding reports TDLR publishes for the programme, and it is the one to read for the rest of the year.",
+  "documents": [
+    {
+      "file": "stwma-2025-03-26.pdf",
+      "url": "https://docs.google.com/document/d/1oNelJ-tjTltD9OX4IaMWdIDLj0HvpSHo/export?format=pdf",
+      "date": "2025-03-26",
+      "kind": "daily"
+    },
+    {
+      "file": "stwma-2025-03-31.pdf",
+      "url": "https://docs.google.com/document/d/13uL3xRrkKQOeq3yTxMQkutxPCx3gd63d/export?format=pdf",
+      "date": "2025-03-31",
+      "kind": "daily"
+    },
+    {
+      "file": "stwma-2025-04-30.pdf",
+      "url": "https://docs.google.com/document/d/18muvrZE31-vITqI87EaJBcxeU7eb0Nig/export?format=pdf",
+      "date": "2025-04-30",
+      "kind": "daily"
+    },
+    {
+      "file": "stwma-2025-05-02.pdf",
+      "url": "https://docs.google.com/document/d/1-Jt3P5sN9a0I0p2w67VXFHOOjCnel6g7/export?format=pdf",
+      "date": "2025-05-02",
+      "kind": "daily"
+    },
+    {
+      "file": "stwma-2025-05-06.pdf",
+      "url": "https://docs.google.com/document/d/13Ig3Io_aTaOpWs5Aj8PWEiSVxY_7_P5o/export?format=pdf",
+      "date": "2025-05-06",
+      "kind": "daily"
+    },
+    {
+      "file": "stwma-2025-05-08.pdf",
+      "url": "https://docs.google.com/document/d/1bDSIhIaTIdP3yvGrx9sf0O6FZZYTNHt9/export?format=pdf",
+      "date": "2025-05-08",
+      "kind": "daily"
+    },
+    {
+      "file": "stwma-2025-05-10.pdf",
+      "url": "https://docs.google.com/document/d/1OruGDjm_vYxjyOAobGQYElAOesNbeTRY/export?format=pdf",
+      "date": "2025-05-10",
+      "kind": "daily"
+    },
+    {
+      "file": "stwma-2025-06-15.pdf",
+      "url": "https://docs.google.com/document/d/1t43MDiO30ZLkeW6CWyu7opjzqPuB7Hte/export?format=pdf",
+      "date": "2025-06-15",
+      "kind": "daily"
+    },
+    {
+      "file": "stwma-2025-06-21.pdf",
+      "url": "https://docs.google.com/document/d/1Vr_rZpsRLL7oKBoQ3lDCt703CHHdbbCS/export?format=pdf",
+      "date": "2025-06-21",
+      "kind": "daily"
+    },
+    {
+      "file": "stwma-2025-06-29.pdf",
+      "url": "https://docs.google.com/document/d/11nBW4HpXpM0-GJVaBxhD8lWNJYeQi4vi/export?format=pdf",
+      "date": "2025-06-29",
+      "kind": "daily"
+    },
+    {
+      "file": "stwma-2025-06-30.pdf",
+      "url": "https://docs.google.com/document/d/1Yk7IWkcyYIExqAmBl4Jv-Mx0gZMIQqXc/export?format=pdf",
+      "date": "2025-06-30",
+      "kind": "daily"
+    },
+    {
+      "file": "stwma-2025-07-02.pdf",
+      "url": "https://docs.google.com/document/d/1PHsJWbiy0vB86XO5pqr5wvfEMNKs7F-C/export?format=pdf",
+      "date": "2025-07-02",
+      "kind": "daily"
+    },
+    {
+      "file": "stwma-2025-season.pdf",
+      "url": "https://www.tdlr.texas.gov/weather/pdf/2025-STWMA-Operations.pdf",
+      "kind": "season"
+    }
+  ]
+}

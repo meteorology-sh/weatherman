@@ -24,6 +24,13 @@ export const Findings = () => {
     state.regions.all?.find((entry) => entry.id === region)
   );
 
+  // Named rather than assumed: the ascents a programme briefs on are its own.
+  const sites = open?.sounding.length
+    ? `${open.sounding.join(" and ")} ${
+        open.sounding.length > 1 ? "ascents" : "ascent"
+      }`
+    : "ascents";
+
   if (loading || error) {
     return (
       <Status
@@ -81,8 +88,12 @@ export const Findings = () => {
           className="card bg-base-200 hover:bg-base-300 transition-colors"
         >
           <div className="card-body">
-            <div className="text-xs tracking-widest opacity-100 text-success">
-              QUESTION 1 — ANSWERED YES
+            <div
+              className={`text-xs tracking-widest ${
+                band ? "text-success" : "text-base-content"
+              }`}
+            >
+              QUESTION 1 — {band ? "ANSWERED YES" : "NOT MEASURED HERE YET"}
             </div>
             <h2 className="card-title">
               Is the seeding band in the right place?
@@ -119,9 +130,8 @@ export const Findings = () => {
                   </div>
                 </div>
                 <p className="text-sm">
-                  The band we draw sits where the weather balloons from Midland
-                  and Del Rio measured it — the same two ascents the operator
-                  briefs on every morning.
+                  The band we draw sits where the weather balloons measured it —
+                  the same {sites} the operator briefs on every morning.
                 </p>
               </>
             ) : (
@@ -137,8 +147,13 @@ export const Findings = () => {
           className="card bg-base-200 hover:bg-base-300 transition-colors"
         >
           <div className="card-body">
-            <div className="text-xs tracking-widest text-warning">
-              QUESTION 2 — ANSWERED ALMOST NEVER
+            <div
+              className={`text-xs tracking-widest ${
+                overlap ? "text-warning" : "text-base-content"
+              }`}
+            >
+              QUESTION 2 —{" "}
+              {overlap ? "ANSWERED ALMOST NEVER" : "NOT MEASURED HERE YET"}
             </div>
             <h2 className="card-title">
               Do the flares fall inside what we paint?

@@ -625,7 +625,11 @@
         }
       ],
       "claimed": {},
-      "dayTotal": null,
+      "dayTotal": {
+        "glaciogenic": 6,
+        "hygroscopic": 0,
+        "clouds": 1
+      },
       "observations": [
         {
           "at": "2025-04-29T19:20:00.000Z",
@@ -1046,7 +1050,11 @@
           "hygroscopic": 0
         }
       },
-      "dayTotal": null,
+      "dayTotal": {
+        "glaciogenic": 18,
+        "hygroscopic": 0,
+        "clouds": 3
+      },
       "observations": [
         {
           "at": "2025-05-09T20:20:00.000Z",
@@ -1241,7 +1249,11 @@
         }
       ],
       "claimed": {},
-      "dayTotal": null,
+      "dayTotal": {
+        "glaciogenic": 6,
+        "hygroscopic": 0,
+        "clouds": 2
+      },
       "observations": [
         {
           "at": "2025-05-17T22:20:00.000Z",
@@ -3218,7 +3230,11 @@
         }
       ],
       "claimed": {},
-      "dayTotal": null,
+      "dayTotal": {
+        "glaciogenic": 24,
+        "hygroscopic": 2,
+        "clouds": 1
+      },
       "observations": [
         {
           "at": "2025-05-27T19:00:00.000Z",
@@ -3768,7 +3784,11 @@
           "hygroscopic": 0
         }
       },
-      "dayTotal": null,
+      "dayTotal": {
+        "glaciogenic": 42,
+        "hygroscopic": 0,
+        "clouds": 3
+      },
       "observations": [
         {
           "at": "2025-06-03T18:20:00.000Z",
@@ -5313,7 +5333,11 @@
         }
       ],
       "claimed": {},
-      "dayTotal": null,
+      "dayTotal": {
+        "glaciogenic": 0,
+        "hygroscopic": 1,
+        "clouds": 1
+      },
       "observations": [],
       "flewOnly": false
     },
@@ -5604,7 +5628,11 @@
           "hygroscopic": 0
         }
       },
-      "dayTotal": null,
+      "dayTotal": {
+        "glaciogenic": 52,
+        "hygroscopic": 0,
+        "clouds": 8
+      },
       "observations": [
         {
           "at": "2025-06-30T23:00:00.000Z",
@@ -5792,7 +5820,11 @@
         }
       ],
       "claimed": {},
-      "dayTotal": null,
+      "dayTotal": {
+        "glaciogenic": 18,
+        "hygroscopic": 0,
+        "clouds": 1
+      },
       "observations": [
         {
           "at": "2025-08-04T20:40:00.000Z",
@@ -8739,7 +8771,11 @@
         }
       ],
       "claimed": {},
-      "dayTotal": null,
+      "dayTotal": {
+        "glaciogenic": 4,
+        "hygroscopic": 0,
+        "clouds": 2
+      },
       "observations": [
         {
           "at": "2025-08-18T19:20:00.000Z",
@@ -10871,7 +10907,11 @@
           "hygroscopic": 0
         }
       },
-      "dayTotal": null,
+      "dayTotal": {
+        "glaciogenic": 39,
+        "hygroscopic": 0,
+        "clouds": 6
+      },
       "observations": [
         {
           "at": "2025-08-27T18:20:00.000Z",
@@ -11766,7 +11806,11 @@
           "hygroscopic": 0
         }
       },
-      "dayTotal": null,
+      "dayTotal": {
+        "glaciogenic": 17,
+        "hygroscopic": 0,
+        "clouds": 2
+      },
       "observations": [],
       "flewOnly": false
     },
@@ -12095,7 +12139,11 @@
         }
       ],
       "claimed": {},
-      "dayTotal": null,
+      "dayTotal": {
+        "glaciogenic": 3,
+        "hygroscopic": 0,
+        "clouds": 1
+      },
       "observations": [],
       "flewOnly": false
     },
@@ -12488,7 +12536,11 @@
         }
       ],
       "claimed": {},
-      "dayTotal": null,
+      "dayTotal": {
+        "glaciogenic": 4,
+        "hygroscopic": 0,
+        "clouds": 1
+      },
       "observations": [
         {
           "at": "2025-10-07T21:20:00.000Z",
@@ -12735,7 +12787,11 @@
           "hygroscopic": 0
         }
       },
-      "dayTotal": null,
+      "dayTotal": {
+        "glaciogenic": 26,
+        "hygroscopic": 0,
+        "clouds": 3
+      },
       "observations": [
         {
           "at": "2025-10-08T19:00:00.000Z",

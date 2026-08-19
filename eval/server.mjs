@@ -255,11 +255,7 @@ const forDate = (template, date) => template.replace("{date}", date);
 /* ---------- how near the flares were ---------- */
 
 /**
- * The day's distances, summarised per layer.
- *
- * Computed here rather than in the page for the reason everything else is: a
- * figure quoted anywhere has to come from one place, or the map and the prose
- * drift apart while both look right.
+ * A set of measured distances, as the few numbers worth quoting.
  *
  * **One cell is the yardstick, not a judgement about seeding.** The layers are
  * contoured on a 12 km grid, so the map cannot resolve anything finer, and a
@@ -267,45 +263,115 @@ const forDate = (template, date) => template.replace("{date}", date);
  * Two cells is carried as the next honest step out. Neither is a claim about how
  * near an aircraft ought to be.
  */
+function summarise(measured, cell) {
+  const kms = measured.map((near) => near.km).sort((a, b) => a - b);
+  return {
+    n: measured.length,
+    inside: measured.filter((near) => near.inside).length,
+    withinCell: kms.filter((km) => km <= cell).length,
+    withinTwoCells: kms.filter((km) => km <= 2 * cell).length,
+    median: kms.length ? kms[Math.floor(kms.length / 2)] : null,
+    worst: kms.length ? kms[kms.length - 1] : null,
+  };
+}
+
+/** Every release in a painted day, in time order across its analyses. */
+const flaresOf = (painted) =>
+  (painted.analyses ?? []).flatMap((entry) => entry.flares);
+
+/** The releases a layer could be measured against — the rest have no frame. */
+const measuredAgainst = (flares, key) =>
+  flares
+    .map((flare) => flare.near?.[key])
+    .filter((near) => near && near.km !== null);
+
+/** How far each release had to be carried to meet its analysis. */
+function offsets(flares) {
+  const minutes = flares
+    .map((flare) => flare.offsetMinutes)
+    .filter((value) => value !== null && value !== undefined)
+    .map(Math.abs)
+    .sort((a, b) => a - b);
+  return minutes.length
+    ? {
+        median: minutes[Math.floor(minutes.length / 2)],
+        worst: minutes[minutes.length - 1],
+      }
+    : null;
+}
+
+/**
+ * The day's distances, summarised per layer.
+ *
+ * Computed here rather than in the page for the reason everything else is: a
+ * figure quoted anywhere has to come from one place, or the map and the prose
+ * drift apart while both look right.
+ */
 function proximity(painted) {
-  const flares = (painted.analyses ?? []).flatMap((entry) => entry.flares);
+  const flares = flaresOf(painted);
   const cell = painted.cellKm;
   const layers = {};
 
   for (const layer of painted.layers ?? []) {
-    const measured = flares
-      .map((flare) => flare.near?.[layer.key])
-      .filter((near) => near && near.km !== null);
-    const kms = measured.map((near) => near.km).sort((a, b) => a - b);
-
-    layers[layer.key] = {
-      n: measured.length,
-      inside: measured.filter((near) => near.inside).length,
-      withinCell: kms.filter((km) => km <= cell).length,
-      withinTwoCells: kms.filter((km) => km <= 2 * cell).length,
-      median: kms.length ? kms[Math.floor(kms.length / 2)] : null,
-      worst: kms.length ? kms[kms.length - 1] : null,
-    };
+    layers[layer.key] = summarise(measuredAgainst(flares, layer.key), cell);
   }
-
-  const offsets = flares
-    .map((flare) => flare.offsetMinutes)
-    .filter((minutes) => minutes !== null && minutes !== undefined)
-    .map(Math.abs)
-    .sort((a, b) => a - b);
 
   return {
     cellKm: cell,
     flares: flares.length,
     layers,
-    // How far each release had to be carried to meet its analysis. The point of
-    // printing it is that it bounds what the drift correction could be worth.
-    offset: offsets.length
-      ? {
-          median: offsets[Math.floor(offsets.length / 2)],
-          worst: offsets[offsets.length - 1],
-        }
-      : null,
+    // The point of printing it is that it bounds what the drift correction
+    // could be worth.
+    offset: offsets(flares),
+  };
+}
+
+/**
+ * The same question over every day that has been painted.
+ *
+ * **A season is not the average of its days.** A day with one flare and a day
+ * with forty-six each answer the question once, so the pooled figures below
+ * count releases rather than averaging per-day rates, and the per-day rows are
+ * carried alongside because the interesting shape of this finding is which days
+ * disagree rather than how often they do.
+ *
+ * A day whose file has not been built is absent rather than zero, and `days`
+ * against `flying` says how much of the season the numbers cover.
+ */
+async function near({ region, seeded }) {
+  const built = [];
+  for (const record of seeded) {
+    const painted = await run(forDate(region.runs.held, record.date));
+    if (painted) built.push({ date: record.date, painted });
+  }
+  if (!built.length) return null;
+
+  const cell = built[0].painted.cellKm;
+  const layers = built[0].painted.layers ?? [];
+  const all = built.flatMap((entry) => flaresOf(entry.painted));
+
+  return {
+    cellKm: cell,
+    days: built.length,
+    flying: seeded.length,
+    flares: all.length,
+    // Every release the season has, painted or not, so the coverage of the
+    // pooled numbers can be read off the same object.
+    located: seeded.reduce(
+      (n, day) => n + day.releases.filter((release) => release.located).length,
+      0
+    ),
+    layers: Object.fromEntries(
+      layers.map((layer) => [
+        layer.key,
+        summarise(measuredAgainst(all, layer.key), cell),
+      ])
+    ),
+    offset: offsets(all),
+    rows: built.map((entry) => ({
+      date: entry.date,
+      ...proximity(entry.painted),
+    })),
   };
 }
 
@@ -334,12 +400,16 @@ async function day({ region, seeded }, date) {
         const row = byTime.get(release.at);
         return {
           ...release,
+          // A Panhandle row says a flare was released and never how many, so
+          // its payload is unknown rather than glaciogenic by default.
           payload:
-            release.glaciogenic && release.hygroscopic
-              ? "both"
-              : release.hygroscopic
-                ? "hygroscopic"
-                : "glaciogenic",
+            release.glaciogenic === null && release.hygroscopic === null
+              ? null
+              : release.glaciogenic && release.hygroscopic
+                ? "both"
+                : release.hygroscopic
+                  ? "hygroscopic"
+                  : "glaciogenic",
           bracket: row
             ? { from: row.h0, to: row.h1, into: row.intoGapMinutes }
             : null,
@@ -358,12 +428,21 @@ async function day({ region, seeded }, date) {
  * conversion happens once, here, rather than at each place that draws it.
  */
 function briefing(record) {
-  const site = record.soundings?.KMAF ?? record.soundings?.KDRT;
+  // The first site the day carries. West Texas briefs on Midland and Del Rio,
+  // Trans-Pecos on Midland alone, and the Panhandle on a model column rather
+  // than a balloon at all — so which key is there is the region's business.
+  const site = Object.values(record.soundings ?? {}).find(
+    (values) => values && Object.keys(values).length
+  );
   if (!site) return null;
   const ft = (m) => (m == null ? null : Math.round(m / M_PER_FT));
   return {
     freezingLevelFt: ft(site.freezingLevelM),
+    // The Panhandle's forecast column stops at -10 °C, which is above the
+    // freezing level and below the top of the band. Reporting it as the -15
+    // height would be reporting a different height under its name.
     minus15HeightFt: ft(site.minus15HeightM),
+    minus10HeightFt: ft(site.minus10HeightM),
     temp700Mb: site.temp700Mb ?? null,
   };
 }
@@ -391,22 +470,29 @@ const server = createServer(async (req, res) => {
     if (path === "/regions") {
       return send(
         200,
-        regions.map(({ id, name, short, base, source, season, window }) => ({
-          id,
-          name,
-          short,
-          base: base ?? null,
-          source: source ?? null,
-          season: season ?? null,
-          window: window ?? null,
-          evaluable: Boolean(evaluable(id)),
-          days: evaluable(id)?.seeded.length ?? 0,
-          flares:
-            evaluable(id)?.seeded.reduce(
-              (n, d) => n + d.releases.filter((r) => r.located).length,
-              0
-            ) ?? 0,
-        }))
+        regions.map(
+          ({ id, name, short, base, source, season, window, sounding }) => ({
+            id,
+            name,
+            short,
+            base: base ?? null,
+            source: source ?? null,
+            season: season ?? null,
+            window: window ?? null,
+            // What the region's own briefing reads. Two balloon ascents in West
+            // Texas, one in Trans-Pecos, a model column in the Panhandle — a
+            // page that names Midland and Del Rio for all three is describing
+            // one operator's morning as everybody's.
+            sounding: sounding ?? [],
+            evaluable: Boolean(evaluable(id)),
+            days: evaluable(id)?.seeded.length ?? 0,
+            flares:
+              evaluable(id)?.seeded.reduce(
+                (n, d) => n + d.releases.filter((r) => r.located).length,
+                0
+              ) ?? 0,
+          })
+        )
       );
     }
 
@@ -440,6 +526,15 @@ const server = createServer(async (req, res) => {
         return found
           ? send(200, found)
           : send(404, { error: "no bracket run yet — node eval/bracket.mjs" });
+      }
+
+      if (rest === "/near") {
+        const found = await near(entry);
+        return found
+          ? send(200, found)
+          : send(404, {
+              error: "no day painted yet — node eval/held.mjs <date>",
+            });
       }
 
       if (rest === "/days") {

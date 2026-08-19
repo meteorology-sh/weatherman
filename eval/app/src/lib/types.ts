@@ -33,6 +33,8 @@ export type Region = {
   source: string | null;
   season: number | null;
   window: { west: number; east: number; south: number; north: number } | null;
+  /** What this programme briefs on — balloon sites, or a model column. */
+  sounding: string[];
   evaluable: boolean;
   days: number;
   flares: number;
@@ -112,6 +114,8 @@ export type OverlapFinding = {
 export type Briefing = {
   freezingLevelFt: number | null;
   minus15HeightFt: number | null;
+  /** The Panhandle's forecast column stops here; the balloons carry -15. */
+  minus10HeightFt: number | null;
   temp700Mb: number | null;
 };
 
@@ -156,7 +160,8 @@ export type Release = {
   lon: number;
   county: string;
   plane: string;
-  payload: "glaciogenic" | "hygroscopic" | "both";
+  /** Null where the report says a flare was released and not how many. */
+  payload: "glaciogenic" | "hygroscopic" | "both" | null;
   bracket: { from: string; to: string; into: number } | null;
   held: Record<string, Outcome> | null;
   lo: Answer | null;

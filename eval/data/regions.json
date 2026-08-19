@@ -1,5 +1,5 @@
 {
-  "note": "The Texas weather modification programmes this evaluation can be run against. A region is evaluable once `releases` names a parsed flight record in this directory; until then it is listed so the gap is visible rather than invisible. The roster below is not confirmed against the Texas Department of Licensing and Regulation permit list — treat every entry without a `source` as a name to check, not a fact.",
+  "note": "The Texas rain-enhancement programmes this evaluation can be run against — the five TDLR lists at https://www.tdlr.texas.gov/weather/summary.htm. A region is evaluable once `releases` names a parsed flight record in this directory; until then it is listed so the gap is visible rather than invisible. `reports` names the manifest of its 2025 documents, which `records.mjs` downloads into `cache/<id>/` — having them on disk is what a parser gets written against.",
   "regions": [
     {
       "id": "wtwma",
@@ -11,36 +11,132 @@
       "releases": "releases-2025.json",
       "reports": "wtwma-2025.json",
       "sounding": ["KMAF", "KDRT"],
-      "window": { "west": -106, "east": -96, "south": 27.5, "north": 36 },
+      "window": {
+        "west": -106,
+        "east": -96,
+        "south": 27.5,
+        "north": 36
+      },
       "runs": {
         "reconcile": "reconcile-2025.json",
         "bracket": "bracket-2025.json",
         "held": "held-{date}.json"
-      }
-    },
-    {
-      "id": "soar",
-      "name": "Southern Ogallala Aquifer Rain Program",
-      "short": "Southern High Plains",
-      "releases": null
+      },
+      "counties": [
+        "Baylor",
+        "Coke",
+        "Concho",
+        "Crane",
+        "Crockett",
+        "Fisher",
+        "Glasscock",
+        "Haskell",
+        "Howard",
+        "Irion",
+        "Jones",
+        "Knox",
+        "Menard",
+        "Midland",
+        "Mitchell",
+        "Nolan",
+        "Pecos",
+        "Reagan",
+        "Runnels",
+        "Schleicher",
+        "Scurry",
+        "Sterling",
+        "Sutton",
+        "Terrell",
+        "Tom Green",
+        "Upton"
+      ]
     },
     {
       "id": "transpecos",
       "name": "Trans Pecos Weather Modification Association",
       "short": "Trans Pecos",
-      "releases": null
+      "base": "Pecos",
+      "source": "https://westtxwxmod.com/?page_id=7399",
+      "season": 2025,
+      "releases": "releases-transpecos-2025.json",
+      "reports": "transpecos-2025.json",
+      "sounding": ["KMAF"],
+      "counties": [
+        "Brewster",
+        "Crane",
+        "Crockett",
+        "Culberson",
+        "Jeff Davis",
+        "Loving",
+        "Pecos",
+        "Reeves",
+        "Terrell",
+        "Upton",
+        "Ward"
+      ],
+      "window": {
+        "west": -106,
+        "east": -100.8,
+        "south": 28.8,
+        "north": 32.4
+      },
+      "runs": {
+        "held": "held-transpecos-{date}.json"
+      }
     },
     {
       "id": "panhandle",
       "name": "Panhandle Groundwater Conservation District",
       "short": "Panhandle",
-      "releases": null
+      "base": "White Deer",
+      "source": "https://www.pgcd.us/flight-tracks",
+      "season": 2025,
+      "releases": "releases-panhandle-2025.json",
+      "reports": "panhandle-2025.json",
+      "sounding": ["NAM"],
+      "counties": [
+        "Armstrong",
+        "Carson",
+        "Donley",
+        "Gray",
+        "Hutchinson",
+        "Potter",
+        "Roberts",
+        "Wheeler"
+      ],
+      "window": {
+        "west": -102.9,
+        "east": -99.9,
+        "south": 34.5,
+        "north": 36.2
+      },
+      "origin": {
+        "name": "the radar at Amarillo",
+        "at": [35.2333, -101.7092],
+        "note": "The flight tables give a bearing and a range and never say from where. Projected from Amarillo, 87% of the season's rows land inside the county their own row names; from the district office at White Deer, 9%. Whether the bearings are true or magnetic is not stated, and no rotation is applied: as printed, 76.5% of releases land in the county their row names, against 93.8% and 96.1% for the two programmes that print coordinates instead. About 6° of rotation closes most of that gap, which is what a magnetic display would mean — 4 km at 30 nm, under half a 12 km cell. `registration.mjs` is where those figures come from."
+      },
+      "runs": {
+        "held": "held-panhandle-{date}.json"
+      }
     },
     {
       "id": "stwma",
       "name": "South Texas Weather Modification Association",
       "short": "South Texas",
-      "releases": null
+      "base": "Pleasanton",
+      "source": "https://southtexasweathermodification.com/post.html",
+      "season": 2025,
+      "releases": null,
+      "reports": "stwma-2025.json"
+    },
+    {
+      "id": "plains",
+      "name": "Rolling Plains Water Enhancement Project",
+      "short": "Rolling Plains",
+      "source": "https://www.tdlr.texas.gov/weather/summary.htm",
+      "season": 2025,
+      "releases": null,
+      "reports": "plains-2025.json"
     }
   ]
 }

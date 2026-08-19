@@ -1,0 +1,351 @@
+{
+  "source": "https://westtxwxmod.com/?page_id=7399",
+  "note": "One daily report per operational day of the 2025 Trans-Pecos season, and the monthly summary for each month it flew. The association shares WTWMA's site and storage bucket, so the daily reports carry the same layout as the ones in `wtwma-2025.json`. `flew` marks a day filed _NS — the aircraft launched and seeded nothing.",
+  "documents": [
+    {
+      "file": "transpecos-2025-03-27.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/8ee8dfedc4b540c5b92ccdf8b398a93b",
+      "date": "2025-03-27",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-04-16.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/1b3f4fe093244017aab9ee8e32ae1c62",
+      "date": "2025-04-16",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-04-19.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/43662637786a4bb286b61cc7a342ab26",
+      "date": "2025-04-19",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-04-22.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/83f4e3dd74d84a14abf659cc69329017",
+      "date": "2025-04-22",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-04-23.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/f3f76ebea8ef46c6b0f5ace38b24d1b3",
+      "date": "2025-04-23",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-04-24.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/8329f1f163194ef7a24f93eb2f69d2d9",
+      "date": "2025-04-24",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-04-25.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/14e8f73f43a14cbfb6f5972f9c9a25b5",
+      "date": "2025-04-25",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-04-26.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/eb95fa2c571f48b7afce03636174376f",
+      "date": "2025-04-26",
+      "kind": "daily",
+      "flew": true
+    },
+    {
+      "file": "transpecos-2025-04-27.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/9c2c4958582746f4b36fe2a298a9e833",
+      "date": "2025-04-27",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-05-04.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/49053b23c3c14e8db8d4ec199ab91a03",
+      "date": "2025-05-04",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-05-22.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/6bd0e05a3fbe4b42899240a5d8b7bd09",
+      "date": "2025-05-22",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-05-23.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/632474859aa14de4a32accdb23997125",
+      "date": "2025-05-23",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-05-24.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/68312d00e4ff4973bb2d32b5e58e49a6",
+      "date": "2025-05-24",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-05-29.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/1697091b76fc4e63a4fa50a9ef6d4bac",
+      "date": "2025-05-29",
+      "kind": "daily",
+      "flew": true
+    },
+    {
+      "file": "transpecos-2025-06-02.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/1182d584332649dabb0bcd7506e7b1fe",
+      "date": "2025-06-02",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-06-05.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/3d48fa6f41d34ebdad02f1523b3225ae",
+      "date": "2025-06-05",
+      "kind": "daily",
+      "flew": true
+    },
+    {
+      "file": "transpecos-2025-06-06.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/a3be03b107f64e63950f2e456373f95f",
+      "date": "2025-06-06",
+      "kind": "daily",
+      "flew": true
+    },
+    {
+      "file": "transpecos-2025-06-13.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/b40c9cc919a84d8fb6fa48cd6a29e677",
+      "date": "2025-06-13",
+      "kind": "daily",
+      "flew": true
+    },
+    {
+      "file": "transpecos-2025-06-22.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/e87375222d39402f8eff19ffcf2098b4",
+      "date": "2025-06-22",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-06-23.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/5a029c34e3084635a0abe0cd185db6ea",
+      "date": "2025-06-23",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-06-24.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/c16ccbfda9da4e839c6945a8e548d3b1",
+      "date": "2025-06-24",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-06-25.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/8fe1bf0a378849cfb8780d9cd4037ad9",
+      "date": "2025-06-25",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-06-26.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/958884edcf7a485486bc3724315de6eb",
+      "date": "2025-06-26",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-06-30.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/aae844b3e78640ee93128d08ffc2c490",
+      "date": "2025-06-30",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-08-04.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/f480b100cefb4b5b80a4451b3d01b8f2",
+      "date": "2025-08-04",
+      "kind": "daily",
+      "flew": true
+    },
+    {
+      "file": "transpecos-2025-08-11.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/a8425ba4ca1a4ba393fbaea302840b15",
+      "date": "2025-08-11",
+      "kind": "daily",
+      "flew": true
+    },
+    {
+      "file": "transpecos-2025-08-12.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/a1788e2038264a49920666b68ae37e89",
+      "date": "2025-08-12",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-08-17.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/3bb6b69ddefe4edb838aa519ff2dce13",
+      "date": "2025-08-17",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-08-18.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/16ba0446b3c0455da022e0527e509091",
+      "date": "2025-08-18",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-08-19.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/b18f70797e1746e19d2be06ebd130b4e",
+      "date": "2025-08-19",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-08-20.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/2b1cdf8e66ae4bd59c4b79acda740cf8",
+      "date": "2025-08-20",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-08-27.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/1a865c59fc45494795ee46893ad40543",
+      "date": "2025-08-27",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-08-29.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/d3015a729b744d23b42189e8d1c7691c",
+      "date": "2025-08-29",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-08-30.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/bf76c8dddcf948de979f02ac373bf092",
+      "date": "2025-08-30",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-08-31.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/011b055f2ba04eb5a1fedcfed3d806e8",
+      "date": "2025-08-31",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-09-07.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/4f3ca5ba56d54970975510a9a0cec1e1",
+      "date": "2025-09-07",
+      "kind": "daily",
+      "flew": true
+    },
+    {
+      "file": "transpecos-2025-09-13.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/cf37758ff377440c8192c347d63497d6",
+      "date": "2025-09-13",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-09-14.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/1e09c544d2384ea096c369ae1e99edf7",
+      "date": "2025-09-14",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-09-15.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/537dcc4538ad458194a76313a3c8ab37",
+      "date": "2025-09-15",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-09-18.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/37f5aec4b298478a93e30024212d329e",
+      "date": "2025-09-18",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-09-20.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/cac9c62739734cd193472fa9fbd2a4bc",
+      "date": "2025-09-20",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-09-23.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/8fa9040daf004c94b0ee8f203a09f0fb",
+      "date": "2025-09-23",
+      "kind": "daily",
+      "flew": true
+    },
+    {
+      "file": "transpecos-2025-09-27.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/02d374524e55431d8d0be9a856ab0cdd",
+      "date": "2025-09-27",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-09-28.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/b0af7c7588d4472a805ea706a41f546f",
+      "date": "2025-09-28",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-10-08.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/877d1a4bee0445c196c00520f85d1a84",
+      "date": "2025-10-08",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-10-16.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/a233c8c4d1fe413ca45876141c80b04d",
+      "date": "2025-10-16",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-10-17.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/a6503fc24531431cb7f6a744d4be690c",
+      "date": "2025-10-17",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-10-24.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/9649ee123f9a492997e68d1c9457b008",
+      "date": "2025-10-24",
+      "kind": "daily"
+    },
+    {
+      "file": "transpecos-2025-03-month.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/977b0195ddaa487d88bdd6a81315f354",
+      "month": "2025-03",
+      "kind": "monthly"
+    },
+    {
+      "file": "transpecos-2025-04-month.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/7acaab71f0bb4c4ab6aac6aa8b36b5f7",
+      "month": "2025-04",
+      "kind": "monthly"
+    },
+    {
+      "file": "transpecos-2025-05-month.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/8125ac5785634067958654034ba88f9e",
+      "month": "2025-05",
+      "kind": "monthly"
+    },
+    {
+      "file": "transpecos-2025-06-month.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/02d316d0af1b483c9a0b5269b1d6ecb8",
+      "month": "2025-06",
+      "kind": "monthly"
+    },
+    {
+      "file": "transpecos-2025-07-month.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/9c19e5825a954310b6d9fc06c9acc991",
+      "month": "2025-07",
+      "kind": "monthly"
+    },
+    {
+      "file": "transpecos-2025-08-month.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/2f80e569a2344a19ad1e427f9db48687",
+      "month": "2025-08",
+      "kind": "monthly"
+    },
+    {
+      "file": "transpecos-2025-09-month.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/b9f83d95efd24cc89af2993db6a069d7",
+      "month": "2025-09",
+      "kind": "monthly"
+    },
+    {
+      "file": "transpecos-2025-10-month.pdf",
+      "url": "https://storage.googleapis.com/production-bluehost-v1-0-9/579/1359579/rl7nwo3R/0bc31a434ea5436ea593215a55748ddf",
+      "month": "2025-10",
+      "kind": "monthly"
+    }
+  ]
+}

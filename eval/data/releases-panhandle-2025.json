@@ -1,0 +1,4059 @@
+{
+  "source": "https://www.pgcd.us/flight-tracks",
+  "operator": "Panhandle Groundwater Conservation District",
+  "note": "Positions are a bearing and a range off the radar at Amarillo, projected here. Flare counts are per day, from the monthly operations report; the flight table gives none.",
+  "origin": {
+    "name": "the radar at Amarillo",
+    "at": [
+      35.2333,
+      -101.7092
+    ],
+    "note": "The flight tables give a bearing and a range and never say from where. Projected from Amarillo, 87% of the season's rows land inside the county their own row names; from the district office at White Deer, 9%. Whether the bearings are true or magnetic is not stated and the county labels are not sharp enough to settle it — magnetic would swing the whole field about 5°, which is 4 km at 30 nm and under half a 12 km cell."
+  },
+  "days": [
+    {
+      "date": "2025-04-22",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 3810,
+          "minus5HeightM": 4389,
+          "minus10HeightM": 4999,
+          "cloudBaseM": 2613,
+          "warmCloudDepthM": 1197,
+          "cloudBaseTempC": 10,
+          "lclM": 4572,
+          "cclM": 4602,
+          "mlCapeJKg": 205,
+          "sbCapeJKg": 641
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-04-22T20:43:00.000Z",
+          "timeZ": "2043",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9567,
+          "lon": -100.9909,
+          "bearingDeg": 115,
+          "rangeNm": 39,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-04-22T20:55:00.000Z",
+          "timeZ": "2055",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1452,
+          "lon": -100.9629,
+          "bearingDeg": 98,
+          "rangeNm": 37,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-04-22T20:56:00.000Z",
+          "timeZ": "2056",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.158,
+          "lon": -100.9813,
+          "bearingDeg": 97,
+          "rangeNm": 36,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-04-22T20:57:00.000Z",
+          "timeZ": "2057",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.158,
+          "lon": -100.9813,
+          "bearingDeg": 97,
+          "rangeNm": 36,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-04-22T20:58:00.000Z",
+          "timeZ": "2058",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1666,
+          "lon": -100.9595,
+          "bearingDeg": 96,
+          "rangeNm": 37,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-04-22T22:03:00.000Z",
+          "timeZ": "2203",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.8422,
+          "lon": -100.9813,
+          "bearingDeg": 44,
+          "rangeNm": 51,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-04-22T22:07:00.000Z",
+          "timeZ": "2207",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.82,
+          "lon": -100.983,
+          "bearingDeg": 45,
+          "rangeNm": 50,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-04-22T22:09:00.000Z",
+          "timeZ": "2209",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.8524,
+          "lon": -100.9945,
+          "bearingDeg": 43,
+          "rangeNm": 51,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-04-22T22:15:00.000Z",
+          "timeZ": "2215",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.8724,
+          "lon": -101.0215,
+          "bearingDeg": 41,
+          "rangeNm": 51,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-04-22T22:17:00.000Z",
+          "timeZ": "2217",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.9008,
+          "lon": -100.938,
+          "bearingDeg": 43,
+          "rangeNm": 55,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-04-22T22:19:00.000Z",
+          "timeZ": "2219",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.8871,
+          "lon": -100.9801,
+          "bearingDeg": 42,
+          "rangeNm": 53,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 24,
+        "hygroscopic": 2
+      },
+      "claimedCounties": [
+        "Donley",
+        "Roberts"
+      ]
+    },
+    {
+      "date": "2025-04-23",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 3993,
+          "minus5HeightM": 4602,
+          "minus10HeightM": 5090,
+          "cloudBaseM": 2377,
+          "warmCloudDepthM": 1616,
+          "cloudBaseTempC": 10,
+          "lclM": 2225,
+          "cclM": 2195,
+          "mlCapeJKg": 2823,
+          "sbCapeJKg": 3164
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-04-24T00:01:00.000Z",
+          "timeZ": "0001",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2468,
+          "lon": -102.0351,
+          "bearingDeg": 273,
+          "rangeNm": 16,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-04-24T00:03:00.000Z",
+          "timeZ": "0003",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2673,
+          "lon": -102.0534,
+          "bearingDeg": 277,
+          "rangeNm": 17,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-04-24T00:05:00.000Z",
+          "timeZ": "0005",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2746,
+          "lon": -102.0316,
+          "bearingDeg": 279,
+          "rangeNm": 16,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-04-24T00:07:00.000Z",
+          "timeZ": "0007",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.27,
+          "lon": -102.0324,
+          "bearingDeg": 278,
+          "rangeNm": 16,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-04-24T00:08:00.000Z",
+          "timeZ": "0008",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2965,
+          "lon": -102.0472,
+          "bearingDeg": 283,
+          "rangeNm": 17,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-04-24T00:10:00.000Z",
+          "timeZ": "0010",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2891,
+          "lon": -102.0074,
+          "bearingDeg": 283,
+          "rangeNm": 15,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-04-24T00:11:00.000Z",
+          "timeZ": "0011",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3061,
+          "lon": -102.0443,
+          "bearingDeg": 285,
+          "rangeNm": 17,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 14,
+        "hygroscopic": 1
+      },
+      "claimedCounties": [
+        "Potter"
+      ]
+    },
+    {
+      "date": "2025-04-24",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4054,
+          "minus5HeightM": 4602,
+          "minus10HeightM": 5212,
+          "cloudBaseM": 3048,
+          "warmCloudDepthM": 1006,
+          "cloudBaseTempC": 8,
+          "lclM": 2804,
+          "cclM": 2957,
+          "mlCapeJKg": 2530,
+          "sbCapeJKg": 3255
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-04-24T23:49:00.000Z",
+          "timeZ": "2349",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.67,
+          "lon": -101.411,
+          "bearingDeg": 29,
+          "rangeNm": 30,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Hutchinson"
+        },
+        {
+          "at": "2025-04-24T23:53:00.000Z",
+          "timeZ": "2353",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.68,
+          "lon": -101.3914,
+          "bearingDeg": 30,
+          "rangeNm": 31,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-04-24T23:56:00.000Z",
+          "timeZ": "2356",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6566,
+          "lon": -101.3833,
+          "bearingDeg": 32,
+          "rangeNm": 30,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-04-24T23:58:00.000Z",
+          "timeZ": "2358",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6519,
+          "lon": -101.3743,
+          "bearingDeg": 33,
+          "rangeNm": 30,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 8,
+        "hygroscopic": 1
+      },
+      "claimedCounties": [
+        "Carson",
+        "Hutchinson"
+      ]
+    },
+    {
+      "date": "2025-05-26",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4054,
+          "minus5HeightM": 4602,
+          "minus10HeightM": 5212,
+          "cloudBaseM": 1539,
+          "warmCloudDepthM": 2515,
+          "cloudBaseTempC": 15,
+          "lclM": 2256,
+          "cclM": 2256,
+          "mlCapeJKg": 1691,
+          "sbCapeJKg": 2015
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-05-26T22:59:00.000Z",
+          "timeZ": "2259",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4788,
+          "lon": -101.3224,
+          "bearingDeg": 52,
+          "rangeNm": 24,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-05-26T23:00:00.000Z",
+          "timeZ": "2300",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5094,
+          "lon": -101.2739,
+          "bearingDeg": 52,
+          "rangeNm": 27,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-05-26T23:01:00.000Z",
+          "timeZ": "2301",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.489,
+          "lon": -101.3062,
+          "bearingDeg": 52,
+          "rangeNm": 25,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-05-26T23:04:00.000Z",
+          "timeZ": "2304",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4968,
+          "lon": -101.2623,
+          "bearingDeg": 54,
+          "rangeNm": 27,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 6,
+        "hygroscopic": 1
+      },
+      "claimedCounties": [
+        "Carson"
+      ]
+    },
+    {
+      "date": "2025-06-02",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4602,
+          "minus5HeightM": 5486,
+          "minus10HeightM": 6096,
+          "cloudBaseM": 3353,
+          "warmCloudDepthM": 1249,
+          "cloudBaseTempC": 7,
+          "lclM": 3962,
+          "cclM": 3840,
+          "mlCapeJKg": 1100,
+          "sbCapeJKg": 1849
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-06-02T20:56:00.000Z",
+          "timeZ": "2056",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1625,
+          "lon": -101.4588,
+          "bearingDeg": 109,
+          "rangeNm": 13,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-02T20:57:00.000Z",
+          "timeZ": "2057",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1599,
+          "lon": -101.417,
+          "bearingDeg": 107,
+          "rangeNm": 15,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-02T21:08:00.000Z",
+          "timeZ": "2108",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2323,
+          "lon": -101.2198,
+          "bearingDeg": 90,
+          "rangeNm": 24,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-02T21:18:00.000Z",
+          "timeZ": "2118",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2463,
+          "lon": -101.22,
+          "bearingDeg": 88,
+          "rangeNm": 24,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-02T21:24:00.000Z",
+          "timeZ": "2124",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3516,
+          "lon": -101.1988,
+          "bearingDeg": 74,
+          "rangeNm": 26,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-03T00:34:00.000Z",
+          "timeZ": "0034",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2365,
+          "lon": -101.4645,
+          "bearingDeg": 89,
+          "rangeNm": 12,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-03T00:46:00.000Z",
+          "timeZ": "0046",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3763,
+          "lon": -101.4582,
+          "bearingDeg": 55,
+          "rangeNm": 15,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-03T00:49:00.000Z",
+          "timeZ": "0049",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3962,
+          "lon": -101.4008,
+          "bearingDeg": 57,
+          "rangeNm": 18,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-03T00:51:00.000Z",
+          "timeZ": "0051",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3702,
+          "lon": -101.4055,
+          "bearingDeg": 61,
+          "rangeNm": 17,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-03T01:11:00.000Z",
+          "timeZ": "0111",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0707,
+          "lon": -101.285,
+          "bearingDeg": 115,
+          "rangeNm": 23,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-03T01:14:00.000Z",
+          "timeZ": "0114",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1719,
+          "lon": -101.1846,
+          "bearingDeg": 98,
+          "rangeNm": 26,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-03T01:32:00.000Z",
+          "timeZ": "0132",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0779,
+          "lon": -100.9588,
+          "bearingDeg": 104,
+          "rangeNm": 38,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-06-03T01:33:00.000Z",
+          "timeZ": "0133",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0779,
+          "lon": -100.9588,
+          "bearingDeg": 104,
+          "rangeNm": 38,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-06-03T01:35:00.000Z",
+          "timeZ": "0135",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0925,
+          "lon": -100.9753,
+          "bearingDeg": 103,
+          "rangeNm": 37,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        }
+      ],
+      "sorties": 2,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 27,
+        "hygroscopic": 4
+      },
+      "claimedCounties": [
+        "Armstrong",
+        "Carson",
+        "Donley"
+      ]
+    },
+    {
+      "date": "2025-06-08",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4785,
+          "minus5HeightM": 5486,
+          "minus10HeightM": 5913,
+          "cloudBaseM": 2710,
+          "warmCloudDepthM": 2075,
+          "cloudBaseTempC": 13,
+          "lclM": 2835,
+          "cclM": 2712,
+          "mlCapeJKg": 4523,
+          "sbCapeJKg": 5200
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-06-08T18:22:00.000Z",
+          "timeZ": "1822",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0803,
+          "lon": -101.1704,
+          "bearingDeg": 109,
+          "rangeNm": 28,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-08T18:24:00.000Z",
+          "timeZ": "1824",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0803,
+          "lon": -101.1704,
+          "bearingDeg": 109,
+          "rangeNm": 28,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-08T18:41:00.000Z",
+          "timeZ": "1841",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.8777,
+          "lon": -101.0452,
+          "bearingDeg": 123,
+          "rangeNm": 39,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-06-08T18:42:00.000Z",
+          "timeZ": "1842",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.8961,
+          "lon": -101.0548,
+          "bearingDeg": 122,
+          "rangeNm": 38,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-06-08T18:48:00.000Z",
+          "timeZ": "1848",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9613,
+          "lon": -101.0334,
+          "bearingDeg": 116,
+          "rangeNm": 37,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-06-08T18:56:00.000Z",
+          "timeZ": "1856",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9209,
+          "lon": -100.8992,
+          "bearingDeg": 115,
+          "rangeNm": 44,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-06-08T18:57:00.000Z",
+          "timeZ": "1857",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9375,
+          "lon": -100.8676,
+          "bearingDeg": 113,
+          "rangeNm": 45,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-06-08T19:02:00.000Z",
+          "timeZ": "1902",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9118,
+          "lon": -100.8371,
+          "bearingDeg": 114,
+          "rangeNm": 47,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-06-08T19:04:00.000Z",
+          "timeZ": "1904",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.911,
+          "lon": -100.7931,
+          "bearingDeg": 113,
+          "rangeNm": 49,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-06-08T19:12:00.000Z",
+          "timeZ": "1912",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9759,
+          "lon": -100.6984,
+          "bearingDeg": 107,
+          "rangeNm": 52,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-06-08T20:16:00.000Z",
+          "timeZ": "2016",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0255,
+          "lon": -101.5799,
+          "bearingDeg": 153,
+          "rangeNm": 14,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-08T20:18:00.000Z",
+          "timeZ": "2018",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0445,
+          "lon": -101.5418,
+          "bearingDeg": 144,
+          "rangeNm": 14,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-08T20:20:00.000Z",
+          "timeZ": "2020",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0603,
+          "lon": -101.55,
+          "bearingDeg": 143,
+          "rangeNm": 13,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-08T20:22:00.000Z",
+          "timeZ": "2022",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0285,
+          "lon": -101.5342,
+          "bearingDeg": 145,
+          "rangeNm": 15,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-08T20:23:00.000Z",
+          "timeZ": "2023",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.031,
+          "lon": -101.5299,
+          "bearingDeg": 144,
+          "rangeNm": 15,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-08T20:25:00.000Z",
+          "timeZ": "2025",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0376,
+          "lon": -101.5541,
+          "bearingDeg": 147,
+          "rangeNm": 14,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-08T20:47:00.000Z",
+          "timeZ": "2047",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4733,
+          "lon": -101.8934,
+          "bearingDeg": 328,
+          "rangeNm": 17,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-06-08T20:50:00.000Z",
+          "timeZ": "2050",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5068,
+          "lon": -101.7992,
+          "bearingDeg": 345,
+          "rangeNm": 17,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-06-08T20:59:00.000Z",
+          "timeZ": "2059",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4585,
+          "lon": -101.7833,
+          "bearingDeg": 345,
+          "rangeNm": 14,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-06-08T21:00:00.000Z",
+          "timeZ": "2100",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4605,
+          "lon": -101.7736,
+          "bearingDeg": 347,
+          "rangeNm": 14,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-06-08T21:05:00.000Z",
+          "timeZ": "2105",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4434,
+          "lon": -101.7735,
+          "bearingDeg": 346,
+          "rangeNm": 13,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-06-08T21:08:00.000Z",
+          "timeZ": "2108",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4424,
+          "lon": -101.778,
+          "bearingDeg": 345,
+          "rangeNm": 13,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-06-08T21:12:00.000Z",
+          "timeZ": "2112",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4493,
+          "lon": -101.6907,
+          "bearingDeg": 4,
+          "rangeNm": 13,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-06-09T00:16:00.000Z",
+          "timeZ": "0016",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9247,
+          "lon": -101.229,
+          "bearingDeg": 128,
+          "rangeNm": 30,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-09T00:18:00.000Z",
+          "timeZ": "0018",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9361,
+          "lon": -101.1933,
+          "bearingDeg": 125,
+          "rangeNm": 31,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-09T00:21:00.000Z",
+          "timeZ": "0021",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9341,
+          "lon": -101.1702,
+          "bearingDeg": 124,
+          "rangeNm": 32,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-09T00:24:00.000Z",
+          "timeZ": "0024",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9418,
+          "lon": -101.1639,
+          "bearingDeg": 123,
+          "rangeNm": 32,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        }
+      ],
+      "sorties": 2,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 56,
+        "hygroscopic": 4
+      },
+      "claimedCounties": [
+        "Armstrong",
+        "Donley",
+        "Potter"
+      ]
+    },
+    {
+      "date": "2025-06-22",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4938,
+          "minus5HeightM": 5700,
+          "minus10HeightM": 6492,
+          "cloudBaseM": 2560,
+          "warmCloudDepthM": 2378,
+          "cloudBaseTempC": 15,
+          "lclM": 3018,
+          "cclM": 3200,
+          "mlCapeJKg": 2445,
+          "sbCapeJKg": 3067
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-06-23T01:54:00.000Z",
+          "timeZ": "0154",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3163,
+          "lon": -101.9093,
+          "bearingDeg": 297,
+          "rangeNm": 11,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-06-23T02:10:00.000Z",
+          "timeZ": "0210",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3203,
+          "lon": -102.0392,
+          "bearingDeg": 288,
+          "rangeNm": 17,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-06-23T02:11:00.000Z",
+          "timeZ": "0211",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3156,
+          "lon": -102.041,
+          "bearingDeg": 287,
+          "rangeNm": 17,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 6,
+        "hygroscopic": 1
+      },
+      "claimedCounties": [
+        "Potter"
+      ]
+    },
+    {
+      "date": "2025-06-23",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4938,
+          "minus5HeightM": 5913,
+          "minus10HeightM": 6706,
+          "cloudBaseM": 2148,
+          "warmCloudDepthM": 2790,
+          "cloudBaseTempC": 16,
+          "lclM": 2591,
+          "cclM": 2560,
+          "mlCapeJKg": 1723,
+          "sbCapeJKg": 2599
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-06-23T18:52:00.000Z",
+          "timeZ": "1852",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1867,
+          "lon": -101.0798,
+          "bearingDeg": 95,
+          "rangeNm": 31,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-23T18:58:00.000Z",
+          "timeZ": "1858",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1421,
+          "lon": -101.0874,
+          "bearingDeg": 100,
+          "rangeNm": 31,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-23T19:03:00.000Z",
+          "timeZ": "1903",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1482,
+          "lon": -101.0654,
+          "bearingDeg": 99,
+          "rangeNm": 32,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-23T19:06:00.000Z",
+          "timeZ": "1906",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1666,
+          "lon": -101.0621,
+          "bearingDeg": 97,
+          "rangeNm": 32,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-06-23T19:28:00.000Z",
+          "timeZ": "1928",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1269,
+          "lon": -101.259,
+          "bearingDeg": 106,
+          "rangeNm": 23,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-23T19:33:00.000Z",
+          "timeZ": "1933",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1439,
+          "lon": -101.2744,
+          "bearingDeg": 104,
+          "rangeNm": 22,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-23T20:02:00.000Z",
+          "timeZ": "2002",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.151,
+          "lon": -101.1475,
+          "bearingDeg": 100,
+          "rangeNm": 28,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-23T20:03:00.000Z",
+          "timeZ": "2003",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1463,
+          "lon": -101.1693,
+          "bearingDeg": 101,
+          "rangeNm": 27,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-23T20:13:00.000Z",
+          "timeZ": "2013",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0525,
+          "lon": -101.4167,
+          "bearingDeg": 127,
+          "rangeNm": 18,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-23T20:19:00.000Z",
+          "timeZ": "2019",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0706,
+          "lon": -101.4258,
+          "bearingDeg": 125,
+          "rangeNm": 17,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-23T20:21:00.000Z",
+          "timeZ": "2021",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.12,
+          "lon": -101.4599,
+          "bearingDeg": 119,
+          "rangeNm": 14,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-23T20:28:00.000Z",
+          "timeZ": "2028",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0627,
+          "lon": -101.486,
+          "bearingDeg": 133,
+          "rangeNm": 15,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-23T20:33:00.000Z",
+          "timeZ": "2033",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.084,
+          "lon": -101.4392,
+          "bearingDeg": 124,
+          "rangeNm": 16,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-23T20:38:00.000Z",
+          "timeZ": "2038",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0473,
+          "lon": -101.4482,
+          "bearingDeg": 131,
+          "rangeNm": 17,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-23T20:41:00.000Z",
+          "timeZ": "2041",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0324,
+          "lon": -101.4371,
+          "bearingDeg": 132,
+          "rangeNm": 18,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 30,
+        "hygroscopic": 1
+      },
+      "claimedCounties": [
+        "Armstrong",
+        "Donley"
+      ]
+    },
+    {
+      "date": "2025-06-25",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4877,
+          "minus5HeightM": 5791,
+          "minus10HeightM": 6706,
+          "cloudBaseM": 2134,
+          "warmCloudDepthM": 2743,
+          "cloudBaseTempC": 13,
+          "lclM": 2774,
+          "cclM": 2743,
+          "mlCapeJKg": 1009,
+          "sbCapeJKg": 1674
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-06-25T22:53:00.000Z",
+          "timeZ": "2253",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5116,
+          "lon": -101.2003,
+          "bearingDeg": 56,
+          "rangeNm": 30,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 2,
+        "hygroscopic": 0
+      },
+      "claimedCounties": [
+        "Carson"
+      ]
+    },
+    {
+      "date": "2025-06-26",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4724,
+          "minus5HeightM": 5486,
+          "minus10HeightM": 6492,
+          "cloudBaseM": 2737,
+          "warmCloudDepthM": 1987,
+          "cloudBaseTempC": 11,
+          "lclM": 3078,
+          "cclM": 2957,
+          "mlCapeJKg": 2423,
+          "sbCapeJKg": 3259
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-06-26T20:32:00.000Z",
+          "timeZ": "2032",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3626,
+          "lon": -102.1727,
+          "bearingDeg": 289,
+          "rangeNm": 24,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-06-26T20:35:00.000Z",
+          "timeZ": "2035",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1815,
+          "lon": -102.2149,
+          "bearingDeg": 263,
+          "rangeNm": 25,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-06-26T20:39:00.000Z",
+          "timeZ": "2039",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4228,
+          "lon": -102.3198,
+          "bearingDeg": 291,
+          "rangeNm": 32,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-06-26T20:41:00.000Z",
+          "timeZ": "2041",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3445,
+          "lon": -102.1583,
+          "bearingDeg": 287,
+          "rangeNm": 23,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-06-26T20:47:00.000Z",
+          "timeZ": "2047",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3748,
+          "lon": -102.1891,
+          "bearingDeg": 290,
+          "rangeNm": 25,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-06-26T20:50:00.000Z",
+          "timeZ": "2050",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1342,
+          "lon": -102.6593,
+          "bearingDeg": 263,
+          "rangeNm": 47,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-06-26T22:32:00.000Z",
+          "timeZ": "2232",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5522,
+          "lon": -101.4135,
+          "bearingDeg": 37,
+          "rangeNm": 24,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-26T22:34:00.000Z",
+          "timeZ": "2234",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.561,
+          "lon": -101.3941,
+          "bearingDeg": 38,
+          "rangeNm": 25,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-26T22:36:00.000Z",
+          "timeZ": "2236",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5782,
+          "lon": -101.4229,
+          "bearingDeg": 34,
+          "rangeNm": 25,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-26T22:39:00.000Z",
+          "timeZ": "2239",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5773,
+          "lon": -101.3538,
+          "bearingDeg": 40,
+          "rangeNm": 27,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-26T22:41:00.000Z",
+          "timeZ": "2241",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3715,
+          "lon": -101.8566,
+          "bearingDeg": 319,
+          "rangeNm": 11,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-26T22:45:00.000Z",
+          "timeZ": "2245",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3106,
+          "lon": -101.9127,
+          "bearingDeg": 295,
+          "rangeNm": 11,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-26T22:48:00.000Z",
+          "timeZ": "2248",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4919,
+          "lon": -101.4517,
+          "bearingDeg": 39,
+          "rangeNm": 20,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-26T22:49:00.000Z",
+          "timeZ": "2249",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4882,
+          "lon": -101.4462,
+          "bearingDeg": 40,
+          "rangeNm": 20,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-26T22:50:00.000Z",
+          "timeZ": "2250",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4755,
+          "lon": -101.4594,
+          "bearingDeg": 40,
+          "rangeNm": 19,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-26T22:52:00.000Z",
+          "timeZ": "2252",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5026,
+          "lon": -101.4687,
+          "bearingDeg": 36,
+          "rangeNm": 20,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-06-27T00:41:00.000Z",
+          "timeZ": "0041",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1345,
+          "lon": -101.4508,
+          "bearingDeg": 115,
+          "rangeNm": 14,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-27T00:44:00.000Z",
+          "timeZ": "0044",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1382,
+          "lon": -101.4487,
+          "bearingDeg": 114,
+          "rangeNm": 14,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-27T00:46:00.000Z",
+          "timeZ": "0046",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.188,
+          "lon": -101.4501,
+          "bearingDeg": 102,
+          "rangeNm": 13,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-27T00:52:00.000Z",
+          "timeZ": "0052",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0425,
+          "lon": -101.4005,
+          "bearingDeg": 127,
+          "rangeNm": 19,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-27T00:57:00.000Z",
+          "timeZ": "0057",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0662,
+          "lon": -101.3567,
+          "bearingDeg": 120,
+          "rangeNm": 20,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-27T00:59:00.000Z",
+          "timeZ": "0059",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0875,
+          "lon": -101.3888,
+          "bearingDeg": 119,
+          "rangeNm": 18,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-27T01:15:00.000Z",
+          "timeZ": "0115",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0119,
+          "lon": -101.2781,
+          "bearingDeg": 122,
+          "rangeNm": 25,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-06-27T00:41:00.000Z",
+          "timeZ": "0041",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.1419,
+          "lon": -101.4467,
+          "bearingDeg": 113,
+          "rangeNm": 14,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        }
+      ],
+      "sorties": 2,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 48,
+        "hygroscopic": 3
+      },
+      "claimedCounties": [
+        "Armstrong",
+        "Carson",
+        "Potter"
+      ]
+    },
+    {
+      "date": "2025-06-28",
+      "seeded": true,
+      "soundings": {
+        "NAM": {}
+      },
+      "releases": [
+        {
+          "at": "2025-06-28T23:50:00.000Z",
+          "timeZ": "2350",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.8982,
+          "lon": -101.0057,
+          "bearingDeg": 120,
+          "rangeNm": 40,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-06-28T23:55:00.000Z",
+          "timeZ": "2355",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9852,
+          "lon": -101.0644,
+          "bearingDeg": 115,
+          "rangeNm": 35,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 4,
+        "hygroscopic": 0
+      },
+      "claimedCounties": [
+        "Armstrong",
+        "Donley"
+      ]
+    },
+    {
+      "date": "2025-06-30",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4541,
+          "minus5HeightM": 5212,
+          "minus10HeightM": 6005,
+          "cloudBaseM": 3374,
+          "warmCloudDepthM": 1167,
+          "cloudBaseTempC": 6,
+          "lclM": 3018,
+          "cclM": 3261,
+          "mlCapeJKg": 1314,
+          "sbCapeJKg": 1969
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-06-30T16:57:00.000Z",
+          "timeZ": "1657",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9984,
+          "lon": -100.5847,
+          "bearingDeg": 104,
+          "rangeNm": 57,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-06-30T17:00:00.000Z",
+          "timeZ": "1700",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.011,
+          "lon": -100.6437,
+          "bearingDeg": 104,
+          "rangeNm": 54,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-07-01T07:07:00.000Z",
+          "timeZ": "0707",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9914,
+          "lon": -100.6291,
+          "bearingDeg": 105,
+          "rangeNm": 55,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-06-30T17:28:00.000Z",
+          "timeZ": "1728",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.424,
+          "lon": -100.4652,
+          "bearingDeg": 79,
+          "rangeNm": 62,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wheeler"
+        },
+        {
+          "at": "2025-06-30T17:30:00.000Z",
+          "timeZ": "1730",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4035,
+          "lon": -100.4816,
+          "bearingDeg": 80,
+          "rangeNm": 61,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wheeler"
+        },
+        {
+          "at": "2025-06-30T17:35:00.000Z",
+          "timeZ": "1735",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3908,
+          "lon": -100.4379,
+          "bearingDeg": 81,
+          "rangeNm": 63,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wheeler"
+        },
+        {
+          "at": "2025-06-30T17:49:00.000Z",
+          "timeZ": "1749",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4616,
+          "lon": -100.5584,
+          "bearingDeg": 76,
+          "rangeNm": 58,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wheeler"
+        },
+        {
+          "at": "2025-06-30T17:52:00.000Z",
+          "timeZ": "1752",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4805,
+          "lon": -100.354,
+          "bearingDeg": 77,
+          "rangeNm": 68,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wheeler"
+        },
+        {
+          "at": "2025-06-30T17:57:00.000Z",
+          "timeZ": "1757",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4644,
+          "lon": -100.329,
+          "bearingDeg": 78,
+          "rangeNm": 69,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wheeler"
+        },
+        {
+          "at": "2025-06-30T18:20:00.000Z",
+          "timeZ": "1820",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9067,
+          "lon": -100.6853,
+          "bearingDeg": 111,
+          "rangeNm": 54,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 20,
+        "hygroscopic": 0
+      },
+      "claimedCounties": [
+        "Donley",
+        "Wheeler"
+      ]
+    },
+    {
+      "date": "2025-07-03",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 5121,
+          "minus5HeightM": 6005,
+          "minus10HeightM": 6919,
+          "cloudBaseM": 1737,
+          "warmCloudDepthM": 3384,
+          "cloudBaseTempC": 17,
+          "lclM": 1829,
+          "cclM": 2012,
+          "mlCapeJKg": 387,
+          "sbCapeJKg": 1768
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-07-03T21:21:00.000Z",
+          "timeZ": "2121",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5662,
+          "lon": -101.6949,
+          "bearingDeg": 2,
+          "rangeNm": 20,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-07-03T21:25:00.000Z",
+          "timeZ": "2125",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.608,
+          "lon": -101.8072,
+          "bearingDeg": 348,
+          "rangeNm": 23,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 4,
+        "hygroscopic": 1
+      },
+      "claimedCounties": [
+        "Potter"
+      ]
+    },
+    {
+      "date": "2025-08-10",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 5029,
+          "minus5HeightM": 5486,
+          "minus10HeightM": 6187,
+          "cloudBaseM": 3846,
+          "warmCloudDepthM": 1183,
+          "cloudBaseTempC": 5,
+          "lclM": 3292,
+          "cclM": 3871,
+          "mlCapeJKg": 2028,
+          "sbCapeJKg": 2625
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-08-11T01:56:00.000Z",
+          "timeZ": "0156",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.8489,
+          "lon": -101.2882,
+          "bearingDeg": 138,
+          "rangeNm": 31,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-08-11T01:58:00.000Z",
+          "timeZ": "0158",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.8869,
+          "lon": -101.2414,
+          "bearingDeg": 132,
+          "rangeNm": 31,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-08-11T01:59:00.000Z",
+          "timeZ": "0159",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.8674,
+          "lon": -101.2642,
+          "bearingDeg": 135,
+          "rangeNm": 31,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-08-11T02:01:00.000Z",
+          "timeZ": "0201",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.8575,
+          "lon": -101.2193,
+          "bearingDeg": 133,
+          "rangeNm": 33,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-08-11T02:05:00.000Z",
+          "timeZ": "0205",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.8505,
+          "lon": -101.2274,
+          "bearingDeg": 134,
+          "rangeNm": 33,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-08-11T02:06:00.000Z",
+          "timeZ": "0206",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.8437,
+          "lon": -101.2357,
+          "bearingDeg": 135,
+          "rangeNm": 33,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 12,
+        "hygroscopic": 1
+      },
+      "claimedCounties": [
+        "Armstrong"
+      ]
+    },
+    {
+      "date": "2025-08-11",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4724,
+          "minus5HeightM": 5395,
+          "minus10HeightM": 5913,
+          "cloudBaseM": 2652,
+          "warmCloudDepthM": 2072,
+          "cloudBaseTempC": 11,
+          "lclM": 3139,
+          "cclM": 3170,
+          "mlCapeJKg": 1972,
+          "sbCapeJKg": 2503
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-08-11T22:40:00.000Z",
+          "timeZ": "2240",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3748,
+          "lon": -101.2293,
+          "bearingDeg": 70,
+          "rangeNm": 25,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-08-11T22:44:00.000Z",
+          "timeZ": "2244",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3579,
+          "lon": -101.287,
+          "bearingDeg": 70,
+          "rangeNm": 22,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-08-11T22:47:00.000Z",
+          "timeZ": "2247",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3579,
+          "lon": -101.287,
+          "bearingDeg": 70,
+          "rangeNm": 22,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-08-11T23:11:00.000Z",
+          "timeZ": "2311",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6792,
+          "lon": -100.7503,
+          "bearingDeg": 60,
+          "rangeNm": 54,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Gray"
+        },
+        {
+          "at": "2025-08-11T23:14:00.000Z",
+          "timeZ": "2314",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6956,
+          "lon": -100.7146,
+          "bearingDeg": 60,
+          "rangeNm": 56,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Gray"
+        },
+        {
+          "at": "2025-08-12T01:28:00.000Z",
+          "timeZ": "0128",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.9951,
+          "lon": -100.763,
+          "bearingDeg": 45,
+          "rangeNm": 65,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-08-12T01:30:00.000Z",
+          "timeZ": "0130",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.9951,
+          "lon": -100.763,
+          "bearingDeg": 45,
+          "rangeNm": 65,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-08-12T01:33:00.000Z",
+          "timeZ": "0133",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 36.0068,
+          "lon": -100.7483,
+          "bearingDeg": 45,
+          "rangeNm": 66,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-08-12T01:47:00.000Z",
+          "timeZ": "0147",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.9977,
+          "lon": -100.8552,
+          "bearingDeg": 42,
+          "rangeNm": 62,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-08-12T01:47:00.000Z",
+          "timeZ": "0147",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 36.0343,
+          "lon": -100.8752,
+          "bearingDeg": 40,
+          "rangeNm": 63,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        }
+      ],
+      "sorties": 2,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 20,
+        "hygroscopic": 2
+      },
+      "claimedCounties": [
+        "Carson",
+        "Roberts"
+      ]
+    },
+    {
+      "date": "2025-08-12",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 5000,
+          "minus5HeightM": 5791,
+          "minus10HeightM": 6706,
+          "cloudBaseM": 2865,
+          "warmCloudDepthM": 2135,
+          "cloudBaseTempC": 9,
+          "lclM": 2926,
+          "cclM": 2835,
+          "mlCapeJKg": 1288,
+          "sbCapeJKg": 1927
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-08-12T22:24:00.000Z",
+          "timeZ": "2224",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0957,
+          "lon": -100.5602,
+          "bearingDeg": 98,
+          "rangeNm": 57,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-08-12T22:28:00.000Z",
+          "timeZ": "2228",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0631,
+          "lon": -100.5669,
+          "bearingDeg": 100,
+          "rangeNm": 57,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 2,
+        "hygroscopic": 1
+      },
+      "claimedCounties": [
+        "Donley"
+      ]
+    },
+    {
+      "date": "2025-08-17",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 5029,
+          "minus5HeightM": 5913,
+          "minus10HeightM": 6706,
+          "cloudBaseM": 3050,
+          "warmCloudDepthM": 1979,
+          "cloudBaseTempC": 11,
+          "lclM": 3109,
+          "cclM": 3078,
+          "mlCapeJKg": 2593,
+          "sbCapeJKg": 3109
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-08-17T19:41:00.000Z",
+          "timeZ": "1941",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9781,
+          "lon": -101.046,
+          "bearingDeg": 115,
+          "rangeNm": 36,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-08-17T19:47:00.000Z",
+          "timeZ": "1947",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0628,
+          "lon": -100.9427,
+          "bearingDeg": 105,
+          "rangeNm": 39,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-08-17T19:57:00.000Z",
+          "timeZ": "1957",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0583,
+          "lon": -100.923,
+          "bearingDeg": 105,
+          "rangeNm": 40,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-08-17T20:01:00.000Z",
+          "timeZ": "2001",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0494,
+          "lon": -100.8838,
+          "bearingDeg": 105,
+          "rangeNm": 42,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-08-17T20:27:00.000Z",
+          "timeZ": "2027",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9375,
+          "lon": -100.8676,
+          "bearingDeg": 113,
+          "rangeNm": 45,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-08-17T20:31:00.000Z",
+          "timeZ": "2031",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9375,
+          "lon": -100.8676,
+          "bearingDeg": 113,
+          "rangeNm": 45,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-08-17T20:33:00.000Z",
+          "timeZ": "2033",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9243,
+          "lon": -100.8303,
+          "bearingDeg": 113,
+          "rangeNm": 47,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-08-17T20:38:00.000Z",
+          "timeZ": "2038",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9305,
+          "lon": -100.8051,
+          "bearingDeg": 112,
+          "rangeNm": 48,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-08-17T20:41:00.000Z",
+          "timeZ": "2041",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.885,
+          "lon": -100.8075,
+          "bearingDeg": 115,
+          "rangeNm": 49,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-08-17T21:12:00.000Z",
+          "timeZ": "2112",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.9962,
+          "lon": -100.9153,
+          "bearingDeg": 40,
+          "rangeNm": 60,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-08-17T21:14:00.000Z",
+          "timeZ": "2114",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.9582,
+          "lon": -100.9553,
+          "bearingDeg": 40,
+          "rangeNm": 57,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-08-17T21:16:00.000Z",
+          "timeZ": "2116",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.9709,
+          "lon": -100.942,
+          "bearingDeg": 40,
+          "rangeNm": 58,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-08-17T21:27:00.000Z",
+          "timeZ": "2127",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.8434,
+          "lon": -100.8694,
+          "bearingDeg": 48,
+          "rangeNm": 55,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-08-17T21:29:00.000Z",
+          "timeZ": "2129",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.8434,
+          "lon": -100.8694,
+          "bearingDeg": 48,
+          "rangeNm": 55,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-08-17T21:31:00.000Z",
+          "timeZ": "2131",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.872,
+          "lon": -100.7645,
+          "bearingDeg": 50,
+          "rangeNm": 60,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-08-17T21:33:00.000Z",
+          "timeZ": "2133",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.872,
+          "lon": -100.7645,
+          "bearingDeg": 50,
+          "rangeNm": 60,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-08-17T21:34:00.000Z",
+          "timeZ": "2134",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.8826,
+          "lon": -100.7486,
+          "bearingDeg": 50,
+          "rangeNm": 61,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-08-17T21:36:00.000Z",
+          "timeZ": "2136",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.8548,
+          "lon": -100.7214,
+          "bearingDeg": 52,
+          "rangeNm": 61,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        }
+      ],
+      "sorties": 2,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 34,
+        "hygroscopic": 2
+      },
+      "claimedCounties": [
+        "Armstrong",
+        "Donley",
+        "Roberts"
+      ]
+    },
+    {
+      "date": "2025-08-18",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4968,
+          "minus5HeightM": 5700,
+          "minus10HeightM": 6706,
+          "cloudBaseM": 2770,
+          "warmCloudDepthM": 2198,
+          "cloudBaseTempC": 12,
+          "lclM": 3200,
+          "cclM": 3170,
+          "mlCapeJKg": 1645,
+          "sbCapeJKg": 227
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-08-18T20:28:00.000Z",
+          "timeZ": "2028",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.7109,
+          "lon": -100.2257,
+          "bearingDeg": 68,
+          "rangeNm": 78,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wheeler"
+        },
+        {
+          "at": "2025-08-18T20:30:00.000Z",
+          "timeZ": "2030",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.7169,
+          "lon": -100.2066,
+          "bearingDeg": 68,
+          "rangeNm": 79,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wheeler"
+        },
+        {
+          "at": "2025-08-18T20:33:00.000Z",
+          "timeZ": "2033",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.7229,
+          "lon": -100.1874,
+          "bearingDeg": 68,
+          "rangeNm": 80,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wheeler"
+        },
+        {
+          "at": "2025-08-18T20:35:00.000Z",
+          "timeZ": "2035",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.7012,
+          "lon": -100.1774,
+          "bearingDeg": 69,
+          "rangeNm": 80,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wheeler"
+        },
+        {
+          "at": "2025-08-18T20:37:00.000Z",
+          "timeZ": "2037",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.7229,
+          "lon": -100.1874,
+          "bearingDeg": 68,
+          "rangeNm": 80,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wheeler"
+        },
+        {
+          "at": "2025-08-18T20:42:00.000Z",
+          "timeZ": "2042",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.7333,
+          "lon": -100.3034,
+          "bearingDeg": 66,
+          "rangeNm": 75,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wheeler"
+        },
+        {
+          "at": "2025-08-18T20:44:00.000Z",
+          "timeZ": "2044",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.7333,
+          "lon": -100.3034,
+          "bearingDeg": 66,
+          "rangeNm": 75,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Wheeler"
+        },
+        {
+          "at": "2025-08-18T20:47:00.000Z",
+          "timeZ": "2047",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6302,
+          "lon": -100.7415,
+          "bearingDeg": 63,
+          "rangeNm": 53,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Gray"
+        },
+        {
+          "at": "2025-08-18T21:35:00.000Z",
+          "timeZ": "2135",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5105,
+          "lon": -100.8114,
+          "bearingDeg": 69,
+          "rangeNm": 47,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Gray"
+        }
+      ],
+      "sorties": 2,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 18,
+        "hygroscopic": 2
+      },
+      "claimedCounties": [
+        "Gray",
+        "White"
+      ]
+    },
+    {
+      "date": "2025-08-19",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4877,
+          "minus5HeightM": 5913,
+          "minus10HeightM": 6706,
+          "cloudBaseM": 2804,
+          "warmCloudDepthM": 2069,
+          "cloudBaseTempC": 10,
+          "lclM": 3070,
+          "cclM": 3048,
+          "mlCapeJKg": 1456,
+          "sbCapeJKg": 2032
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-08-19T20:47:00.000Z",
+          "timeZ": "2047",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0998,
+          "lon": -100.807,
+          "bearingDeg": 100,
+          "rangeNm": 45,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 2,
+        "hygroscopic": 0
+      },
+      "claimedCounties": [
+        "Donley"
+      ]
+    },
+    {
+      "date": "2025-08-24",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4816,
+          "minus5HeightM": 5700,
+          "minus10HeightM": 6706,
+          "cloudBaseM": 2791,
+          "warmCloudDepthM": 2025,
+          "cloudBaseTempC": 11,
+          "lclM": 3414,
+          "cclM": 3292,
+          "mlCapeJKg": 664,
+          "sbCapeJKg": 1183
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-08-24T22:41:00.000Z",
+          "timeZ": "2241",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6211,
+          "lon": -100.9703,
+          "bearingDeg": 57,
+          "rangeNm": 43,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Gray"
+        },
+        {
+          "at": "2025-08-24T22:43:00.000Z",
+          "timeZ": "2243",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6419,
+          "lon": -100.9873,
+          "bearingDeg": 55,
+          "rangeNm": 43,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Gray"
+        },
+        {
+          "at": "2025-08-24T22:46:00.000Z",
+          "timeZ": "2246",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6419,
+          "lon": -100.9873,
+          "bearingDeg": 55,
+          "rangeNm": 43,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Gray"
+        },
+        {
+          "at": "2025-08-24T23:49:00.000Z",
+          "timeZ": "2349",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6192,
+          "lon": -100.9447,
+          "bearingDeg": 58,
+          "rangeNm": 44,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Gray"
+        },
+        {
+          "at": "2025-08-24T23:20:00.000Z",
+          "timeZ": "2320",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6192,
+          "lon": -100.9447,
+          "bearingDeg": 58,
+          "rangeNm": 44,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Gray"
+        },
+        {
+          "at": "2025-08-24T23:30:00.000Z",
+          "timeZ": "2330",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5972,
+          "lon": -100.9287,
+          "bearingDeg": 60,
+          "rangeNm": 44,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Gray"
+        },
+        {
+          "at": "2025-08-24T23:32:00.000Z",
+          "timeZ": "2332",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5972,
+          "lon": -100.9287,
+          "bearingDeg": 60,
+          "rangeNm": 44,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Gray"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 14,
+        "hygroscopic": 1
+      },
+      "claimedCounties": [
+        "Gray"
+      ]
+    },
+    {
+      "date": "2025-09-03",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4542,
+          "minus5HeightM": 5212,
+          "minus10HeightM": 5913,
+          "cloudBaseM": 4054,
+          "warmCloudDepthM": 488,
+          "cloudBaseTempC": 1,
+          "lclM": 4176,
+          "cclM": 4267,
+          "mlCapeJKg": 454,
+          "sbCapeJKg": 937
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-09-04T00:51:00.000Z",
+          "timeZ": "0051",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.8306,
+          "lon": -101.1529,
+          "bearingDeg": 37,
+          "rangeNm": 45,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-09-04T00:52:00.000Z",
+          "timeZ": "0052",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.8571,
+          "lon": -101.1279,
+          "bearingDeg": 37,
+          "rangeNm": 47,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-09-04T00:55:00.000Z",
+          "timeZ": "0055",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.8571,
+          "lon": -101.1279,
+          "bearingDeg": 37,
+          "rangeNm": 47,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-09-04T00:58:00.000Z",
+          "timeZ": "0058",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.7588,
+          "lon": -101.0819,
+          "bearingDeg": 44,
+          "rangeNm": 44,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-09-04T00:59:00.000Z",
+          "timeZ": "0059",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.7933,
+          "lon": -101.1285,
+          "bearingDeg": 40,
+          "rangeNm": 44,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-09-04T01:05:00.000Z",
+          "timeZ": "0105",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6947,
+          "lon": -101.1191,
+          "bearingDeg": 46,
+          "rangeNm": 40,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 12,
+        "hygroscopic": 0
+      },
+      "claimedCounties": [
+        "Roberts"
+      ]
+    },
+    {
+      "date": "2025-09-09",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4637,
+          "minus5HeightM": 5486,
+          "minus10HeightM": 6096,
+          "cloudBaseM": 3265,
+          "warmCloudDepthM": 1372,
+          "cloudBaseTempC": 9,
+          "lclM": 3658,
+          "cclM": 3658,
+          "mlCapeJKg": 2071,
+          "sbCapeJKg": 2647
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-09-09T23:02:00.000Z",
+          "timeZ": "2302",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9778,
+          "lon": -101.4479,
+          "bearingDeg": 140,
+          "rangeNm": 20,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-09-09T23:04:00.000Z",
+          "timeZ": "2304",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9523,
+          "lon": -101.4218,
+          "bearingDeg": 140,
+          "rangeNm": 22,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-09-09T23:06:00.000Z",
+          "timeZ": "2306",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9651,
+          "lon": -101.4349,
+          "bearingDeg": 140,
+          "rangeNm": 21,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-09-09T23:08:00.000Z",
+          "timeZ": "2308",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.9651,
+          "lon": -101.4349,
+          "bearingDeg": 140,
+          "rangeNm": 21,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-09-09T23:12:00.000Z",
+          "timeZ": "2312",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.008,
+          "lon": -101.3821,
+          "bearingDeg": 130,
+          "rangeNm": 21,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-09-09T23:14:00.000Z",
+          "timeZ": "2314",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0188,
+          "lon": -101.3976,
+          "bearingDeg": 130,
+          "rangeNm": 20,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-09-09T23:16:00.000Z",
+          "timeZ": "2316",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.0579,
+          "lon": -101.3392,
+          "bearingDeg": 120,
+          "rangeNm": 21,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        },
+        {
+          "at": "2025-09-09T23:27:00.000Z",
+          "timeZ": "2327",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 34.8869,
+          "lon": -101.4655,
+          "bearingDeg": 150,
+          "rangeNm": 24,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Armstrong"
+        }
+      ],
+      "sorties": 1,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 16,
+        "hygroscopic": 1
+      },
+      "claimedCounties": [
+        "Armstrong"
+      ]
+    },
+    {
+      "date": "2025-09-15",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4755,
+          "minus5HeightM": 5486,
+          "minus10HeightM": 6005,
+          "cloudBaseM": 2822,
+          "warmCloudDepthM": 1933,
+          "cloudBaseTempC": 10,
+          "lclM": 3231,
+          "cclM": 3170,
+          "mlCapeJKg": 1080,
+          "sbCapeJKg": 1825
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-09-15T20:45:00.000Z",
+          "timeZ": "2045",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.8211,
+          "lon": -100.666,
+          "bearingDeg": 55,
+          "rangeNm": 62,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-09-15T20:52:00.000Z",
+          "timeZ": "2052",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.872,
+          "lon": -100.7645,
+          "bearingDeg": 50,
+          "rangeNm": 60,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-09-15T20:54:00.000Z",
+          "timeZ": "2054",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.7584,
+          "lon": -100.6648,
+          "bearingDeg": 58,
+          "rangeNm": 60,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-09-15T20:56:00.000Z",
+          "timeZ": "2056",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.8023,
+          "lon": -100.6999,
+          "bearingDeg": 55,
+          "rangeNm": 60,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Roberts"
+        },
+        {
+          "at": "2025-09-15T23:15:00.000Z",
+          "timeZ": "2315",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3527,
+          "lon": -101.1148,
+          "bearingDeg": 76,
+          "rangeNm": 30,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-15T23:17:00.000Z",
+          "timeZ": "2317",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3241,
+          "lon": -101.0659,
+          "bearingDeg": 80,
+          "rangeNm": 32,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-15T23:20:00.000Z",
+          "timeZ": "2320",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.313,
+          "lon": -101.1464,
+          "bearingDeg": 80,
+          "rangeNm": 28,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        }
+      ],
+      "sorties": 2,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 14,
+        "hygroscopic": 1
+      },
+      "claimedCounties": [
+        "Carson",
+        "Roberts"
+      ]
+    },
+    {
+      "date": "2025-09-17",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4389,
+          "minus5HeightM": 5090,
+          "minus10HeightM": 5913,
+          "cloudBaseM": 2966,
+          "warmCloudDepthM": 1423,
+          "cloudBaseTempC": 7,
+          "lclM": 2957,
+          "cclM": 2987,
+          "mlCapeJKg": 1090,
+          "sbCapeJKg": 1680
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-09-17T19:17:00.000Z",
+          "timeZ": "1917",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.333,
+          "lon": -101.9214,
+          "bearingDeg": 300,
+          "rangeNm": 12,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T19:22:00.000Z",
+          "timeZ": "1922",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3413,
+          "lon": -101.9391,
+          "bearingDeg": 300,
+          "rangeNm": 13,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T19:24:00.000Z",
+          "timeZ": "1924",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3353,
+          "lon": -101.8142,
+          "bearingDeg": 320,
+          "rangeNm": 8,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T19:26:00.000Z",
+          "timeZ": "1926",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.351,
+          "lon": -101.8536,
+          "bearingDeg": 315,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T19:28:00.000Z",
+          "timeZ": "1928",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T19:29:00.000Z",
+          "timeZ": "1929",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3081,
+          "lon": -101.8683,
+          "bearingDeg": 300,
+          "rangeNm": 9,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T19:31:00.000Z",
+          "timeZ": "1931",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.351,
+          "lon": -101.8536,
+          "bearingDeg": 315,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T19:34:00.000Z",
+          "timeZ": "1934",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3487,
+          "lon": -101.7909,
+          "bearingDeg": 330,
+          "rangeNm": 8,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T19:35:00.000Z",
+          "timeZ": "1935",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3631,
+          "lon": -101.8011,
+          "bearingDeg": 330,
+          "rangeNm": 9,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T19:41:00.000Z",
+          "timeZ": "1941",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4207,
+          "lon": -101.5764,
+          "bearingDeg": 30,
+          "rangeNm": 13,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T19:43:00.000Z",
+          "timeZ": "1943",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T19:45:00.000Z",
+          "timeZ": "1945",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T19:49:00.000Z",
+          "timeZ": "1949",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T19:51:00.000Z",
+          "timeZ": "1951",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T19:53:00.000Z",
+          "timeZ": "1953",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T19:56:00.000Z",
+          "timeZ": "1956",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T19:57:00.000Z",
+          "timeZ": "1957",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T20:11:00.000Z",
+          "timeZ": "2011",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T20:12:00.000Z",
+          "timeZ": "2012",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T20:13:00.000Z",
+          "timeZ": "2013",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T20:17:00.000Z",
+          "timeZ": "2017",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T20:20:00.000Z",
+          "timeZ": "2020",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T20:23:00.000Z",
+          "timeZ": "2023",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T20:30:00.000Z",
+          "timeZ": "2030",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-09-17T20:31:00.000Z",
+          "timeZ": "2031",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.2901,
+          "lon": -101.9009,
+          "bearingDeg": 290,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Donley"
+        },
+        {
+          "at": "2025-09-17T23:16:00.000Z",
+          "timeZ": "2316",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.608,
+          "lon": -101.4429,
+          "bearingDeg": 30,
+          "rangeNm": 26,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T23:18:00.000Z",
+          "timeZ": "2318",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5961,
+          "lon": -101.4192,
+          "bearingDeg": 33,
+          "rangeNm": 26,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T23:20:00.000Z",
+          "timeZ": "2320",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6105,
+          "lon": -101.6274,
+          "bearingDeg": 10,
+          "rangeNm": 23,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T23:21:00.000Z",
+          "timeZ": "2321",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5872,
+          "lon": -101.5926,
+          "bearingDeg": 15,
+          "rangeNm": 22,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T23:23:00.000Z",
+          "timeZ": "2323",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5619,
+          "lon": -101.5621,
+          "bearingDeg": 20,
+          "rangeNm": 21,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T23:24:00.000Z",
+          "timeZ": "2324",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5711,
+          "lon": -101.5979,
+          "bearingDeg": 15,
+          "rangeNm": 21,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T23:27:00.000Z",
+          "timeZ": "2327",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5775,
+          "lon": -101.5551,
+          "bearingDeg": 20,
+          "rangeNm": 22,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T23:31:00.000Z",
+          "timeZ": "2331",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5474,
+          "lon": -101.6618,
+          "bearingDeg": 7,
+          "rangeNm": 19,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Carson"
+        },
+        {
+          "at": "2025-09-17T23:33:00.000Z",
+          "timeZ": "2333",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5485,
+          "lon": -101.7431,
+          "bearingDeg": 355,
+          "rangeNm": 19,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T23:38:00.000Z",
+          "timeZ": "2338",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5831,
+          "lon": -101.7092,
+          "bearingDeg": 360,
+          "rangeNm": 21,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T23:40:00.000Z",
+          "timeZ": "2340",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5983,
+          "lon": -101.7485,
+          "bearingDeg": 355,
+          "rangeNm": 22,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T23:42:00.000Z",
+          "timeZ": "2342",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6033,
+          "lon": -101.8311,
+          "bearingDeg": 345,
+          "rangeNm": 23,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T23:44:00.000Z",
+          "timeZ": "2344",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6088,
+          "lon": -101.8774,
+          "bearingDeg": 340,
+          "rangeNm": 24,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T23:45:00.000Z",
+          "timeZ": "2345",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6192,
+          "lon": -101.9011,
+          "bearingDeg": 338,
+          "rangeNm": 25,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T23:46:00.000Z",
+          "timeZ": "2346",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.6105,
+          "lon": -101.9256,
+          "bearingDeg": 335,
+          "rangeNm": 25,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T23:48:00.000Z",
+          "timeZ": "2348",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5049,
+          "lon": -101.8648,
+          "bearingDeg": 335,
+          "rangeNm": 18,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T23:49:00.000Z",
+          "timeZ": "2349",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5306,
+          "lon": -101.8422,
+          "bearingDeg": 340,
+          "rangeNm": 19,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T23:51:00.000Z",
+          "timeZ": "2351",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4747,
+          "lon": -101.8475,
+          "bearingDeg": 335,
+          "rangeNm": 16,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-17T23:53:00.000Z",
+          "timeZ": "2353",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.5389,
+          "lon": -101.8099,
+          "bearingDeg": 345,
+          "rangeNm": 19,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        }
+      ],
+      "sorties": 2,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 85,
+        "hygroscopic": 5
+      },
+      "claimedCounties": [
+        "Carson",
+        "Donley",
+        "Potter"
+      ]
+    },
+    {
+      "date": "2025-09-20",
+      "seeded": true,
+      "soundings": {
+        "NAM": {
+          "freezingLevelM": 4572,
+          "minus5HeightM": 5304,
+          "minus10HeightM": 6096,
+          "lclM": 3139,
+          "cclM": 3078,
+          "mlCapeJKg": 1330,
+          "sbCapeJKg": 1757
+        }
+      },
+      "releases": [
+        {
+          "at": "2025-09-20T21:35:00.000Z",
+          "timeZ": "2135",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3403,
+          "lon": -101.8656,
+          "bearingDeg": 310,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-20T21:37:00.000Z",
+          "timeZ": "2137",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3736,
+          "lon": -101.8536,
+          "bearingDeg": 320,
+          "rangeNm": 11,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-20T21:38:00.000Z",
+          "timeZ": "2138",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3608,
+          "lon": -101.8405,
+          "bearingDeg": 320,
+          "rangeNm": 10,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-20T21:40:00.000Z",
+          "timeZ": "2140",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3627,
+          "lon": -101.8681,
+          "bearingDeg": 315,
+          "rangeNm": 11,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-20T21:42:00.000Z",
+          "timeZ": "2142",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3631,
+          "lon": -101.8011,
+          "bearingDeg": 330,
+          "rangeNm": 9,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-20T21:44:00.000Z",
+          "timeZ": "2144",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3389,
+          "lon": -101.7696,
+          "bearingDeg": 335,
+          "rangeNm": 7,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-20T21:46:00.000Z",
+          "timeZ": "2146",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3303,
+          "lon": -101.7388,
+          "bearingDeg": 346,
+          "rangeNm": 6,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-20T21:49:00.000Z",
+          "timeZ": "2149",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3481,
+          "lon": -101.734,
+          "bearingDeg": 350,
+          "rangeNm": 7,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-20T21:52:00.000Z",
+          "timeZ": "2152",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3317,
+          "lon": -101.6879,
+          "bearingDeg": 10,
+          "rangeNm": 6,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-20T23:10:00.000Z",
+          "timeZ": "2310",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4207,
+          "lon": -101.842,
+          "bearingDeg": 330,
+          "rangeNm": 13,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-20T23:13:00.000Z",
+          "timeZ": "2313",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4496,
+          "lon": -101.8625,
+          "bearingDeg": 330,
+          "rangeNm": 15,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-20T23:19:00.000Z",
+          "timeZ": "2319",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.4524,
+          "lon": -101.8071,
+          "bearingDeg": 340,
+          "rangeNm": 14,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        },
+        {
+          "at": "2025-09-20T23:24:00.000Z",
+          "timeZ": "2324",
+          "plane": "N5359P",
+          "located": true,
+          "lat": 35.3993,
+          "lon": -101.8042,
+          "bearingDeg": 335,
+          "rangeNm": 11,
+          "glaciogenic": null,
+          "hygroscopic": null,
+          "county": "Potter"
+        }
+      ],
+      "sorties": 2,
+      "observations": [],
+      "dayTotal": {
+        "glaciogenic": 21,
+        "hygroscopic": 2
+      },
+      "claimedCounties": [
+        "Potter"
+      ]
+    }
+  ]
+}

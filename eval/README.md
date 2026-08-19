@@ -14,17 +14,17 @@ it.
 
 ## The three directories
 
-| Directory | Committed | What is in it                                                                    |
-| --------- | --------- | -------------------------------------------------------------------------------- |
-| `data/`   | yes       | The manifest, the parsed flight record, the county boundaries, the region roster |
-| `cache/`  | no        | The operator's daily report PDFs — 36 files, 8.7 MB                              |
-| `out/`    | no        | What a run wrote. `held-<date>.json` is one flying day                           |
+| Directory | Committed | What is in it                                                                     |
+| --------- | --------- | --------------------------------------------------------------------------------- |
+| `data/`   | yes       | The manifests, the parsed flight record, the county boundaries, the region roster |
+| `cache/`  | no        | One subdirectory per programme, holding its 2025 reports — 128 PDFs, 99 MB        |
+| `out/`    | no        | What a run wrote. `held-<date>.json` is one flying day                            |
 
-**`cache/` is downloaded, not authored.** `releases.mjs` fetches each PDF once
-from the address in `data/wtwma-2025.json` and keeps it, because the reports
-never change and the site is slow. Keeping them means the parser can be edited
-and re-run against the same 36 documents without touching the network. Delete
-the directory and the next run downloads them again; nothing is lost.
+**`cache/` is downloaded, not authored.** Each programme's PDFs are fetched once
+from the addresses in its `data/<region>-2025.json` manifest and kept, because
+the reports never change and the sites are slow. Keeping them means a parser can
+be edited and re-run against the same documents without touching the network.
+Delete a subdirectory and the next run downloads it again; nothing is lost.
 
 ## Running it
 
@@ -32,7 +32,8 @@ the directory and the next run downloads them again; nothing is lost.
 docker-compose up                   # the Weatherman server, port 3000
 curl localhost:3000/healthcheck     # "Hello, world!"
 
-node eval/releases.mjs              # the reports  → data/releases-2025.json
+node eval/releases.mjs              # West Texas   → data/releases-2025.json
+node eval/records.mjs               # the others   → cache/<region>/
 node eval/counties.mjs              # boundaries   → data/counties-tx.geojson
 node eval/held.mjs 2025-04-19       # one day      → out/held-2025-04-19.json
 ```
@@ -45,10 +46,11 @@ cd eval/app && yarn dev             # the map, port 5174
 ```
 
 Everything is scoped to a region — `--region=wtwma` on a script, `/wtwma/…` in
-the app. `data/regions.json` is the roster. West Texas is the only one with a
-parsed flight record so far; the rest are listed rather than hidden, so the gap
-in coverage is visible. Each of them needs its report source found and read
-before anything here can be measured against it.
+the app. `data/regions.json` is the roster: the five rain-enhancement programmes
+[TDLR lists for Texas](https://www.tdlr.texas.gov/weather/summary.htm). West
+Texas is the only one with a parsed flight record, and the rest are listed rather
+than hidden so the gap in coverage is visible. Their reports are on disk — what
+each one still needs is a parser for its layout.
 
 ## Building another day
 
@@ -104,13 +106,88 @@ did come back. A flare whose storm motion could not be read is measured at the
 release point instead, undrifted. A date with no seeded report in
 `data/releases-2025.json` stops the run before it downloads anything.
 
+## The other Texas programmes
+
+`records.mjs` pulls each programme's 2025 reports into `cache/<region>/`, and
+what can be read out of them is read: **three of the five now have a flight
+record**, and `data/regions.json` says which file each one is in.
+
+| Region       | 2025 records                                   | Flight record                        |
+| ------------ | ---------------------------------------------- | ------------------------------------ |
+| `wtwma`      | 36 daily reports                               | **34 days, 499 releases**            |
+| `transpecos` | 48 daily reports, 8 monthly summaries          | **39 days, 472 releases**            |
+| `panhandle`  | 6 months of operations, missions and maps      | **25 days, 255 releases**            |
+| `stwma`      | 12 daily reports, and TDLR's run of the season | no — needs a font-aware PDF reader   |
+| `plains`     | TDLR's year-to-date document                   | no — maps and a scan, no flare table |
+
+```bash
+node eval/releases.mjs                     # West Texas
+node eval/releases.mjs --region=transpecos  # Trans-Pecos, same parser
+node eval/panhandle.mjs                     # the Panhandle, its own reader
+```
+
+**Trans-Pecos files the same document West Texas does** — one meteorologist
+writes both — so one parser reads both, told which counties end a table row and
+which sounding sites the indices table has columns for. Both come from
+`regions.json`. Every one of its 39 seeded days sums to the flare total its own
+report states.
+
+**The Panhandle publishes a month at a time and needs its own reader**, because
+three things about its report change what can be said about a release:
+
+- **A position is a bearing and a range** — `109° @ 13 nm` — off a radar display
+  whose origin the reports never name. Projected from Amarillo, 87% of the
+  season's rows land inside the county their own row names; from the district
+  office at White Deer, 9%. So Amarillo it is, and `regions.json` carries the
+  point and that reasoning. **Whether the bearings are true or magnetic is not
+  stated, and no rotation is applied.** `registration.mjs` is what that costs:
+  as printed, 76.5% of Panhandle releases land in the county their row names,
+  against 93.8% and 96.1% for the two programmes that print coordinates — and
+  about 6° of rotation closes most of the gap, which is what a magnetic display
+  would mean. At 30 nm that is 4 km, under half a 12 km cell. `bearingDeg` and
+  `rangeNm` stay on every release so the projection can be redone from the
+  source.
+- **Flare counts are per day, not per release.** The flight table says a flare
+  was released and never how many, so the count comes from the monthly
+  operations report and a release carries `null`.
+- **The indices are a model forecast** — the 12Z NAM valid at 21Z over Amarillo
+  — rather than a balloon ascent, and its column stops at −10 °C. They say what
+  the meteorologist planned against. **Nothing may be checked against them the
+  way the West Texas band is checked against the balloons.**
+
+The district's own April missions file is missing the 30 April report its own
+operations report lists. `panhandle.mjs` prints that rather than passing over it.
+
+**South Texas writes each day as a Google Doc**, and `records.mjs` fetches the
+PDF that Doc exports. The text is real text but sits in CID-keyed fonts that
+`lib/pdf.mjs` reads as glyph numbers, so it needs a font-aware reader rather
+than a regex. Their own page stops at 2 July 2025; TDLR publishes the rest of
+the season as one document, and that one is a scan — 35 pages of JPEG, no text
+at all.
+
+**Rolling Plains has no records of its own.** The counties contract the flying to
+WTWMA, and what TDLR hosts is a year-to-date set of maps rather than a flare
+table. Nothing here can be scored against it.
+
+The roster is the five projects TDLR lists. The Southern Ogallala Aquifer Rain
+program is not one of them.
+
+### What a new region still needs after its record parses
+
+A flight record makes a region readable in the app — the roster counts it, the
+day list fills in, each day carries its releases and what the operator briefed
+on. It does not make it **scored**: `reconcile.mjs` and `bracket.mjs` are West
+Texas's runs, and `held.mjs <date> --region=<id>` is what paints a day of any
+region against the product's own layers.
+
 ## What each script does
 
 These four are the current path:
 
-**`releases.mjs`** downloads the reports listed in `data/wtwma-2025.json`,
+**`releases.mjs`** downloads the daily reports its region's manifest lists,
 caches them, and parses every flare release into
-`{ at, lat, lon, glaciogenic, hygroscopic, county }`. Each report states its
+`{ at, lat, lon, glaciogenic, hygroscopic, county }`. West Texas by default,
+`--region=transpecos` for the other programme that files the same document. Each report states its
 flare count three times — the flight table, a per-county breakdown, and a day
 total — and the script checks all three against each other. **A row dropped by
 the parser moves the table away from both prose figures at once, and that is a
@@ -119,6 +196,21 @@ those are printed, and the table is used.
 
 **`counties.mjs`** pulls the boundary of every county that appears in the
 release list from Census TIGERweb. Keyless, one request per county.
+
+**`records.mjs`** downloads every programme's 2025 reports into
+`cache/<region>/`, one manifest per region, skipping what is already there and
+refusing anything that comes back not being a PDF. It fetches and stops there.
+
+**`registration.mjs`** checks every parsed release against the county its own
+row names, using the boundaries `counties.mjs` fetched. The two programmes that
+print coordinates are the noise floor — how often an operator's county label and
+an operator's position disagree at all — and the Panhandle's projected positions
+mean nothing without them to read against.
+
+**`panhandle.mjs`** reads the Panhandle district's monthly mission files into
+`data/releases-panhandle-2025.json`, taking each day's flare count from the
+monthly operations report because the flight table carries none, and projecting
+each bearing and range from the origin in `regions.json`.
 
 **`held.mjs`** builds one flying day into everything the map needs. Each release
 is charged to the analysis nearest its own minute, by the server's own rounding

@@ -1,9 +1,9 @@
 /**
  * The county polygons the target-area figures are clipped to.
  *
- * `node eval/counties.mjs` — reads which counties appear in the release list,
- * pulls each one's boundary from Census TIGERweb as GeoJSON, writes
- * `eval/data/counties-tx.geojson`.
+ * `node eval/counties.mjs` — reads which counties appear in any programme's
+ * release list, pulls each one's boundary from Census TIGERweb as GeoJSON,
+ * writes `eval/data/counties-tx.geojson`.
  *
  * Counties are the unit because the reports are written in counties. The
  * permit boundaries are a different shape and some of these counties sit under
@@ -44,16 +44,31 @@ async function county(name) {
   return body.features[0];
 }
 
-const { days } = JSON.parse(
-  await readFile(join(DATA, "releases-2025.json"), "utf8")
+/**
+ * Every county any programme's flight record names.
+ *
+ * One file for all of them rather than one per region: the counties overlap —
+ * West Texas and Trans-Pecos both fly Pecos, Crane, Crockett, Terrell and Upton
+ * — and the map draws whichever region is open out of the same collection.
+ */
+const { regions } = JSON.parse(
+  await readFile(join(DATA, "regions.json"), "utf8")
 );
 
-const names = [
-  ...new Set(days.flatMap((day) => day.releases.map((r) => r.county))),
-].sort();
+const names = new Set();
+for (const region of regions.filter((entry) => entry.releases)) {
+  const { days } = JSON.parse(
+    await readFile(join(DATA, region.releases), "utf8")
+  );
+  for (const day of days) {
+    for (const release of day.releases) {
+      if (release.county) names.add(release.county);
+    }
+  }
+}
 
 const features = [];
-for (const name of names) {
+for (const name of [...names].sort()) {
   features.push(await county(name));
   process.stdout.write(`${name}\n`);
 }
