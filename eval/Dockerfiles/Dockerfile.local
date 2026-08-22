@@ -1,0 +1,7 @@
+FROM node:latest
+
+# Nothing to install. Every script here is plain Node reading the Weatherman
+# server over HTTP, which is the whole reason this directory has no package.
+WORKDIR /usr/src/eval
+
+COPY . .

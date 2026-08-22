@@ -20,7 +20,7 @@ import type { Analysis, Flare, Painted } from "~/lib/types";
  * One analysis hour: the layers we painted, and the flares charged to it.
  *
  * **Drawn in SVG rather than through ArcGIS, deliberately.** These frames are
- * already plain rings on disk — `held.mjs` fetched, windowed and rounded them —
+ * already plain rings on disk — `paint.mjs` fetched, windowed and rounded them —
  * so there is no layer to load, no url to repoint and no view to keep alive. The
  * product's map is the right tool for live layers over a basemap; this is a
  * fixed frame with points on top, and drawing it directly removes a lifecycle

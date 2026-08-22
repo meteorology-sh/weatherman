@@ -9,10 +9,10 @@ import { Status } from "./Status";
 import { Section } from "./Section";
 
 /**
- * The roster — every programme this evaluation can be run against.
+ * Every programme this evaluation can be run against.
  *
  * **A programme with no parsed flight record is still listed.** Texas licenses
- * several and only one has been read out of its reports so far. A roster showing
+ * several and only one has been read out of its reports so far. A list showing
  * only that one would make a single operator's season look like the whole state,
  * which is the error this page exists to prevent.
  */
@@ -26,7 +26,7 @@ export const Regions = () => {
           loading={loading}
           missing={null}
           error={error}
-          what="Reading the roster"
+          what="Reading the programme list"
         />
       </div>
     );
@@ -80,7 +80,7 @@ export const Regions = () => {
 
         <Section
           heading="Not parsed yet"
-          subtitle="Named so the gap in coverage is visible. Each needs its report source found and read into a flight record before anything here can be measured against it — and the roster itself is unconfirmed against the state permit list."
+          subtitle="Named so the gap in coverage is visible. Each needs its report source found and read into a flight record before anything here can be measured against it — and the list itself is unconfirmed against the state permit list."
         >
           <ul className="flex flex-col gap-2">
             {waiting.map((region) => (

@@ -1,14 +1,14 @@
 /**
  * Does each release sit in the county its own row names?
  *
- * `node eval/registration.mjs` — reads every parsed flight record and the
+ * `node eval/positions.mjs` — reads every parsed flight record and the
  * county boundaries, and prints the share of releases whose position falls
  * inside the county on the same line of the report.
  *
  * **It exists to calibrate the Panhandle.** West Texas and Trans-Pecos print a
- * latitude and a longitude, so their agreement is the noise floor of the
- * question — how often an operator's county label and an operator's coordinates
- * disagree at all. The Panhandle prints a bearing and a range off an origin the
+ * latitude and a longitude, so their agreement is how often an
+ * operator's county label and an operator's coordinates disagree at all — the
+ * floor any projected position has to be read against. The Panhandle prints a bearing and a range off an origin the
  * reports never name, so its agreement is a measurement of the projection, and
  * it means nothing without the other two to read it against.
  *

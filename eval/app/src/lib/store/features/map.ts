@@ -5,7 +5,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { OPEN_WITH } from "~/lib/layers";
 
 /**
- * What the map is drawing: which layers are on, and which ends of the bracket.
+ * What the map is drawing: which layers are on, and which of the two hours.
  *
  * Its own slice rather than a corner of the day's, because it survives changing
  * the day. Turning the radar on to look at one afternoon and having it turn

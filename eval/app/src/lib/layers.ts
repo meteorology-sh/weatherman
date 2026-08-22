@@ -51,7 +51,7 @@ import type { LayerLegend } from "@/lib/arcgis/legends";
 export type BandShape = "nested" | "disjoint";
 
 export type EvalLayer = {
-  /** Matches the key `held.mjs` writes each frame under. */
+  /** Matches the key `paint.mjs` writes each frame under. */
   key: string;
   legend: LayerLegend;
   bands: readonly { value: number; alpha: number }[];

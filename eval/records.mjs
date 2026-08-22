@@ -6,12 +6,11 @@
  * anything already there. With no region it does every programme that has a
  * manifest.
  *
- * **It fetches and nothing else.** West Texas is the only programme whose
- * reports have been read into a flight record, and `releases.mjs` both
- * downloads and parses those because parsing is what it is for. Nothing parses
- * these yet, so this script stops at the document — having the reports on disk
- * is what lets the next person write the parser against the real layout instead
- * of against a description of it.
+ * **It fetches and nothing else.** `releases.mjs` and `panhandle.mjs` both
+ * download and parse, because parsing is what they are for; this is the way to
+ * pull a programme's documents down without parsing them — to look at a layout
+ * before writing against it, or to warm the cache for a run that will parse
+ * every region in turn.
  *
  * **A document is checked for being a PDF and kept whole.** The sources are
  * three different hosts with three different ideas of a URL — a storage bucket

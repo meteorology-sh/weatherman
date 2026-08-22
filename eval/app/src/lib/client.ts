@@ -5,7 +5,7 @@
  * `/app`'s client, because a reader moving between the two should not have to
  * learn a second convention.
  *
- * **Everything here is local.** The findings are files the harness in `eval/`
+ * **Everything here is local.** The findings are files the scripts in `eval/`
  * wrote, served on 3100. Weather comes from the product's own server through
  * `@/lib/client`, and this file never fetches any.
  *
@@ -63,7 +63,7 @@ export async function GetDay(region: string, date: string): Promise<Day> {
   return get<Day>(`/region/${region}/day/${date}`);
 }
 
-/** The frames a day was painted with, if `held.mjs` has run for it. */
+/** The frames a day was painted with, if `paint.mjs` has run for it. */
 export async function GetPainted(
   region: string,
   date: string

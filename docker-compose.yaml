@@ -21,3 +21,35 @@ services:
       - /usr/src/server/node_modules
     ports:
       - 3000:3000
+  # The evaluation API, and the container the evaluation scripts are run in:
+  #   docker-compose run --rm weatherman-eval-service node releases.mjs
+  # It installs nothing — every script here is plain Node reading the Weatherman
+  # server over HTTP.
+  weatherman-eval-service:
+    build:
+      context: ./eval
+      dockerfile: Dockerfiles/Dockerfile.local
+    command: ["node", "--watch", "server.mjs"]
+    environment:
+      WEATHERMAN_SERVER: http://weatherman-server-service:3000
+    volumes:
+      - ./eval:/usr/src/eval
+    ports:
+      - 3100:3100
+  # The evaluation map. It sits at the same path inside the container as in the
+  # repo, so the `@` alias in its Vite config finds `/app/src` on the mount
+  # beside it — read-only, because nothing here may write into the product.
+  weatherman-eval-app-service:
+    build:
+      context: ./eval/app
+      dockerfile: Dockerfiles/Dockerfile.local
+    command: ["yarn", "run", "dev"]
+    environment:
+      EVAL_ORIGIN: http://weatherman-eval-service:3100
+      SERVER_ORIGIN: http://weatherman-server-service:3000
+    volumes:
+      - ./eval/app:/usr/src/eval/app
+      - /usr/src/eval/app/node_modules
+      - ./app/src:/usr/src/app/src:ro
+    ports:
+      - 5174:5174

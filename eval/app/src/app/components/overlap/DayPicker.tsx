@@ -44,7 +44,7 @@ export const DayPicker = () => {
           The other {rest} {rest === 1 ? "day is" : "days are"} logged and not
           built yet. Building one is{" "}
           <code className="font-mono">
-            node eval/held.mjs &lt;date&gt; --region={region}
+            node eval/paint.mjs &lt;date&gt; --region={region}
           </code>
           , which fetches five layers at every analysis that day's flares are
           charged to — about a minute per analysis.

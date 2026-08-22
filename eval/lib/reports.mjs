@@ -8,7 +8,7 @@
  * bearing and a range are measured from.
  *
  * The part that matters is the `Flight Information` table: every flare release
- * with a UTC minute and a position. That is the ground truth the whole
+ * with a UTC minute and a position. That is the record the whole
  * evaluation is scored against, and it is the one thing here that must be
  * parsed exactly rather than approximately. **How the position is written is
  * the thing that varies most**, five ways across the five programmes and
@@ -607,7 +607,7 @@ export function parseDayTotal(text) {
  * a fact about the source document and belongs in the output; the table wins,
  * because it is the thing with a position and a minute on every row.
  */
-export function reconcile(report) {
+export function countDisagreements(report) {
   const summed = {};
   for (const release of report.releases) {
     const county = (summed[release.county] ??= {

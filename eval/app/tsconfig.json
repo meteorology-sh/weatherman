@@ -15,9 +15,14 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "types": ["node", "vite/client"],
+    // `@/*` reaches into /app, whose files sit outside this project and so
+    // cannot walk up to a node_modules of their own. React is named here so
+    // they typecheck against the same one this app installs.
     "paths": {
       "~/*": ["./src/*"],
-      "@/*": ["../../app/src/*"]
+      "@/*": ["../../app/src/*"],
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"]
     }
   },
   "include": ["src"]

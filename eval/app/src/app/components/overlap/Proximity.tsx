@@ -21,7 +21,7 @@ import type { Flare, Painted } from "~/lib/types";
  * same "9 of 13 inside".
  *
  * Every figure here comes from the eval server, which computed it from the file
- * `held.mjs` wrote. Nothing on this page derives a number a second way.
+ * `paint.mjs` wrote. Nothing on this page derives a number a second way.
  */
 
 const PAD = { left: 34, right: 8, top: 10, bottom: 34 };

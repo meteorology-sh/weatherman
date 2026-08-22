@@ -10,7 +10,7 @@
 
 type PropsT = {
   loading: boolean;
-  /** A harness run that has not produced its file yet, and how to produce it. */
+  /** A run that has not produced its file yet, and how to produce it. */
   missing: string | null;
   error: string | null;
   /** What is being waited for, when loading. */

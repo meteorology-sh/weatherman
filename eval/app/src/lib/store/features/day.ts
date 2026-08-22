@@ -7,7 +7,7 @@ import type { Day, DaySummary, Painted } from "~/lib/types";
 /**
  * The day being looked at, and what has been built for it.
  *
- * **The painted frames are held here and the geometry is not drawn from here.**
+ * **The painted frames are kept here and the geometry is not drawn from here.**
  * A frame is megabytes of rings and the store deep-walks its state on every
  * dispatch, so what lives here is the parsed file the map reads once, and the
  * selection around it. Nothing dispatches per ring.

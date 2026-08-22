@@ -1,8 +1,8 @@
 /**
  * Everything a map needs to show one flying day, in one file.
  *
- * `node eval/held.mjs 2025-04-19 [--region=wtwma]` — with the Weatherman server
- * running. Writes `eval/out/held-<date>.json`.
+ * `node eval/paint.mjs 2025-04-19 [--region=wtwma]` — with the Weatherman server
+ * running. Writes `eval/out/painted-<date>.json`.
  *
  * **It paints the product's own layers, not a layer invented for the page.**
  * Every one of the five is the same route the replay map fetches, at the same
@@ -37,7 +37,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Local
-import { SERVER } from "./lib/evaluate.mjs";
+import { SERVER } from "./lib/weatherman.mjs";
 import { distanceToPolygonsKm } from "./lib/geo.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -51,7 +51,7 @@ const REGION =
   process.argv.find((arg) => arg.startsWith("--region="))?.slice(9) ?? "wtwma";
 
 if (!DATE) {
-  console.error("usage: node eval/held.mjs <YYYY-MM-DD> [--region=wtwma]");
+  console.error("usage: node eval/paint.mjs <YYYY-MM-DD> [--region=wtwma]");
   process.exit(1);
 }
 
@@ -349,25 +349,25 @@ if (!day) {
 const releases = day.releases.filter((release) => release.located);
 
 /**
- * How each flare was classified by the season sweep, read back rather than
- * recomputed.
+ * Which of the two analysis hours each flare sat between had the condition,
+ * read back off `between.mjs` rather than recomputed.
  *
- * Carried through so a reader can line one release up against the season table,
- * but it is not what the map draws. The sweep answers a stricter question — was
+ * Carried through so a reader can line one release up against that table, but
+ * it is not what the map draws. `between.mjs` answers a stricter question — was
  * the condition present at both analyses the release sits between — and this
  * page is about distance at one.
  */
 const verdicts = new Map();
-if (region.runs?.bracket) {
+if (region.runs?.between) {
   try {
-    const bracket = JSON.parse(
-      await readFile(join(OUT, region.runs.bracket), "utf8")
+    const between = JSON.parse(
+      await readFile(join(OUT, region.runs.between), "utf8")
     );
-    const scored = bracket.days.find((entry) => entry.date === DATE);
+    const scored = between.days.find((entry) => entry.date === DATE);
     for (const row of scored?.rows ?? [])
-      verdicts.set(row.release.at, row.held);
+      verdicts.set(row.release.at, row.present);
   } catch {
-    console.log("no bracket sweep on disk — season verdicts will be absent\n");
+    console.log("no hour comparison on disk — that column will be empty\n");
   }
 }
 
@@ -465,7 +465,7 @@ for (const hour of hours) {
       /** Where the release point is at the analysis time, if it could drift. */
       compared: at,
       near,
-      season: verdicts.get(release.at) ?? null,
+      present: verdicts.get(release.at) ?? null,
     });
 
     const liquid = near.liquid;
@@ -484,7 +484,7 @@ for (const hour of hours) {
 
 await mkdir(OUT, { recursive: true });
 /**
- * The name the region's roster entry gives this run, not one built here.
+ * The name the region entry gives this run, not one built here.
  *
  * **Every region has to name its own file or they collide.** Two programmes fly
  * the same afternoon — 17 August 2025 is a flying day in both West Texas and
@@ -494,7 +494,7 @@ await mkdir(OUT, { recursive: true });
  */
 const file = join(
   OUT,
-  (region.runs?.held ?? "held-{date}.json").replace("{date}", DATE)
+  (region.runs?.painted ?? "painted-{date}.json").replace("{date}", DATE)
 );
 // Written compact rather than indented. Five layers at several analyses is most
 // of a megabyte of coordinates, and pretty-printing them triples the file the

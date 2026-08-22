@@ -3,8 +3,9 @@
  *
  * `node eval/server.mjs` — port 3100. No dependencies, no build.
  *
- * It serves two things and nothing else: the committed ground truth in `data/`,
- * and whatever the harness in this directory has written to `out/`. It holds no
+ * It serves two things and nothing else: the operators' own record, committed in
+ * `data/`,
+ * and whatever the scripts in this directory have written to `out/`. It holds no
  * weather at all — every layer the app paints comes from the Weatherman server
  * itself, so the picture under the flares is the product's own output rather
  * than a second rendering of the same idea.
@@ -12,10 +13,10 @@
  * **Separate from the Weatherman server on purpose.** What it serves is one
  * operator's flight record and our scoring of it. Neither is a measurement the
  * app makes, and `out/` is a working directory that is not committed — a
- * product route reading from it would break the moment a sweep was cleared.
+ * product route reading from it would break the moment a run was cleared.
  *
  * **The arithmetic behind a published number lives here, not in the app.** The
- * band overlap and the held tallies are computed once, on this side, so the
+ * band overlap and the hour-by-hour tallies are computed once, on this side, so the
  * page and `EVALUATION.md` cannot drift apart by recomputing the same figure
  * two ways.
  */
@@ -40,7 +41,7 @@ const M_PER_FT = 0.3048;
  *
  * **A region with no parsed record is still listed.** Texas licenses several
  * programmes and only one of them has been read out of its reports so far; a
- * roster that hid the others would make one operator's season look like the
+ * region list that hid the others would make one operator's season look like the
  * whole state. The app routes to them and says what is missing.
  */
 const { regions } = JSON.parse(
@@ -84,7 +85,7 @@ const counties = JSON.stringify(
   )
 );
 
-/* ---------- harness output, re-read per request ---------- */
+/* ---------- run output, re-read per request ---------- */
 
 /** A run's output, or null if that run has not happened yet. */
 async function run(name) {
@@ -126,7 +127,7 @@ function bandOverlap(row) {
   const top = row.compared?.minus15Height;
   if (!base || !top || base.error === null || top.error === null) return null;
   // A freezing level at or below sea level is a bad lift out of the report PDF,
-  // not a reading. Dropped here for the same reason reconcile.mjs drops it.
+  // not a reading. Dropped here for the same reason balloons.mjs drops it.
   if (!(base.reported > 0)) return null;
 
   const shared =
@@ -151,7 +152,7 @@ const READINGS = [
 ];
 
 async function band({ region }) {
-  const data = await run(region.runs.reconcile);
+  const data = await run(region.runs.balloons);
   if (!data) return null;
 
   const rows = data.rows;
@@ -191,28 +192,28 @@ async function band({ region }) {
 
 /* ---------- finding 2: the flares against what we painted ---------- */
 
-const OUTCOMES = ["held", "flipped", "absent"];
+const PRESENCE = ["both", "one", "neither"];
 
 function tally(rows, key) {
-  const counts = { held: 0, flipped: 0, absent: 0, unusable: 0 };
+  const counts = { both: 0, one: 0, neither: 0, unusable: 0 };
   for (const row of rows) {
-    const value = row.held?.[key];
-    counts[OUTCOMES.includes(value) ? value : "unusable"] += 1;
+    const value = row.present?.[key];
+    counts[PRESENCE.includes(value) ? value : "unusable"] += 1;
   }
   return counts;
 }
 
 async function overlap({ region }) {
-  const data = await run(region.runs.bracket);
+  const data = await run(region.runs.between);
   if (!data) return null;
 
   const rows = data.days.flatMap((day) => day.rows);
-  const usable = rows.filter((row) => OUTCOMES.includes(row.held?.liquid));
+  const usable = rows.filter((row) => PRESENCE.includes(row.present?.liquid));
 
   // Where liquid survived both readings, what actually rejected it. The
   // rejection order puts rain last, so a cell charged to `raining` passed every
   // test before it and this is exact rather than an inference.
-  const surviving = usable.filter((row) => row.held.liquid === "held");
+  const surviving = usable.filter((row) => row.present.liquid === "both");
   const reflectivity = surviving
     .flatMap((row) => [row.lo?.dbz, row.hi?.dbz])
     .filter((v) => v !== null && v !== undefined)
@@ -227,7 +228,7 @@ async function overlap({ region }) {
     ),
     rain: {
       surviving: surviving.length,
-      vetoed: surviving.filter(
+      raining: surviving.filter(
         (row) => row.lo?.verdict === "raining" || row.hi?.verdict === "raining"
       ).length,
       readings: reflectivity.length,
@@ -249,7 +250,7 @@ async function overlap({ region }) {
 
 /* ---------- one day ---------- */
 
-/** The file a run wrote for one date, e.g. `held-{date}.json`. */
+/** The file a run wrote for one date, e.g. `painted-{date}.json`. */
 const forDate = (template, date) => template.replace("{date}", date);
 
 /* ---------- how near the flares were ---------- */
@@ -335,13 +336,13 @@ function proximity(painted) {
  * carried alongside because the interesting shape of this finding is which days
  * disagree rather than how often they do.
  *
- * A day whose file has not been built is absent rather than zero, and `days`
+ * A day whose file has not been built is missing rather than zero, and `days`
  * against `flying` says how much of the season the numbers cover.
  */
 async function near({ region, seeded }) {
   const built = [];
   for (const record of seeded) {
-    const painted = await run(forDate(region.runs.held, record.date));
+    const painted = await run(forDate(region.runs.painted, record.date));
     if (painted) built.push({ date: record.date, painted });
   }
   if (!built.length) return null;
@@ -379,8 +380,8 @@ async function day({ region, seeded }, date) {
   const record = seeded.find((entry) => entry.date === date);
   if (!record) return null;
 
-  const bracket = await run(region.runs.bracket);
-  const scored = bracket?.days.find((entry) => entry.date === date);
+  const between = await run(region.runs.between);
+  const scored = between?.days.find((entry) => entry.date === date);
   const byTime = new Map(
     (scored?.rows ?? []).map((row) => [row.release.at, row])
   );
@@ -393,7 +394,7 @@ async function day({ region, seeded }, date) {
     unlocated: record.releases.filter((release) => !release.located),
     // Whether the painted frames for this day have been built. The app offers
     // the map only when they have, rather than opening an empty one.
-    painted: Boolean(await run(forDate(region.runs.held, date))),
+    painted: Boolean(await run(forDate(region.runs.painted, date))),
     releases: record.releases
       .filter((release) => release.located)
       .map((release) => {
@@ -410,10 +411,10 @@ async function day({ region, seeded }, date) {
                 : release.hygroscopic
                   ? "hygroscopic"
                   : "glaciogenic",
-          bracket: row
+          hours: row
             ? { from: row.h0, to: row.h1, into: row.intoGapMinutes }
             : null,
-          held: row?.held ?? null,
+          present: row?.present ?? null,
           lo: row?.lo ?? null,
           hi: row?.hi ?? null,
         };
@@ -465,7 +466,7 @@ const server = createServer(async (req, res) => {
     if (path === "/healthcheck") return send(200, { ok: true });
     if (path === "/counties.geojson") return send(200, counties);
 
-    // The roster. Every programme, whether or not its reports have been parsed,
+    // Every programme, whether or not its reports have been parsed,
     // so the app can route to one that has not been and say what is missing.
     if (path === "/regions") {
       return send(
@@ -517,7 +518,7 @@ const server = createServer(async (req, res) => {
         return found
           ? send(200, found)
           : send(404, {
-              error: "no reconcile run yet — node eval/reconcile.mjs",
+              error: "no balloon comparison yet — node eval/balloons.mjs",
             });
       }
 
@@ -525,7 +526,9 @@ const server = createServer(async (req, res) => {
         const found = await overlap(entry);
         return found
           ? send(200, found)
-          : send(404, { error: "no bracket run yet — node eval/bracket.mjs" });
+          : send(404, {
+              error: "no hour comparison yet — node eval/between.mjs",
+            });
       }
 
       if (rest === "/near") {
@@ -533,17 +536,17 @@ const server = createServer(async (req, res) => {
         return found
           ? send(200, found)
           : send(404, {
-              error: "no day painted yet — node eval/held.mjs <date>",
+              error: "no day painted yet — node eval/paint.mjs <date>",
             });
       }
 
       if (rest === "/days") {
-        const bracket = await run(region.runs.bracket);
+        const between = await run(region.runs.between);
         return send(
           200,
           await Promise.all(
             seeded.map(async (record) => {
-              const scored = bracket?.days.find(
+              const scored = between?.days.find(
                 (item) => item.date === record.date
               );
               return {
@@ -553,9 +556,9 @@ const server = createServer(async (req, res) => {
                 observations: record.observations?.length ?? 0,
                 scored: Boolean(scored),
                 painted: Boolean(
-                  await run(forDate(region.runs.held, record.date))
+                  await run(forDate(region.runs.painted, record.date))
                 ),
-                held: scored ? tally(scored.rows, "liquid").held : null,
+                present: scored ? tally(scored.rows, "liquid").both : null,
                 briefing: briefing(record),
               };
             })
@@ -565,12 +568,12 @@ const server = createServer(async (req, res) => {
 
       const painted = rest.match(/^\/day\/(\d{4}-\d{2}-\d{2})\/painted$/);
       if (painted) {
-        const found = await run(forDate(region.runs.held, painted[1]));
+        const found = await run(forDate(region.runs.painted, painted[1]));
         return found
           ? send(200, { ...found, proximity: proximity(found) })
           : send(404, {
               error:
-                `not painted yet — node eval/held.mjs ${painted[1]} ` +
+                `not painted yet — node eval/paint.mjs ${painted[1]} ` +
                 `--region=${region.id}`,
             });
       }
