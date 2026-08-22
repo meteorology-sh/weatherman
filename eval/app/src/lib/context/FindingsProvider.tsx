@@ -17,7 +17,7 @@ import { GetBand, GetOverlap, NotRunYet } from "~/lib/client";
 /**
  * Loads both findings for the region in the url, and syncs them into the store.
  *
- * Either can be missing on its own — the harness runs are independent — so a
+ * Either can be missing on its own — the two runs are independent — so a
  * missing one is recorded and the other still loads. Only a real failure sets
  * `error`.
  *

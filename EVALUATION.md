@@ -81,7 +81,7 @@ for, and nothing that is a west Texas peculiarity.
 
 **The Panhandle is the exception and is deliberately not here.** It briefs on a
 NAM forecast column rather than an ascent. Checking HRRR against NAM compares
-two models and would report their agreement as accuracy, so `reconcile.mjs`
+two models and would report their agreement as accuracy, so `balloons.mjs`
 refuses that region rather than running it with a footnote.
 
 **The four programmes are not four independent samples.** Midland serves West
@@ -112,7 +112,7 @@ in the record can check.
 
 ---
 
-## Finding 2 — they seed near our liquid, and inside the rain we veto
+## Finding 2 — they seed near our liquid, and inside the rain we rule out
 
 The model publishes once an hour. Aircraft do not wait for it. A flare released
 at 1843Z is 17 minutes from one reading and 43 from the other, and picking
@@ -145,7 +145,7 @@ other. For those, the hour you pick _is_ the answer. This is the timing problem
 measured rather than argued about, and it is why single-hour numbers should not
 be quoted.
 
-The 17 that held are not spread out. Five days carry all of them — 19 April
+The 17 that had liquid at both hours are not spread out. Five days carry all of them — 19 April
 (7 of 13), 22 May (5 of 23), 29 August (3 of 25), 11 August (1 of 46), and
 24 October (1 of 17). **The other 29 days contribute nothing.** Whatever the
 disagreement is, it is not an even error rate, which means it can be diagnosed.
@@ -199,7 +199,7 @@ than 100 km from any liquid we painted, which is the model holding the liquid
 somewhere else entirely or holding none in the target area.
 
 **Almost nothing is inside the finished join**: 3 releases of 497, on 30 June
-and 18 August. The join vetoes rain and they fly into rain, which the next
+and 18 August. The join rules out rain and they fly into rain, which the next
 section is about.
 
 **This does not say which side is wrong.** Either we paint no liquid where the
@@ -217,7 +217,8 @@ for every release, drifted and undrifted, so neither has to be taken on trust.
 
 ### Why: we rule out rain, and they seed rain on purpose
 
-**All 17 flares that held liquid were rejected for rain**, at one hour or both.
+**All 17 flares that had liquid at both hours were rejected for rain**, at one
+hour or both.
 That single test is the entire distance between the second row of the table and
 the third.
 
@@ -244,7 +245,7 @@ worth seeding, and has it already spent its liquid. The second is worth showing
 and should not silently suppress the first. That is also what the operator does
 — they see the echo and fly it anyway.
 
-`eval/bracket.mjs` already computes this as its own test, so both numbers exist
+`eval/between.mjs` already computes this as its own test, so both numbers exist
 today with no re-run.
 
 ---
@@ -296,7 +297,7 @@ very little water in the band the layer paints. That is a reason the airmass
 story is too simple, not a replacement for it. **Where the disagreement is
 concentrated is established; what causes it is not.**
 
-**The rain veto behaves the same everywhere.** Twenty releases of 1,353 fall
+**Ruling out rain behaves the same everywhere.** Twenty releases of 1,353 fall
 inside the finished join — 3, 5, 9, 0 and 3 across the five. Every operator in
 Texas seeds the storm the product rules out, and the one programme with none
 inside is the one with 83 releases.
@@ -336,27 +337,27 @@ in the operator's briefing and absent from ours.
 Everything needs a running server and nothing else. No install, no key.
 
 ```bash
-docker-compose up                      # or cd server && yarn dev
-node eval/releases.mjs                 # the PDFs  → data/releases-2025.json
-node eval/reconcile.mjs                # finding 1 → out/reconcile-2025.json
-node eval/reconcile.mjs --score        # finding 1 again, instantly, no fetching
-node eval/bracket.mjs                  # finding 2 → out/bracket-2025.json
-node eval/held.mjs 2025-04-19          # one day, every layer → out/held-<date>.json
+docker-compose up -d                   # all four services
+
+# each of these is one run in the evaluation container
+run() { docker-compose run --rm weatherman-eval-service node "$@"; }
+
+run releases.mjs                       # the PDFs  → data/releases-2025.json
+run balloons.mjs                       # finding 1 → out/balloons-2025.json
+run balloons.mjs --score               # finding 1 again, instantly, no fetching
+run between.mjs                        # finding 2 → out/between-2025.json
+run paint.mjs 2025-04-19               # one day, every layer → out/painted-<date>.json
 ```
 
-The whole season is built, one day at a time — `held.mjs` refuses to be useful
+The whole season is built, one day at a time — `paint.mjs` refuses to be useful
 any other way, because two runs at once evict each other's grids from the
 server's cache. `eval/README.md` has the loop and what the log says.
 
-To look at it rather than read it:
-
-```bash
-node eval/server.mjs                   # the findings, port 3100
-cd eval/app && yarn dev                # the maps, port 5174
-```
+To look at it rather than read it: the findings are on port 3100 and the maps on
+port 5174, both up with the rest of the stack.
 
 **Cost is downloads, not minutes.** Reading one hour out of the archive takes
-30–60 seconds; every later question about that same hour is instant. `bracket.mjs`
+30–60 seconds; every later question about that same hour is instant. `between.mjs`
 asks 994 questions but downloads 125 hours, because flares cluster. The 34 days
 of painted layers are 20 MB on disk and about an hour and a half of downloading.
 
@@ -371,7 +372,7 @@ curl localhost:3100/region/wtwma/near        # or /transpecos/, or /panhandle/
 ```
 
 The other two programmes are built the same way — `releases.mjs
---region=transpecos` and `panhandle.mjs` read their reports, and `held.mjs
+--region=transpecos` and `panhandle.mjs` read their reports, and `paint.mjs
 <date> --region=<id>` paints a day. `eval/README.md` has what each programme's
 reports do and do not carry.
 

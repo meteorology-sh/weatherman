@@ -1,29 +1,31 @@
 /**
  * Whether a flare was released inside a region we had already painted.
  *
- * `node eval/bracket.mjs [--resume]` — with the server running. Writes
- * `eval/out/bracket-2025.json`.
+ * `node eval/between.mjs [--resume]` — with the server running. Writes
+ * `eval/out/between-2025.json`.
  *
  * **The model analyses on the hour and flares do not.** Asking the join for a
  * single hour near a 1843Z release forces a choice between two analyses and
- * then reports the answer as though the choice were free. This asks both ends
+ * then reports the answer as though the choice were free. This asks both hours
  * instead — 18Z and 19Z — and reports what the pair agree on.
  *
- * That turns an unanswerable question into a three-way one:
+ * That turns an unanswerable question into a three-way one. For each release,
+ * the condition was there at:
  *
- * - **held** — the condition was there at both ends, so it was there across the
- *   whole bracket and whatever happened in between cannot change the answer.
- * - **flipped** — one end had it and the other did not. The condition was
- *   moving, and nothing about a single-hour reading was ever going to settle it.
- * - **absent** — neither end had it.
+ * - **both** hours, so it was there for the whole gap between them and whatever
+ *   happened in between cannot change the answer.
+ * - **one** hour and not the other. The condition was moving, and nothing about
+ *   a single-hour reading was ever going to settle it.
+ * - **neither** hour.
  *
- * A held region is the part of the map we can defend without a clock argument,
- * because it does not depend on which analysis the release is charged to.
+ * A region present at both hours is the part of the map we can defend without a
+ * clock argument, because it does not depend on which analysis the release is
+ * charged to.
  *
  * Three tests are run over the same pair of answers, nested from loose to
- * strict. They are separated because the radar veto is a different kind of
- * judgement from the rest: a crew may fly deliberately close to an echo, so a
- * cell that failed only on reflectivity is not a cell we got wrong about the
+ * strict. They are separated because rain already falling is a different kind
+ * of judgement from the rest: a crew may fly deliberately close to an echo, so
+ * a cell ruled out only by the radar is not a cell we got wrong about the
  * cloud.
  */
 
@@ -33,11 +35,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Local
-import { point, SERVER } from "./lib/evaluate.mjs";
+import { point, SERVER } from "./lib/weatherman.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, "out");
-const FILE = join(OUT, "bracket-2025.json");
+const FILE = join(OUT, "between-2025.json");
 
 const RESUME = process.argv.includes("--resume");
 
@@ -50,7 +52,7 @@ const ONLY = process.argv.find((arg) => arg.startsWith("--day="))?.slice(6);
  * Always the hour below and the hour above, never the nearer one. Rounding is
  * what this is built to avoid.
  */
-function bracketOf(at) {
+function hoursAround(at) {
   const t = new Date(at);
   const h0 = new Date(t);
   h0.setUTCMinutes(0, 0, 0);
@@ -77,12 +79,12 @@ const TESTS = [
   },
   {
     key: "cloudReady",
-    label: "seedable cloud, before the radar veto",
+    label: "seedable cloud, before the rain test",
     of: (a) => a.verdict === "candidate" || a.verdict === "raining",
   },
   {
     key: "candidate",
-    label: "seedable, radar included",
+    label: "seedable, rain included",
     of: (a) => a.verdict === "candidate",
   },
 ];
@@ -94,12 +96,13 @@ function usable(a, b) {
   return null;
 }
 
-function hold(test, a, b) {
+/** Which of the two hours the condition was there at. */
+function presentAt(test, a, b) {
   const bad = usable(a, b);
   if (bad) return bad;
   const lo = test.of(a);
   const hi = test.of(b);
-  return lo && hi ? "held" : lo || hi ? "flipped" : "absent";
+  return lo && hi ? "both" : lo || hi ? "one" : "neither";
 }
 
 const { days } = JSON.parse(
@@ -107,7 +110,7 @@ const { days } = JSON.parse(
 );
 const seeded = days.filter((day) => day.seeded);
 
-/** Days already written, so a lost server does not cost the whole sweep. */
+/** Days already written, so a lost server does not cost the whole run. */
 let done = [];
 if (RESUME) {
   try {
@@ -138,7 +141,7 @@ for (const day of todo) {
   // hour or one per flare.
   const byHour = new Map();
   for (const release of releases) {
-    const { h0, h1 } = bracketOf(release.at);
+    const { h0, h1 } = hoursAround(release.at);
     for (const hour of [h0, h1]) {
       if (!byHour.has(hour)) byHour.set(hour, []);
       byHour.get(hour).push(release);
@@ -168,18 +171,18 @@ for (const day of todo) {
   }
 
   const rows = releases.map((release) => {
-    const { h0, h1, intoGapMinutes } = bracketOf(release.at);
+    const { h0, h1, intoGapMinutes } = hoursAround(release.at);
     const lo = answers.get(`${h0}|${release.at}`);
     const hi = answers.get(`${h1}|${release.at}`);
-    const held = {};
-    for (const test of TESTS) held[test.key] = hold(test, lo, hi);
-    return { release, h0, h1, intoGapMinutes, lo, hi, held };
+    const present = {};
+    for (const test of TESTS) present[test.key] = presentAt(test, lo, hi);
+    return { release, h0, h1, intoGapMinutes, lo, hi, present };
   });
 
   const tally = {};
   for (const test of TESTS) {
     tally[test.key] = rows.reduce((counts, row) => {
-      counts[row.held[test.key]] = (counts[row.held[test.key]] ?? 0) + 1;
+      counts[row.present[test.key]] = (counts[row.present[test.key]] ?? 0) + 1;
       return counts;
     }, {});
   }
@@ -194,7 +197,7 @@ for (const day of todo) {
 
   const mins = ((Date.now() - started) / 60000).toFixed(1);
   const say = (key) =>
-    `${key} ${tally[key].held ?? 0}/${rows.length}`.padEnd(22);
+    `${key} ${tally[key].both ?? 0}/${rows.length}`.padEnd(22);
   console.log(
     `  ${day.date}  ${String(rows.length).padStart(3)} flares  ` +
       `${String(byHour.size).padStart(2)} hours  ${mins.padStart(5)} min   ` +
@@ -206,32 +209,32 @@ for (const day of todo) {
 
 const rows = done.flatMap((day) => day.rows);
 const scored = rows.filter(
-  (row) => !["unknown", "outside"].includes(row.held.liquid)
+  (row) => !["unknown", "outside"].includes(row.present.liquid)
 );
 
 console.log(`\n${"=".repeat(78)}`);
 console.log(
-  `${rows.length} releases bracketed, ${scored.length} with an answer at both ends\n`
+  `${rows.length} releases scored, ${scored.length} with an answer at both hours\n`
 );
 console.log(
   "test".padEnd(38) +
-    "held".padStart(12) +
-    "flipped".padStart(11) +
-    "absent".padStart(10)
+    "both".padStart(12) +
+    "one".padStart(11) +
+    "neither".padStart(10)
 );
 
 const pct = (n) => `${((n / scored.length) * 100).toFixed(1)}%`;
 
 for (const test of TESTS) {
   const counts = scored.reduce((c, row) => {
-    c[row.held[test.key]] = (c[row.held[test.key]] ?? 0) + 1;
+    c[row.present[test.key]] = (c[row.present[test.key]] ?? 0) + 1;
     return c;
   }, {});
   console.log(
     test.label.padEnd(38) +
-      `${counts.held ?? 0} (${pct(counts.held ?? 0)})`.padStart(12) +
-      `${counts.flipped ?? 0}`.padStart(11) +
-      `${counts.absent ?? 0}`.padStart(10)
+      `${counts.both ?? 0} (${pct(counts.both ?? 0)})`.padStart(12) +
+      `${counts.one ?? 0}`.padStart(11) +
+      `${counts.neither ?? 0}`.padStart(10)
   );
 }
 

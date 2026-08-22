@@ -9,10 +9,10 @@
  * layers through `@/lib/client`, so those types come from `@/lib/types`.
  */
 
-/** Whether a condition survived both readings a flare sits between. */
-export type Outcome = "held" | "flipped" | "absent" | "unusable";
+/** Which of the two analysis hours a flare sits between had the condition. */
+export type Presence = "both" | "one" | "neither" | "unusable";
 
-export type Tally = Record<Exclude<Outcome, never>, number>;
+export type Tally = Record<Presence, number>;
 
 /* ---------- regions ---------- */
 
@@ -21,7 +21,7 @@ export type Tally = Record<Exclude<Outcome, never>, number>;
  *
  * `evaluable` is false until its reports have been parsed into a flight record.
  * Texas licenses several programmes and only one has been read so far, so a
- * region that cannot be evaluated is still listed — the roster is the honest
+ * region that cannot be evaluated is still listed — the list is the honest
  * picture of coverage, and hiding the gaps would make one operator's season
  * look like the whole state.
  */
@@ -94,7 +94,7 @@ export type OverlapFinding = {
   tallies: Record<string, Tally>;
   rain: {
     surviving: number;
-    vetoed: number;
+    raining: number;
     readings: number;
     low: number | null;
     median: number | null;
@@ -125,9 +125,9 @@ export type DaySummary = {
   unlocated: number;
   observations: number;
   scored: boolean;
-  /** Whether the painted frames exist yet — `node eval/held.mjs <date>`. */
+  /** Whether the painted frames exist yet — `node eval/paint.mjs <date>`. */
   painted: boolean;
-  held: number | null;
+  present: number | null;
   briefing: Briefing | null;
 };
 
@@ -162,8 +162,8 @@ export type Release = {
   plane: string;
   /** Null where the report says a flare was released and not how many. */
   payload: "glaciogenic" | "hygroscopic" | "both" | null;
-  bracket: { from: string; to: string; into: number } | null;
-  held: Record<string, Outcome> | null;
+  hours: { from: string; to: string; into: number } | null;
+  present: Record<string, Presence> | null;
   lo: Answer | null;
   hi: Answer | null;
 };
@@ -245,8 +245,8 @@ export type Flare = {
   /** Where the release point sits at the analysis time, after drifting. */
   compared: [number, number];
   near: Record<string, Nearness | null>;
-  /** What the season sweep said, for lining one release up against the table. */
-  season: Record<string, Outcome> | null;
+  /** Which hours had the condition, for lining one release up against the table. */
+  present: Record<string, Presence> | null;
 };
 
 /** One analysis hour, and the releases charged to it. */

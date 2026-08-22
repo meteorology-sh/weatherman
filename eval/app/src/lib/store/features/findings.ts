@@ -5,7 +5,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { BandFinding, OverlapFinding } from "~/lib/types";
 
 /**
- * The two findings, and whether the harness has produced them yet.
+ * The two findings, and whether their runs have produced them yet.
  *
  * `missing` is not `error`. A run that has not happened is an ordinary state
  * with a command that fixes it, and the page says which command; a server that

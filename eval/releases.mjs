@@ -27,7 +27,7 @@ import { fileURLToPath } from "node:url";
 import { extractText } from "./lib/pdf.mjs";
 import {
   parseReport,
-  reconcile,
+  countDisagreements,
   splitReports,
   sumReleases,
 } from "./lib/reports.mjs";
@@ -147,7 +147,7 @@ for (const entry of reports) {
         else discrepancies.push(line);
       }
 
-      const disagreements = counted ? reconcile(report) : [];
+      const disagreements = counted ? countDisagreements(report) : [];
       for (const line of disagreements) {
         discrepancies.push(`${day.date}: ${line}`);
       }

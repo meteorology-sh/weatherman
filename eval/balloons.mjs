@@ -1,7 +1,7 @@
 /**
  * The layers, against the instrument the operator briefs its own sorties on.
  *
- * `node eval/reconcile.mjs [--region=wtwma] [--resume]` — with the server
+ * `node eval/balloons.mjs [--region=wtwma] [--resume]` — with the server
  * running. Writes the file `data/regions.json` names for that region.
  * `--score` re-prints the summary from it without fetching anything.
  *
@@ -53,7 +53,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Local
-import { SERVER } from "./lib/evaluate.mjs";
+import { SERVER } from "./lib/weatherman.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, "out");
@@ -124,7 +124,7 @@ function tempAtMb(levels, mb) {
  *
  * Each pair states the report's field, ours, and the unit both are put into.
  * Heights are compared in metres because that is what the report prints —
- * converting ours rather than theirs keeps the ground truth untouched.
+ * converting ours rather than theirs leaves the report's own numbers alone.
  */
 const PAIRS = [
   {
@@ -139,7 +139,7 @@ const PAIRS = [
     // October. Where the report prints one it is a bad lift out of the PDF, and
     // scoring it would charge the model for our own parse. Dropped at scoring
     // rather than at the fetch so the reading is still written to the output,
-    // and so a stored sweep and a fresh one produce the same table.
+    // and so a stored run and a fresh one produce the same table.
     keep: (cell) => cell.reported > 0,
   },
   {
@@ -189,15 +189,15 @@ const PAIRS = [
 /**
  * `--score` re-prints the summary from the last run instead of fetching again.
  *
- * The sweep is hours of cold archive builds and the arithmetic over its output
+ * The run is hours of cold archive builds and the arithmetic over its output
  * is milliseconds. A published number has to be checkable without paying for
- * the sweep a second time, so the two are separable.
+ * the run a second time, so the two are separable.
  */
 const SCORE_ONLY = process.argv.includes("--score");
 
 /**
  * `--resume` keeps the ascents already on disk and fetches only what is
- * missing. The sweep is long enough that losing it to a restarted machine is a
+ * missing. The run is long enough that losing it to a restarted machine is a
  * real cost, and an ascent does not change once read.
  */
 const RESUME = process.argv.includes("--resume");
@@ -229,7 +229,7 @@ if (!region.releases || sites.length === 0) {
   process.exit(1);
 }
 
-const OUTFILE = join(OUT, region.runs?.reconcile ?? `reconcile-${REGION}.json`);
+const OUTFILE = join(OUT, region.runs?.balloons ?? `balloons-${REGION}.json`);
 
 const { days } = JSON.parse(
   await readFile(join(HERE, "data", region.releases), "utf8")
@@ -327,7 +327,7 @@ for (const day of seeded) {
  * One of those two numbers is a typo and **nothing here can say which**. Our
  * own column agrees with the freezing level and not with the −15 °C height,
  * but using that to pick which of their numbers to keep would be judging the
- * ground truth by the model and then reporting the agreement as accuracy. So
+ * balloon by the model and then reporting the agreement as accuracy. So
  * the whole morning is dropped from both edges and from the band, and named in
  * the output — the same rule as a coordinate kept exactly as printed and left
  * unscored.

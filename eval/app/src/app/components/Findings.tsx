@@ -62,7 +62,7 @@ export const Findings = () => {
             read its report layout.
           </p>
           <Link to="/" className="btn btn-sm btn-outline self-start">
-            Back to the roster
+            Back to the programmes
           </Link>
         </div>
       </div>
@@ -136,7 +136,7 @@ export const Findings = () => {
               </>
             ) : (
               <p className="text-sm font-mono">
-                Not measured yet — node eval/reconcile.mjs
+                Not measured yet — node eval/balloons.mjs
               </p>
             )}
           </div>
@@ -166,7 +166,7 @@ export const Findings = () => {
                       Landed in liquid we painted
                     </div>
                     <div className="stat-value text-3xl">
-                      {overlap.tallies.liquid?.held ?? 0}
+                      {overlap.tallies.liquid?.both ?? 0}
                       <span className="text-lg">/{overlap.usable}</span>
                     </div>
                     <div className="stat-desc">at both hours</div>
@@ -176,7 +176,7 @@ export const Findings = () => {
                       Fully seedable, rain included
                     </div>
                     <div className="stat-value text-3xl text-warning">
-                      {overlap.tallies.candidate?.held ?? 0}
+                      {overlap.tallies.candidate?.both ?? 0}
                     </div>
                     <div className="stat-desc">out of {overlap.usable}</div>
                   </div>
@@ -185,21 +185,21 @@ export const Findings = () => {
                       Answer depends on the hour
                     </div>
                     <div className="stat-value text-3xl">
-                      {overlap.tallies.liquid?.flipped ?? 0}
+                      {overlap.tallies.liquid?.one ?? 0}
                     </div>
                     <div className="stat-desc">had liquid at one hour only</div>
                   </div>
                 </div>
                 <p className="text-sm">
                   Every flare that did land in liquid was then ruled out for
-                  rain — {overlap.rain.vetoed} of {overlap.rain.surviving}, at a
-                  median {overlap.rain.median} dBZ against a cutoff of 20. The
+                  rain — {overlap.rain.raining} of {overlap.rain.surviving}, at
+                  a median {overlap.rain.median} dBZ against a cutoff of 20. The
                   operators seed those clouds deliberately.
                 </p>
               </>
             ) : (
               <p className="text-sm font-mono">
-                Not measured yet — node eval/bracket.mjs
+                Not measured yet — node eval/between.mjs
               </p>
             )}
           </div>

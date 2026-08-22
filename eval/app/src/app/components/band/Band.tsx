@@ -31,7 +31,7 @@ export const Band = () => {
     return (
       <Status
         loading={false}
-        missing="No sounding comparison yet — node eval/reconcile.mjs"
+        missing="No sounding comparison yet — node eval/balloons.mjs"
         error={null}
       />
     );

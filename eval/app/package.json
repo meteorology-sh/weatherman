@@ -1,5 +1,5 @@
 {
-  "name": "weatherman-eval",
+  "name": "weatherman-eval-app",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,5 +9,25 @@
     "preview": "vite preview",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.11.2",
+    "@tailwindcss/vite": "^4.2.4",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-redux": "^9.2.0",
+    "react-router": "^7.14.2",
+    "tailwindcss": "^4.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/node": "^24.12.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "daisyui": "^5.5.19",
+    "prettier": "^3.9.6",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.10"
   }
 }

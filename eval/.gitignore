@@ -2,8 +2,7 @@
 cache/
 out/
 
-# The app's build output. `app/node_modules` is a committed symlink to /app's,
-# not an install — see the README.
+# The evaluation app's install and build output.
+app/node_modules/
 app/dist/
-app/node_modules/.vite/
 app/tsconfig.tsbuildinfo

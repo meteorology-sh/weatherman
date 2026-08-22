@@ -11,12 +11,15 @@ import tailwindcss from "@tailwindcss/vite";
 /**
  * The evaluation app.
  *
- * **It installs nothing.** `node_modules` is a committed symlink to `/app`'s,
- * and `@` resolves into `/app/src`, so the renderers, the layer urls and the
- * types here are the product's own objects rather than copies. A page built to
- * find disagreements between the map and an operator must not introduce one
- * between itself and the map it is inspecting, and a second install could drift
- * a version and repaint a band.
+ * **It imports the product's own objects rather than copies.** `@` resolves
+ * into `/app/src`, so the ramps, the band levels, the colours and the layer
+ * names are the ones Weatherman draws with. A page built to find disagreements
+ * between the map and an operator must not introduce one between itself and the
+ * map it is inspecting.
+ *
+ * Its dependencies are pinned to the same versions `/app` uses for the same
+ * reason: a drifted React or Tailwind here would repaint a band and the
+ * difference would look like a finding.
  *
  * `~` is this app's own source, so the two origins stay visible at every import.
  */
@@ -26,11 +29,22 @@ export default defineConfig({
       "~": path.resolve(__dirname, "src"),
       "@": path.resolve(__dirname, "../../app/src"),
     },
+    // The files behind `@` sit outside this app's tree, so they have no
+    // `node_modules` above them to resolve React from. Naming it here points
+    // them at the one copy this app installs — the same statement the `paths`
+    // block in `tsconfig.json` makes to the typechecker.
+    dedupe: ["react", "react-dom"],
   },
   plugins: [react(), tailwindcss()],
   server: {
     host: "0.0.0.0",
     port: 5174,
+    // `@` reaches outside this app's root, so the dev server has to be told it
+    // may serve from `/app` as well. Both paths are relative to this file, so
+    // they hold in the container and on a laptop alike.
+    fs: {
+      allow: [path.resolve(__dirname), path.resolve(__dirname, "../../app")],
+    },
     cors: true,
     proxy: {
       // The findings and the flight record. Local files, so this is instant.

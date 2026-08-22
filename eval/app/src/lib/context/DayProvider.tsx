@@ -36,7 +36,7 @@ export function DayProvider({ children }: { children: React.ReactNode }) {
    * The day list, refetched every time the page is opened.
    *
    * **Not guarded on `days` being empty**, and that is the point: which days are
-   * painted changes whenever `held.mjs` runs, and a list cached from before a
+   * painted changes whenever `paint.mjs` runs, and a list cached from before a
    * run shows the day that was built as though it were the only one there is.
    * The route is opened rarely and the answer is a local file, so paying for it
    * each time is cheaper than being wrong about what exists.
