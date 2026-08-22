@@ -101,7 +101,7 @@ export const Findings = () => {
             {band?.overlap ? (
               <>
                 <div className="stats bg-transparent">
-                  <div className="stat px-0">
+                  <div className="stat px-2">
                     <div className="stat-title text-xs">
                       Overlap with the balloons
                     </div>
@@ -112,7 +112,7 @@ export const Findings = () => {
                       median over {band.overlap.n} ascents
                     </div>
                   </div>
-                  <div className="stat px-0">
+                  <div className="stat px-2">
                     <div className="stat-title text-xs">Freezing level</div>
                     <div className="stat-value text-3xl">
                       {band.readings.find((r) => r.key === "freezingLevel")
@@ -121,7 +121,7 @@ export const Findings = () => {
                     </div>
                     <div className="stat-desc">typical miss</div>
                   </div>
-                  <div className="stat px-0">
+                  <div className="stat px-2">
                     <div className="stat-title text-xs">Clearing 90%</div>
                     <div className="stat-value text-3xl">
                       {band.overlap.over90}/{band.overlap.n}
@@ -161,7 +161,7 @@ export const Findings = () => {
             {overlap ? (
               <>
                 <div className="stats bg-transparent">
-                  <div className="stat px-0">
+                  <div className="stat px-2">
                     <div className="stat-title text-xs">
                       Landed in liquid we painted
                     </div>
@@ -171,7 +171,7 @@ export const Findings = () => {
                     </div>
                     <div className="stat-desc">at both hours</div>
                   </div>
-                  <div className="stat px-0">
+                  <div className="stat px-2">
                     <div className="stat-title text-xs">
                       Fully seedable, rain included
                     </div>
@@ -180,7 +180,7 @@ export const Findings = () => {
                     </div>
                     <div className="stat-desc">out of {overlap.usable}</div>
                   </div>
-                  <div className="stat px-0">
+                  <div className="stat px-2">
                     <div className="stat-title text-xs">
                       Answer depends on the hour
                     </div>
