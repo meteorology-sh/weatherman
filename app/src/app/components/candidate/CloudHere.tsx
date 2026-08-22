@@ -46,18 +46,12 @@ const ANSWER: Record<Verdict, string> = {
  * an algorithm assigned it.
  */
 const PHASE_READING: Record<CloudPhase, string> = {
-  supercooled:
-    "The top of this cloud is supercooled liquid — at the one height a " +
-    "satellite can see it, the water is the kind seeding works on.",
-  mixed:
-    "The top of this cloud is part liquid and part ice: it is freezing over " +
-    "as it is watched.",
-  ice:
-    "The top of this cloud has already frozen. The model still puts liquid " +
-    "in the band below it, and nothing observed can see down there to check.",
+  supercooled: "The top of this cloud is supercooled liquid.",
+  mixed: "The top of this cloud is part liquid and part ice.",
+  ice: "The top of this cloud has already frozen. The model still puts liquid in the band below it.",
   liquid: "The top of this cloud is liquid and warmer than freezing.",
-  clear: "The phase scan sees no cloud over this cell.",
-  unknown: "The phase scan could not put this cloud top in any class.",
+  clear: "The phase scan sees no cloud here.",
+  unknown: "Unknown: The phase scan could not classify data here",
 };
 
 /**
@@ -153,18 +147,15 @@ export const CloudHere = () => {
         ) : (
           <>
             <span>{PHASE_READING[here.topPhase]}</span>
-            <span>
-              The top only, and the highest deck of it. Under layered cloud this
-              describes whatever is on top rather than the cloud underneath, so
-              it never rules a cell out.
-            </span>
+            <span>This reading is for the cloud top only.</span>
           </>
         )}
       </div>
 
       <div className="text-xs">
-        {here.lat}, {here.lon} &middot; the 12 km cell containing your click.
-        Model {utc(here.run)}Z, satellite {utc(here.sceneTime)}Z, radar{" "}
+        Coordinates: {here.lat}, {here.lon}
+        <br />Time:
+        model {utc(here.run)}Z, satellite {utc(here.sceneTime)}Z, radar{" "}
         {utc(here.radarTime)}Z
         {here.phaseTime !== null && <>, phase {utc(here.phaseTime)}Z</>}.
       </div>

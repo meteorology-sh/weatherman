@@ -13,7 +13,7 @@ export const Candidate = () => {
         <div className="prose">
           <h2>Candidate Clouds</h2>
           <p>
-            What the sky is doing right now, and whether it is worth flying.
+            What the sky is doing right now, and whether to fly.
           </p>
         </div>
         <div className="py-2">
@@ -22,32 +22,15 @@ export const Candidate = () => {
             <div className="collapse-title font-semibold">Instructions</div>
             <div className="collapse-content text-sm">
               <div className="prose">
-                <ol>
+                <ul>
                   <li>
-                    Read the green first. SEEDING OPPORTUNITY is every layer
-                    joined, so green ground has passed every test.
+                    Switch the input layers on/off one at a time to see what each
+                    contributes. Check the definitions dropdown for more information on each layer.
                   </li>
                   <li>
-                    Leave SUPERCOOLED LIQUID WATER on underneath it. Amber with
-                    no green over it was rejected, and clicking it says which
-                    test rejected it.
+                    Click the map to read data that point.
                   </li>
-                  <li>
-                    Switch the input layers off one at a time to see what each
-                    contributes. Open “What this measures” under any of them for
-                    what it is and how it is made.
-                  </li>
-                  <li>
-                    Click the map to read that point: what every source says
-                    over that cell, the altitudes to fly between, and whether
-                    the {BAND_LABEL} band lies inside the cloud there.
-                  </li>
-                  <li>
-                    Check the times under the point. Every layer is the analysis
-                    hour, and the answer is only as current as its slowest
-                    source.
-                  </li>
-                </ol>
+                </ul>
               </div>
             </div>
           </div>

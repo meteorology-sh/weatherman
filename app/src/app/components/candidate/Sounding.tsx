@@ -78,8 +78,7 @@ export const Sounding = () => {
             ) : (
               <>
                 This column only reaches {data.topC} °C at the top of what the
-                model column covers, so the {BAND_LABEL} band sits above it. Not
-                a reading of no band — a limit of the levels read.
+                model column covers, so the {BAND_LABEL} band sits above it..
               </>
             )}
           </span>
@@ -111,15 +110,14 @@ export const Sounding = () => {
         <div className="alert alert-warning alert-soft p-2 text-xs">
           <span>
             The band starts below ground here. HRRR extrapolates its pressure
-            levels under the terrain, so read this column as the free air above
-            the surface only.
+            levels under the terrain.
           </span>
         </div>
       )}
 
       <div className="text-xs">
         Sampled at {data.lat}, {data.lon} &middot; the 12 km cell containing
-        your click, not the click itself. Click the map to move it.
+        your click.
       </div>
     </div>
   );

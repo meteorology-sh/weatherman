@@ -55,17 +55,12 @@ export const CandidateLayers = () => {
           titles={CANDIDATE_LABELS}
         />
         <div className="text-xs">
-          g/m² in the {BAND_LABEL} band. The other four layers are its inputs —
-          leave the amber on and amber with no green over it is liquid this
-          layer rejected.
+          g/m² in the {BAND_LABEL} band. The other four layers are it inputs used to compute this layer.
         </div>
         {/* The outline has no swatch on the ramp: it carries no level, so a
             fifth block of colour would imply a fifth amount of liquid. */}
         <div className="text-xs">
-          The pale outline marks green the satellite still sees liquid at the
-          top of — where the evidence is strongest. Green outside it is still a
-          candidate: the seeding band sits far below the cloud top, and an anvil
-          reads as ice over whatever is growing under it.
+          The pale outline marks cloud formations where the satellite still sees liquid at the top.
         </div>
       </LayerToggle>
 
@@ -76,8 +71,7 @@ export const CandidateLayers = () => {
       >
         <CloudTopRamp />
         <div className="text-xs">
-          °C at the cloud top. The warmest band is the shallow
-          supercooled-topped cloud worth finding; the faintest is cirrus.
+          °C at the cloud top.
         </div>
       </LayerToggle>
 
@@ -88,8 +82,7 @@ export const CandidateLayers = () => {
       >
         <CloudBaseRamp />
         <div className="text-xs">
-          ft MSL at the cloud base. The lit band is the window Texas operations
-          select in; either side of it is context.
+          ft MSL at the cloud base.
         </div>
       </LayerToggle>
 
@@ -105,8 +98,7 @@ export const CandidateLayers = () => {
           titles={SLW_LABELS}
         />
         <div className="text-xs">
-          g/m² in the {BAND_LABEL} band &middot; {SLW_LABELS[0]} to{" "}
-          {SLW_LABELS[SLW_LABELS.length - 1]}
+          g/m² in the {BAND_LABEL} band.
         </div>
       </LayerToggle>
 
@@ -123,8 +115,7 @@ export const CandidateLayers = () => {
         />
         <div className="text-xs">
           dBZ &middot; {RADAR_LABELS[0]} to{" "}
-          {RADAR_LABELS[RADAR_LABELS.length - 1]}. Cyan over amber is a
-          candidate already raining itself out.
+          {RADAR_LABELS[RADAR_LABELS.length - 1]}.
         </div>
       </LayerToggle>
     </div>

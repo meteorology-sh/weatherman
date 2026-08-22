@@ -164,7 +164,7 @@ export const CandidateLegend: LayerLegend = {
   name: "SEEDING OPPORTUNITY",
   source: "NOAA HRRR + NOAA GOES-East + NOAA MRMS",
   summary:
-    "Where every test passes at once: enough supercooled liquid, a cold " +
+    "Where every test passes: enough supercooled liquid, a cold " +
     "enough cloud top, a low enough cloud base, and no rain already falling.",
   detail: [
     "Supercooled liquid water in the cells that pass every test at once: the " +

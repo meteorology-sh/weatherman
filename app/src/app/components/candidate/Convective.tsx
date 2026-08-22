@@ -67,15 +67,13 @@ export const Convective = () => {
           must not read as "no". */}
       {d.bandInCloud === null ? (
         <div className="text-xs">
-          No answer for this point. It takes a cloud base, a cloud top and a
-          band base, and one of the three is missing.
+          No answer for this point. At least one of cloud base, cloud top, or temperature band is missing.
         </div>
       ) : d.bandInCloud ? (
         <div className="alert alert-success alert-soft p-2 text-xs">
           <span>
             The {BAND_WARMEST_C} °C level lies between this cloud's base and its
-            top, so the seeding band is inside the cloud rather than in clear
-            air.
+            top, so the seeding band is inside the cloud.
           </span>
         </div>
       ) : (
@@ -111,11 +109,11 @@ export const Convective = () => {
       </div>
 
       <div className="text-xs">
-        All modelled, and none of it filters the map. CAPE is the energy a
-        growing turret has to work with; storm motion is where a seeded cloud
-        would carry the plume; integrated liquid is a second opinion on{" "}
-        {LiquidLegend.name}, worked out from a different field. HRRR publishes
-        no unit for its lightning field, so it is shown as the bare number.
+        All modelled data. 
+        <br />
+        CAPE is the energy a
+        growing turret has to work with; storm motion is the direction of travel; integrated liquid is a second opinion on{" "}
+        {LiquidLegend.name}, worked out from a different field.
       </div>
     </div>
   );
