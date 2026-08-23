@@ -95,6 +95,15 @@ if (!region.releases) {
  */
 const WINDOW = region.window;
 
+/** Ask the server to contour this programme's box, not all of Texas. */
+function withBox(path) {
+  const sep = path.includes("?") ? "&" : "?";
+  return (
+    `${path}${sep}west=${WINDOW.west}&east=${WINDOW.east}` +
+    `&south=${WINDOW.south}&north=${WINDOW.north}`
+  );
+}
+
 /* ---------- the layers, as the replay map draws them ---------- */
 
 /**
@@ -204,7 +213,7 @@ async function ask(path) {
 const framesByPath = new Map();
 
 async function frameAt(layer, at) {
-  const path = layer.path(at);
+  const path = withBox(layer.path(at));
   const cached = framesByPath.get(path);
   if (cached) return cached;
 
