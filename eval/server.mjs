@@ -12,8 +12,9 @@
  *
  * **Separate from the Weatherman server on purpose.** What it serves is one
  * operator's flight record and our scoring of it. Neither is a measurement the
- * app makes, and `out/` is a working directory that is not committed — a
- * product route reading from it would break the moment a run was cleared.
+ * product makes, so no product route reads `out/`. The published JSON in
+ * `out/` — balloons, between, painted — is committed; this server re-reads it
+ * on every request. Logs and scratch stay untracked.
  *
  * **The arithmetic behind a published number lives here, not in the app.** The
  * band overlap and the hour-by-hour tallies are computed once, on this side, so the

@@ -70,10 +70,13 @@ Midland, South Texas reads Del Rio.
 | South Texas    |      11 |   −20 m / 40 m |  −33 m / 26 m |    **95.3%** |    11 of 11 |
 | Rolling Plains |       7 |   −23 m / 15 m |  −66 m / 55 m |    **97.7%** |      6 of 7 |
 
-Each edge column is bias, then the typical miss. Band overlap is the median
-share of the measured layer our layer covers, taken against the union of the
-two, so a band drawn far too deep is penalised rather than rewarded for
-covering everything. The layer is about 2,400 m deep throughout.
+Each edge column is signed bias, then the typical miss. Bias is the height we
+drew minus the balloon's, so −31 m means we put that edge 31 m lower. The
+typical miss is the median of the absolute errors, and is always positive.
+Band overlap is the median share of the measured layer our layer covers, taken
+against the union of the two, so a band drawn far too deep is penalised rather
+than rewarded for covering everything. The layer is about 2,400 m deep
+throughout.
 
 **Bias sits within 70 m of zero on every edge of every programme**, so the
 misses are scatter rather than a standing offset. There is nothing to correct
@@ -334,7 +337,12 @@ in the operator's briefing and absent from ours.
 
 ## How to rerun any of it
 
-Everything needs a running server and nothing else. No install, no key.
+The published run files in `eval/out/` travel with the repo, so looking at the
+findings does not need a rebuild: `docker-compose up -d` and the pages on 3100
+and 5174 already have them. Rebuilding is for when a layer or a parser changed.
+
+Everything that does rebuild needs a running server and nothing else. No
+install, no key.
 
 ```bash
 docker-compose up -d                   # all four services

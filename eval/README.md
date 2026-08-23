@@ -219,7 +219,12 @@ resolve it from.
 | --------- | --------- | ------------------------------------------------------------------------------- |
 | `data/`   | yes       | The manifests, the parsed flight record, the county boundaries, the region list |
 | `cache/`  | no        | One subdirectory per programme, holding its 2025 reports — 128 PDFs, 99 MB      |
-| `out/`    | no        | What a run wrote. `painted-<date>.json` is one flying day                       |
+| `out/`    | the JSON  | `balloons-*.json`, `between-*.json`, `painted-*.json`. Logs and scratch are not. |
+
+A clone has the findings. `docker-compose up -d` is enough to read them on
+ports 3100 and 5174. Rebuilding a day still takes a running Weatherman server
+and the commands below, because those files are the scored season, not the
+weather that produced it.
 
 ## The five programmes
 
