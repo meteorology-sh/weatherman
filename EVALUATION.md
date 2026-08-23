@@ -4,16 +4,16 @@ Two questions, in order, asked of all five programmes Texas licenses.
 
 1. **Is the seeding band in the right place?** Check it against the weather
    balloons the operator briefs on every morning.
-2. **Do operators seed near what we paint?** Measure the distance from every
-   release to the nearest edge of each layer, at the minute and place it left
-   the aircraft.
+2. **Do operators seed near the layers we draw?** Measure the distance from
+   every release to the nearest edge of each layer, at the minute and place it
+   left the aircraft.
 
 The first is answered and the answer is yes, in all four programmes that fly a
-balloon. The second splits three ways: they
-fly inside the cloud and the echo we draw; on 10 of 34 days they fly in the
-liquid we paint and on the other 24 they are cells away from it; and they are
-almost never inside the finished join, because the join rules out rain and rain
-is what they fly into.
+balloon. The second splits three ways: they fly inside the cloud and the echo
+we draw; on 10 of 34 days they fly in the supercooled liquid we draw and on
+the other 24 they are cells away from it; and they are almost never inside a
+seeding opportunity, because that layer rules out rain and rain is what they
+fly into.
 
 A third finding falls out of asking the second question in five places at once:
 the layer the product runs on agrees with the crews at one end of Texas and not
@@ -104,12 +104,12 @@ morning is dropped from both edges and named in the output instead.
 
 ### What this rules out for Finding 3
 
-Finding 3 reports that agreement with painted liquid varies by a factor of two
-across the state. **It is not because the band is drawn in the wrong place.**
-West Texas and the Rolling Plains have all but the same band accuracy — 95.7%
-and 97.7% median overlap, edge biases within 10 m of each other — and their
-crews' releases fall within a cell of painted liquid 36.0% and 56.3% of the
-time. The layer is in the same right place in both. What differs is how much
+Finding 3 reports that agreement with supercooled liquid water varies by a
+factor of two across the state. **It is not because the band is drawn in the
+wrong place.** West Texas and the Rolling Plains have all but the same band
+accuracy — 95.7% and 97.7% median overlap, edge biases within 10 m of each
+other — and their crews' releases fall within a cell of supercooled liquid
+water 36.0% and 56.3% of the time. The layer is in the same right place in both. What differs is how much
 supercooled water the model puts inside it, which is the one thing no sounding
 in the record can check.
 
@@ -121,7 +121,7 @@ The model publishes once an hour. Aircraft do not wait for it. A flare released
 at 1843Z is 17 minutes from one reading and 43 from the other, and picking
 either one reports a coin toss as though it were a measurement.
 
-So we ask both. Paint the liquid at the hour below and the hour above. If a
+So we ask both. Draw the liquid at the hour below and the hour above. If a
 place has liquid in both, it had liquid across the whole gap, and which hour you
 pick stops mattering.
 
@@ -161,8 +161,8 @@ contour and one 80 km outside are the same answer above and completely
 different results.
 
 So the second pass asks distance instead, and asks it at the minute and place
-each flare actually left the aircraft. Each release is charged to the nearest
-analysis rather than to both sides of a gap — 1843Z goes to 19Z, 17 minutes
+each flare actually left the aircraft. Each release is compared against the
+nearest analysis rather than both sides of a gap — 1843Z goes to 19Z, 17 minutes
 away, not to 18Z at 43 — and the remaining minutes are closed with HRRR's own
 0–6 km storm motion, which carries the release point to where that air is at the
 moment of the frame. The median release is 15 minutes from its analysis and the
@@ -171,8 +171,8 @@ so it is not a correction that can be skipped.
 
 **The whole season is built this way: 34 flying days, all 497 releases with a
 position.** Being inside is a distance of zero, so the first column counts
-releases the paint already covers and the second counts those within one 12 km
-cell — which is as fine as anything drawn on this grid can resolve.
+releases that already sit in the layer and the second counts those within one
+12 km cell — which is as fine as anything drawn on this grid can resolve.
 
 | Layer                    |      Inside | Within a cell |    Median |  Worst |
 | ------------------------ | ----------: | ------------: | --------: | -----: |
@@ -189,27 +189,28 @@ correction are not: a run that put the flares in the wrong place could not land
 them inside three independent fields at once.
 
 **The liquid is the disagreement, and it is the layer the product runs on.** One
-release in seven is inside painted liquid and about one in three is within a
-cell of it. The typical release is 34 km out — three cells, which is not a
-contour of slightly the wrong shape.
+release in seven is inside supercooled liquid water and about one in three is
+within a cell of it. The typical release is 34 km out — three cells, which is
+not a contour of slightly the wrong shape.
 
 **It is a disagreement about days, not a rate.** On 10 of the 34 days the
-typical release is within a cell of painted liquid; on the other 24 it is
-further, and those 24 carry 399 of the 497 flares. Six days put _every_ release
-within a cell — 29 April, 22 May, 10 June, 4 August, 18 August and 24 October —
-and ten days put none there at all. On eleven days the median release is more
-than 100 km from any liquid we painted, which is the model holding the liquid
-somewhere else entirely or holding none in the target area.
+typical release is within a cell of supercooled liquid water; on the other 24
+it is further, and those 24 carry 399 of the 497 flares. Six days put _every_
+release within a cell — 29 April, 22 May, 10 June, 4 August, 18 August and
+24 October — and ten days put none there at all. On eleven days the median
+release is more than 100 km from any supercooled liquid we drew, which is the
+model holding the liquid somewhere else entirely or holding none in the target
+area.
 
-**Almost nothing is inside the finished join**: 3 releases of 497, on 30 June
-and 18 August. The join rules out rain and they fly into rain, which the next
-section is about.
+**Almost nothing is inside a seeding opportunity**: 3 releases of 497, on
+30 June and 18 August. That layer rules out rain and they fly into rain, which
+the next section is about.
 
-**This does not say which side is wrong.** Either we paint no liquid where the
-crew found some, or they work something a 12 km analysis has nothing about. What
-the season establishes is the shape of the disagreement — concentrated in whole
-days rather than spread evenly — and a run that fails by the day is a run that
-can be diagnosed by asking what those days had in common.
+**This does not say which side is wrong.** Either we draw no supercooled liquid
+where the crew found some, or they work something a 12 km analysis has nothing
+about. What the season establishes is the shape of the disagreement —
+concentrated in whole days rather than spread evenly — and a run that fails by
+the day is a run that can be diagnosed by asking what those days had in common.
 
 **The drift correction is worth less than it looks on a slow day.** Where the
 storm motion runs 4 to 10 knots, twenty minutes moves a release about 3 km —
@@ -256,28 +257,48 @@ today with no re-run.
 ## Finding 3 — the liquid disagreement is concentrated, and not where dryness would put it
 
 All five programmes Texas licenses now have a parsed flight record and every
-flying day of every one is painted against the same five layers. **116 flying
-days, 1,353 releases, five programmes, one question.**
+flying day of every one is compared against the same five layers. **116 flying
+days, 1,353 releases, five programmes, one question.** The share of releases
+that sat inside each layer:
 
-| Programme      | Days | Releases | In painted liquid | Within a cell | Median |
-| -------------- | ---: | -------: | ----------------: | ------------: | -----: |
+| Programme      | Cloud base | Cloud tops | Radar reflectivity | Supercooled liquid water | Seeding opportunity |
+| -------------- | ---------: | ---------: | -----------------: | -----------------------: | ------------------: |
+| West Texas     |      71.6% |      65.2% |              68.2% |                    14.9% |                0.6% |
+| South Texas    |      84.3% |      64.8% |              45.8% |                    13.0% |                0.0% |
+| Trans-Pecos    |      84.3% |      75.5% |              72.5% |                    19.6% |                1.1% |
+| Rolling Plains |      73.6% |      67.9% |              28.3% |                    16.7% |                6.2% |
+| Panhandle      |      80.8% |      70.8% |              63.8% |                    34.1% |                3.8% |
+
+Inside means the release sat in that layer, after carrying it along the storm
+motion to the analysis hour. A layer that could not be built for an hour is
+dropped from that column only, so the percentages are of the releases that
+layer could be compared against.
+
+**Liquid is the column that moves.** Cloud base and cloud tops sit in the
+sixties to eighties everywhere. Almost no release sits in a seeding
+opportunity, in any programme. Radar is the other split — lower in South
+Texas and the Rolling Plains — and the table below asks the same question as
+a distance, which is how the spread was first seen.
+
+| Programme      | Days | Releases | Inside supercooled liquid water | Within a cell | Median |
+| -------------- | ---: | -------: | ------------------------------: | ------------: | -----: |
 | West Texas     |   34 |      497 |             14.9% |         36.0% |  34 km |
 | South Texas    |   12 |       83 |             13.0% |         48.1% |  13 km |
 | Trans-Pecos    |   38 |      465 |             19.6% |         49.2% |  13 km |
 | Rolling Plains |    7 |       53 |             16.7% |         56.3% |  11 km |
 | Panhandle      |   25 |      255 |             34.1% |         75.0% |   4 km |
 
-**The other layers do not vary this way.** Cloud base lands within a cell of
-88% to 98% of releases in all five, cloud tops 87% to 95%. The one exception is
-Rolling Plains radar at 69.8%, and it is two days of seven — one of them a
-sortie flown after midnight UTC that the analysis paints nothing anywhere near.
-Only the liquid moves everywhere at once, and it moves by a factor of two from
-one end of the state to the other.
+**Within a cell the other layers do not vary this way.** Cloud base lands
+within a cell of 88% to 98% of releases in all five, cloud tops 87% to 95%.
+The one exception is Rolling Plains radar at 69.8%, and it is two days of
+seven — one of them a sortie flown after midnight UTC that the analysis shows
+nothing anywhere near. Only the liquid moves everywhere at once, and it moves
+by a factor of two from one end of the state to the other.
 
 **The spread is real at the ends and unresolved in the middle.** Counted by day
 rather than by release — releases within a sortie are all near each other, so a
 day succeeds or fails as one thing — the typical release is within a cell of
-painted liquid on 10 of 34 West Texas days and 15 of 23 Panhandle days. Those
+supercooled liquid water on 10 of 34 West Texas days and 15 of 23 Panhandle days. Those
 two are far enough apart, on enough days, to be a difference. The other three
 sit between them on 11, 37 and 6 days: 4 of 11 in South Texas, 19 of 37 in
 Trans-Pecos, 3 of 6 in the Rolling Plains. **Seven days cannot order anything**,
@@ -296,19 +317,19 @@ breaks it. It is the most humid target area in the state, works maritime air off
 the Gulf, and it lands beside West Texas rather than beside the Panhandle. Its
 freezing level sits near 13,000 ft against the Panhandle's, and the warm cloud
 below it is two kilometres deep, so a South Texas cloud can be enormous and hold
-very little water in the band the layer paints. That is a reason the airmass
+very little water in the band we measure. That is a reason the airmass
 story is too simple, not a replacement for it. **Where the disagreement is
 concentrated is established; what causes it is not.**
 
 **Ruling out rain behaves the same everywhere.** Twenty releases of 1,353 fall
-inside the finished join — 3, 5, 9, 0 and 3 across the five. Every operator in
-Texas seeds the storm the product rules out, and the one programme with none
+inside a seeding opportunity — 3, 5, 9, 0 and 3 across the five. Every operator
+in Texas seeds the storm the product rules out, and the one programme with none
 inside is the one with 83 releases.
 
 **Two programmes' positions corroborate their own projection.** The Panhandle
 and South Texas both print a bearing and a range from an origin their reports
 never name, inferred by asking which candidate puts each row in the county its
-own row names. The Panhandle agrees with painted liquid better than any
+own row names. The Panhandle agrees with supercooled liquid water better than any
 programme that prints coordinates. A projection off the wrong origin scatters;
 neither of these does.
 
@@ -362,12 +383,12 @@ port 5174, both up with the rest of the stack.
 **Cost is downloads, not minutes.** Reading one hour out of the archive takes
 30–60 seconds; every later question about that same hour is instant. `between.mjs`
 asks 994 questions but downloads 125 hours, because flares cluster. The 34 days
-of painted layers are 20 MB on disk and about an hour and a half of downloading.
+of compared layers are 20 MB on disk and about an hour and a half of downloading.
 
 `--resume` continues a run that was interrupted.
 
 **Every figure in the distance table is one request.** `server.mjs` pools the
-painted days at `/region/wtwma/near` and the per-day rows come back with it, so
+compared days at `/region/wtwma/near` and the per-day rows come back with it, so
 nothing quoted here is arithmetic done twice:
 
 ```bash
@@ -376,7 +397,7 @@ curl localhost:3100/region/wtwma/near        # or /transpecos/, or /panhandle/
 
 The other two programmes are built the same way — `releases.mjs
 --region=transpecos` and `panhandle.mjs` read their reports, and `paint.mjs
-<date> --region=<id>` paints a day. `eval/README.md` has what each programme's
+<date> --region=<id>` builds a day. `eval/README.md` has what each programme's
 reports do and do not carry.
 
 ---
