@@ -116,8 +116,8 @@ export const Sounding = () => {
       )}
 
       <div className="text-xs">
-        Sampled at {data.lat}, {data.lon} &middot; the 12 km cell containing
-        your click.
+        Sampled at {data.lat}, {data.lon} &middot; the 3 km cell containing
+        your click, not the click itself.
       </div>
     </div>
   );

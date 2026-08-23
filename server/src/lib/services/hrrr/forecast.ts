@@ -6,7 +6,7 @@
  * next door and is readable without this: `bytes.ts` fetches them, `slw.ts`
  * integrates the seeding band, `profile.ts` turns temperatures into altitudes,
  * `diagnostics.ts` holds the 2D `wrfsfc` fields, and `shared/grid.ts` and
- * `shared/contour.ts` average onto the 12 km cell and trace it.
+ * `shared/contour.ts` hold the 3 km grid and trace it.
  */
 
 // Node
@@ -35,13 +35,15 @@ import {
   POINTS,
   accumulate,
   assertInDomain,
-  blockAverage,
-  blockAverageSparse,
   inGrid,
   cellAt,
   OutsideDomain,
   perimeter,
+  scaleField,
+  crop,
+  DRAWN,
 } from "../shared/grid";
+import type { LonLatBox } from "../shared/grid";
 import {
   METRES_TO_FEET,
   PROFILE_LEVELS,
@@ -136,11 +138,11 @@ export type FieldId = keyof typeof FIELDS;
 
 type FieldSpec = (typeof FIELDS)[FieldId];
 
-/** Profile grids are ~12 MB each, so only the last few hours are kept. */
+/** Profile grids are ~300 MB each at 3 km, so only the last few hours are kept. */
 const PROFILE_CACHE = 3;
 
 /**
- * Diagnostic grids are ~4 MB an hour — nine 12 km fields plus the banded
+ * Diagnostic grids are ~70 MB an hour — nine 3 km fields plus the banded
  * frame — so the same policy applies.
  */
 const SURFACE_CACHE = 3;
@@ -164,7 +166,7 @@ export type { SlwStats };
 export { SEEDING };
 
 /**
- * The profile over one point. `lat`/`lon` are the 12 km cell actually sampled,
+ * The profile over one point. `lat`/`lon` are the 3 km cell actually sampled,
  * not the click — reporting the click back would imply a precision the grid
  * does not have.
  */
@@ -208,7 +210,7 @@ export type Sounding = {
 };
 
 /**
- * The 12 km grid plus the one question another service needs to ask of HRRR's
+ * The 3 km grid plus the one question another service needs to ask of HRRR's
  * profile: how cold is it at this pressure, over this cell.
  */
 export type Column = {
@@ -220,7 +222,7 @@ export type Column = {
 };
 
 /**
- * A field on the 12 km grid, with the run it came from.
+ * A field on the 3 km grid, with the run it came from.
  *
  * What a join across layers reads. Each of these is a by-product of a build
  * that already runs for a layer of its own — the grid the contours were traced
@@ -235,7 +237,7 @@ export type Field = {
 };
 
 /**
- * One hour's `wrfsfc` diagnostics: every field on the 12 km grid, plus the
+ * One hour's `wrfsfc` diagnostics: every field on the 3 km grid, plus the
  * cloud-base layer built from one of them.
  *
  * **One build, several answers.** All nine records come out of one file, one
@@ -244,12 +246,20 @@ export type Field = {
  * would mean two index reads and two downloads of the same file to answer one
  * click.
  */
+type CachedField = {
+  run: Date;
+  hour: number;
+  grid: Grid;
+  property: string;
+  levels: readonly number[];
+};
+
 type Surface = {
   run: Date;
   hour: number;
   /** Absent for a field the hour does not carry — see `lightning`'s firstHour. */
   fields: Fields;
-  base: { frame: ContourFrame; stats: CloudBaseStats };
+  base: { grid: Grid; stats: CloudBaseStats };
 };
 
 /** The domain-wide profile grid, plus the terrain it stands on. */
@@ -285,14 +295,15 @@ export class ForecastService {
   private domainFrame: DomainFrame | null = null;
   private runs = new RunDiscovery();
   /**
-   * Keyed `${runIso}:${field}:${hour}`. A given run+field+hour never changes,
-   * so this never expires; evictOldRuns drops it when the run rolls.
+   * Keyed `${runIso}:${field}:${hour}`. The **grid**, not the contours — a
+   * given run+field+hour never changes, and the map crops a window of it per
+   * request. evictOldRuns drops it when the run rolls.
    */
-  private frames = new Map<string, ContourFrame>();
+  private frames = new Map<string, CachedField>();
   private slw = new Map<string, Slw>();
   private profiles = new Map<string, Profile>();
   private surfaces = new Map<string, Surface>();
-  private inflight = new Map<string, Promise<ContourFrame>>();
+  private inflight = new Map<string, Promise<CachedField>>();
   private slwInflight = new Map<string, Promise<Slw>>();
   private profileInflight = new Map<string, Promise<Profile>>();
   private surfaceInflight = new Map<string, Promise<Surface>>();
@@ -324,17 +335,35 @@ export class ForecastService {
     };
   }
 
-  async clouds(hour: number, at?: Date): Promise<ContourFrame> {
-    return this.contours("clouds", hour, at);
+  async clouds(
+    hour: number,
+    at?: Date,
+    box: LonLatBox = DRAWN
+  ): Promise<ContourFrame> {
+    return this.contours("clouds", hour, at, box);
   }
 
-  async precip(hour: number, at?: Date): Promise<ContourFrame> {
-    return this.contours("precip", hour, at);
+  async precip(
+    hour: number,
+    at?: Date,
+    box: LonLatBox = DRAWN
+  ): Promise<ContourFrame> {
+    return this.contours("precip", hour, at, box);
   }
 
   /** Supercooled liquid water contours for the seeding band. */
-  async liquid(hour: number, at?: Date): Promise<ContourFrame> {
-    return (await this.seeding(hour, at)).frame;
+  async liquid(
+    hour: number,
+    at?: Date,
+    box: LonLatBox = DRAWN
+  ): Promise<ContourFrame> {
+    const built = await this.seeding(hour, at);
+    if (!built.grid || !this.geo) return built.frame;
+    return frame(
+      new Date(built.frame.run),
+      hour,
+      this.features(built.grid, SEEDING.property, SEEDING.levels, box)
+    );
   }
 
   /** The same build's summary. Shares the cache, so asking for either warms both. */
@@ -345,8 +374,23 @@ export class ForecastService {
   /**
    * Cloud base, banded — the selection variable Texas practice uses.
    */
-  async cloudBase(hour: number, at?: Date): Promise<ContourFrame> {
-    return (await this.surface(hour, at)).base.frame;
+  async cloudBase(
+    hour: number,
+    at?: Date,
+    box: LonLatBox = DRAWN
+  ): Promise<ContourFrame> {
+    const built = await this.surface(hour, at);
+    return frame(
+      built.run,
+      hour,
+      this.features(
+        built.base.grid,
+        CLOUD_BASE.property,
+        CLOUD_BASE.edges,
+        box,
+        true
+      )
+    );
   }
 
   /** The same build's summary. Asking for either warms both. */
@@ -424,7 +468,7 @@ export class ForecastService {
   /**
    * The vertical profile over one point: the altitudes a drone is given.
    *
-   * The point is snapped to the 12 km cell the contours are drawn on, so this
+   * The point is snapped to the 3 km cell the contours are drawn on, so this
    * readout and the amber on the map are answers about the same box.
    */
   async sounding(
@@ -481,7 +525,7 @@ export class ForecastService {
   }
 
   /**
-   * The 12 km grid and a temperature lookup on it — what another service needs
+   * The 3 km grid and a temperature lookup on it — what another service needs
    * to turn a pressure into a temperature.
    *
    * This exists for the cloud-top layer, which gets its cloud *geometry* from
@@ -490,9 +534,9 @@ export class ForecastService {
    * temperature profile and shaky about where the cloud is, so the satellite
    * says where the top is and this says how cold it is there.
    *
-   * It hands back the same `geo` every contoured layer here is drawn on, so a
-   * cloud-top contour and a supercooled-liquid contour are statements about the
-   * same 12 km boxes and can be read against each other.
+   * Cloud-top contours are drawn on the satellite's 2 km grid. The join samples
+   * those pixels onto this 3 km grid, which is also the liquid field's grid, so
+   * a click still answers one cell.
    */
   async column(hour: number, at?: Date): Promise<Column> {
     const profile = await this.profile(hour, at);
@@ -626,10 +670,7 @@ export class ForecastService {
           if (!id)
             throw new Error(`Unexpected HRRR record [${keys.join(" ")}]`);
           const spec = DIAGNOSTICS[id];
-          fields.set(
-            id,
-            blockAverageSparse(values, spec.scale, spec.missing).values
-          );
+          fields.set(id, scaleField(values, spec.scale, spec.missing));
         },
       },
       "hrrr-sfc"
@@ -649,17 +690,12 @@ export class ForecastService {
       ny: geo.ny,
       values: fields.get("cloudBase")!,
     };
-
     return {
       run: cycle.run,
       hour,
       fields,
       base: {
-        frame: frame(
-          cycle.run,
-          hour,
-          bandFeatures(grid, geo, CLOUD_BASE.property, CLOUD_BASE.edges)
-        ),
+        grid,
         stats: baseStats(cycle.run, hour, grid),
       },
     };
@@ -691,18 +727,13 @@ export class ForecastService {
 
     await eachHrrrMessage(grib, (name, level, values) => {
       if (name === "t") {
-        // The block mean is linear, so averaging kelvin and subtracting once is
-        // the same number as converting 1.9M points first.
-        const grid = blockAverage(values, 1);
-        for (let i = 0; i < grid.values.length; i++) grid.values[i] -= 273.15;
-        tempC.set(levelKey(level), grid.values);
+        const c = new Float32Array(values.length);
+        for (let i = 0; i < values.length; i++) c[i] = values[i] - 273.15;
+        tempC.set(levelKey(level), c);
         return;
       }
       if (name === "gh") {
-        heightFt.set(
-          levelKey(level),
-          blockAverage(values, METRES_TO_FEET).values
-        );
+        heightFt.set(levelKey(level), scaleField(values, METRES_TO_FEET));
       }
     });
 
@@ -741,7 +772,7 @@ export class ForecastService {
 
     let surface: Float32Array | null = null;
     await eachHrrrMessage(grib, (_name, _level, values) => {
-      surface = blockAverage(values, METRES_TO_FEET).values;
+      surface = scaleField(values, METRES_TO_FEET);
     });
     if (!surface) throw new Error("HRRR carried no surface height");
     return surface;
@@ -750,7 +781,8 @@ export class ForecastService {
   private async contours(
     field: FieldId,
     hour: number,
-    at?: Date
+    at?: Date,
+    box: LonLatBox = DRAWN
   ): Promise<ContourFrame> {
     this.assertHour(hour);
 
@@ -765,9 +797,20 @@ export class ForecastService {
     const key = `${cycle.run.toISOString()}:${field}:${hour}`;
 
     const cached = this.frames.get(key);
-    if (cached) return cached;
+    const built = cached ?? (await this.loadField(cycle, hour, spec, key));
+    return frame(
+      built.run,
+      hour,
+      this.features(built.grid, built.property, built.levels, box)
+    );
+  }
 
-    // Collapse concurrent requests for the same frame onto one download.
+  private async loadField(
+    cycle: Cycle,
+    hour: number,
+    spec: FieldSpec,
+    key: string
+  ): Promise<CachedField> {
     const running = this.inflight.get(key);
     if (running) return running;
 
@@ -795,9 +838,9 @@ export class ForecastService {
     const running = this.slwInflight.get(key);
     if (running) return running;
 
-    const work = buildSlw(cycle, hour, async (grid, grib) => {
+    const work = buildSlw(cycle, hour, async (_grid, grib) => {
       await this.ensureGeo(grib);
-      return this.features(grid, SEEDING.property, SEEDING.levels);
+      return [];
     })
       .then((built) => {
         this.slw.set(key, built);
@@ -854,7 +897,7 @@ export class ForecastService {
     cycle: Cycle,
     hour: number,
     spec: FieldSpec
-  ): Promise<ContourFrame> {
+  ): Promise<CachedField> {
     const range = await this.range(cycle, hour, spec.grib);
     const grib = await fetchRanges(
       gribUrl(cycle, hour, "wrfsfc"),
@@ -865,27 +908,32 @@ export class ForecastService {
     const { grid, geo } = await this.decode(grib, spec);
     if (!this.geo) this.geo = geo;
 
-    return frame(
-      cycle.run,
+    return {
+      run: cycle.run,
       hour,
-      this.features(grid, spec.property, spec.levels)
-    );
+      grid,
+      property: spec.property,
+      levels: spec.levels,
+    };
   }
 
-  /** One nested MultiPolygon per level, against the grid built by ensureGeo. */
+  /** Contour a window of the grid the decode already holds. */
   private features(
     grid: Grid,
     property: string,
-    levels: readonly number[]
+    levels: readonly number[],
+    box: LonLatBox = DRAWN,
+    disjoint = false
   ): ContourFeature[] {
-    return features(grid, this.geo!, property, levels);
+    const drawn = crop(grid, this.geo!, box);
+    return disjoint
+      ? bandFeatures(drawn.grid, drawn.geo, property, levels)
+      : features(drawn.grid, drawn.geo, property, levels);
   }
 
   /**
    * eccodes reads the Lambert grid and hands back lat/lon per point, so we
-   * never do projection maths ourselves. Values are block-averaged to 12 km on
-   * the fly — the full 3 km grid is 1.9M points and we don't need that
-   * resolution for a national overview.
+   * never do projection maths ourselves. Values stay on the native 3 km grid.
    */
   private async decode(
     grib: Buffer,
@@ -907,7 +955,7 @@ export class ForecastService {
   }
 
   /**
-   * The 12 km lat/lon grid, built once from any HRRR record and reused for
+   * The 3 km lat/lon grid, built once from any HRRR record and reused for
    * every field and run — the Lambert grid is fixed. Only this path pays for
    * grib_get_data's geo iterator; values are read with grib_filter, which is
    * ~3x faster because it skips it.

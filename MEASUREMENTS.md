@@ -72,8 +72,11 @@ sample spacing:
 | Isotherm height     | ~1000 km (synoptic) | ✅ genuinely smooth; contouring is honest |
 
 So the _same_ grid is legitimate for isotherm height and illegitimate for cloud
-shape. Block-averaging 3 km → 12 km **removes** structure and is fine;
-interpolating 300 km → 12 km **invents** it and is not.
+shape. Averaging a finer field onto a coarser cell **removes** structure and
+is fine; interpolating a coarser field onto a finer grid **invents** it and
+is not. Layers here are drawn at native sampling. The join samples GOES and
+MRMS onto HRRR's 3 km cells rather than averaging everything to a shared
+12 km grid.
 
 **Ask "what is the correlation length" before drawing any new surface.** A
 source too sparse or irregular to pass this test may still be drawn — as

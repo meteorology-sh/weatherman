@@ -129,7 +129,7 @@ export const CandidateFieldLayer = new GeoJSONLayer({
  * evidence about the same cloud.
  *
  * Its own layer rather than a symbol on the field, because a contour polygon
- * spans many 12 km cells and confirmation is per cell: one polygon routinely
+ * spans many 3 km cells and confirmation is per cell: one polygon routinely
  * covers both, so the distinction has to be traced separately to fall where it
  * actually falls. Added above the field so the line sits on top of the fills.
  */
@@ -309,8 +309,7 @@ export const CandidateLiquidLayer = new GeoJSONLayer({
  * image would have been an afternoon's work, but it paints an opaque rectangle
  * over the basemap and cannot be composited with the layer underneath, which is
  * the whole point of drawing this one on top of the liquid water. MRMS samples
- * at 1 km, so contouring a 12 km block average of it removes structure rather
- * than inventing any.
+ * at 1 km, so contouring that mosaic removes no structure and invents none.
  */
 export const CandidateRadarLayer = new GeoJSONLayer({
   title: "MRMS base reflectivity",

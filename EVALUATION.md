@@ -108,10 +108,10 @@ Finding 3 reports that agreement with supercooled liquid water varies by a
 factor of two across the state. **It is not because the band is drawn in the
 wrong place.** West Texas and the Rolling Plains have all but the same band
 accuracy — 95.7% and 97.7% median overlap, edge biases within 10 m of each
-other — and their crews' releases fall within a cell of supercooled liquid
-water 36.0% and 56.3% of the time. The layer is in the same right place in both. What differs is how much
-supercooled water the model puts inside it, which is the one thing no sounding
-in the record can check.
+other — and their crews' releases fall inside supercooled liquid water 36.0%
+and 56.3% of the time. The layer is in the same right place in both. What
+differs is how much supercooled water the model puts inside it, which is the
+one thing no sounding in the record can check.
 
 ---
 
@@ -169,42 +169,70 @@ moment of the frame. The median release is 15 minutes from its analysis and the
 furthest is 30, which at 10–25 knots is 5 to 15 km. That is most of a grid cell,
 so it is not a correction that can be skipped.
 
-**The whole season is built this way: 34 flying days, all 497 releases with a
-position.** Being inside is a distance of zero, so the first column counts
-releases that already sit in the layer and the second counts those within one
-12 km cell — which is as fine as anything drawn on this grid can resolve.
+### How fine this comparison can be
 
-| Layer                    |      Inside | Within a cell |    Median |  Worst |
-| ------------------------ | ----------: | ------------: | --------: | -----: |
-| Cloud base               | 356 (71.6%) |   439 (88.3%) |      0 km |  48 km |
-| Cloud tops               | 324 (65.2%) |   436 (87.7%) |      0 km | 220 km |
-| Radar reflectivity       | 339 (68.2%) |   437 (87.9%) |      0 km | 383 km |
-| Supercooled liquid water |  74 (14.9%) |   179 (36.0%) | **34 km** | 463 km |
-| Seeding opportunity      |    3 (0.6%) |     46 (9.3%) |     75 km | 481 km |
+Each layer is drawn at native sampling. The join lives on HRRR's 3 km cells.
+A flare is compared to the snapshot that layer actually had at that minute:
+GOES the 5-minute scan nearest the flare, MRMS the 2-minute mosaic nearest it,
+HRRR the analysis hour nearest it. Storm motion closes only the leftover
+minutes — usually a couple for GOES and radar, up to thirty for HRRR.
+
+| Layer                    | What is read                         | Native sampling      | Drawn at |
+| ------------------------ | ------------------------------------ | -------------------- | -------: |
+| Cloud base               | Bottom of the lowest cloud, ft MSL   | HRRR, 3 km, hourly   |     3 km |
+| Supercooled liquid water | Liquid in the seeding band, g/m²     | HRRR, 3 km, hourly   |     3 km |
+| Cloud tops               | Temperature at cloud top, °C         | GOES-East, 2 km / 5 min |     2 km |
+| Radar reflectivity       | How hard it is raining, dBZ          | MRMS, 1 km / 2 min   |     1 km |
+| Seeding opportunity      | Supercooled liquid where every test passes | The four above, together |     3 km |
+
+**A release is inside a layer when the storm-motion-corrected point sits in
+the contour.** Distance is still written. Remaining uncertainty — bearing and
+range about 4 km, residual drift if the storm turned — is named, not folded
+into the count.
+
+The flare is not the limit. Programmes that print a latitude and a longitude
+are good to a couple of kilometres at worst — 94% and 96% of those rows land
+in the county they name. The two that print a bearing and a range are coarser:
+about 6° of eastward rotation, which is what a magnetic display would mean,
+moves a release 4 km at 30 nm.
+
+The tables below were last scored against the earlier 12 km grid, counting a
+release within 12 km as inside. They move when the season is re-painted.
+
+**The whole season is built this way: 34 flying days, all 497 releases with a
+position.**
+
+| Layer                    |      Inside |    Median |  Worst |
+| ------------------------ | ----------: | --------: | -----: |
+| Cloud base               | 439 (88.3%) |      0 km |  48 km |
+| Cloud tops               | 436 (87.7%) |      0 km | 220 km |
+| Radar reflectivity       | 437 (87.9%) |      0 km | 383 km |
+| Supercooled liquid water | 179 (36.0%) | **34 km** | 463 km |
+| Seeding opportunity      |   46 (9.3%) |     75 km | 481 km |
 
 **Three of the five layers agree with where Texas flies.** Nearly nine releases
-in ten sit within a cell of modelled cloud base, of a satellite cloud top and of
-measured echo. Whatever else is wrong, the geometry, the clock and the drift
-correction are not: a run that put the flares in the wrong place could not land
-them inside three independent fields at once.
+in ten sit inside modelled cloud base, a satellite cloud top and measured echo.
+Whatever else is wrong, the geometry, the clock and the drift correction are
+not: a run that put the flares in the wrong place could not land them inside
+three independent fields at once.
 
-**The liquid is the disagreement, and it is the layer the product runs on.** One
-release in seven is inside supercooled liquid water and about one in three is
-within a cell of it. The typical release is 34 km out — three cells, which is
-not a contour of slightly the wrong shape.
+**The liquid is the disagreement, and it is the layer the product runs on.**
+About one release in three is inside supercooled liquid water. The typical
+release is 34 km out — three cells, which is not an edge of slightly the wrong
+shape.
 
 **It is a disagreement about days, not a rate.** On 10 of the 34 days the
-typical release is within a cell of supercooled liquid water; on the other 24
-it is further, and those 24 carry 399 of the 497 flares. Six days put _every_
-release within a cell — 29 April, 22 May, 10 June, 4 August, 18 August and
+typical release is inside supercooled liquid water; on the other 24 it is
+further, and those 24 carry 399 of the 497 flares. Six days put _every_
+release inside — 29 April, 22 May, 10 June, 4 August, 18 August and
 24 October — and ten days put none there at all. On eleven days the median
 release is more than 100 km from any supercooled liquid we drew, which is the
 model holding the liquid somewhere else entirely or holding none in the target
 area.
 
-**Almost nothing is inside a seeding opportunity**: 3 releases of 497, on
-30 June and 18 August. That layer rules out rain and they fly into rain, which
-the next section is about.
+**Almost nothing is inside a seeding opportunity**: 46 releases of 497
+(9.3%). That layer rules out rain and they fly into rain, which the next
+section is about.
 
 **This does not say which side is wrong.** Either we draw no supercooled liquid
 where the crew found some, or they work something a 12 km analysis has nothing
@@ -231,10 +259,11 @@ of 35. The product rules a cloud out at 20. These are not cells that crept over
 a line — they are raining hard, and the product is right that they are.
 
 The operators seed them anyway, deliberately. They work the growing turret on
-the flank of a storm whose core is already dumping rain. **A 12 km cell cannot
-tell those two apart.** The release point and the mature core 8 km away land in
-the same cell, and the averaged reflectivity is dominated by the core — the part
-of the storm the crew is deliberately avoiding.
+the flank of a storm whose core is already dumping rain. **A 12 km cell could
+not tell those two apart.** The release point and the mature core 8 km away
+landed in the same cell, and the averaged reflectivity was dominated by the
+core — the part of the storm the crew is deliberately avoiding. Native 1 km
+radar and a 3 km join can separate them; that is one reason the grid moved.
 
 So the test asks a fair question — has this cloud already spent its liquid — at
 a resolution that cannot answer it. Moving the threshold does not help when the
@@ -258,48 +287,44 @@ today with no re-run.
 
 All five programmes Texas licenses now have a parsed flight record and every
 flying day of every one is compared against the same five layers. **116 flying
-days, 1,353 releases, five programmes, one question.** The share of releases
-that sat inside each layer:
+days, 1,353 releases, five programmes, one question.** Inside means within
+12 km of the layer — one cell of the grid these tables were scored on.
 
 | Programme      | Cloud base | Cloud tops | Radar reflectivity | Supercooled liquid water | Seeding opportunity |
 | -------------- | ---------: | ---------: | -----------------: | -----------------------: | ------------------: |
-| West Texas     |      71.6% |      65.2% |              68.2% |                    14.9% |                0.6% |
-| South Texas    |      84.3% |      64.8% |              45.8% |                    13.0% |                0.0% |
-| Trans-Pecos    |      84.3% |      75.5% |              72.5% |                    19.6% |                1.1% |
-| Rolling Plains |      73.6% |      67.9% |              28.3% |                    16.7% |                6.2% |
-| Panhandle      |      80.8% |      70.8% |              63.8% |                    34.1% |                3.8% |
+| West Texas     |      88.3% |      87.7% |              87.9% |                    36.0% |                9.3% |
+| South Texas    |      96.4% |      93.0% |              88.0% |                    48.1% |               13.4% |
+| Trans-Pecos    |      96.3% |      95.3% |              94.2% |                    49.2% |               12.5% |
+| Rolling Plains |      90.6% |      86.8% |              69.8% |                    56.3% |               27.1% |
+| Panhandle      |      98.0% |      95.2% |              94.5% |                    75.0% |               18.8% |
 
-Inside means the release sat in that layer, after carrying it along the storm
-motion to the analysis hour. A layer that could not be built for an hour is
-dropped from that column only, so the percentages are of the releases that
-layer could be compared against.
+A layer that could not be built for an hour is dropped from that column only,
+so the percentages are of the releases that layer could be compared against.
 
 **Liquid is the column that moves.** Cloud base and cloud tops sit in the
-sixties to eighties everywhere. Almost no release sits in a seeding
-opportunity, in any programme. Radar is the other split — lower in South
-Texas and the Rolling Plains — and the table below asks the same question as
-a distance, which is how the spread was first seen.
+high eighties to high nineties everywhere. Seeding opportunity stays in the
+single digits or low twenties. Radar is the other split — Rolling Plains at
+69.8%, and it is two days of seven, one of them a sortie flown after midnight
+UTC that the analysis shows nothing anywhere near. The table below asks the
+liquid question as a distance, which is how the spread was first seen.
 
-| Programme      | Days | Releases | Inside supercooled liquid water | Within a cell | Median |
-| -------------- | ---: | -------: | ------------------------------: | ------------: | -----: |
-| West Texas     |   34 |      497 |             14.9% |         36.0% |  34 km |
-| South Texas    |   12 |       83 |             13.0% |         48.1% |  13 km |
-| Trans-Pecos    |   38 |      465 |             19.6% |         49.2% |  13 km |
-| Rolling Plains |    7 |       53 |             16.7% |         56.3% |  11 km |
-| Panhandle      |   25 |      255 |             34.1% |         75.0% |   4 km |
+| Programme      | Days | Releases | Inside supercooled liquid water | Median |
+| -------------- | ---: | -------: | ------------------------------: | -----: |
+| West Texas     |   34 |      497 |                           36.0% |  34 km |
+| South Texas    |   12 |       83 |                           48.1% |  13 km |
+| Trans-Pecos    |   38 |      465 |                           49.2% |  13 km |
+| Rolling Plains |    7 |       53 |                           56.3% |  11 km |
+| Panhandle      |   25 |      255 |                           75.0% |   4 km |
 
-**Within a cell the other layers do not vary this way.** Cloud base lands
-within a cell of 88% to 98% of releases in all five, cloud tops 87% to 95%.
-The one exception is Rolling Plains radar at 69.8%, and it is two days of
-seven — one of them a sortie flown after midnight UTC that the analysis shows
-nothing anywhere near. Only the liquid moves everywhere at once, and it moves
-by a factor of two from one end of the state to the other.
+Only the liquid moves everywhere at once, and it moves by a factor of two from
+one end of the state to the other.
 
 **The spread is real at the ends and unresolved in the middle.** Counted by day
 rather than by release — releases within a sortie are all near each other, so a
-day succeeds or fails as one thing — the typical release is within a cell of
-supercooled liquid water on 10 of 34 West Texas days and 15 of 23 Panhandle days. Those
-two are far enough apart, on enough days, to be a difference. The other three
+day succeeds or fails as one thing — the typical release is inside
+supercooled liquid water on 10 of 34 West Texas days and 15 of 23 Panhandle
+days. Those two are far enough apart, on enough days, to be a difference. The
+other three
 sit between them on 11, 37 and 6 days: 4 of 11 in South Texas, 19 of 37 in
 Trans-Pecos, 3 of 6 in the Rolling Plains. **Seven days cannot order anything**,
 and the two small programmes are quoted here to say what they are, not to rank
@@ -321,10 +346,9 @@ very little water in the band we measure. That is a reason the airmass
 story is too simple, not a replacement for it. **Where the disagreement is
 concentrated is established; what causes it is not.**
 
-**Ruling out rain behaves the same everywhere.** Twenty releases of 1,353 fall
-inside a seeding opportunity — 3, 5, 9, 0 and 3 across the five. Every operator
-in Texas seeds the storm the product rules out, and the one programme with none
-inside is the one with 83 releases.
+**Ruling out rain behaves the same everywhere.** A minority of releases fall
+inside a seeding opportunity — 9.3%, 13.4%, 12.5%, 27.1% and 18.8% across the
+five. Every operator in Texas seeds the storm the product rules out.
 
 **Two programmes' positions corroborate their own projection.** The Panhandle
 and South Texas both print a bearing and a range from an origin their reports

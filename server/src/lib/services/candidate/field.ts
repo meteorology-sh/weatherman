@@ -2,7 +2,7 @@
  * The candidate field: one layer instead of four an operator intersects by eye.
  *
  * Every other layer here answers one question about the sky. This one asks all
- * of them at once, per 12 km cell, and draws only where every answer is yes:
+ * of them at once, per 3 km cell, and draws only where every answer is yes:
  * the model has supercooled liquid in the seeding band, the satellite agrees
  * there is cloud whose top reaches that band, the model gives a cloud base low
  * enough that the band is inside the cloud rather than above it, and the radar
@@ -26,7 +26,15 @@ import { SEEDING } from "../hrrr/slw";
 import { Goes } from "../goes/cloudtop";
 import { GoesPhase } from "../goes/phase";
 import { Mrms } from "../mrms/radar";
-import { assertInDomain, inGrid, cellAt, OutsideDomain } from "../shared/grid";
+import {
+  assertInDomain,
+  inGrid,
+  cellAt,
+  OutsideDomain,
+  crop,
+  DRAWN,
+} from "../shared/grid";
+import type { LonLatBox } from "../shared/grid";
 import { nearestHour } from "../shared/replay";
 import {
   emptyPoint,
@@ -39,7 +47,7 @@ import {
 } from "./join";
 
 // Types
-import type { Grid, Geo, ContourFeature } from "../shared/contour";
+import type { Geo, ContourFeature } from "../shared/contour";
 import type { CandidatePoint, CandidateStats, Inputs } from "./join";
 
 /**
@@ -127,6 +135,8 @@ type Scene = {
   confirmed: CandidateFrame;
   stats: CandidateStats;
   cells: Cells;
+  values: Float32Array | null;
+  confirmedValues: Float32Array | null;
 };
 
 export class CandidateService {
@@ -135,8 +145,27 @@ export class CandidateService {
   private archive = new Map<string, Scene>();
   private archiveInflight = new Map<string, Promise<Scene>>();
 
-  async field(at?: Date): Promise<CandidateFrame> {
-    return (await this.scene(at)).frame;
+  async field(
+    at?: Date,
+    box: LonLatBox = DRAWN
+  ): Promise<CandidateFrame> {
+    const scene = await this.scene(at);
+    if (!scene.values) return scene.frame;
+    const geo = scene.cells.geo;
+    const drawn = crop(
+      { nx: geo.nx, ny: geo.ny, values: scene.values },
+      geo,
+      box
+    );
+    return {
+      ...scene.frame,
+      features: features(
+        drawn.grid,
+        drawn.geo,
+        CANDIDATE.property,
+        CANDIDATE.levels
+      ),
+    };
   }
 
   /** The same build's summary. Asking for either warms both. */
@@ -153,8 +182,27 @@ export class CandidateService {
    * one polygon routinely covers both. Two traces of the same array is the only
    * way to draw the distinction where it actually falls.
    */
-  async confirmedField(at?: Date): Promise<CandidateFrame> {
-    return (await this.scene(at)).confirmed;
+  async confirmedField(
+    at?: Date,
+    box: LonLatBox = DRAWN
+  ): Promise<CandidateFrame> {
+    const scene = await this.scene(at);
+    if (!scene.confirmedValues) return scene.confirmed;
+    const geo = scene.cells.geo;
+    const drawn = crop(
+      { nx: geo.nx, ny: geo.ny, values: scene.confirmedValues },
+      geo,
+      box
+    );
+    return {
+      ...scene.confirmed,
+      features: features(
+        drawn.grid,
+        drawn.geo,
+        CONFIRMED.property,
+        CONFIRMED.levels
+      ),
+    };
   }
 
   /**
@@ -162,7 +210,7 @@ export class CandidateService {
    *
    * The summary is about the whole domain, which is a statement about the
    * country rather than about the cloud an operator is looking at. This is the
-   * same five tests asked of one 12 km cell: what is in it, what ruled it out,
+   * same five tests asked of one 3 km cell: what is in it, what ruled it out,
    * and when each source saw it.
    */
   async point(lat: number, lon: number, at?: Date): Promise<CandidatePoint> {
@@ -293,6 +341,8 @@ export class CandidateService {
           phase.validTime
         ),
         cells: { geo, inputs: null },
+        values: null,
+        confirmedValues: null,
       };
     }
 
@@ -306,8 +356,6 @@ export class CandidateService {
     };
     const joined = join(inputs);
 
-    const grid: Grid = { nx: geo.nx, ny: geo.ny, values: joined.values };
-
     // The same values, kept only where the satellite still sees liquid at the
     // cloud top. Zero elsewhere, so the trace encloses the confirmed ground and
     // nothing else — it is a mask over the field, never a second field.
@@ -317,11 +365,6 @@ export class CandidateService {
         confirmedValues[i] = joined.values[i];
       }
     }
-    const confirmedGrid: Grid = {
-      nx: geo.nx,
-      ny: geo.ny,
-      values: confirmedValues,
-    };
 
     // The convective and steering numbers over the ground that passed. They are
     // read here rather than in `join` because they answer a different question:
@@ -342,7 +385,7 @@ export class CandidateService {
         sceneTime: tops.validTime,
         radarTime: radar.validTime,
         phaseTime: phase.validTime,
-        features: features(grid, geo, CANDIDATE.property, CANDIDATE.levels),
+        features: [],
       },
       confirmed: {
         type: "FeatureCollection",
@@ -351,13 +394,10 @@ export class CandidateService {
         sceneTime: tops.validTime,
         radarTime: radar.validTime,
         phaseTime: phase.validTime,
-        features: features(
-          confirmedGrid,
-          geo,
-          CONFIRMED.property,
-          CONFIRMED.levels
-        ),
+        features: [],
       },
+      values: joined.values,
+      confirmedValues,
       stats: summarize(joined, {
         run,
         validTime,

@@ -74,6 +74,31 @@ function planeAt(lat0) {
   ];
 }
 
+/** Whether a point sits inside a closed ring, lon/lat, even-odd. */
+function inRing(ring, lon, lat) {
+  let odd = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if (yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi)
+      odd = !odd;
+  }
+  return odd;
+}
+
+/**
+ * Inside the outer ring and not inside a hole — GeoJSON order, so the first
+ * ring is the exterior and the rest are holes.
+ */
+function inPolygon(rings, lon, lat) {
+  if (!rings.length) return false;
+  if (!inRing(rings[0], lon, lat)) return false;
+  for (let k = 1; k < rings.length; k++) {
+    if (inRing(rings[k], lon, lat)) return false;
+  }
+  return true;
+}
+
 /** Shortest distance from a point to a segment, all in kilometres. */
 function toSegment(px, py, ax, ay, bx, by) {
   const dx = bx - ax;

@@ -186,9 +186,9 @@ export const Overlap = () => {
             near && (
               <Section
                 heading="The season"
-                subtitle={`${near.flares} releases over ${near.days} of ${near.flying} flying days. Inside is overlap. The second segment is within one ${near.cellKm} km cell — as fine as the grid can tell. Median is how far a typical release sat from that layer.`}
+                subtitle={`${near.flares} releases over ${near.days} of ${near.flying} flying days. Inside is inside the contour after storm-motion drift to that layer's own scan. Median is how far a typical release sat from that layer.`}
               >
-                <LayerCoverage cellKm={near.cellKm} layers={near.layers} />
+                <LayerCoverage layers={near.layers} />
               </Section>
             )
           )}

@@ -55,7 +55,7 @@ export const CloudBaseLegend: LayerLegend = {
     `${CEILING_LABEL} ceiling.`,
   detail: [
     "The height of the bottom of the lowest cloud deck, in feet MSL. HRRR " +
-      "diagnoses it at 3 km and the server averages that to 12 km. The bands " +
+      "diagnoses it at 3 km and the server contours that grid. The bands " +
       `are thirds of the aircraft's ${CEILING_LABEL} service ceiling, so ` +
       "every edge traces back to one cited number rather than to a coverage " +
       "table. The last band is open above the ceiling and still drawn, " +
@@ -90,9 +90,9 @@ export const CloudTopLegend: LayerLegend = {
     `tops at ${CLOUD_TOP_WARMEST_C} °C and colder are drawn.`,
   detail: [
     "The temperature at the top of the cloud, in °C. GOES-East scans " +
-      "cloud-top pressure every 5 minutes at 2 km; the server puts that on " +
-      "the 12 km grid and reads each pressure as a temperature from HRRR's " +
-      "profile at that height.",
+      "cloud-top pressure every 5 minutes at 2 km; the server contours that " +
+      "grid and reads each pressure as a temperature from the nearest HRRR " +
+      "3 km column.",
     `Tops warmer than ${CLOUD_TOP_WARMEST_C} °C are left out, and that is the ` +
       "only thing this layer excludes: a top that warm puts the whole seeding " +
       "band above the cloud, so there is nothing inside it to seed.",
@@ -150,8 +150,8 @@ export const RadarLegend: LayerLegend = {
     "candidate off.",
   detail: [
     "MRMS merges every NEXRAD radar into one national mosaic at 1 km, " +
-      "replaced every 2 minutes; the server averages it to 12 km and contours " +
-      "it on the NWS intensity classes.",
+      "replaced every 2 minutes; the server contours that mosaic on the NWS " +
+      "intensity classes.",
     "Measured, not modelled — the only layer here that is. Radar sees the " +
       "water that is already falling, not the liquid inside a cloud, so it " +
       "can cross a candidate off but never confirm one. A third of this map " +
@@ -215,8 +215,8 @@ export const CloudCoverLegend: LayerLegend = {
     "percent. Denser white is more cloud.",
   detail: [
     "The share of sky HRRR fills with cloud in each cell, in percent, at the " +
-      "forecast hour on the slider. Read at 3 km, averaged to 12 km and " +
-      "contoured into nested bands.",
+      "forecast hour on the slider. Read at 3 km and contoured into nested " +
+      "bands.",
     "Modelled out to 18 hours, and satellites cannot forecast, so nothing on " +
       "this map is observed. For observed cloud shape, use the candidate map.",
   ],

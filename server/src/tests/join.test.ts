@@ -12,7 +12,8 @@ import {
   topHoldsLiquid,
 } from "../lib/services/candidate/join";
 import { CEILING_FT } from "../lib/services/shared/aircraft";
-import { blockGeo } from "../lib/services/mrms/radar";
+import { CELL_KM2 } from "../lib/services/shared/grid";
+import { nativeGeo } from "../lib/services/mrms/radar";
 import { PHASE } from "../lib/services/goes/phase";
 
 // Types
@@ -21,7 +22,6 @@ import type { CloudPhase } from "../lib/services/goes/phase";
 import type { Geo } from "../lib/services/shared/contour";
 
 const RUN = new Date("2025-05-15T18:00:00.000Z");
-const CELL_KM2 = 144;
 
 /** No coverage and clear sky, as the two upstream services spell them. */
 const NO_COVERAGE = -999;
@@ -342,7 +342,7 @@ describe("the observed cloud-top phase", () => {
 });
 
 describe("sampleRadar", () => {
-  /** Two HRRR cells placed on known mosaic block centres. */
+  /** Two HRRR cells placed on known mosaic cell centres. */
   const geo = (points: [number, number][]): Geo => ({
     nx: points.length,
     ny: 1,
@@ -350,14 +350,14 @@ describe("sampleRadar", () => {
     lons: new Float32Array(points.map((p) => p[1])),
   });
 
-  it("reads the block a cell's centre falls in", () => {
-    const mosaic = blockGeo();
+  it("reads the 1 km cell a centre falls in", () => {
+    const mosaic = nativeGeo(12, 12);
     const values = new Float32Array(mosaic.nx * mosaic.ny).fill(-99);
-    values[5000] = 42;
+    values[5] = 42;
 
     const sampled = sampleRadar(
       { nx: mosaic.nx, ny: mosaic.ny, values },
-      geo([[mosaic.lats[5000], mosaic.lons[5000]]])
+      geo([[mosaic.lats[5], mosaic.lons[5]]])
     );
 
     assert.equal(sampled[0], 42);
@@ -366,7 +366,7 @@ describe("sampleRadar", () => {
   // The HRRR domain runs past the mosaic's box, and off the edge is not a
   // report of clear air.
   it("reads a cell outside the mosaic's box as no coverage", () => {
-    const mosaic = blockGeo();
+    const mosaic = nativeGeo(12, 12);
     const values = new Float32Array(mosaic.nx * mosaic.ny).fill(30);
 
     const sampled = sampleRadar(
@@ -377,10 +377,10 @@ describe("sampleRadar", () => {
     assert.equal(sampled[0], NO_COVERAGE);
   });
 
-  // MRMS scans north to south and the block grid is stored south-up. Sampling
+  // MRMS scans north to south and the native grid is stored south-up. Sampling
   // against the wrong convention mirrors the country without erroring.
-  it("agrees with the block grid's own geometry at both ends", () => {
-    const mosaic = blockGeo();
+  it("agrees with the mosaic's own geometry at both ends", () => {
+    const mosaic = nativeGeo(12, 12);
     const values = new Float32Array(mosaic.nx * mosaic.ny);
     const first = 0;
     const last = mosaic.nx * mosaic.ny - 1;

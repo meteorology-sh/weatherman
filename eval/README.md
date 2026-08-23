@@ -143,10 +143,10 @@ distance from the release to the nearest edge of each.
 ```
 
 The leftover minutes are closed with the model's own 0–6 km storm motion,
-sampled at the release point and run over the signed offset to the analysis. On
-19 April that offset is 10–25 minutes and the motion 13–25 kt, so it carries a
-release 5–15 km — most of a 12 km grid cell, and enough to cross a contour on
-its own. Both distances are written: `km` after drifting, `kmAtRelease`
+sampled at the release point and run over the signed offset to **that layer's
+valid time**. GOES and radar usually sit a couple of minutes from the flare;
+HRRR still sits up to half an hour away, and that is the 5–15 km arrow the map
+draws. Both distances are written: `km` after drifting, `kmAtRelease`
 undrifted.
 
 **What "any of this layer at all" means depends on the layer**, so a shape is
@@ -288,7 +288,7 @@ three things about its report change what can be said about a release:
   printed, 76.5% of Panhandle releases land in the county their row names,
   against 93.8% and 96.1% for the two programmes that print coordinates — and
   about 6° of rotation closes most of the gap, which is what a magnetic display
-  would mean. At 30 nm that is 4 km, under half a 12 km cell. `bearingDeg` and
+  would mean. At 30 nm that is 4 km, about a 3 km cell. `bearingDeg` and
   `rangeNm` stay on every release so the projection can be redone from the
   source.
 - **Flare counts are per day, not per release.** The flight table says a flare

@@ -75,7 +75,7 @@ export const TimeSlider = () => {
           </span>
         ) : (
           <span>
-            HRRR run {label(meta.run, 0)} &middot; 3 km, averaged to 12 km
+            HRRR run {label(meta.run, 0)} &middot; 3 km
           </span>
         )}
       </div>

@@ -1,11 +1,12 @@
 /**
- * The 12 km grid every layer here is contoured on, and the averaging onto it.
+ * HRRR's native 3 km Lambert grid, and the averaging helpers that coarsen it.
  *
  * Shared infrastructure with no source of its own, like `contour.ts` and
- * `grib.ts`: it knows HRRR's grid dimensions and nothing else about HRRR. Both
- * weather services block-average onto a 12 km cell, and the rule that makes
- * that honest — **averaging removes structure, it never invents any**
- * (`MEASUREMENTS.md` §3) — is enforced here rather than restated in each caller.
+ * `grib.ts`: it knows HRRR's grid dimensions and nothing else about HRRR.
+ * Contoured HRRR layers use this grid as published. Averaging onto a coarser
+ * cell is honest — it removes structure, it never invents any
+ * (`MEASUREMENTS.md` §3) — and `blockAverage` / `blockAverageSparse` stay for
+ * that, but they are not on the contour path.
  *
  * Everything in this file is pure array or text maths, so it is testable on
  * grids you can read.
@@ -19,11 +20,14 @@ export const NX = 1799;
 export const NY = 1059;
 export const POINTS = NX * NY;
 
-/** 3 km -> 12 km. Block-averaging removes structure; it never invents it. */
+/** Native HRRR spacing, km. */
+export const CELL_KM = 3;
+
+/** 3 km -> 12 km, for callers that still coarsen. */
 export const BLOCK = 4;
 
-/** Ground covered by one block-averaged cell, km^2. */
-export const CELL_KM2 = (BLOCK * 3) ** 2;
+/** Ground covered by one native cell, km^2. */
+export const CELL_KM2 = CELL_KM ** 2;
 
 /** `grib_get_data -m` prints this where the record has no value. */
 export const MISSING = 9999;
@@ -39,7 +43,179 @@ export const MISSING = 9999;
 export const NO_VALUE = Number.NaN;
 
 /**
- * Block-average a full-resolution field to the 12 km contour grid.
+ * The lat/lon window every layer is traced in.
+ *
+ * Native CONUS at 1–3 km is too much geometry for the map to fetch or paint.
+ * Texas plus a little padding covers the five licensed programmes and the
+ * state line; averaging is not how the grid got smaller.
+ */
+export type LonLatBox = {
+  west: number;
+  east: number;
+  south: number;
+  north: number;
+};
+
+export const DRAWN: LonLatBox = {
+  west: -107,
+  east: -93,
+  south: 25.5,
+  north: 37,
+};
+
+/** Widest window the map may ask to contour, about one zoom-5 view. */
+const MAX_SPAN_LON = 16;
+const MAX_SPAN_LAT = 14;
+
+export function inBox(
+  lat: number,
+  lon: number,
+  box: LonLatBox = DRAWN
+): boolean {
+  return (
+    lat >= box.south &&
+    lat <= box.north &&
+    lon >= box.west &&
+    lon <= box.east
+  );
+}
+
+/**
+ * Clamp a requested window so a country-scale view cannot ask for native
+ * CONUS polygons. Too-wide boxes shrink around their centre.
+ */
+export function clampBox(box: LonLatBox): LonLatBox {
+  let { west, east, south, north } = box;
+  if (east < west) {
+    const t = west;
+    west = east;
+    east = t;
+  }
+  if (north < south) {
+    const t = south;
+    south = north;
+    north = t;
+  }
+  if (east - west > MAX_SPAN_LON) {
+    const mid = (west + east) / 2;
+    west = mid - MAX_SPAN_LON / 2;
+    east = mid + MAX_SPAN_LON / 2;
+  }
+  if (north - south > MAX_SPAN_LAT) {
+    const mid = (south + north) / 2;
+    south = mid - MAX_SPAN_LAT / 2;
+    north = mid + MAX_SPAN_LAT / 2;
+  }
+  return { west, east, south, north };
+}
+
+/**
+ * Read a contour window from query parameters. Missing or unparseable
+ * values fall back to the Texas default, which is what eval and a first
+ * paint without a map extent use.
+ */
+export function parseBox(query: {
+  west?: unknown;
+  east?: unknown;
+  south?: unknown;
+  north?: unknown;
+}): LonLatBox {
+  const num = (value: unknown) => {
+    if (typeof value === "number") return value;
+    if (typeof value === "string" && value !== "") return Number(value);
+    return NaN;
+  };
+  const west = num(query.west);
+  const east = num(query.east);
+  const south = num(query.south);
+  const north = num(query.north);
+  if (![west, east, south, north].every(Number.isFinite)) return DRAWN;
+  return clampBox({ west, east, south, north });
+}
+
+/**
+ * Rectangular sub-grid covering `box`, padded one cell so contours on the
+ * edge still close.
+ *
+ * Rows and columns stay as they were — this is a crop, not a resample.
+ * Nothing is interpolated. Cells outside the box are dropped.
+ */
+export function crop(
+  grid: Grid,
+  geo: Geo,
+  box: LonLatBox = DRAWN
+): { grid: Grid; geo: Geo } {
+  const { nx, ny } = geo;
+  let i0 = nx;
+  let i1 = -1;
+  let j0 = ny;
+  let j1 = -1;
+
+  for (let j = 0; j < ny; j++) {
+    for (let i = 0; i < nx; i++) {
+      const k = j * nx + i;
+      if (!inBox(geo.lats[k], geo.lons[k], box)) continue;
+      if (i < i0) i0 = i;
+      if (i > i1) i1 = i;
+      if (j < j0) j0 = j;
+      if (j > j1) j1 = j;
+    }
+  }
+
+  if (i1 < i0 || j1 < j0) {
+    const empty = new Float32Array(0);
+    return {
+      grid: { nx: 0, ny: 0, values: empty },
+      geo: { nx: 0, ny: 0, lats: empty, lons: empty },
+    };
+  }
+
+  i0 = Math.max(0, i0 - 1);
+  i1 = Math.min(nx - 1, i1 + 1);
+  j0 = Math.max(0, j0 - 1);
+  j1 = Math.min(ny - 1, j1 + 1);
+
+  const ox = i1 - i0 + 1;
+  const oy = j1 - j0 + 1;
+  const values = new Float32Array(ox * oy);
+  const lats = new Float32Array(ox * oy);
+  const lons = new Float32Array(ox * oy);
+
+  for (let j = 0; j < oy; j++) {
+    const src = (j0 + j) * nx + i0;
+    const dst = j * ox;
+    values.set(grid.values.subarray(src, src + ox), dst);
+    lats.set(geo.lats.subarray(src, src + ox), dst);
+    lons.set(geo.lons.subarray(src, src + ox), dst);
+  }
+
+  return {
+    grid: { nx: ox, ny: oy, values },
+    geo: { nx: ox, ny: oy, lats, lons },
+  };
+}
+
+/**
+ * Apply a unit scale, and turn a missing sentinel into NaN.
+ *
+ * This is what a native-grid build does instead of block-averaging: the values
+ * are already 3 km, so the only jobs left are units and nodata.
+ */
+export function scaleField(
+  values: Float32Array,
+  scale: number,
+  missing: number | null = null
+): Float32Array {
+  const out = new Float32Array(values.length);
+  for (let i = 0; i < values.length; i++) {
+    const v = values[i];
+    out[i] = missing !== null && v === missing ? NO_VALUE : v * scale;
+  }
+  return out;
+}
+
+/**
+ * Block-average a full-resolution field onto a coarser grid.
  *
  * Mean rather than max on purpose. Precipitation is the awkward case: it covers
  * ~2% of the domain, so a lone 3 km core is diluted 16x by a mean, and a max
@@ -83,7 +259,7 @@ export function blockAverage(
  *   a cloud base halfway to the sentinel wherever cloud met clear sky.
  * - **A cell needs a majority of real points to have a value at all**, which is
  *   the same rule the cloud-top layer resamples the satellite with. The
- *   alternative — one sampled point makes the cell — paints a solid 12 km base
+ *   alternative — one sampled point makes the cell — paints a solid coarse base
  *   over a scatter of cumulus, which is not a target a drone is sent to.
  *
  * `missing` is null for a field with no sentinel, where every point is real and
@@ -153,9 +329,6 @@ export function assertInDomain(lat: number, lon: number) {
   }
 }
 
-/** Ground covered by one block-averaged cell along one side, km. */
-const CELL_KM = BLOCK * 3;
-
 /**
  * The farthest a point inside the grid can be from the nearest cell centre:
  * half a cell's diagonal. Beyond it the point is outside the grid, however
@@ -163,7 +336,7 @@ const CELL_KM = BLOCK * 3;
  */
 export const SNAP_KM = (CELL_KM / 2) * Math.SQRT2;
 
-/** Degrees to km on the ground. The grid is 12 km, so flat earth is exact enough. */
+/** Degrees to km on the ground. The grid is 3 km, so flat earth is exact enough. */
 function separationKm(
   lat: number,
   lon: number,
@@ -194,10 +367,10 @@ export function inGrid(geo: Geo, lat: number, lon: number): boolean {
  *
  * The four edges walked in order — south, east, north, west — from the cells
  * themselves, so the ring bends the way the Lambert grid does and nothing here
- * knows what a Lambert projection is. `step` thins the walk: the boundary is
- * smooth at 12 km, so every fourth cell draws the same line for a quarter of
- * the coordinates. Each edge stops one short of its far corner, which is the
- * next edge's first point, so every corner appears exactly once.
+ * knows what a Lambert projection is. `step` thins the walk: every fourth 3 km
+ * cell is 12 km along the edge, the same line for a quarter of the coordinates.
+ * Each edge stops one short of its far corner, which is the next edge's first
+ * point, so every corner appears exactly once.
  */
 export function perimeter(geo: Geo, step = 4): [number, number][] {
   const { nx, ny } = geo;
@@ -225,10 +398,13 @@ export function perimeter(geo: Geo, step = 4): [number, number][] {
 /**
  * Index of the grid cell nearest a point.
  *
- * A plain scan of the 12 km grid — 118k cells, well under a millisecond, and it
- * needs no assumption about how the Lambert projection lays out. Longitude is
- * scaled by cos(lat) so "nearest" means nearest on the ground rather than
- * nearest in degrees, which at 45 N would be 40% wrong east-west.
+ * A plain scan of the 3 km grid — 1.9M cells, a few milliseconds, and it needs
+ * no assumption about how the Lambert projection lays out. Longitude is scaled
+ * by cos(lat) so "nearest" means nearest on the ground rather than nearest in
+ * degrees, which at 45 N would be 40% wrong east-west.
+ *
+ * Do not call this in a loop over another grid. `cellAt` takes an optional
+ * seed so a walk across neighbouring pixels reuses the last cell.
  */
 export function nearestCell(geo: Geo, lat: number, lon: number): number {
   const scale = Math.cos((lat * Math.PI) / 180);
@@ -250,28 +426,37 @@ export function nearestCell(geo: Geo, lat: number, lon: number): number {
  * Index of the grid cell whose **footprint** contains a point.
  *
  * This is what a readout wants and `nearestCell` is not it. A cell's footprint
- * is the 3 km block that was averaged into it — a square in the grid's own row
- * and column space — and the contours are traced in that same space, with each
- * band edge drawn midway between two cell centres. The nearest *centre* in
- * latitude and longitude is a different question, and near a cell boundary the
- * two answer differently, so a point inside a drawn band could be reported
- * against a neighbouring cell that the band excluded.
+ * is a square in the grid's own row and column space, and the contours are
+ * traced in that same space, with each band edge drawn midway between two cell
+ * centres. The nearest *centre* in latitude and longitude is a different
+ * question, and near a cell boundary the two answer differently, so a point
+ * inside a drawn band could be reported against a neighbouring cell that the
+ * band excluded.
  *
- * **Solved in the grid's own space, without a projection inverse.** Take the
- * nearest cell as a starting guess, then read the two vectors that step one
- * cell along its row and one along its column straight off the lat/lon arrays.
- * They span the local grid, so the point's offset from that cell's centre
- * resolves into "how many cells along the row, how many along the column", and
- * rounding both lands on the cell containing it. The starting guess only has to
- * be within a cell for the rounding to correct it, which `nearestCell` always
- * is.
+ * **Solved in the grid's own space, without a projection inverse.** Take a
+ * starting guess, then read the two vectors that step one cell along its row
+ * and one along its column straight off the lat/lon arrays. They span the local
+ * grid, so the point's offset from that cell's centre resolves into "how many
+ * cells along the row, how many along the column", and rounding both lands on
+ * the cell containing it. The starting guess only has to be within a cell for
+ * the rounding to correct it, which `nearestCell` always is.
+ *
+ * `seed` is that guess when the caller already has a nearby cell — a walk
+ * across neighbouring pixels of another grid. Without it this falls back to
+ * `nearestCell`, which is the right seed for a single click and the wrong one
+ * for 3.75 million GOES pixels.
  *
  * At the grid's edge the step goes to the neighbour behind and the vector is
  * negated, so the basis means the same thing everywhere.
  */
-export function cellAt(geo: Geo, lat: number, lon: number): number {
+export function cellAt(
+  geo: Geo,
+  lat: number,
+  lon: number,
+  seed?: number
+): number {
   const { nx, ny } = geo;
-  const seed = nearestCell(geo, lat, lon);
+  if (seed === undefined) seed = nearestCell(geo, lat, lon);
   const i0 = seed % nx;
   const j0 = Math.floor(seed / nx);
 
@@ -306,11 +491,8 @@ export function cellAt(geo: Geo, lat: number, lon: number): number {
 }
 
 /**
- * Parse `grib_get_data` output ("lat lon value" per line, row-major) directly
- * into block averages, so the 1.9M-point grid is never held in memory. `scale`
- * converts the GRIB units to the units we contour in, and is applied to the
- * block mean rather than each point — the mean is linear, so it is the same
- * number for a sixteenth of the multiplies. See blockAverage for why the mean.
+ * Parse `grib_get_data` output ("lat lon value" per line, row-major) into the
+ * native grid. `scale` converts the GRIB units to the units we contour in.
  * `nx`/`ny` are parameters so this is testable on a grid you can read.
  */
 export function accumulate(
@@ -319,21 +501,15 @@ export function accumulate(
   nx = NX,
   ny = NY
 ): { grid: Grid; geo: Geo } {
-  const ox = Math.floor(nx / BLOCK);
-  const oy = Math.floor(ny / BLOCK);
-  const n = ox * oy;
-  const sv = new Float64Array(n);
-  const sla = new Float64Array(n);
-  const slo = new Float64Array(n);
-  /** Points in the block — every row has a lat/lon, even a missing one. */
-  const cnt = new Uint16Array(n);
-  /** Points in the block with a real value. Only these may divide `sv`. */
-  const vcnt = new Uint16Array(n);
+  const n = nx * ny;
+  const values = new Float32Array(n);
+  const lats = new Float32Array(n);
+  const lons = new Float32Array(n);
 
-  let i = 0; // point index within the full grid
+  let i = 0;
   let pos = text.indexOf("\n") + 1; // skip the header line
 
-  while (pos < text.length) {
+  while (pos < text.length && i < n) {
     let nl = text.indexOf("\n", pos);
     if (nl < 0) nl = text.length;
     const line = text.slice(pos, nl);
@@ -343,49 +519,22 @@ export function accumulate(
     const parts = line.trim().split(/\s+/);
     if (parts.length < 3) continue;
 
-    const row = Math.floor(i / nx);
-    const col = i % nx;
-    i++;
-
-    const bj = Math.floor(row / BLOCK);
-    const bi = Math.floor(col / BLOCK);
-    if (bj >= oy || bi >= ox) continue;
-
-    const o = bj * ox + bi;
-
-    // The location is good even where the value is not, so the geo grid takes
-    // every row. Dropping a whole row here would drag the block's centroid.
-    sla[o] += Number(parts[0]);
+    lats[i] = Number(parts[0]);
     let lon = Number(parts[1]);
     if (lon > 180) lon -= 360;
-    slo[o] += lon;
-    cnt[o]++;
+    lons[i] = lon;
 
     const value = Number(parts[2]);
     // MISSING is what we asked grib_get_data to print for absent values, so it
-    // must be dropped rather than averaged in — it is finite, and 9999 would
-    // read as permanent overcast or a cloudburst. Neither field currently has
-    // any, so this guards the contract rather than a live failure.
-    if (!Number.isFinite(value) || value === MISSING) continue;
-
-    sv[o] += value;
-    vcnt[o]++;
-  }
-
-  const values = new Float32Array(n);
-  const lats = new Float32Array(n);
-  const lons = new Float32Array(n);
-  for (let k = 0; k < n; k++) {
-    const c = cnt[k] || 1;
-    lats[k] = sla[k] / c;
-    lons[k] = slo[k] / c;
-    // A block with no readings at all contours as 0, which draws nothing —
-    // the honest answer for nodata, and the reason these are vectors.
-    values[k] = vcnt[k] ? (sv[k] / vcnt[k]) * scale : 0;
+    // must be dropped rather than drawn — it is finite, and 9999 would read as
+    // permanent overcast or a cloudburst.
+    values[i] =
+      !Number.isFinite(value) || value === MISSING ? 0 : value * scale;
+    i++;
   }
 
   return {
-    grid: { nx: ox, ny: oy, values },
-    geo: { nx: ox, ny: oy, lats, lons },
+    grid: { nx, ny, values },
+    geo: { nx, ny, lats, lons },
   };
 }

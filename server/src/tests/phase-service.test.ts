@@ -38,26 +38,26 @@ const geo = (points: [number, number][]): Geo => ({
 });
 
 /**
- * A scene of one class, with the 6x6 window under a point painted pixel by
+ * A scene of one class, with the 2x2 window under a point painted pixel by
  * pixel — the same window `resample` reads, so a test can say exactly what the
- * satellite saw over one 12 km cell.
+ * satellite saw over one 3 km cell.
  */
 function scene(background: number, at: [number, number], window: number[]) {
   const pixels = new Uint8Array(grid.nx * grid.ny).fill(background);
   const [col, row] = pixelAt(grid, at[0], at[1])!;
 
   let i = 0;
-  for (let dy = -3; dy < 3; dy++) {
-    for (let dx = -3; dx < 3; dx++) {
+  for (let dy = -1; dy < 1; dy++) {
+    for (let dx = -1; dx < 1; dx++) {
       pixels[(row + dy) * grid.nx + (col + dx)] = window[i++];
     }
   }
   return pixels;
 }
 
-/** 36 pixels, `count` of the first class and the rest of the second. */
+/** 4 pixels, `count` of the first class and the rest of the second. */
 const mix = (count: number, some: number, rest: number) =>
-  Array.from({ length: 36 }, (_, i) => (i < count ? some : rest));
+  Array.from({ length: 4 }, (_, i) => (i < count ? some : rest));
 
 describe("cloud-phase class lookup", () => {
   // The names are the scene's own, and they are the only thing tying its
@@ -96,12 +96,12 @@ describe("cloud-phase class lookup", () => {
   });
 });
 
-describe("folding a phase scene onto the 12 km grid", () => {
+describe("folding a phase scene onto the 3 km grid", () => {
   it("takes the commonest class among the cloudy pixels", () => {
     const pixels = scene(
       PHASE.clear,
       LUBBOCK,
-      mix(30, PHASE.supercooled, PHASE.ice)
+      mix(3, PHASE.supercooled, PHASE.ice)
     );
 
     assert.equal(resample(grid, pixels, geo([LUBBOCK]))[0], PHASE.supercooled);
@@ -113,7 +113,7 @@ describe("folding a phase scene onto the 12 km grid", () => {
     const pixels = scene(
       PHASE.clear,
       LUBBOCK,
-      mix(17, PHASE.supercooled, PHASE.clear)
+      mix(1, PHASE.supercooled, PHASE.clear)
     );
 
     assert.equal(resample(grid, pixels, geo([LUBBOCK]))[0], PHASE.clear);
@@ -123,7 +123,7 @@ describe("folding a phase scene onto the 12 km grid", () => {
     const pixels = scene(
       PHASE.clear,
       LUBBOCK,
-      mix(19, PHASE.supercooled, PHASE.clear)
+      mix(3, PHASE.supercooled, PHASE.clear)
     );
 
     assert.equal(resample(grid, pixels, geo([LUBBOCK]))[0], PHASE.supercooled);
@@ -135,7 +135,7 @@ describe("folding a phase scene onto the 12 km grid", () => {
     const pixels = scene(
       PHASE.clear,
       LUBBOCK,
-      mix(18, PHASE.supercooled, PHASE.ice)
+      mix(2, PHASE.supercooled, PHASE.ice)
     );
 
     assert.equal(resample(grid, pixels, geo([LUBBOCK]))[0], PHASE.ice);
@@ -154,7 +154,7 @@ describe("folding a phase scene onto the 12 km grid", () => {
     const pixels = scene(
       PHASE.clear,
       LUBBOCK,
-      mix(36, PHASE.unknown, PHASE.unknown)
+      mix(4, PHASE.unknown, PHASE.unknown)
     );
 
     assert.equal(resample(grid, pixels, geo([LUBBOCK]))[0], PHASE.unknown);

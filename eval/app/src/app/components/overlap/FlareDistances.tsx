@@ -5,7 +5,7 @@ import { LAYERS } from "~/lib/layers";
 import type { Flare } from "~/lib/types";
 
 // Components
-import { distanceLabel, toneFor } from "./distance";
+import { cellSize, distanceLabel, toneFor } from "./distance";
 
 /**
  * Each release against every layer, as inside or as kilometres.
@@ -16,7 +16,10 @@ import { distanceLabel, toneFor } from "./distance";
  * analysis — the same number the maps measure at the arrowhead.
  */
 
-type PropsT = { flares: Flare[]; cellKm: number };
+type PropsT = {
+  flares: Flare[];
+  cellKm: number | Record<string, number>;
+};
 
 export const FlareDistances = ({ flares, cellKm }: PropsT) => {
   const rows = [...flares].sort((a, b) => a.at.localeCompare(b.at));
@@ -46,7 +49,7 @@ export const FlareDistances = ({ flares, cellKm }: PropsT) => {
               <td>{flare.county}</td>
               {LAYERS.map((layer) => {
                 const near = flare.near[layer.key] ?? null;
-                const tone = toneFor(near, cellKm);
+                const tone = toneFor(near, cellSize(cellKm, layer.key));
                 return (
                   <td
                     key={layer.key}

@@ -10,7 +10,7 @@ const num = new Intl.NumberFormat("en-US");
 const feet = (value: number | null) =>
   value === null ? "—" : `${num.format(value)} ft`;
 
-/** The eight compass points, which is as fine as a 12 km cell deserves. */
+/** The eight compass points, which is as fine as a 3 km cell deserves. */
 const POINTS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
 const compass = (deg: number) => POINTS[Math.round(deg / 45) % 8];
 

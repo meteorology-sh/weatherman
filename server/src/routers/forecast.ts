@@ -3,7 +3,7 @@ import express, { Request, Response } from "express";
 
 // Services
 import { Hrrr } from "../lib/services/hrrr/forecast";
-import { OutsideDomain } from "../lib/services/shared/grid";
+import { OutsideDomain, parseBox } from "../lib/services/shared/grid";
 import { parseAt } from "../lib/services/shared/replay";
 
 export const forecast = express.Router();
@@ -22,7 +22,11 @@ forecast.get("/meta", async (req: Request, res: Response) => {
 forecast.get("/clouds", async (req: Request, res: Response) => {
   try {
     const hour = Number(req.query.hour ?? 0);
-    const frame = await Hrrr.clouds(hour, parseAt(req.query.at));
+    const frame = await Hrrr.clouds(
+      hour,
+      parseAt(req.query.at),
+      parseBox(req.query)
+    );
     res.send(frame);
   } catch (error) {
     res
@@ -34,7 +38,11 @@ forecast.get("/clouds", async (req: Request, res: Response) => {
 forecast.get("/precip", async (req: Request, res: Response) => {
   try {
     const hour = Number(req.query.hour ?? 0);
-    const frame = await Hrrr.precip(hour, parseAt(req.query.at));
+    const frame = await Hrrr.precip(
+      hour,
+      parseAt(req.query.at),
+      parseBox(req.query)
+    );
     res.send(frame);
   } catch (error) {
     res
@@ -49,7 +57,11 @@ forecast.get("/precip", async (req: Request, res: Response) => {
 forecast.get("/liquid", async (req: Request, res: Response) => {
   try {
     const hour = Number(req.query.hour ?? 0);
-    const frame = await Hrrr.liquid(hour, parseAt(req.query.at));
+    const frame = await Hrrr.liquid(
+      hour,
+      parseAt(req.query.at),
+      parseBox(req.query)
+    );
     res.send(frame);
   } catch (error) {
     res
@@ -79,7 +91,11 @@ forecast.get("/liquid/stats", async (req: Request, res: Response) => {
 forecast.get("/cloudbase", async (req: Request, res: Response) => {
   try {
     const hour = Number(req.query.hour ?? 0);
-    const frame = await Hrrr.cloudBase(hour, parseAt(req.query.at));
+    const frame = await Hrrr.cloudBase(
+      hour,
+      parseAt(req.query.at),
+      parseBox(req.query)
+    );
     res.send(frame);
   } catch (error) {
     res

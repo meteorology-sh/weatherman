@@ -4,13 +4,12 @@ import type { Nearness } from "~/lib/types";
 /**
  * How a distance is coloured, and where the steps fall.
  *
- * **The steps are grid cells, not opinions about seeding.** The layers are
- * contoured on a 12 km grid, so the map cannot resolve anything finer: a release
- * within one cell of the paint is inside it as far as this map can tell, and two
- * cells is the next honest step out. Neither says how near an aircraft ought to
- * be — that is a question for someone with the operator's reasoning, not for a
- * colour ramp. The cell size is carried in from the painted file rather than
- * written here, so it follows the grid if the grid moves.
+ * **The steps are grid cells, not opinions about seeding.** Inside is inside
+ * the contour after that layer's own drift. One cell is the next honest step
+ * out, at that layer's native spacing, and two cells is the step after that.
+ * Neither says how near an aircraft ought to be. The cell size is carried in
+ * from the painted file rather than written here, so it follows the grid if
+ * the grid moves.
  */
 export type Tone = {
   fill: string;
@@ -23,7 +22,7 @@ const INSIDE: Tone = {
   fill: "fill-success",
   stroke: "stroke-success",
   text: "text-success",
-  label: "Inside the paint",
+  label: "Inside the layer",
 };
 const ONE_CELL: Tone = {
   fill: "fill-info",
@@ -51,6 +50,16 @@ const UNMEASURED: Tone = {
 };
 
 export const TONES = [INSIDE, ONE_CELL, TWO_CELLS, BEYOND] as const;
+
+/** Native cell size for a layer, accepting the old single-number files. */
+export function cellSize(
+  cellKm: number | Record<string, number> | undefined,
+  key: string
+): number {
+  if (cellKm && typeof cellKm === "object") return cellKm[key] ?? 3;
+  if (typeof cellKm === "number") return cellKm;
+  return 3;
+}
 
 export function toneFor(near: Nearness | null, cellKm: number): Tone {
   if (!near || near.km === null) return UNMEASURED;

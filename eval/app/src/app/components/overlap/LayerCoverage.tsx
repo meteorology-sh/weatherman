@@ -10,18 +10,15 @@ import type { LayerProximity } from "~/lib/types";
 /**
  * How many releases sat in each layer, and how far the rest were.
  *
- * **A bar per layer, not per flare.** One far release used to set the scale of
- * a whole chart, so four flares in a raining cell ten cells away looked like
- * the finding. Counts do not have a scale that a miss can steal. Median
- * distance sits on the row so a layer nobody landed in still says how close
- * they came.
+ * **Inside is inside the contour** after that layer's own storm-motion drift.
+ * Median distance sits on the row so a layer nobody landed in still says how
+ * close they came.
  *
  * Figures come from the eval server's `proximity` summary. Nothing here
  * re-derives a count from the flares.
  */
 
 type PropsT = {
-  cellKm: number;
   layers: Record<string, LayerProximity>;
 };
 
@@ -30,7 +27,7 @@ function km(value: number | null): string {
   return `${Math.round(value)} km`;
 }
 
-export const LayerCoverage = ({ cellKm, layers }: PropsT) => {
+export const LayerCoverage = ({ layers }: PropsT) => {
   const [hover, setHover] = useState<string | null>(null);
   const hovered = hover ? LAYERS.find((layer) => layer.key === hover) : null;
   const hoveredStats = hover ? layers[hover] : null;
@@ -40,11 +37,7 @@ export const LayerCoverage = ({ cellKm, layers }: PropsT) => {
       <div className="flex flex-wrap gap-4 text-xs items-center">
         <span className="flex items-center gap-2">
           <span className="inline-block w-3 h-3 bg-success" />
-          Inside
-        </span>
-        <span className="flex items-center gap-2">
-          <span className="inline-block w-3 h-3 bg-info" />
-          Within one {cellKm} km cell
+          Inside the layer
         </span>
         <span className="flex items-center gap-2">
           <span className="inline-block w-3 h-3 bg-base-content/20" />
@@ -66,7 +59,7 @@ export const LayerCoverage = ({ cellKm, layers }: PropsT) => {
             );
           }
 
-          const near = Math.max(0, stats.withinCell - stats.inside);
+          const inside = stats.inside;
           const further = Math.max(0, stats.n - stats.withinCell);
           const on = hover === layer.key;
 
@@ -85,18 +78,12 @@ export const LayerCoverage = ({ cellKm, layers }: PropsT) => {
                   hover && !on ? "opacity-55" : ""
                 }`}
                 role="img"
-                aria-label={`${layer.legend.name}: ${stats.inside} of ${stats.n} inside, median ${km(stats.median)}`}
+                aria-label={`${layer.legend.name}: ${inside} of ${stats.n} inside, median ${km(stats.median)}`}
               >
-                {stats.inside > 0 && (
+                {inside > 0 && (
                   <div
                     className="bg-success min-w-[3px]"
-                    style={{ flexGrow: stats.inside, flexBasis: 0 }}
-                  />
-                )}
-                {near > 0 && (
-                  <div
-                    className="bg-info min-w-[3px]"
-                    style={{ flexGrow: near, flexBasis: 0 }}
+                    style={{ flexGrow: inside, flexBasis: 0 }}
                   />
                 )}
                 {further > 0 && (
@@ -107,7 +94,7 @@ export const LayerCoverage = ({ cellKm, layers }: PropsT) => {
                 )}
               </div>
               <div className="w-16 shrink-0 text-right font-mono text-xs">
-                {stats.inside}/{stats.n}
+                {inside}/{stats.n}
               </div>
               <div className="w-16 shrink-0 text-right font-mono text-xs">
                 {km(stats.median)}
@@ -126,9 +113,7 @@ export const LayerCoverage = ({ cellKm, layers }: PropsT) => {
         {hovered && hoveredStats ? (
           <>
             {hovered.legend.name} — {hoveredStats.inside} inside ·{" "}
-            {Math.max(0, hoveredStats.withinCell - hoveredStats.inside)} more
-            within {cellKm} km ·{" "}
-            {Math.max(0, hoveredStats.n - hoveredStats.withinCell)} further ·
+            {Math.max(0, hoveredStats.n - hoveredStats.inside)} further ·
             median {km(hoveredStats.median)}, worst {km(hoveredStats.worst)}
           </>
         ) : (

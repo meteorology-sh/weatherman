@@ -110,7 +110,7 @@ export interface CandidatePoint {
   radarTime: string;
   /** Start of the phase scan read over this cell. Null where there was none. */
   phaseTime: string | null;
-  /** The 12 km cell sampled — not the click, which is finer than the grid. */
+  /** The 3 km cell sampled — not the click, which is finer than the grid. */
   lat: number;
   lon: number;
   /** A candidate, nothing to seed, or the first test the cell failed. */
@@ -204,7 +204,7 @@ export interface Sounding {
   run: string;
   hour: number;
   validTime: string;
-  /** The 12 km cell sampled — not the click, which is finer than the grid. */
+  /** The 3 km cell sampled — not the click, which is finer than the grid. */
   lat: number;
   lon: number;
   /** Terrain height at that cell, ft. Isotherms below it are underground. */
@@ -235,7 +235,7 @@ export interface RadarStats {
   echoPct: number;
   /** Ground at or above the lowest contour, km². */
   echoKm2: number;
-  /** Strongest 12 km cell, dBZ. Null when nothing reaches the lowest contour. */
+  /** Strongest 1 km cell, dBZ. Null when nothing reaches the lowest contour. */
   peakDbz: number | null;
 }
 
@@ -247,7 +247,7 @@ export interface CloudTopStats {
   validTime: string;
   /** HRRR run that supplied the temperatures, ISO 8601. */
   profileRun: string;
-  /** Percent of the 12 km grid the satellite sees any cloud over. */
+  /** Percent of the 2 km scene the satellite sees any cloud over. */
   cloudPct: number;
   /** Percent of the grid whose cloud top is at or below −5 °C. */
   seedableTopPct: number;

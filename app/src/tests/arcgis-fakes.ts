@@ -25,6 +25,8 @@ export type FakeMapT = {
 export type FakeViewT = {
   center?: [number, number];
   zoom?: number;
+  stationary?: boolean;
+  extent?: { xmin: number; ymin: number; xmax: number; ymax: number };
   goTo: Mock;
   whenLayerView: Mock;
   on: Mock;

@@ -16,10 +16,14 @@ sampling rule that decides whether a proposed layer is honest at all. **Read
 
 - **No raster on any map, ever.** An image has no nodata: it paints clear sky
   opaquely and buries the basemap. Every layer is GeoJSON from our own server.
-- **No sampled field is interpolated past what it measured.** Block-averaging
-  3 km → 12 km removes structure and is fine; interpolating 300 km → 12 km
-  invents it and is not. Compare a variable's correlation length to the sample
-  spacing before drawing any new field (`MEASUREMENTS.md` §3).
+- **No sampled field is interpolated past what it measured.** Each layer is
+  drawn at native sampling — HRRR 3 km, GOES 2 km, MRMS 1 km. The server
+  still builds the national grid; the map asks for one window of it, about
+  the size of Texas, and does not paint that window when zoomed out further.
+  Averaging removes structure and is fine; interpolating invents it and is
+  not. The join samples GOES and MRMS onto HRRR's 3 km cells (majority /
+  nearest), never the other way. Compare a variable's correlation length to
+  the sample spacing before drawing any new field (`MEASUREMENTS.md` §3).
 - **A source too sparse to pass that test is drawn as points, and only points** —
   colour banding in a marker ramp, each marker where the observation was, nothing
   between them.
@@ -55,7 +59,7 @@ and the sidebar says so. The radar mosaic is the only measurement on either map.
 
 **Clicking is how the panel is read.** A click profiles that point's column,
 reads that cell's convective diagnostics, and asks every layer what it says over
-that one 12 km cell — what the cloud there is made of, which test ruled it out
+that one 3 km cell — what the cloud there is made of, which test ruled it out
 if any, and when each source saw it. That readout leads the panel because it is
 the only part of it about the cloud an operator is looking at.
 
@@ -131,9 +135,9 @@ Neither substitutes for the other.
 
 `ABI-L2-ACHP2KMC` — cloud-top **pressure**, CONUS, 2 km, 4.1 MB a scene, a new
 scene every 5 minutes, keyless on `noaa-goes19`. NetCDF4/HDF5, read with
-`h5wasm`, reprojected from the ABI fixed grid onto the same 12 km grid everything
-else contours on, and turned into a temperature using HRRR's profile at that
-pressure.
+`h5wasm`, contoured on the ABI 2 km grid. Temperature at each pixel comes from
+the nearest HRRR 3 km column at that pressure. The join samples those pixels
+onto HRRR's 3 km cells.
 
 **This is the one layer built from two sources**, and the split is deliberate:
 HRRR nails the thermodynamic profile and is much shakier on cloud, so the
@@ -227,7 +231,7 @@ that point readout, and nothing gates on them.**
 
 ### Seeding opportunity — the join
 
-Every layer above, asked at once, per 12 km cell. A cell is a candidate where
+Every layer above, asked at once, per 3 km cell. A cell is a candidate where
 all four hold:
 
 - HRRR has supercooled liquid in the seeding band, at or above 10 g/m²
@@ -328,7 +332,7 @@ band bends inward — around a hole, along a one-cell diagonal — the fill cove
 part of a neighbouring cell that failed a test. A click there reads that
 neighbour, correctly: the cell is excluded and the band is what is drawn
 loosely. No cell lookup closes this, because there is nothing wrong with the
-lookup; it is the price of a smooth boundary over a 12 km grid, and it is worst
+lookup; it is the price of a smooth boundary over a 3 km grid, and it is worst
 exactly where the candidate field is thinnest. **The coordinates in the panel
 are the answer**, not the pixel under the cursor.
 
@@ -452,7 +456,7 @@ and the frames go straight to the layer.
 
 ```
 NOMADS HRRR .idx → byte-range GRIB2 subset (~930 KB of a 390 MB file)
-             → grib_get_data (eccodes) → block-average 3 km → 12 km
+             → grib_get_data (eccodes) → native 3 km Lambert grid
              → marching squares + hole nesting
              → GET /forecast/clouds?hour=N → ForecastCloudsLayer.url
 
@@ -467,7 +471,7 @@ whose geometry is observed:
 noaa-goes19 listing → newest sweep both products filed [services/goes/sweep.ts]
              → its ABI-L2-ACHP2KMC scene (4.1 MB NetCDF4)
              → h5wasm → cloud-top pressure + projection constants
-             → ABI fixed grid → HRRR's 12 km grid   [services/goes/abi.ts]
+             → ABI 2 km grid, temperature from nearest HRRR column
              → Hrrr.column() supplies TMP at that pressure
              → mask to tops colder than −5 °C, disjoint bands
              → GET /cloudtop/temperature → CandidateCloudTopLayer.url
@@ -482,7 +486,7 @@ product with no layer and no route: the join reads it and the panel reports it.
 noaa-goes19 listing → the same sweep's ABI-L2-ACTPC scene (666 KB NetCDF4)
              → h5wasm → one class per pixel + projection constants
                                                 [services/goes/scene.ts]
-             → ABI fixed grid → HRRR's 12 km grid, commonest class per cell
+             → ABI 2 km → HRRR 3 km, commonest class per cell
              → CandidateStats.phase + CandidatePoint.topPhase
 ```
 
@@ -492,7 +496,7 @@ out of the same nine `wrfsfc` records:
 ```
 NOMADS HRRR .idx → byte-range subset of the 2D diagnostics (~10 MB, 9 records)
              → grib_filter with a sentinel outside the physical range
-             → block-average 3 km → 12 km, majority rule, NaN where unsampled
+             → native 3 km, NaN where unsampled
              → disjoint bands on the operational window
              → GET /forecast/cloudbase?hour=N → CandidateCloudBaseLayer.url
 

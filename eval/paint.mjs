@@ -21,14 +21,12 @@
  * minutes away, not to 18Z which is forty-three. One frame per release, chosen
  * by the clock, so nothing has to be selected to read the answer.
  *
- * **The remaining minutes are closed with the storm motion.** A release at 1843Z
- * compared against a 19Z field is seventeen minutes out of step, and at twenty
- * knots that is ten kilometres — most of a grid cell, and enough to move a flare
- * across a contour on its own. HRRR carries a 0–6 km storm motion over every
- * cell, so the release point is carried along it to the analysis time and the
- * distance is measured from there. The offset is signed: a release after the
- * half hour is charged to the next analysis and drifts forward, one before it
- * drifts back.
+ * **The remaining minutes are closed with the storm motion.** Each layer is
+ * fetched at the flare's own timestamp — GOES and radar already answer about
+ * that minute, HRRR still rounds to the nearer hour — and the release is
+ * carried along HRRR's 0–6 km storm motion over that layer's own valid-time
+ * gap. The offset is signed: a release after the half hour is charged to the
+ * next analysis and drifts forward, one before it drifts back.
  */
 
 // Node
@@ -56,15 +54,17 @@ if (!DATE) {
 }
 
 /**
- * The grid every layer is contoured on, in kilometres.
- *
- * Mirrors `BLOCK * 3` in `server/src/lib/services/shared/grid.ts`. It is carried
- * into the output because it is the only honest yardstick this evaluation has
- * for what "near" means: the map cannot resolve anything finer than one cell, so
- * a release within a cell of the paint is inside it as far as this map can tell.
- * That is a fact about our own grid rather than a claim about seeding.
+ * Native cell size of each layer, kilometres. Inside means inside the contour
+ * after that layer's own drift; these numbers are the next honest step out,
+ * not a second definition of inside.
  */
-const CELL_KM = 12;
+const CELL_KM = {
+  cloudBase: 3,
+  cloudTop: 2,
+  liquid: 3,
+  radar: 1,
+  candidate: 3,
+};
 
 /* ---------- the region ---------- */
 
@@ -100,11 +100,13 @@ const WINDOW = region.window;
 /**
  * The five layers, in the order Weatherman stacks them.
  *
- * Same routes, same hour parameter, same properties. `hour=0` on the two HRRR
- * fields for the reason the candidate map pins them there: a cloud base and a
- * mixing ratio are states the analysis holds, so f00 is a real answer rather
- * than an empty one. The satellite and the radar take no hour at all — they are
- * scenes, and each carries its own valid time.
+ * Same routes, same properties. Each request carries the flare's own timestamp
+ * as `at`. `hour=0` on the two HRRR fields for the reason the candidate map
+ * pins them there: a cloud base and a mixing ratio are states the analysis
+ * holds, so f00 is a real answer rather than an empty one. The satellite and
+ * the radar take no hour at all — they are scenes, and each carries its own
+ * valid time. The join already splits those clocks: HRRR rounds to the hour,
+ * GOES and radar keep the minute.
  *
  * `candidate` is fetched first even though it is drawn last. It is the join, so
  * building it warms every source the other four read, and the remaining fetches
@@ -118,6 +120,7 @@ const LAYERS = [
     property: "cloudBaseFt",
     unit: "ft MSL",
     shape: "disjoint",
+    cellKm: CELL_KM.cloudBase,
   },
   {
     key: "cloudTop",
@@ -126,6 +129,7 @@ const LAYERS = [
     property: "topColdnessC",
     unit: "°C below zero",
     shape: "disjoint",
+    cellKm: CELL_KM.cloudTop,
   },
   {
     key: "liquid",
@@ -134,6 +138,7 @@ const LAYERS = [
     property: "slwPath",
     unit: "g/m²",
     shape: "nested",
+    cellKm: CELL_KM.liquid,
   },
   {
     key: "radar",
@@ -142,6 +147,7 @@ const LAYERS = [
     property: "reflectivity",
     unit: "dBZ",
     shape: "nested",
+    cellKm: CELL_KM.radar,
   },
   {
     key: "candidate",
@@ -150,6 +156,7 @@ const LAYERS = [
     property: "seedableSlwPath",
     unit: "g/m²",
     shape: "nested",
+    cellKm: CELL_KM.candidate,
   },
 ];
 
@@ -194,21 +201,30 @@ async function ask(path) {
   return res.json();
 }
 
+const framesByPath = new Map();
+
 async function frameAt(layer, at) {
-  const frame = await ask(layer.path(at));
+  const path = layer.path(at);
+  const cached = framesByPath.get(path);
+  if (cached) return cached;
 
-  const levels = [];
-  for (const feature of frame.features ?? []) {
-    const level = feature.properties?.[layer.property];
-    const polygons = [];
-    for (const polygon of feature.geometry?.coordinates ?? []) {
-      const rings = polygon.map(simplify).filter(Boolean);
-      if (rings.length) polygons.push(rings);
+  const work = (async () => {
+    const frame = await ask(path);
+    const levels = [];
+    for (const feature of frame.features ?? []) {
+      const level = feature.properties?.[layer.property];
+      const polygons = [];
+      for (const polygon of feature.geometry?.coordinates ?? []) {
+        const rings = polygon.map(simplify).filter(Boolean);
+        if (rings.length) polygons.push(rings);
+      }
+      if (polygons.length) levels.push({ level, polygons });
     }
-    if (polygons.length) levels.push({ level, polygons });
-  }
+    return { validTime: frame.validTime ?? at, levels };
+  })();
 
-  return { validTime: frame.validTime ?? at, levels };
+  framesByPath.set(path, work);
+  return work;
 }
 
 /* ---------- the clock ---------- */
@@ -238,25 +254,33 @@ const KM_PER_DEGREE_LAT = 110.574;
 const KM_PER_DEGREE_LON = 111.32;
 
 /**
- * Where the air over a release point is at the moment of the analysis it is
- * being compared against.
- *
- * Straight-line advection by HRRR's own 0–6 km storm motion at that cell, over
- * the signed offset between the release minute and the analysis hour. It is a
- * first-order answer: the motion is sampled once and carried at constant speed
- * and bearing, so a system that turned or accelerated inside those minutes is
- * not described by it. Over twenty-odd minutes that is a small error against the
- * ten to fifteen kilometres it is correcting.
+ * HRRR's 0–6 km storm motion over a release, sampled once at the analysis
+ * the flare is charged to.
  */
-async function driftTo(release, hour) {
-  const hours = (new Date(hour) - new Date(release.at)) / 3_600_000;
+async function motionAt(release, hour) {
   const sounding = await ask(
     `/forecast/sounding?lat=${release.lat}&lon=${release.lon}` +
       `&hour=0&at=${encodeURIComponent(hour)}`
   );
+  return {
+    stormMotionKt: sounding.diagnostics?.stormMotionKt ?? null,
+    stormMotionTowardDeg: sounding.diagnostics?.stormMotionTowardDeg ?? null,
+  };
+}
 
-  const kt = sounding.diagnostics?.stormMotionKt ?? null;
-  const toward = sounding.diagnostics?.stormMotionTowardDeg ?? null;
+/**
+ * Where the air over a release point is at `when`.
+ *
+ * Straight-line advection by the sampled storm motion over the signed offset
+ * between the release minute and that timestamp. First-order: constant speed
+ * and bearing, so a system that turned inside those minutes is not described
+ * by it. For GOES and radar `when` is the scan, usually a couple of minutes
+ * away; for HRRR it is the analysis hour.
+ */
+function advect(release, motion, when) {
+  const hours = (new Date(when) - new Date(release.at)) / 3_600_000;
+  const kt = motion.stormMotionKt;
+  const toward = motion.stormMotionTowardDeg;
   // A bearing off a still vector is not a direction. Say so instead of drawing
   // an arrow pointing north.
   if (kt === null || toward === null || kt === 0) {
@@ -421,24 +445,38 @@ for (const hour of hours) {
   const flares = [];
 
   for (const release of byHour.get(hour)) {
-    let drift = null;
+    let motion = {
+      stormMotionKt: null,
+      stormMotionTowardDeg: null,
+    };
     try {
-      drift = await driftTo(release, hour);
+      motion = await motionAt(release, hour);
     } catch (failure) {
-      console.log(`    ${release.timeZ}Z drift failed: ${failure.message}`);
+      console.log(`    ${release.timeZ}Z motion failed: ${failure.message}`);
     }
 
+    const drift = advect(release, motion, hour);
     const raw = [release.lon, release.lat];
     const at = drift?.to ?? raw;
     const near = {};
     for (const layer of LAYERS) {
+      const scored = await frameAt(layer, release.at).catch(() =>
+        frames[hour][layer.key]
+      );
+      const when = scored?.validTime ?? hour;
+      const shifted = advect(release, motion, when);
+      const from = shifted.to ?? raw;
       near[layer.key] = nearness(
-        frames[hour][layer.key],
+        scored,
         layer,
-        at[0],
-        at[1],
+        from[0],
+        from[1],
         raw
       );
+      if (near[layer.key]) {
+        near[layer.key].validTime = scored?.validTime ?? null;
+        near[layer.key].offsetMinutes = shifted.offsetMinutes;
+      }
     }
 
     flares.push({
@@ -507,11 +545,12 @@ await writeFile(
     server: SERVER,
     window: WINDOW,
     cellKm: CELL_KM,
-    layers: LAYERS.map(({ key, name, property, unit }) => ({
+    layers: LAYERS.map(({ key, name, property, unit, cellKm }) => ({
       key,
       name,
       property,
       unit,
+      cellKm,
     })),
     hours,
     soundings: day.soundings ?? null,
@@ -524,14 +563,10 @@ await writeFile(
 const all = analyses.flatMap((entry) => entry.flares);
 const withLiquid = all.filter((flare) => flare.near.liquid);
 const inside = withLiquid.filter((flare) => flare.near.liquid.inside).length;
-const withinCell = withLiquid.filter(
-  (flare) => flare.near.liquid.km !== null && flare.near.liquid.km <= CELL_KM
-).length;
 
 const bytes = (await readFile(file)).length;
 console.log(
   `\n${all.length} flares over ${hours.length} analyses\n` +
-    `  inside painted liquid: ${inside}\n` +
-    `  within one ${CELL_KM} km cell of it: ${withinCell}\n` +
+    `  inside supercooled liquid water: ${inside}\n` +
     `written to ${file} (${(bytes / 1024 / 1024).toFixed(1)} MB)`
 );
