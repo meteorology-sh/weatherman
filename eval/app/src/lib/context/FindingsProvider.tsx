@@ -12,12 +12,12 @@ import { findingsActions } from "~/lib/store/features/findings";
 import { regionsActions } from "~/lib/store/features/regions";
 
 // Client
-import { GetBand, GetOverlap, NotRunYet } from "~/lib/client";
+import { GetBand, GetNear, NotRunYet } from "~/lib/client";
 
 /**
  * Loads both findings for the region in the url, and syncs them into the store.
  *
- * Either can be missing on its own — the two runs are independent — so a
+ * The band comparison and the season-wide distances are independent runs, so a
  * missing one is recorded and the other still loads. Only a real failure sets
  * `error`.
  *
@@ -38,13 +38,13 @@ export function FindingsProvider({ children }: { children: React.ReactNode }) {
       try {
         dispatch(findingsActions.setLoading(on));
 
-        const [bandResult, overlapResult] = await Promise.allSettled([
+        const [bandResult, nearResult] = await Promise.allSettled([
           GetBand(on),
-          GetOverlap(on),
+          GetNear(on),
         ]);
 
         const missing: string[] = [];
-        for (const result of [bandResult, overlapResult]) {
+        for (const result of [bandResult, nearResult]) {
           if (result.status === "fulfilled") continue;
           if (result.reason instanceof NotRunYet) {
             missing.push(result.reason.message);
@@ -56,8 +56,8 @@ export function FindingsProvider({ children }: { children: React.ReactNode }) {
         if (bandResult.status === "fulfilled") {
           dispatch(findingsActions.setBand(bandResult.value));
         }
-        if (overlapResult.status === "fulfilled") {
-          dispatch(findingsActions.setOverlap(overlapResult.value));
+        if (nearResult.status === "fulfilled") {
+          dispatch(findingsActions.setNear(nearResult.value));
         }
         if (missing.length) {
           dispatch(findingsActions.setMissing(missing.join(" · ")));

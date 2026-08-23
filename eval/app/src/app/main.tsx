@@ -45,9 +45,7 @@ const router = createBrowserRouter([
         path: ":region",
         element: (
           <FindingsProvider>
-            <DayProvider>
-              <Findings />
-            </DayProvider>
+            <Findings />
           </FindingsProvider>
         ),
       },

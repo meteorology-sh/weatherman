@@ -337,12 +337,7 @@ in the operator's briefing and absent from ours.
 
 ## How to rerun any of it
 
-The published run files in `eval/out/` travel with the repo, so looking at the
-findings does not need a rebuild: `docker-compose up -d` and the pages on 3100
-and 5174 already have them. Rebuilding is for when a layer or a parser changed.
-
-Everything that does rebuild needs a running server and nothing else. No
-install, no key.
+Everything needs a running server and nothing else. No install, no key.
 
 ```bash
 docker-compose up -d                   # all four services

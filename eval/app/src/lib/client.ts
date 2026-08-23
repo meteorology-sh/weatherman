@@ -20,6 +20,7 @@ import type {
   BandFinding,
   Day,
   DaySummary,
+  NearFinding,
   OverlapFinding,
   Painted,
   Region,
@@ -57,6 +58,14 @@ export async function GetOverlap(region: string): Promise<OverlapFinding> {
 
 export async function GetDays(region: string): Promise<DaySummary[]> {
   return get<DaySummary[]>(`/region/${region}/days`);
+}
+
+/**
+ * How near the season's releases were to each layer — the pooled form of
+ * `painted.proximity`. A 404 means no day has been painted yet.
+ */
+export async function GetNear(region: string): Promise<NearFinding> {
+  return get<NearFinding>(`/region/${region}/near`);
 }
 
 export async function GetDay(region: string, date: string): Promise<Day> {

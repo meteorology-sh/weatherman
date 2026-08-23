@@ -18,7 +18,8 @@ import { GetDay, GetDays, GetPainted, NotRunYet } from "~/lib/client";
  *
  * The painted frames are fetched with the day rather than on demand. They are
  * the point of the page, and a second click to reveal the thing the page exists
- * for is a click nobody should have to make.
+ * for is a click nobody should have to make. Season-wide distances live on the
+ * findings slice — this provider does not reload them.
  */
 export function DayProvider({ children }: { children: React.ReactNode }) {
   const { region } = useParams();

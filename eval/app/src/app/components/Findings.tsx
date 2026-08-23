@@ -6,6 +6,7 @@ import { useAppSelector } from "~/lib/store/hooks";
 
 // Components
 import { Status } from "./Status";
+import { LayerCoverage } from "./overlap/LayerCoverage";
 
 const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
 
@@ -17,7 +18,7 @@ const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
  */
 export const Findings = () => {
   const { region } = useParams();
-  const { band, overlap, loading, missing, error } = useAppSelector(
+  const { band, near, loading, missing, error } = useAppSelector(
     (state) => state.findings
   );
   const open = useAppSelector((state) =>
@@ -142,68 +143,42 @@ export const Findings = () => {
           </div>
         </Link>
 
-        <Link
-          to={`/${region}/flares`}
-          className="card bg-base-200 hover:bg-base-300 transition-colors"
-        >
+        <div className="card bg-base-200">
           <div className="card-body">
             <div
               className={`text-xs tracking-widest ${
-                overlap ? "text-warning" : "text-base-content"
+                near ? "text-success" : "text-base-content"
               }`}
             >
-              QUESTION 2 —{" "}
-              {overlap ? "ANSWERED ALMOST NEVER" : "NOT MEASURED HERE YET"}
+              QUESTION 2 — {near ? "MEASURED" : "NOT MEASURED HERE YET"}
             </div>
             <h2 className="card-title">
               Do the flares fall inside what we paint?
             </h2>
-            {overlap ? (
+            {near ? (
               <>
-                <div className="stats bg-transparent">
-                  <div className="stat px-2">
-                    <div className="stat-title text-xs">
-                      Landed in liquid we painted
-                    </div>
-                    <div className="stat-value text-3xl">
-                      {overlap.tallies.liquid?.both ?? 0}
-                      <span className="text-lg">/{overlap.usable}</span>
-                    </div>
-                    <div className="stat-desc">at both hours</div>
-                  </div>
-                  <div className="stat px-2">
-                    <div className="stat-title text-xs">
-                      Fully seedable, rain included
-                    </div>
-                    <div className="stat-value text-3xl text-warning">
-                      {overlap.tallies.candidate?.both ?? 0}
-                    </div>
-                    <div className="stat-desc">out of {overlap.usable}</div>
-                  </div>
-                  <div className="stat px-2">
-                    <div className="stat-title text-xs">
-                      Answer depends on the hour
-                    </div>
-                    <div className="stat-value text-3xl">
-                      {overlap.tallies.liquid?.one ?? 0}
-                    </div>
-                    <div className="stat-desc">had liquid at one hour only</div>
-                  </div>
-                </div>
                 <p className="text-sm">
-                  Every flare that did land in liquid was then ruled out for
-                  rain — {overlap.rain.raining} of {overlap.rain.surviving}, at
-                  a median {overlap.rain.median} dBZ against a cutoff of 20. The
-                  operators seed those clouds deliberately.
+                  {near.flares} releases over {near.days} of {near.flying}{" "}
+                  flying days. Each bar is this programme's season against one
+                  layer — inside is overlap, the number on the right is how far
+                  a typical release sat from that layer.
                 </p>
+                <LayerCoverage cellKm={near.cellKm} layers={near.layers} />
+                <Link
+                  to={`/${region}/flares`}
+                  className="btn btn-sm btn-outline self-start"
+                >
+                  Every release
+                </Link>
               </>
             ) : (
               <p className="text-sm font-mono">
-                Not measured yet — node eval/between.mjs
+                Not measured yet — node eval/paint.mjs &lt;date&gt;
+                {region ? ` --region=${region}` : ""}
               </p>
             )}
           </div>
-        </Link>
+        </div>
       </div>
     </div>
   );

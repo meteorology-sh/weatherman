@@ -2,7 +2,7 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 // Types
-import type { BandFinding, OverlapFinding } from "~/lib/types";
+import type { BandFinding, NearFinding } from "~/lib/types";
 
 /**
  * The two findings, and whether their runs have produced them yet.
@@ -19,7 +19,7 @@ import type { BandFinding, OverlapFinding } from "~/lib/types";
 type FindingsState = {
   region: string | null;
   band: BandFinding | null;
-  overlap: OverlapFinding | null;
+  near: NearFinding | null;
   loading: boolean;
   missing: string | null;
   error: string | null;
@@ -28,7 +28,7 @@ type FindingsState = {
 const initialState: FindingsState = {
   region: null,
   band: null,
-  overlap: null,
+  near: null,
   loading: false,
   missing: null,
   error: null,
@@ -43,7 +43,7 @@ const findingsSlice = createSlice({
       state.region = action.payload;
       state.loading = true;
       state.band = null;
-      state.overlap = null;
+      state.near = null;
       state.error = null;
       state.missing = null;
     },
@@ -53,8 +53,8 @@ const findingsSlice = createSlice({
     setBand(state, action: PayloadAction<BandFinding>) {
       state.band = action.payload;
     },
-    setOverlap(state, action: PayloadAction<OverlapFinding>) {
-      state.overlap = action.payload;
+    setNear(state, action: PayloadAction<NearFinding>) {
+      state.near = action.payload;
     },
     setMissing(state, action: PayloadAction<string>) {
       state.missing = action.payload;

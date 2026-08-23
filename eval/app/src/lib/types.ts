@@ -268,6 +268,23 @@ export type Proximity = {
   offset: { median: number; worst: number } | null;
 };
 
+/**
+ * Finding 2 over every painted day — `GET /region/:id/near`.
+ *
+ * The same per-layer counts the day chart uses, pooled across the season.
+ * `rows` is one summary per painted day; the page does not re-derive either.
+ */
+export type NearFinding = {
+  cellKm: number;
+  days: number;
+  flying: number;
+  flares: number;
+  located: number;
+  layers: Record<string, LayerProximity>;
+  offset: { median: number; worst: number } | null;
+  rows: Array<{ date: string } & Proximity>;
+};
+
 export type Painted = {
   date: string;
   region: string;

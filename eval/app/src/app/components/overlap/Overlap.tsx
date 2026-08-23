@@ -11,9 +11,10 @@ import { CountiesUrl } from "~/lib/client";
 import { Status } from "../Status";
 import { Section } from "../Section";
 import { DayPicker } from "./DayPicker";
+import { FlareDistances } from "./FlareDistances";
+import { LayerCoverage } from "./LayerCoverage";
 import { LayerPanel } from "./LayerPanel";
 import { PaintedMap } from "./PaintedMap";
-import { Proximity } from "./Proximity";
 
 // Layout
 import { fitExtent } from "./fit";
@@ -44,9 +45,11 @@ const MAX_HEIGHT = 640;
 /**
  * Do operators seed near what we paint?
  *
- * **A distance question, not a containment one.** Whether a flare landed inside
- * a contour is one bit, and it cannot tell a map that is slightly wrong from a
- * map that is looking at the wrong weather. How far it was can.
+ * **Counts first, then how far, then where.** Whether a flare landed inside a
+ * contour is one bit; how many did, per layer, is the picture that a few
+ * releases in a raining cell ten cells away cannot steal. Distance still
+ * matters — a flare can sit in painted liquid and miss the join — so each
+ * release is listed against every layer. The maps show the two cells.
  *
  * **Nothing has to be selected to read the answer.** Each release is compared
  * against the analysis nearest its own minute, so the choice is made by the
@@ -56,6 +59,9 @@ const MAX_HEIGHT = 640;
 export const Overlap = () => {
   const { date, day, painted, loading, missing, error } = useAppSelector(
     (state) => state.day
+  );
+  const { near, loading: findingsLoading } = useAppSelector(
+    (state) => state.findings
   );
   const [counties, setCounties] = useState<CountyShape[] | null>(null);
   const [available, setAvailable] = useState(0);
@@ -153,12 +159,12 @@ export const Overlap = () => {
               Do operators seed near what we paint?
             </h1>
             <p className="text-sm max-w-2xl">
-              Every layer below is the one Weatherman itself draws, fetched from
-              the product's own server. Each flare is measured to the nearest
-              edge of the painted region — inside is zero. Either the map is
-              wrong and the operators are working from something we do not have,
-              or the map is right and they are not flying where it says. The
-              distance is what tells those apart.
+              Every layer below is the one Weatherman itself draws. Each release
+              is scored against all of them: whether it sat inside the paint,
+              and how far it was if it did not. A flare can sit in cloud, echo
+              and liquid and still miss the join — rain rules that out, and they
+              fly into rain on purpose. The bars count how often; the table says
+              how close; the maps show where.
             </p>
           </div>
 
@@ -168,6 +174,24 @@ export const Overlap = () => {
           >
             <DayPicker />
           </Section>
+
+          {findingsLoading && !near ? (
+            <Status
+              loading
+              missing={null}
+              error={null}
+              what="Reading the season"
+            />
+          ) : (
+            near && (
+              <Section
+                heading="The season"
+                subtitle={`${near.flares} releases over ${near.days} of ${near.flying} flying days. Inside is overlap. The second segment is within one ${near.cellKm} km cell — as fine as the grid can tell. Median is how far a typical release sat from that layer.`}
+              >
+                <LayerCoverage cellKm={near.cellKm} layers={near.layers} />
+              </Section>
+            )
+          )}
 
           {date && (
             <>
@@ -181,10 +205,25 @@ export const Overlap = () => {
               {painted && extent && (
                 <>
                   <Section
-                    heading="How near they were"
-                    subtitle="Distance from each release to the nearest edge of the painted region. A cell is 12 km — the grid every layer is contoured on — so anything inside one cell is inside the paint as far as this map can resolve."
+                    heading="This day"
+                    subtitle={`${painted.proximity.flares} releases on the maps below. The same count, and the typical miss, for this day alone.`}
                   >
-                    <Proximity painted={painted} />
+                    <LayerCoverage
+                      cellKm={painted.proximity.cellKm}
+                      layers={painted.proximity.layers}
+                    />
+                  </Section>
+
+                  <Section
+                    heading="How close each release was"
+                    subtitle="Inside means the flare sat in that layer. A number is kilometres to the nearest edge, after drifting the remaining minutes to the analysis. A flare can sit in painted liquid and still be cells away from the join."
+                  >
+                    <FlareDistances
+                      flares={painted.analyses.flatMap(
+                        (analysis) => analysis.flares
+                      )}
+                      cellKm={painted.proximity.cellKm}
+                    />
                   </Section>
 
                   <Section
