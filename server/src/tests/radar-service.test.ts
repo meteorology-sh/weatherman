@@ -6,10 +6,12 @@ import assert from "node:assert/strict";
 import {
   blockAverage,
   blockGeo,
+  nativeGeo,
+  nativeGrid,
   sceneTime,
   summarize,
-} from "../lib/services/radar";
-import { polygons } from "../lib/services/contour";
+} from "../lib/services/mrms/radar";
+import { polygons } from "../lib/services/shared/contour";
 
 /** MRMS's own sentinels, which the block grid keeps. */
 const NO_ECHO = -99;
@@ -141,6 +143,42 @@ describe("blockAverage orientation", () => {
   });
 });
 
+describe("nativeGrid orientation", () => {
+  it("flips north-up rows into the south-up grid the contourer expects", () => {
+    const values = new Float32Array(12 * 2).fill(NO_ECHO);
+    for (let i = 0; i < 12; i++) values[i] = 40; // northern row
+
+    const grid = nativeGrid(values, 12, 2);
+
+    assert.equal(grid.ny, 2);
+    assert.equal(grid.values[12], 40); // last row is the north one
+    assert.equal(grid.values[0], NO_ECHO);
+  });
+
+  it("contours a blob rather than dropping it as an inverted ring", () => {
+    const values = new Float32Array(12 * 12).fill(NO_ECHO);
+    for (let col = 4; col < 8; col++) values[col] = 40; // northern row
+
+    const rings = polygons(nativeGrid(values, 12, 12), nativeGeo(12, 12), 20);
+
+    assert.equal(rings.length, 1);
+  });
+});
+
+describe("nativeGeo", () => {
+  it("places the northern row at the mosaic's north-west corner", () => {
+    const geo = nativeGeo(12, 12);
+    const north = geo.lats[(geo.ny - 1) * geo.nx];
+    assert.ok(Math.abs(north - 54.995) < 1e-4, `${north}`);
+    assert.ok(Math.abs(geo.lons[0] - -129.995) < 1e-4, `${geo.lons[0]}`);
+  });
+
+  it("steps a point at a time", () => {
+    const geo = nativeGeo(12, 12);
+    assert.ok(Math.abs(geo.lons[1] - geo.lons[0] - 0.01) < 1e-4);
+  });
+});
+
 describe("blockGeo", () => {
   it("places the first block at the mosaic's north-west corner", () => {
     const geo = blockGeo();
@@ -213,24 +251,32 @@ describe("summarize", () => {
     assert.equal(sum([30]).validTime, VALID);
   });
 
-  // A 0.12 degree cell is ~13.4 km tall everywhere and ~10 km wide at 40 N. A
-  // fixed figure would overstate everything north of the Gulf.
+  // A 0.01 degree cell is ~1.11 km tall everywhere and ~0.85 km wide at 40 N.
+  // A fixed figure would overstate everything north of the Gulf.
   it("shrinks a cell's area with the cosine of its latitude", () => {
-    const one = (lat: number) =>
-      summarize(
-        grid([30]),
+    const many = (lat: number) => {
+      const n = 100;
+      return summarize(
         {
-          nx: 1,
+          nx: n,
           ny: 1,
-          lats: Float32Array.from([lat]),
-          lons: Float32Array.from([-100]),
+          values: new Float32Array(n).fill(30),
+        },
+        {
+          nx: n,
+          ny: 1,
+          lats: new Float32Array(n).fill(lat),
+          lons: new Float32Array(n).fill(-100),
         },
         VALID
       ).echoKm2;
+    };
 
-    assert.ok(one(50) < one(25), `${one(50)} !< ${one(25)}`);
+    assert.ok(many(50) < many(25), `${many(50)} !< ${many(25)}`);
+    const side = 0.01 * 111.32;
     assert.ok(
-      Math.abs(one(40) - 13.4 * 13.4 * Math.cos((40 * Math.PI) / 180)) < 3
+      Math.abs(many(40) - 100 * side * side * Math.cos((40 * Math.PI) / 180)) <
+        2
     );
   });
 

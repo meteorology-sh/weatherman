@@ -11,7 +11,7 @@ import express from "express";
 import { radar } from "../routers/radar";
 
 // Services
-import { Mrms, RadarFrame, RadarStats } from "../lib/services/radar";
+import { Mrms, RadarFrame, RadarStats } from "../lib/services/mrms/radar";
 
 const frame: RadarFrame = {
   type: "FeatureCollection",

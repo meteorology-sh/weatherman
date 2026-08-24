@@ -1,0 +1,8 @@
+# Downloaded reports and run output. `data/` is the committed input.
+cache/
+out/
+
+# The evaluation app's install and build output.
+app/node_modules/
+app/dist/
+app/tsconfig.tsbuildinfo

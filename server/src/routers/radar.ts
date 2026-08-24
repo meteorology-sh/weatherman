@@ -2,7 +2,9 @@
 import express, { Request, Response } from "express";
 
 // Services
-import { Mrms } from "../lib/services/radar";
+import { Mrms } from "../lib/services/mrms/radar";
+import { parseAt } from "../lib/services/shared/replay";
+import { parseBox } from "../lib/services/shared/grid";
 
 export const radar = express.Router();
 
@@ -11,7 +13,10 @@ export const radar = express.Router();
 // ever the mosaic that exists, and it carries its own valid time.
 radar.get("/reflectivity", async (req: Request, res: Response) => {
   try {
-    const frame = await Mrms.reflectivity();
+    const frame = await Mrms.reflectivity(
+      parseAt(req.query.at),
+      parseBox(req.query)
+    );
     res.send(frame);
   } catch (error) {
     res
@@ -22,7 +27,7 @@ radar.get("/reflectivity", async (req: Request, res: Response) => {
 
 radar.get("/reflectivity/stats", async (req: Request, res: Response) => {
   try {
-    const stats = await Mrms.reflectivityStats();
+    const stats = await Mrms.reflectivityStats(parseAt(req.query.at));
     res.send(stats);
   } catch (error) {
     res

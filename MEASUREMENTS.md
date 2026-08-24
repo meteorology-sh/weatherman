@@ -2,7 +2,7 @@
 
 The standing constraints on any layer this app draws: the physics and the
 sampling limits that decide whether a proposed layer is honest at all.
-`CLAUDE.md` describes what exists and how it is built; **read this before adding
+`WEATHERMAN.md` describes what exists and what each layer claims; **read this before adding
 a data source**, because most of what follows rules things out.
 
 Product context and the C1–C7 criteria live in the system design at
@@ -32,7 +32,7 @@ first; AgI itself keeps working to roughly −20 °C. Treat the warm edge as fix
 and the cold edge as a choice that a tool for _finding_ candidates should make
 generously.
 
-Both edges live in `SEEDING` in `server/src/lib/services/forecast.ts`, mirrored
+Both edges live in `SEEDING` in `server/src/lib/services/hrrr/slw.ts`, mirrored
 by `BAND_WARMEST_C`/`BAND_COLDEST_C` in the app. Keep them there: every caption,
 legend bracket and readout reads the band from one of those two places.
 
@@ -51,6 +51,7 @@ the map we have and the map we want is entirely C4.**
 | Icing PIREPs                       | **confirms** it, spot            | ~20 positive / 12 h CONUS |
 | MODIS cloud phase / water path     | retrieves it, **cloud-top only** | 1 km, 2×/day              |
 | GOES ABI cloud-top temperature     | **cannot see it** — top only, C2 | 2 km, 5 min               |
+| GOES ABI cloud-top phase           | **observes** phase, top only     | 2 km, 5 min               |
 
 **The conclusion that matters:** with no ground station we get _simulation_,
 never measurement. A national map can therefore honestly show **candidate
@@ -71,8 +72,11 @@ sample spacing:
 | Isotherm height     | ~1000 km (synoptic) | ✅ genuinely smooth; contouring is honest |
 
 So the _same_ grid is legitimate for isotherm height and illegitimate for cloud
-shape. Block-averaging 3 km → 12 km **removes** structure and is fine;
-interpolating 300 km → 12 km **invents** it and is not.
+shape. Averaging a finer field onto a coarser cell **removes** structure and
+is fine; interpolating a coarser field onto a finer grid **invents** it and
+is not. Layers here are drawn at native sampling. The join samples GOES and
+MRMS onto HRRR's 3 km cells rather than averaging everything to a shared
+12 km grid.
 
 **Ask "what is the correlation length" before drawing any new surface.** A
 source too sparse or irregular to pass this test may still be drawn — as
@@ -118,19 +122,101 @@ is the likely explanation for any cell reporting a top warmer than −5 °C whil
 still carrying in-band liquid. A passive radiometer almost certainly shares the
 failure, since it sees whichever deck is on top.
 
+**Observed cloud-top phase settles what temperature only makes likely.** A
+colder top is likelier to have glaciated on its own, but between about −5 and
+−38 °C both a supercooled top and a frozen one are physically ordinary, and the
+whole seeding band sits inside that range. Cloud-top temperature therefore ranks
+cloud; it cannot separate a turret that has already frozen from one that has
+not. The satellite's phase classification can, and it is the only observation of
+phase this product has. **It is a check on the model, never a substitute for
+it** — it sees the top, and the seeding band is inside the cloud.
+
+**The phase classification describes the highest deck, and so shares
+`PRES:cloud top`'s failure exactly.** Cirrus over a growing cumulus is
+classified as ice, and the cumulus underneath is invisible to it. That failure
+is not evenly spread: it concentrates in the multi-layer scenes where model and
+satellite are most likely to disagree in the first place, so a disagreement
+under layered cloud is at least as likely to be viewing geometry as model error.
+**Report the phase; never let it rule a cell out.**
+
+**A class cannot be averaged onto a coarser grid.** The mean of ice and
+supercooled is not a phase. Fold a classified field by counting instead — a cell
+takes the commonest class among its cloudy pixels — and break ties toward the
+colder class, so a coin toss costs a candidate its confirmation rather than
+manufacturing one.
+
+**The two ABI cloud-top products disagree about where there is cloud at all.**
+Cloud-top pressure and cloud-top phase are separate retrievals over the same
+pixels, and the pressure one is the more reserved: it returns a fill value
+wherever the height algorithm fails to converge, and those failures concentrate
+over low warm liquid cloud. Roughly two in five cells whose top the phase
+product calls liquid carry no cloud-top pressure at all, against about one in
+eight of the cells it calls ice and one in twenty-five of the cells it calls
+supercooled. It runs one way — a cell with a cloud-top temperature is not
+called clear by the phase product.
+
+So **"the satellite sees no cloud here" is a statement about the pressure
+retrieval, not about the sky.** A cell can be rejected for it while the phase
+scan is describing the top of that same cloud, and both readings belong on the
+panel labelled as what they are.
+
+**Read the two products from one sweep.** ABI scans CONUS every 5 minutes and
+publishes each product as its own file; the phase file lands about a minute
+ahead of the pressure file, so taking each product's newest file pairs a cloud
+top from one sweep with a phase from the next for about a minute in five. Five
+minutes is enough for a cell's cloud to drift into its neighbour at ordinary
+storm speeds and enough for a turret to glaciate, which is the change the phase
+observation exists to catch. Resolve the newest sweep both products have
+published and read both from it — a scan up to five minutes old beats two scans
+reported as one moment.
+
+**HRRR diagnoses a cloud base over roughly twice the ground it diagnoses a
+cloud top.** Both are bitmapped fields in `wrfsfc`, and the base is the denser
+of the two by a wide margin. So depth — the other half of C2 — cannot be a
+national layer built from HRRR alone: it would vanish over most of the cloud the
+base layer draws. Read the base from the model and the top from the satellite,
+which is the same split the cloud-top layer already makes for the same reason.
+
 **A cloud top warmer than −5 °C means the band is above the cloud entirely**, so
 there is nothing inside it to seed. That is C2, it is already in the design
 document, and masking those cells off is the single most useful thing a
 cloud-top layer does.
 
-**The cloud-top mask has no cold edge.** An upper bound would be a _new_
-criterion — that seeding's marginal benefit falls off below some cloud-top
-temperature — and no version of it appears in `SENSING_STRATEGY.md`. Under a
-strict reading of C2 there is no cold cutoff at all: a colder top means the band
-is more fully enclosed by cloud, which is better, not worse. **A physical cutoff
-needs a citation, not a table of coverage percentages.** Adding one is a
-one-line change to `CLOUD_TOP.levels` if the literature ever supports it; the
-burden of proof sits on adding it, not on leaving it out.
+**The cloud-top mask has no cold edge, and the ramp fades anyway.** These are
+two different statements and the reason they can both hold is that C2 and C4
+pull in opposite directions as the top gets colder.
+
+- **C2 says colder is better.** A colder top means the band is more fully
+  enclosed by cloud. On a strict reading there is no cold cutoff at all.
+- **C4 says colder is worse.** Natural ice-nucleating particles are scarce at
+  warm subzero temperatures — `APPLIED_PHYSICS.md` §1 puts relatively few active
+  warmer than about −15 °C, with homogeneous freezing near −38 °C. So a colder
+  top is likelier to have glaciated on its own, and C4's "AgI does nothing in a
+  cloud that has already frozen" is exactly the resource being lost. The
+  Wegener–Bergeron–Findeisen process seeding exists to trigger is the same one
+  that has already run there.
+
+Neither wins, so **neither gates**: the opacity ramp carries the tension and the
+mask keeps only the warm edge. **A physical cutoff needs a citation, not a table
+of coverage percentages**, and nothing here supports one — the fall-off is
+gradual and the −15 °C figure is where natural nucleation becomes common, not
+where seeding stops paying. Adding a cutoff is a one-line change to
+`CLOUD_TOP.levels` if the literature ever supports it; the burden of proof sits
+on adding it, not on leaving it out.
+
+**The ramp is about the wrong variable, so it can only ever shade.** Cloud-top
+temperature is the coldest part of the cloud, not a summary of its phase — a
+vigorous cell with a −60 °C anvil can still carry supercooled liquid in the
+band, and that is the cloud Texas seeds. A faint top band over bright liquid
+contours is that case, not a contradiction.
+
+**Neither layer observes phase, and §2 is why.** The supercooled-liquid contours
+are HRRR's CLWMR — the model's opinion about the right variable. The cloud-top
+ramp is an inference about phase from a different variable, read at one height.
+Prefer the layer that is at least about the liquid, and hold it as a modelled
+claim rather than a measurement: nothing free and national measures supercooled
+liquid water, which is the whole reason this product fuses sources instead of
+reading one.
 
 ## 5. Traps
 
@@ -140,6 +226,25 @@ shows precipitation that **already formed**, which is the C6 _negative_ signal:
 the cloud has already converted its liquid, so seeding has no headroom. **Radar
 tells you which candidates to cross off, not where to go.** Quiet air over a
 cloud is no evidence about what is inside it.
+
+**eccodes' default nodata sentinel is 9999, which is a real value in half the
+fields worth reading.** It is safe for a mixing ratio and unsafe for anything in
+metres: 9999 m is an ordinary cloud top, and HRRR carries real ones half again
+as high. Decoding a bitmapped height field at the default reads genuine deep
+convection as missing, and the symptom is cloud tops below cloud bases rather
+than an error. **Name a sentinel outside the field's own physical range** —
+`set missingValue` in a grib_filter rule, `-m` for `grib_get_data`.
+
+**A bitmap is not the only way a field says "nothing here".** `RETOP` carries no
+bitmap and writes −999 at the 97% of points where the model diagnoses no echo,
+so the sentinel above never sees them. Check whether a new field's nodata is a
+bitmap or a magic number before averaging anything.
+
+**Not every field has a `shortName`, and some share one.** NCEP's `RETOP` decodes
+as `unknown`, and cloud base and cloud top are both `gh` at level 0. Match
+messages on the GRIB2 parameter identity — `parameterCategory`,
+`parameterNumber`, `typeOfLevel` — which is unique where the display name is
+absent or ambiguous.
 
 **Reflectivity averages in Z, not in dBZ.** dBZ is a logarithm; the mean of 20
 and 50 dBZ is not 35 dBZ of weather. Convert to Z = 10^(dBZ/10), average, and
@@ -220,4 +325,6 @@ is real.
 - [CIP/FIP (NCAR RAL)](https://ral.ucar.edu/solutions/products/icing-products-cipfip-operational) · [FAA In-Flight Icing](https://www.faa.gov/nextgen/programs/weather/awrp/ifi) · [AWC data API](https://aviationweather.gov/data/api/)
 - [NWS SCN 25-89 — AIGFS/AIGEFS/HGEFS implementation](https://www.weather.gov/media/notification/pdf_2025/scn25-89_AIGFS_AIGEFS_and_HGEFS.pdf) (the authoritative variable list)
 - [Open-Meteo GFS & HRRR API](https://open-meteo.com/en/docs/gfs-api) · [NASA GIBS WMTS capabilities](https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/1.0.0/WMTSCapabilities.xml)
+- [GOES-R Cloud Phase (ACTP)](https://www.goes-r.gov/products/baseline-cloud-phase.html) · [NOAA NCEI ABI L2 Cloud Top Phase](https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ncdc%3AC01504)
 - System design: `/home/nathan/code/rainmaker/weatherman/docs/SENSING_STRATEGY.md` (C1–C7, the phase-fusion principle) · [Cloudnet](https://cloudnet.fmi.fi/)
+- Applied physics: `/home/nathan/code/rainmaker/docs/APPLIED_PHYSICS.md` §1–2 (ice-nucleating particles and their scarcity at warm subzero temperatures, the Wegener–Bergeron–Findeisen process, AgI active as warm as about −4 to −6 °C)

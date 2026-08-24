@@ -1,0 +1,11 @@
+{
+  "source": "https://www.tdlr.texas.gov/weather/summary.htm",
+  "note": "The Rolling Plains counties contract the flying to WTWMA and publish nothing of their own. What exists for 2025 is the year-to-date operations document TDLR hosts: a monthly flight summary, then the season's seven daily seeding reports in full, each with its flight table.",
+  "documents": [
+    {
+      "file": "plains-2025-ytd.pdf",
+      "url": "https://www.tdlr.texas.gov/weather/Rolling-Plains-YTD-Operations-2025.pdf",
+      "kind": "days"
+    }
+  ]
+}

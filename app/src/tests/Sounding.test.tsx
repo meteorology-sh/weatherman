@@ -1,12 +1,12 @@
 // Testing
 import { act, screen } from "@testing-library/react";
-import { createTestStore, renderWithStore } from "./utils";
+import { createTestStore, noDiagnostics, renderWithStore } from "./utils";
 
 // Store
 import { soundingActions } from "@/lib/store/features/sounding";
 
 // Components
-import { Sounding } from "@/app/components/Sounding";
+import { Sounding } from "@/app/components/candidate/Sounding";
 
 // Types
 import type { Sounding as SoundingT } from "@/lib/types";
@@ -28,6 +28,7 @@ const sounding: SoundingT = {
     { mb: 600, tempC: 4.37, heightFt: 14665 },
     { mb: 550, tempC: -1.32, heightFt: 16966 },
   ],
+  diagnostics: noDiagnostics,
 };
 
 const withData = (over: Partial<SoundingT> = {}) => {
@@ -160,7 +161,7 @@ describe("Sounding", () => {
     expect(screen.queryByText(/starts below ground here/)).toBeNull();
   });
 
-  // The readout is about a 12 km cell, not about the pixel that was clicked,
+  // The readout is about a 3 km cell, not about the pixel that was clicked,
   // and saying otherwise would imply a precision the grid does not have.
   it("reports the cell it sampled, not the click", () => {
     withData();

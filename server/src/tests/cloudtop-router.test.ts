@@ -11,7 +11,11 @@ import express from "express";
 import { cloudtop } from "../routers/cloudtop";
 
 // Services
-import { Goes, CloudTopFrame, CloudTopStats } from "../lib/services/cloudtop";
+import {
+  Goes,
+  CloudTopFrame,
+  CloudTopStats,
+} from "../lib/services/goes/cloudtop";
 
 const frame: CloudTopFrame = {
   type: "FeatureCollection",

@@ -5,13 +5,21 @@ import assert from "node:assert/strict";
 // Services
 import {
   isothermFt,
-  nearestCell,
   SCOUT_LADDER_MB,
   SOUNDING_LEVELS,
-} from "../lib/services/forecast";
+} from "../lib/services/hrrr/profile";
+import {
+  cellAt,
+  clampBox,
+  crop,
+  inGrid,
+  nearestCell,
+  parseBox,
+  perimeter,
+} from "../lib/services/shared/grid";
 
 // Types
-import type { SoundingLevel } from "../lib/services/forecast";
+import type { SoundingLevel } from "../lib/services/hrrr/profile";
 
 /** A column, bottom up, the way the service assembles one. */
 const column = (pairs: [number, number][]): SoundingLevel[] =>
@@ -129,6 +137,204 @@ describe("nearestCell", () => {
     const cell = nearestCell(geo, 40.5, -98.4);
 
     assert.equal(geo.lats[cell], 40);
+  });
+});
+
+/**
+ * The cell a readout is about: the one whose footprint covers the point, which
+ * is the same square the contours are traced from.
+ *
+ * The grid here is **rotated**, like the real one — HRRR's rows run along the
+ * Lambert projection rather than along a parallel. That is what separates this
+ * from `nearestCell`: on a rotated grid the nearest centre and the containing
+ * footprint are different cells near a boundary, and a readout that answers
+ * with the first can contradict a band drawn from the second.
+ */
+describe("cellAt", () => {
+  const TURN = (30 * Math.PI) / 180;
+  const nx = 3;
+  const ny = 3;
+  const lons = new Float32Array(nx * ny);
+  const lats = new Float32Array(nx * ny);
+
+  // One degree per cell, the whole lattice turned 30 degrees.
+  for (let j = 0; j < ny; j++) {
+    for (let i = 0; i < nx; i++) {
+      lons[j * nx + i] = -100 + i * Math.cos(TURN) - j * Math.sin(TURN);
+      lats[j * nx + i] = 40 + i * Math.sin(TURN) + j * Math.cos(TURN);
+    }
+  }
+  const geo = { nx, ny, lats, lons };
+
+  /** The point `along` cells down the row and `across` the column from a cell. */
+  const offset = (i: number, j: number, along: number, across: number) =>
+    [
+      lats[j * nx + i] + along * Math.sin(TURN) + across * Math.cos(TURN),
+      lons[j * nx + i] + along * Math.cos(TURN) - across * Math.sin(TURN),
+    ] as const;
+
+  it("answers with the cell a point sits in", () => {
+    const [lat, lon] = offset(1, 1, 0.1, 0.1);
+
+    assert.equal(cellAt(geo, lat, lon), 4);
+  });
+
+  // The case the readout was getting wrong. Toward the corner of a rotated
+  // cell, a neighbour's centre is closer on the ground while the point is still
+  // inside this cell's own footprint — and the footprint is what was contoured.
+  it("keeps a point in its own cell where a neighbour's centre is nearer", () => {
+    const [lat, lon] = offset(1, 1, 0.45, 0.45);
+
+    assert.notEqual(nearestCell(geo, lat, lon), 4);
+    assert.equal(cellAt(geo, lat, lon), 4);
+  });
+
+  it("crosses to the neighbour once the point does", () => {
+    const [lat, lon] = offset(1, 1, 0.55, 0);
+
+    assert.equal(cellAt(geo, lat, lon), 5);
+  });
+
+  // The basis is read from a neighbour, and an edge cell has one on one side
+  // only. Stepping backwards and negating has to give the same answer.
+  it("resolves against the edge of the grid", () => {
+    const [lat, lon] = offset(2, 2, -0.1, -0.1);
+
+    assert.equal(cellAt(geo, lat, lon), 8);
+  });
+});
+
+/**
+ * The grid's own edge. `nearestCell` always answers, so these are the tests
+ * that stop it answering about somewhere the model does not reach.
+ */
+describe("the edge of the grid", () => {
+  /** A 3x3 patch of a lat/lon grid, one degree apart. */
+  const geo = {
+    nx: 3,
+    ny: 3,
+    lats: Float32Array.from([39, 39, 39, 40, 40, 40, 41, 41, 41]),
+    lons: Float32Array.from([-100, -99, -98, -100, -99, -98, -100, -99, -98]),
+  };
+
+  it("covers a point inside the grid", () => {
+    assert.equal(inGrid(geo, 40.001, -99.001), true);
+  });
+
+  // The bug this is here for: a click on the ocean used to snap to the nearest
+  // edge cell and be reported as that cell's weather.
+  it("does not cover a point far outside it", () => {
+    assert.equal(inGrid(geo, 21, -158), false);
+  });
+
+  // Cells in this toy are a degree apart; SNAP_KM is half a 3 km diagonal.
+  // A tenth of a degree past the edge is ~11 km — outside.
+  it("does not cover a point just past the last cell", () => {
+    assert.equal(inGrid(geo, 41.1, -99), false);
+  });
+
+  it("walks the edge as a closed ring", () => {
+    const ring = perimeter(geo, 1);
+
+    // Eight edge cells, and the first repeated to close it. The centre is not
+    // on the edge and must not appear.
+    assert.equal(ring.length, 9);
+    assert.deepEqual(ring[0], ring[ring.length - 1]);
+    assert.equal(
+      ring.some(([lon, lat]) => lon === -99 && lat === 40),
+      false
+    );
+  });
+
+  // Thinning the walk is what keeps the ring small enough to hold in the app.
+  // It must still close, and still trace the same four corners.
+  it("keeps every corner when the walk is thinned", () => {
+    const ring = perimeter(geo, 2);
+
+    assert.deepEqual(ring[0], ring[ring.length - 1]);
+    for (const corner of [
+      [-100, 39],
+      [-98, 39],
+      [-98, 41],
+      [-100, 41],
+    ]) {
+      assert.equal(
+        ring.some(([lon, lat]) => lon === corner[0] && lat === corner[1]),
+        true
+      );
+    }
+  });
+});
+
+describe("parseBox", () => {
+  it("falls back to the Texas window when the query is empty", () => {
+    const box = parseBox({});
+    assert.equal(box.west, -107);
+    assert.equal(box.east, -93);
+  });
+
+  it("reads a named window", () => {
+    const box = parseBox({
+      west: "-105",
+      east: "-95",
+      south: "28",
+      north: "35",
+    });
+    assert.deepEqual(box, { west: -105, east: -95, south: 28, north: 35 });
+  });
+
+  it("shrinks a country-scale box around its centre", () => {
+    const box = clampBox({
+      west: -125,
+      east: -70,
+      south: 25,
+      north: 50,
+    });
+    assert.ok(box.east - box.west <= 16);
+    assert.ok(box.north - box.south <= 14);
+  });
+});
+
+describe("crop", () => {
+  const geo = {
+    nx: 4,
+    ny: 3,
+    lats: Float32Array.from([30, 30, 30, 30, 31, 31, 31, 31, 32, 32, 32, 32]),
+    lons: Float32Array.from([
+      -102, -101, -100, -99, -102, -101, -100, -99, -102, -101, -100, -99,
+    ]),
+  };
+  const grid = {
+    nx: 4,
+    ny: 3,
+    values: Float32Array.from([0, 1, 2, 3, 10, 11, 12, 13, 20, 21, 22, 23]),
+  };
+
+  it("keeps the rectangle that covers the box", () => {
+    const cut = crop(grid, geo, {
+      west: -101.5,
+      east: -99.5,
+      south: 30.5,
+      north: 31.5,
+    });
+
+    assert.equal(cut.grid.nx, 4);
+    assert.equal(cut.grid.ny, 3);
+    assert.deepEqual(Array.from(cut.grid.values), Array.from(grid.values));
+  });
+
+  it("drops rows and columns outside the box", () => {
+    const cut = crop(grid, geo, {
+      west: -101.1,
+      east: -100.9,
+      south: 30.9,
+      north: 31.1,
+    });
+
+    // One cell, padded one on each side that exists.
+    assert.equal(cut.grid.nx, 3);
+    assert.equal(cut.grid.ny, 3);
+    assert.equal(cut.grid.values[4], 11);
   });
 });
 

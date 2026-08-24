@@ -20,8 +20,8 @@ const stats: SlwStats = {
 };
 
 describe("candidate reducer", () => {
-  it("starts with the liquid layer on", () => {
-    expect(initialState.liquid).toBe(true);
+  it("starts with the liquid layer off", () => {
+    expect(initialState.liquid).toBe(false);
   });
 
   it("starts with no stats", () => {

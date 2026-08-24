@@ -1,9 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
 import candidateReducer from "./features/candidate";
+import cloudBaseReducer from "./features/cloudbase";
 import cloudTopReducer from "./features/cloudtop";
+import domainReducer from "./features/domain";
 import interactionsReducer from "./features/interactions";
 import forecastReducer from "./features/forecast";
 import radarReducer from "./features/radar";
+import seedabilityReducer from "./features/seedability";
+import replayReducer from "./features/replay";
 import soundingReducer from "./features/sounding";
 
 // ArcGIS layer instances are module-scope singletons in lib/arcgis/, never
@@ -12,10 +16,14 @@ import soundingReducer from "./features/sounding";
 export const store = configureStore({
   reducer: {
     candidate: candidateReducer,
+    cloudbase: cloudBaseReducer,
     cloudtop: cloudTopReducer,
+    domain: domainReducer,
     interactions: interactionsReducer,
     forecast: forecastReducer,
     radar: radarReducer,
+    seedability: seedabilityReducer,
+    replay: replayReducer,
     sounding: soundingReducer,
   },
 });

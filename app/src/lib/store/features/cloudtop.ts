@@ -5,9 +5,11 @@ import type { CloudTopStats } from "@/lib/types";
 
 type CloudTopState = {
   /**
-   * Observed cloud tops on the candidate map. On by default: it is the base
-   * layer the other three are read against, and the only one that says where
-   * there is cloud at all.
+   * Observed cloud tops on the candidate map.
+   *
+   * Off on arrival, like every layer but the candidate field. It is the widest
+   * fill on the map — it says where there is cloud at all — so switched on by
+   * default it is the one most likely to bury the answer drawn over it.
    */
   visible: boolean;
   /** Summary of the scene. The bands themselves never enter the store. */
@@ -17,7 +19,7 @@ type CloudTopState = {
 };
 
 const initialState: CloudTopState = {
-  visible: true,
+  visible: false,
   stats: undefined,
   loading: false,
   error: null,

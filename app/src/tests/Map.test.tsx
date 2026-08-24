@@ -1,145 +1,65 @@
 // Testing
-import type { Mock } from "vitest";
 import { act } from "@testing-library/react";
 import { createTestStore, renderWithStore } from "./utils";
+import {
+  FakeExtent,
+  FakeMap,
+  FakeMapView,
+  arcgis,
+  layers as layerFakes,
+  resetArcgis,
+  watch,
+} from "./arcgis-fakes";
+
+// The imperative ArcGIS API needs a real WebGL context, so everything the
+// component reaches for is faked. The factories import the fakes rather than
+// closing over them, which is what lets the module be shared.
+vi.mock("@/lib/arcgis/layers", async () => layerFakes);
+vi.mock("@arcgis/core/core/reactiveUtils", () => ({ watch }));
+vi.mock("@arcgis/core/Map", () => ({ default: FakeMap }));
+vi.mock("@arcgis/core/views/MapView", () => ({ default: FakeMapView }));
+vi.mock("@arcgis/core/geometry/Extent", () => ({ default: FakeExtent }));
+
+beforeEach(resetArcgis);
 
 // Store
 import { interactionsActions } from "@/lib/store/features/interactions";
 import { forecastActions } from "@/lib/store/features/forecast";
 import { candidateActions } from "@/lib/store/features/candidate";
+import { cloudBaseActions } from "@/lib/store/features/cloudbase";
 import { cloudTopActions } from "@/lib/store/features/cloudtop";
+import { domainActions } from "@/lib/store/features/domain";
 import { radarActions } from "@/lib/store/features/radar";
+import { seedabilityActions } from "@/lib/store/features/seedability";
 import { soundingActions } from "@/lib/store/features/sounding";
+
+// Fakes
+import {
+  cloudBaseLayer,
+  cloudTopLayer,
+  confirmedLayer,
+  fieldLayer,
+  forecastLayer,
+  liquidLayer,
+  map,
+  precipLayer,
+  radarLayer,
+  view,
+} from "./arcgis-fakes";
 
 // Components
 import { ArcGIS } from "@/app/components/Map";
 
-type FakeMapT = { basemap?: string; layers?: unknown[] };
-type FakeViewT = {
-  center?: [number, number];
-  zoom?: number;
-  goTo: Mock;
-  whenLayerView: Mock;
-  on: Mock;
-  /** Handlers the component registered, by event name. */
-  handlers: Record<string, (event: unknown) => void>;
-  removed: number;
-};
-
-// The imperative ArcGIS API needs a real WebGL context, so the classes this
-// component drives are faked. Each fake records its instances, and the tests
-// assert on the calls the component makes to them. The layers are faked too —
-// layers.test.ts covers how the real ones are built.
-const {
-  arcgis,
-  cloudTopLayer,
-  forecastLayer,
-  precipLayer,
-  liquidLayer,
-  radarLayer,
-  watch,
-} = vi.hoisted(() => ({
-  arcgis: {
-    maps: [] as FakeMapT[],
-    views: [] as FakeViewT[],
-  },
-  cloudTopLayer: { id: "cloudtop-layer", visible: false },
-  forecastLayer: {
-    id: "forecast-layer",
-    visible: false,
-    url: "",
-    refresh: vi.fn(),
-  },
-  precipLayer: {
-    id: "precip-layer",
-    visible: false,
-    url: "",
-    refresh: vi.fn(),
-  },
-  liquidLayer: {
-    id: "liquid-layer",
-    visible: false,
-    url: "",
-    refresh: vi.fn(),
-  },
-  radarLayer: {
-    id: "radar-layer",
-    visible: false,
-    url: "",
-    refresh: vi.fn(),
-  },
-  watch: vi.fn(() => ({ remove: vi.fn() })),
-}));
-
-vi.mock("@/lib/arcgis/layers", () => ({
-  CandidateCloudTopLayer: cloudTopLayer,
-  ForecastCloudsLayer: forecastLayer,
-  ForecastPrecipLayer: precipLayer,
-  CandidateLiquidLayer: liquidLayer,
-  CandidateRadarLayer: radarLayer,
-}));
-vi.mock("@arcgis/core/core/reactiveUtils", () => ({ watch }));
-vi.mock("@arcgis/core/Map", () => ({
-  default: class FakeMap {
-    constructor(props: Record<string, unknown>) {
-      Object.assign(this, props);
-      arcgis.maps.push(this as unknown as FakeMapT);
-    }
-  },
-}));
-vi.mock("@arcgis/core/views/MapView", () => ({
-  default: class FakeMapView {
-    goTo = vi.fn();
-    whenLayerView = vi.fn(() => Promise.resolve({ updating: false }));
-    handlers: Record<string, (event: unknown) => void> = {};
-    removed = 0;
-    on = vi.fn((name: string, handler: (event: unknown) => void) => {
-      this.handlers[name] = handler;
-      return {
-        remove: () => {
-          this.removed++;
-          delete this.handlers[name];
-        },
-      };
-    });
-    constructor(props: Record<string, unknown>) {
-      Object.assign(this, props);
-      arcgis.views.push(this as unknown as FakeViewT);
-    }
-  },
-}));
-vi.mock("@arcgis/core/geometry/Extent", () => ({
-  default: class FakeExtent {
-    constructor(props: Record<string, unknown>) {
-      Object.assign(this, props);
-    }
-  },
-}));
-
-const map = () => arcgis.maps[arcgis.maps.length - 1];
-const view = () => arcgis.views[arcgis.views.length - 1];
-
-beforeEach(() => {
-  arcgis.maps.length = 0;
-  arcgis.views.length = 0;
-  cloudTopLayer.visible = false;
-  liquidLayer.visible = false;
-  liquidLayer.refresh.mockClear();
-  forecastLayer.visible = false;
-  forecastLayer.url = "";
-  forecastLayer.refresh.mockClear();
-  precipLayer.visible = false;
-  precipLayer.url = "";
-  precipLayer.refresh.mockClear();
-});
+// Types
+import type { DomainRing } from "@/lib/types";
 
 describe("ArcGIS", () => {
-  it("centers a dark national map on the continental U.S.", () => {
+  it("centers a dark map on Texas", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     expect(map().basemap).toBe("dark-gray-vector");
-    expect(view().center).toEqual([-98.58, 39.83]);
-    expect(view().zoom).toBe(3);
+    expect(view().center).toEqual([-99.9, 31.4]);
+    expect(view().zoom).toBe(5);
   });
 
   it("builds the view only once across rerenders", () => {
@@ -157,12 +77,52 @@ describe("ArcGIS", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     expect(map().layers).toEqual([
+      cloudBaseLayer,
       cloudTopLayer,
       forecastLayer,
       precipLayer,
       liquidLayer,
       radarLayer,
+      fieldLayer,
+      confirmedLayer,
     ]);
+  });
+
+  // The candidate field is the answer the other four are inputs to, so it is
+  // drawn over all of them — amber showing through with no green on it is
+  // liquid the join rejected, and that reading only works in this order.
+  it("draws the candidate field above every layer it joins", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    const layers = map().layers ?? [];
+    expect(layers.indexOf(fieldLayer)).toBeGreaterThan(
+      layers.indexOf(liquidLayer)
+    );
+    expect(layers.indexOf(fieldLayer)).toBeGreaterThan(
+      layers.indexOf(radarLayer)
+    );
+  });
+
+  // The outline says which part of the field the satellite backs, so it has to
+  // sit on the fills rather than under them.
+  it("draws the observed outline above the field it annotates", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    const layers = map().layers ?? [];
+    expect(layers.indexOf(confirmedLayer)).toBeGreaterThan(
+      layers.indexOf(fieldLayer)
+    );
+  });
+
+  // Cloud base answers "can I get into this cloud at all", which is the
+  // question before the ones the other layers answer, so it sits under them.
+  it("draws the cloud tops above the cloud base", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    const layers = map().layers ?? [];
+    expect(layers.indexOf(cloudTopLayer)).toBeGreaterThan(
+      layers.indexOf(cloudBaseLayer)
+    );
   });
 
   // Draw order is array order, and rain has to sit over the cloud it falls from.
@@ -194,8 +154,26 @@ describe("ArcGIS", () => {
 });
 
 describe("ArcGIS in candidate mode", () => {
-  it("shows the observed cloud tops and the modelled liquid water together", () => {
+  // The map opens on the candidate field alone. Every input to it starts off,
+  // so a layer on screen is one the operator asked for.
+  it("opens with the inputs off and the answer on", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    expect(fieldLayer.visible).toBe(true);
+    expect(cloudTopLayer.visible).toBe(false);
+    expect(liquidLayer.visible).toBe(false);
+    expect(radarLayer.visible).toBe(false);
+    expect(cloudBaseLayer.visible).toBe(false);
+  });
+
+  it("shows the observed cloud tops and the modelled liquid water together", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      store.dispatch(cloudTopActions.setVisible(true));
+      store.dispatch(candidateActions.setLiquid(true));
+    });
 
     expect(cloudTopLayer.visible).toBe(true);
     expect(liquidLayer.visible).toBe(true);
@@ -217,6 +195,10 @@ describe("ArcGIS in candidate mode", () => {
 
     renderWithStore(<ArcGIS mode="candidate" />, store);
     act(() => {
+      store.dispatch(cloudTopActions.setVisible(true));
+      store.dispatch(candidateActions.setLiquid(true));
+    });
+    act(() => {
       store.dispatch(cloudTopActions.setVisible(false));
     });
 
@@ -228,6 +210,10 @@ describe("ArcGIS in candidate mode", () => {
     const store = createTestStore();
 
     renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      store.dispatch(cloudTopActions.setVisible(true));
+      store.dispatch(candidateActions.setLiquid(true));
+    });
     act(() => {
       store.dispatch(candidateActions.setLiquid(false));
     });
@@ -242,11 +228,43 @@ describe("ArcGIS in candidate mode", () => {
     expect(forecastLayer.visible).toBe(false);
     expect(precipLayer.visible).toBe(false);
   });
+
+  it("leaves the cloud base off until it is asked for", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+
+    expect(cloudBaseLayer.visible).toBe(false);
+
+    act(() => {
+      store.dispatch(cloudBaseActions.setVisible(true));
+    });
+
+    expect(cloudBaseLayer.visible).toBe(true);
+  });
+
+  // Modelled, so it belongs to the candidate map only — the same rule that
+  // keeps the observed layers off the forecast one, running the other way.
+  it("keeps the cloud base off the forecast map even when it is switched on", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="forecast" />, store);
+    act(() => {
+      store.dispatch(cloudBaseActions.setVisible(true));
+    });
+
+    expect(cloudBaseLayer.visible).toBe(false);
+  });
 });
 
 describe("ArcGIS radar", () => {
   it("draws the mosaic on the observed map", () => {
-    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      store.dispatch(radarActions.setVisible(true));
+    });
 
     expect(radarLayer.visible).toBe(true);
   });
@@ -306,7 +324,9 @@ describe("ArcGIS in forecast mode", () => {
   it("starts on the analysis hour", () => {
     renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
 
-    expect(forecastLayer.url).toBe("/forecast/clouds?hour=0");
+    expect(forecastLayer.url).toBe(
+      "/forecast/clouds?hour=0&west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   it("repoints the layer when the forecast hour changes", () => {
@@ -317,7 +337,9 @@ describe("ArcGIS in forecast mode", () => {
       store.dispatch(forecastActions.setHour(12));
     });
 
-    expect(forecastLayer.url).toBe("/forecast/clouds?hour=12");
+    expect(forecastLayer.url).toBe(
+      "/forecast/clouds?hour=12&west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   it("refreshes the layer so the new frame is drawn", () => {
@@ -345,6 +367,87 @@ describe("ArcGIS in forecast mode", () => {
   });
 });
 
+// The server rebuilds the join as its sources roll, and the candidate layers
+// hold whatever geometry they fetched on load. When the two come apart the
+// panel describes one build over ground drawn from another, which is how green
+// ends up captioned as frozen.
+describe("ArcGIS following the candidate build", () => {
+  const A = "run|scene-a|radar-a|phase-a";
+  const B = "run|scene-b|radar-a|phase-b";
+
+  const drawn = (store: ReturnType<typeof createTestStore>, build: string) =>
+    act(() => {
+      store.dispatch(seedabilityActions.setDrawn(build));
+    });
+
+  // The first build named is the one the layers already fetched on load, so
+  // going after it again would be a second download of the same frame.
+  it("does not refetch the build the layers opened on", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    fieldLayer.refresh.mockClear();
+    confirmedLayer.refresh.mockClear();
+    drawn(store, A);
+
+    expect(fieldLayer.refresh).not.toHaveBeenCalled();
+    expect(confirmedLayer.refresh).not.toHaveBeenCalled();
+  });
+
+  it("redraws the field and its outline when the server rebuilds", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    drawn(store, A);
+    fieldLayer.refresh.mockClear();
+    confirmedLayer.refresh.mockClear();
+    drawn(store, B);
+
+    expect(fieldLayer.refresh).toHaveBeenCalled();
+    expect(confirmedLayer.refresh).toHaveBeenCalled();
+  });
+
+  // Both are traced from the same build. Sending one and not the other would
+  // put an outline from one satellite sweep around a field from another.
+  it("sends the outline after the field it annotates", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    drawn(store, A);
+    fieldLayer.refresh.mockClear();
+    confirmedLayer.refresh.mockClear();
+    drawn(store, B);
+
+    expect(confirmedLayer.refresh.mock.calls.length).toBe(
+      fieldLayer.refresh.mock.calls.length
+    );
+  });
+
+  it("stays put while the build is unchanged", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    drawn(store, A);
+    fieldLayer.refresh.mockClear();
+    drawn(store, A);
+
+    expect(fieldLayer.refresh).not.toHaveBeenCalled();
+  });
+
+  // A rolled radar scan is a different answer about which candidates are
+  // raining, so the field it draws changed even though the sweep did not.
+  it("follows a source other than the satellite rolling", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    drawn(store, A);
+    fieldLayer.refresh.mockClear();
+    drawn(store, "run|scene-a|radar-b|phase-a");
+
+    expect(fieldLayer.refresh).toHaveBeenCalled();
+  });
+});
+
 describe("ArcGIS precipitation", () => {
   const atHour = (hour: number) => {
     const store = createTestStore();
@@ -359,7 +462,9 @@ describe("ArcGIS precipitation", () => {
     atHour(6);
 
     expect(precipLayer.visible).toBe(true);
-    expect(precipLayer.url).toBe("/forecast/precip?hour=6");
+    expect(precipLayer.url).toBe(
+      "/forecast/precip?hour=6&west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   // HRRR diagnoses PRATE by stepping forward, so f00 is zero everywhere. A
@@ -392,7 +497,9 @@ describe("ArcGIS precipitation", () => {
     renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
 
     expect(forecastLayer.visible).toBe(true);
-    expect(forecastLayer.url).toBe("/forecast/clouds?hour=0");
+    expect(forecastLayer.url).toBe(
+      "/forecast/clouds?hour=0&west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   it("hides precipitation when the operator turns it off", () => {
@@ -421,6 +528,15 @@ describe("ArcGIS precipitation", () => {
     expect(precipLayer.refresh).not.toHaveBeenCalled();
   });
 });
+
+/** A ring around the middle of the country, standing in for HRRR's grid. */
+const ring: DomainRing = [
+  [-120, 25],
+  [-70, 25],
+  [-70, 50],
+  [-120, 50],
+  [-120, 25],
+];
 
 /** A map click, shaped the way ArcGIS hands one back. */
 const clickAt = (longitude: number, latitude: number) =>
@@ -456,6 +572,40 @@ describe("ArcGIS sounding point", () => {
     });
 
     expect(store.getState().sounding.point).toEqual([-98.58, 39.83]);
+  });
+
+  // The bug this fixes: a click on the ocean used to fetch a point the model
+  // has no cell for, and the panel showed the 500 that came back. There is
+  // nothing to say about a cell outside the grid, so nothing is what happens —
+  // the point does not move, and the last cell an operator picked stays on the
+  // panel.
+  it("ignores a click outside the model's edge", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      store.dispatch(domainActions.setRing(ring));
+      clickAt(-104.9903, 39.7392);
+    });
+    act(() => {
+      clickAt(-160, 21);
+    });
+
+    expect(store.getState().sounding.point).toEqual([-104.99, 39.74]);
+  });
+
+  // Until the ring lands there is nothing to test against, and refusing every
+  // click would make the map dead on a slow connection. The server refuses the
+  // same points, so the ring saves a round trip rather than deciding anything.
+  it("lets a click through before the model's edge has loaded", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      clickAt(-160, 21);
+    });
+
+    expect(store.getState().sounding.point).toEqual([-160, 21]);
   });
 
   it("releases the handler when the map goes away", () => {

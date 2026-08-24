@@ -30,7 +30,9 @@ export function SoundingProvider({ children }: { children: React.ReactNode }) {
         dispatch(soundingActions.setLoading(true));
         // Hour 0 — the analysis. The candidate map is "right now".
         const sounding = await GetSounding(point[0], point[1], 0);
-        dispatch(soundingActions.setData(sounding));
+        // Null where the grid does not reach. See CandidatePointProvider: an
+        // unanswerable point is not a failed one.
+        if (sounding) dispatch(soundingActions.setData(sounding));
       } catch (error) {
         dispatch(
           soundingActions.setError(

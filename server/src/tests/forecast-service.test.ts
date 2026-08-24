@@ -6,10 +6,9 @@ import assert from "node:assert/strict";
 import {
   ForecastService,
   polygons,
-  accumulate,
-  blockAverage,
   FORECAST_HOURS,
-} from "../lib/services/forecast";
+} from "../lib/services/hrrr/forecast";
+import { accumulate, blockAverage } from "../lib/services/shared/grid";
 
 const NX = 20;
 const NY = 20;
@@ -52,7 +51,11 @@ describe("polygons (marching squares)", () => {
   it("traces one polygon with one ring for a solid blob", () => {
     const { values, lats, lons } = fixture();
     fill(values, 5, 14, 5, 14, 100);
-    const out = polygons({ nx: NX, ny: NY, values }, { nx: NX, ny: NY, lats, lons }, 50);
+    const out = polygons(
+      { nx: NX, ny: NY, values },
+      { nx: NX, ny: NY, lats, lons },
+      50
+    );
     assert.equal(out.length, 1);
     assert.equal(out[0].length, 1);
   });
@@ -60,7 +63,11 @@ describe("polygons (marching squares)", () => {
   it("closes every ring it emits", () => {
     const { values, lats, lons } = fixture();
     fill(values, 5, 14, 5, 14, 100);
-    const out = polygons({ nx: NX, ny: NY, values }, { nx: NX, ny: NY, lats, lons }, 50);
+    const out = polygons(
+      { nx: NX, ny: NY, values },
+      { nx: NX, ny: NY, lats, lons },
+      50
+    );
     for (const poly of out) {
       for (const ring of poly) {
         assert.deepEqual(ring[0], ring[ring.length - 1]);
@@ -71,7 +78,11 @@ describe("polygons (marching squares)", () => {
   it("wraps the blob's true extent", () => {
     const { values, lats, lons } = fixture();
     fill(values, 5, 14, 5, 14, 100);
-    const out = polygons({ nx: NX, ny: NY, values }, { nx: NX, ny: NY, lats, lons }, 50);
+    const out = polygons(
+      { nx: NX, ny: NY, values },
+      { nx: NX, ny: NY, lats, lons },
+      50
+    );
     const b = bbox(out[0][0]);
     // Contour sits on cell boundaries, so it hugs the blob within half a cell.
     assert.ok(b.minLon >= 4 && b.minLon <= 5.5, `minLon ${b.minLon}`);
@@ -84,36 +95,58 @@ describe("polygons (marching squares)", () => {
     const { values, lats, lons } = fixture();
     fill(values, 5, 14, 5, 14, 100);
     fill(values, 8, 11, 8, 11, 0); // punch a clear hole
-    const out = polygons({ nx: NX, ny: NY, values }, { nx: NX, ny: NY, lats, lons }, 50);
+    const out = polygons(
+      { nx: NX, ny: NY, values },
+      { nx: NX, ny: NY, lats, lons },
+      50
+    );
     assert.equal(out.length, 1, "one polygon");
     assert.equal(out[0].length, 2, "exterior + hole");
 
     // The hole must be the smaller ring, and inside the exterior.
     const ext = bbox(out[0][0]);
     const hole = bbox(out[0][1]);
-    assert.ok(hole.minLon > ext.minLon && hole.maxLon < ext.maxLon, "hole within exterior lon");
-    assert.ok(hole.minLat > ext.minLat && hole.maxLat < ext.maxLat, "hole within exterior lat");
+    assert.ok(
+      hole.minLon > ext.minLon && hole.maxLon < ext.maxLon,
+      "hole within exterior lon"
+    );
+    assert.ok(
+      hole.minLat > ext.minLat && hole.maxLat < ext.maxLat,
+      "hole within exterior lat"
+    );
   });
 
   it("separates disjoint blobs into separate polygons", () => {
     const { values, lats, lons } = fixture();
     fill(values, 2, 5, 2, 5, 100);
     fill(values, 12, 15, 12, 15, 100);
-    const out = polygons({ nx: NX, ny: NY, values }, { nx: NX, ny: NY, lats, lons }, 50);
+    const out = polygons(
+      { nx: NX, ny: NY, values },
+      { nx: NX, ny: NY, lats, lons },
+      50
+    );
     assert.equal(out.length, 2);
   });
 
   it("emits nothing when no cell reaches the level", () => {
     const { values, lats, lons } = fixture();
     fill(values, 5, 14, 5, 14, 40);
-    const out = polygons({ nx: NX, ny: NY, values }, { nx: NX, ny: NY, lats, lons }, 50);
+    const out = polygons(
+      { nx: NX, ny: NY, values },
+      { nx: NX, ny: NY, lats, lons },
+      50
+    );
     assert.equal(out.length, 0);
   });
 
   it("closes regions that run off the domain edge", () => {
     const { values, lats, lons } = fixture();
     fill(values, 0, 6, 0, 6, 100); // flush against the corner
-    const out = polygons({ nx: NX, ny: NY, values }, { nx: NX, ny: NY, lats, lons }, 50);
+    const out = polygons(
+      { nx: NX, ny: NY, values },
+      { nx: NX, ny: NY, lats, lons },
+      50
+    );
     assert.equal(out.length, 1);
     assert.deepEqual(out[0][0][0], out[0][0][out[0][0].length - 1]);
   });
@@ -198,76 +231,50 @@ describe("accumulate", () => {
       })
       .join("\n");
 
-  it("block-averages the 4x4 cells into one", () => {
-    const values = Array.from({ length: 16 }, (_, i) => i); // mean 7.5
+  it("keeps every native cell", () => {
+    const values = Array.from({ length: 16 }, (_, i) => i);
     const { grid } = accumulate(dump(values, 4), 1, 4, 4);
 
-    assert.equal(grid.nx, 1);
-    assert.equal(grid.ny, 1);
-    assert.equal(grid.values[0], 7.5);
+    assert.equal(grid.nx, 4);
+    assert.equal(grid.ny, 4);
+    assert.deepEqual(Array.from(grid.values), values);
   });
 
   // PRATE arrives as kg m-2 s-1; the map, the legend and the operator all talk
   // in mm/hr.
-  it("scales the block mean into the units we contour", () => {
-    const values = new Array(16).fill(2);
-    const { grid } = accumulate(dump(values, 4), 3600, 4, 4);
+  it("scales into the units we contour", () => {
+    const values = new Array(4).fill(2);
+    const { grid } = accumulate(dump(values, 2), 3600, 2, 2);
 
     assert.equal(grid.values[0], 7200);
   });
 
-  it("keeps the block's lat/lon centroid", () => {
-    const values = new Array(16).fill(1);
-    const { geo } = accumulate(dump(values, 4), 1, 4, 4);
+  it("keeps each point's lat/lon", () => {
+    const values = new Array(4).fill(1);
+    const { geo } = accumulate(dump(values, 2), 1, 2, 2);
 
-    assert.equal(geo.lats[0], 1.5);
-    assert.equal(geo.lons[0], 1.5);
+    assert.equal(geo.lats[0], 0);
+    assert.equal(geo.lons[0], 0);
+    assert.equal(geo.lats[3], 1);
+    assert.equal(geo.lons[3], 1);
   });
 
   it("folds longitudes past the antimeridian back into -180..180", () => {
-    const text =
-      "Latitude Longitude Value\n" +
-      new Array(16).fill(0).map(() => `40 260 1`).join("\n");
-    const { geo } = accumulate(text, 1, 4, 4);
+    const text = "Latitude Longitude Value\n40 260 1\n";
+    const { geo } = accumulate(text, 1, 1, 1);
 
     assert.equal(geo.lons[0], -100);
   });
 
   // We ask grib_get_data to print 9999 for absent values, so 9999 must be
-  // dropped rather than averaged in: it is finite, and would read as permanent
+  // dropped rather than drawn: it is finite, and would read as permanent
   // overcast or a cloudburst.
-  it("drops the missing sentinel instead of averaging it in", () => {
-    const values = [...new Array(15).fill(10), 9999];
-    const { grid } = accumulate(dump(values, 4), 1, 4, 4);
+  it("drops the missing sentinel instead of drawing it", () => {
+    const values = [10, 9999];
+    const { grid } = accumulate(dump(values, 2), 1, 2, 1);
 
     assert.equal(grid.values[0], 10);
-  });
-
-  // The location is good even where the value is not, so a missing row must
-  // still count toward the centroid or the block drifts.
-  it("keeps a missing point's location in the centroid", () => {
-    const values = [...new Array(15).fill(10), 9999];
-    const { geo } = accumulate(dump(values, 4), 1, 4, 4);
-
-    assert.equal(geo.lats[0], 1.5);
-    assert.equal(geo.lons[0], 1.5);
-  });
-
-  it("contours a fully missing block as nothing rather than as 9999", () => {
-    const values = new Array(16).fill(9999);
-    const { grid } = accumulate(dump(values, 4), 1, 4, 4);
-
-    assert.equal(grid.values[0], 0);
-  });
-
-  it("drops the partial block a non-multiple grid leaves over", () => {
-    // 6x6 at BLOCK 4 -> one 4x4 block; the ragged edge is not half-counted.
-    const values = new Array(36).fill(5);
-    const { grid } = accumulate(dump(values, 6), 1, 6, 6);
-
-    assert.equal(grid.nx, 1);
-    assert.equal(grid.ny, 1);
-    assert.equal(grid.values[0], 5);
+    assert.equal(grid.values[1], 0);
   });
 });
 

@@ -1,8 +1,11 @@
 // ArcGIS
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
 import {
+  candidateConfirmedRenderer,
+  candidateFieldRenderer,
   forecastCloudRenderer,
   forecastPrecipRenderer,
+  candidateCloudBaseRenderer,
   candidateCloudTopRenderer,
   candidateLiquidRenderer,
   candidateRadarRenderer,
@@ -10,12 +13,167 @@ import {
 
 // Client
 import {
+  CandidateConfirmedUrl,
+  CandidateFieldUrl,
   CloudTopUrl,
   ForecastCloudsUrl,
+  ForecastCloudBaseUrl,
   ForecastPrecipUrl,
   ForecastLiquidUrl,
   RadarReflectivityUrl,
 } from "@/lib/client";
+
+/**
+ * The replay map's layers.
+ *
+ * Separate instances rather than repointing the live ones, and that is not
+ * duplication for its own sake. Every layer here is added to the map once and
+ * toggled with `.visible` so switching routes does not refetch — which only
+ * holds if a layer's `url` means one thing. Pointing `CandidateRadarLayer` at a
+ * date would make the candidate map show 2025 the next time it was opened, and
+ * the bug would look like a caching failure rather than a shared object.
+ *
+ * They start with no `url`: the page opens with no date chosen, and a layer
+ * built against "now" would fetch a frame nobody asked for. `Map.tsx` points
+ * them once a date is picked.
+ *
+ * `fields` and `geometryType` are declared for the same reason the precipitation
+ * layer declares them — these start empty, and an empty FeatureCollection gives
+ * ArcGIS nothing to infer a schema from.
+ */
+export const ReplayCloudTopLayer = new GeoJSONLayer({
+  title: "GOES-East cloud-top temperature (replay)",
+  copyright: "NOAA GOES-East / NOAA HRRR",
+  renderer: candidateCloudTopRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "topColdnessC", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayCloudBaseLayer = new GeoJSONLayer({
+  title: "HRRR cloud base (replay)",
+  copyright: "NOAA HRRR",
+  renderer: candidateCloudBaseRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "cloudBaseFt", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayLiquidLayer = new GeoJSONLayer({
+  title: "HRRR supercooled liquid water (replay)",
+  copyright: "NOAA HRRR",
+  renderer: candidateLiquidRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "slwPath", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayRadarLayer = new GeoJSONLayer({
+  title: "MRMS base reflectivity (replay)",
+  copyright: "NOAA / National Weather Service MRMS",
+  renderer: candidateRadarRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "reflectivity", type: "double" },
+  ],
+  visible: false,
+});
+
+/**
+ * The candidate field: every layer joined, drawn only where all of them agree.
+ *
+ * Nested contours on the same levels as the liquid-water layer, because it
+ * carries the same quantity — the join filters cells, it does not rescore them.
+ * Drawn above the liquid layer so amber showing through with no green over it
+ * is liquid the join rejected, which is the comparison the map is for.
+ *
+ * Pinned to the analysis hour with no url parameter at all: the join reads an
+ * observed cloud top, and a satellite cannot forecast. Nothing repoints this.
+ */
+export const CandidateFieldLayer = new GeoJSONLayer({
+  title: "Seeding opportunity",
+  url: CandidateFieldUrl(),
+  copyright: "NOAA HRRR / NOAA GOES-East / NOAA MRMS",
+  renderer: candidateFieldRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "seedableSlwPath", type: "double" },
+  ],
+  visible: false,
+});
+
+/**
+ * The outline around the part of that field the satellite still sees liquid at
+ * the top of.
+ *
+ * **An annotation on the field, not a filter of it.** Both are drawn, and the
+ * ground outside the outline is still a candidate — the satellite sees the top
+ * of the cloud and the seeding band is inside it, so a frozen top is evidence
+ * about a candidate rather than a verdict on one. Under an anvil it is not even
+ * evidence about the same cloud.
+ *
+ * Its own layer rather than a symbol on the field, because a contour polygon
+ * spans many 3 km cells and confirmation is per cell: one polygon routinely
+ * covers both, so the distinction has to be traced separately to fall where it
+ * actually falls. Added above the field so the line sits on top of the fills.
+ */
+export const CandidateConfirmedLayer = new GeoJSONLayer({
+  title: "Seeding opportunity — observed liquid top",
+  url: CandidateConfirmedUrl(),
+  copyright: "NOAA GOES-East",
+  renderer: candidateConfirmedRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "seedableSlwPath", type: "double" },
+  ],
+  visible: false,
+});
+
+/** The same field at a replayed hour. See ReplayCloudTopLayer for why separate. */
+export const ReplayFieldLayer = new GeoJSONLayer({
+  title: "Seeding opportunity (replay)",
+  copyright: "NOAA HRRR / NOAA GOES-East / NOAA MRMS",
+  renderer: candidateFieldRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "seedableSlwPath", type: "double" },
+  ],
+  visible: false,
+});
+
+/** The same outline at a replayed hour. */
+export const ReplayConfirmedLayer = new GeoJSONLayer({
+  title: "Seeding opportunity — observed liquid top (replay)",
+  copyright: "NOAA GOES-East",
+  renderer: candidateConfirmedRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "seedableSlwPath", type: "double" },
+  ],
+  visible: false,
+});
 
 /**
  * Observed cloud tops, banded server-side from a GOES-East scene.
@@ -27,12 +185,12 @@ import {
  * These bands are simply not drawn where the satellite sees no cloud — roughly
  * half a scene — and the basemap shows through.
  *
- * It is also filtered. Only tops colder than −5 °C appear, which is criterion
- * C2: a warmer top means the seeding band lies above the cloud entirely, so
- * there is nothing inside it to seed. That removes most cloudy ground.
+ * It is also filtered. Only tops colder than −5 °C appear: a warmer top means
+ * the seeding band lies above the cloud entirely, so there is nothing inside it
+ * to seed. That removes most cloudy ground.
  *
  * The geometry comes from the satellite and the temperatures from HRRR's
- * profile — see the server's `cloudtop.ts` for why that split runs the way it
+ * profile — see the server's `goes/cloudtop.ts` for why that split runs the way it
  * does. `fields` and `geometryType` are declared rather than inferred for the
  * same reason as the precipitation layer: on a clear scene the collection is
  * empty, and an empty one gives ArcGIS nothing to infer a schema from.
@@ -47,6 +205,34 @@ export const CandidateCloudTopLayer = new GeoJSONLayer({
   fields: [
     { name: "OBJECTID", type: "oid" },
     { name: "topColdnessC", type: "double" },
+  ],
+  visible: false,
+});
+
+/**
+ * Modelled cloud base, banded server-side from HRRR — the height an aircraft
+ * would climb through, and the variable Texas operations actually select on.
+ *
+ * **Disjoint bands, not nested contours**, because the field is a window rather
+ * than a magnitude: below it the base is fog, above it the base is cirrus, and
+ * the middle band is the one worth looking at. It has the same real nodata the
+ * cloud-top layer has — where the model has no cloud over a cell, nothing is
+ * drawn.
+ *
+ * Pinned to hour 0, like the liquid-water layer and for the same reason: the
+ * candidate map is "right now", and a cloud base is a state the analysis holds
+ * rather than a flux needing a timestep. Nothing repoints this url.
+ */
+export const CandidateCloudBaseLayer = new GeoJSONLayer({
+  title: "HRRR cloud base",
+  url: ForecastCloudBaseUrl(0),
+  copyright: "NOAA HRRR",
+  renderer: candidateCloudBaseRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "cloudBaseFt", type: "double" },
   ],
   visible: false,
 });
@@ -123,8 +309,7 @@ export const CandidateLiquidLayer = new GeoJSONLayer({
  * image would have been an afternoon's work, but it paints an opaque rectangle
  * over the basemap and cannot be composited with the layer underneath, which is
  * the whole point of drawing this one on top of the liquid water. MRMS samples
- * at 1 km, so contouring a 12 km block average of it removes structure rather
- * than inventing any.
+ * at 1 km, so contouring that mosaic removes no structure and invents none.
  */
 export const CandidateRadarLayer = new GeoJSONLayer({
   title: "MRMS base reflectivity",

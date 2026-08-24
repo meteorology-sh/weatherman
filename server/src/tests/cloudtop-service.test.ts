@@ -3,13 +3,20 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 // Services
-import { abiGrid, scanAngles, pixelAt } from "../lib/services/abi";
-import { sceneTime, dayOfYear, summarize } from "../lib/services/cloudtop";
-import { temperatureAtMb } from "../lib/services/forecast";
-import { bandFeatures } from "../lib/services/contour";
+import {
+  abiGrid,
+  scanAngles,
+  pixelAt,
+  latLonAt,
+  pixelWindow,
+} from "../lib/services/goes/abi";
+import { summarize } from "../lib/services/goes/cloudtop";
+import { sceneTime, dayOfYear } from "../lib/services/goes/scene";
+import { temperatureAtMb } from "../lib/services/hrrr/profile";
+import { bandFeatures } from "../lib/services/shared/contour";
 
 // Types
-import type { Grid, Geo } from "../lib/services/contour";
+import type { Grid, Geo } from "../lib/services/shared/contour";
 
 /** The real constants from a live ABI-L2-ACHP2KMC scene. */
 const grid = abiGrid({
@@ -74,6 +81,30 @@ describe("ABI fixed-grid geolocation", () => {
     // The sub-satellite point is squarely visible and nowhere near CONUS.
     assert.notEqual(scanAngles(grid, 0, -75), null);
     assert.equal(pixelAt(grid, 0, -75), null);
+  });
+
+  // Inverse of pixelAt: a pixel that came from Lubbock has to land back near
+  // Lubbock, or the 2 km contours are drawn in the wrong place.
+  it("covers a Texas box with a pixel window that includes Lubbock", () => {
+    const [col, row] = pixelAt(grid, 33.58, -101.86)!;
+    const win = pixelWindow(grid, {
+      west: -107,
+      east: -93,
+      south: 25.5,
+      north: 37,
+    });
+    assert.ok(win);
+    assert.ok(col >= win.c0 && col <= win.c1, `${col} not in ${win.c0}..${win.c1}`);
+    assert.ok(row >= win.r0 && row <= win.r1, `${row} not in ${win.r0}..${win.r1}`);
+  });
+
+  it("round-trips a CONUS point through pixel and back", () => {
+    const [col, row] = pixelAt(grid, 33.58, -101.86)!;
+    const at = latLonAt(grid, col, row);
+    assert.ok(at, "pixel should be on the earth");
+    const [lat, lon] = at;
+    assert.ok(Math.abs(lat - 33.58) < 0.03, `${lat}`);
+    assert.ok(Math.abs(lon - -101.86) < 0.03, `${lon}`);
   });
 
   // ABI sweeps x; SEVIRI sweeps y, and reading one with the other's formulas
@@ -210,7 +241,7 @@ describe("scene naming", () => {
     "OR_ABI-L2-ACHP2KMC-M6_G19_s20262250051179_e20262250053552_c20262250055335.nc";
 
   // The scan time is the layer's valid time, and it only appears in the name —
-  // latestKey has to compare scenes before downloading one.
+  // the sweep has to compare scenes before downloading one.
   it("reads the scan start out of the file name", () => {
     assert.equal(sceneTime(key), "2026-08-13T00:51:17.900Z");
   });

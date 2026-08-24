@@ -1,0 +1,11 @@
+FROM node:latest
+
+# The same path inside the container as in the repo, so `../../app/src` — the
+# alias that pulls the product's own ramps and legends in — resolves to the
+# mount of `/app/src` beside it.
+WORKDIR /usr/src/eval/app
+
+COPY . .
+
+RUN npm install -g yarn
+RUN yarn

@@ -11,10 +11,13 @@ import {
   PRECIP_BANDS,
   stackedColor,
   PRECIP_RGB,
-} from "@/lib/arcgis/renderers";
+} from "@/lib/arcgis/bands";
+
+// ArcGIS
+import { PrecipLegend } from "@/lib/arcgis/legends";
 
 // Components
-import { ForecastLayers } from "@/app/components/ForecastLayers";
+import { ForecastLayers } from "@/app/components/forecast/ForecastLayers";
 
 const swatches = (container: HTMLElement) =>
   Array.from(container.querySelectorAll<HTMLElement>("div.h-4"));
@@ -43,7 +46,8 @@ describe("ForecastLayers", () => {
     });
 
     expect(screen.getByText("7.6")).toBeTruthy();
-    expect(screen.getByText(/mm\/hr/)).toBeTruthy();
+    // The unit line under the ramp, and the collapse behind it, both say mm/hr.
+    expect(screen.getAllByText(/mm\/hr/).length).toBeGreaterThan(0);
   });
 
   // The swatch has to be the colour the map paints, not a hand-picked one, or
@@ -87,7 +91,7 @@ describe("ForecastLayers", () => {
     const store = createTestStore();
 
     renderWithStore(<ForecastLayers />, store);
-    const toggle = screen.getByLabelText("Precipitation") as HTMLInputElement;
+    const toggle = screen.getByLabelText(PrecipLegend.name) as HTMLInputElement;
     expect(toggle.checked).toBe(true);
 
     act(() => {
@@ -101,7 +105,7 @@ describe("ForecastLayers", () => {
     const store = createTestStore();
 
     renderWithStore(<ForecastLayers />, store);
-    const toggle = screen.getByLabelText("Precipitation") as HTMLInputElement;
+    const toggle = screen.getByLabelText(PrecipLegend.name) as HTMLInputElement;
     act(() => {
       toggle.click();
     });

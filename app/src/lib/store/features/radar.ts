@@ -5,9 +5,13 @@ import type { RadarStats } from "@/lib/types";
 
 type RadarState = {
   /**
-   * Observed reflectivity on the candidate map. On by default: the question it
-   * answers — is this candidate already precipitating — is a disqualifier, and
-   * a disqualifier the operator has to remember to switch on is not one.
+   * Observed reflectivity on the candidate map.
+   *
+   * Off on arrival, like every layer but the candidate field. The question it
+   * answers — is this candidate already precipitating — is a disqualifier, but
+   * the join has already applied it: a raining cell is one of the reasons the
+   * candidate field rejects ground, so the answer layer never offers one. This
+   * layer is here to show the operator *where* that happened.
    */
   visible: boolean;
   /** Summary of the scene. The contours themselves never enter the store. */
@@ -17,7 +21,7 @@ type RadarState = {
 };
 
 const initialState: RadarState = {
-  visible: true,
+  visible: false,
   stats: undefined,
   loading: false,
   error: null,
