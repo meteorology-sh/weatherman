@@ -1,6 +1,6 @@
 /**
- * Is the 2025 v1 eval tree complete — every report in cache, every native
- * painted day in out, the balloon and between-hours runs EVALUATION.md quotes.
+ * Is the 2025 snapshot complete — every report in cache, every native scored
+ * day in out, the balloon and between-hours runs EVALUATION.md quotes.
  *
  * `node eval/verify.mjs`
  *

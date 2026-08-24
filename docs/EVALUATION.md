@@ -19,7 +19,8 @@ supercooled liquid under the aircraft is rare in every programme, and radar
 is the column that actually splits.
 
 `WEATHERMAN.md` says what the app claims. `MEASUREMENTS.md` says what the free
-feeds can answer. This file says what happened when we checked.
+feeds can answer. This file says what happened when we checked. The comparison
+itself is the harness in `eval/`.
 
 ---
 
@@ -35,12 +36,10 @@ for every day it flies. Each report carries:
 - **the pilots' radio calls**, timed to the minute
 - **radar cell readings** — echo top, liquid content, reflectivity
 
-`eval/releases.mjs` parses the West Texas reports from `eval/cache/wtwma/` and
-writes `eval/data/releases-2025.json`. **34 flying days, 497 flares with a
-position, no parse failures.** Each report states its flare count three times
-and the parser checks all three against each other, so a dropped row cannot
-pass as a quiet day. The reports and the painted days are not in git; they
-are the GitHub release `eval-2025-v1` (`eval/README.md`).
+**34 flying days, 497 flares with a position, no parse failures.** Each report
+states its flare count three times and the harness checks all three against
+each other, so a dropped row cannot pass as a quiet day. Reports, parsed
+records and scored days are the GitHub release `eval-2025-v1`.
 
 Two flares in the season have a time and a county but no coordinates. They stay
 in the totals and out of the point results.
@@ -84,8 +83,7 @@ for, and nothing that is a west Texas peculiarity.
 
 **The Panhandle is the exception and is deliberately not here.** It briefs on a
 NAM forecast column rather than an ascent. Checking HRRR against NAM compares
-two models and would report their agreement as accuracy, so `balloons.mjs`
-refuses that region rather than running it with a footnote.
+two models and would report their agreement as accuracy.
 
 **The four programmes are not four independent samples.** Midland serves West
 Texas, Trans-Pecos and the Rolling Plains, so a morning all three flew is one
@@ -213,9 +211,9 @@ that put the flares in the wrong county could not do that to two independent
 fields at once. The geometry, the clock and the drift correction survive.
 
 **Cloud tops do not.** GOES draws tops at −5 °C and colder, at 2 km. Seven
-releases of 497 sit in that paint; the typical release is 23 km from the
-nearest edge. At 12 km those same tops had been a blob the aircraft sat inside.
-At native sampling they are anvils and cores, and the crews are not in them.
+releases of 497 sit inside those contours; the typical release is 23 km from
+the nearest edge. At native sampling they are anvils and cores, and the crews
+are not in them.
 
 **The liquid is the disagreement the product runs on.** 32 of 497 releases
 (6.4%) sit inside supercooled liquid water. The typical release is 46 km out —
@@ -276,8 +274,7 @@ worth seeding, and has it already spent its liquid. The second is worth showing
 and should not silently suppress the first. That is also what the operator does
 — they see the echo and fly it anyway.
 
-`eval/between.mjs` already computes this as its own test, so both numbers exist
-today with no re-run.
+The evaluation already has both numbers.
 
 ---
 
@@ -380,52 +377,6 @@ in the operator's briefing and absent from ours.
 
 ---
 
-## How to rerun any of it
-
-Everything needs a running server and nothing else. No install, no key.
-
-```bash
-docker-compose up -d                   # all four services
-
-# each of these is one run in the evaluation container
-run() { docker-compose run --rm weatherman-eval-service node "$@"; }
-
-run releases.mjs                       # the PDFs  → data/releases-2025.json
-run balloons.mjs                       # finding 1 → out/balloons-2025.json
-run balloons.mjs --score               # finding 1 again, instantly, no fetching
-run between.mjs                        # finding 2 → out/between-2025.json
-run paint.mjs 2025-04-19               # one day, every layer → out/painted-<date>.json
-```
-
-The whole season is built, one day at a time — `paint.mjs` refuses to be useful
-any other way, because two runs at once evict each other's grids from the
-server's cache. `eval/README.md` has the loop and what the log says.
-
-To look at it rather than read it: the findings are on port 3100 and the maps on
-port 5174, both up with the rest of the stack.
-
-**Cost is downloads, not minutes.** Reading one hour out of the archive takes
-30–60 seconds; every later question about that same hour is instant. `between.mjs`
-asks 994 questions but downloads 125 hours, because flares cluster. The 116 days
-of compared layers are 143 MB on disk.
-
-`--resume` continues a run that was interrupted.
-
-**Every figure in the distance table is one request.** `server.mjs` pools the
-compared days at `/region/wtwma/near` and the per-day rows come back with it, so
-nothing quoted here is arithmetic done twice:
-
-```bash
-curl localhost:3100/region/wtwma/near        # or /transpecos/, or /panhandle/
-```
-
-The other two programmes are built the same way — `releases.mjs
---region=transpecos` and `panhandle.mjs` read their reports, and `paint.mjs
-<date> --region=<id>` builds a day. `eval/README.md` has what each programme's
-reports do and do not carry.
-
----
-
 ## Limits to quote alongside the results
 
 **The balloon is close in time, not simultaneous.** It is released about 45
@@ -465,15 +416,9 @@ positions.
 
 ## Reproducing this
 
-The flight records, manifests and county boundaries in `eval/data/` are
-committed. The 128 reports and the 116 native painted days are the GitHub
-release `eval-2025-v1`. Putting them back, and checking the tree, is in
-`eval/README.md`.
-
-The figures in this file are computed from those runs by `eval/server.mjs`
-(the proximity summaries the evaluation page also reads) and by
-`eval/balloons.mjs --score` / `eval/between.mjs`. A number that cannot be
-re-derived from the v1 tree should not be quoted.
+Reports, parsed records and scored days are the GitHub release
+`eval-2025-v1`; extract it at the repository root. The harness in `eval/` is
+what compared the layers to the flares. This file is the result.
 
 ## Sources
 
