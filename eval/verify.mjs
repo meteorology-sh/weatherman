@@ -1,0 +1,135 @@
+/**
+ * Is the 2025 v1 eval tree complete — every report in cache, every native
+ * painted day in out, the balloon and between-hours runs EVALUATION.md quotes.
+ *
+ * `node eval/verify.mjs`
+ *
+ * Reads only `data/`, `cache/` and `out/`. Does not touch the network.
+ * Exit 0 if the tree matches v1; exit 1 and print what is missing otherwise.
+ */
+
+// Node
+import { readdir, readFile, stat } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const DATA = join(HERE, "data");
+const CACHE = join(HERE, "cache");
+const OUT = join(HERE, "out");
+
+const { regions } = JSON.parse(await readFile(join(DATA, "regions.json"), "utf8"));
+
+const missing = [];
+const extra = [];
+let reports = 0;
+let painted = 0;
+let flares = 0;
+let drifted = 0;
+let balloons = 0;
+
+function native(cellKm) {
+  return (
+    cellKm &&
+    typeof cellKm === "object" &&
+    cellKm.cloudBase === 3 &&
+    cellKm.cloudTop === 2 &&
+    cellKm.liquid === 3 &&
+    cellKm.radar === 1 &&
+    cellKm.candidate === 3
+  );
+}
+
+async function listed(dir) {
+  try {
+    return new Set(await readdir(dir));
+  } catch (error) {
+    if (error.code === "ENOENT") return new Set();
+    throw error;
+  }
+}
+
+for (const region of regions) {
+  const manifest = JSON.parse(
+    await readFile(join(DATA, region.reports), "utf8")
+  );
+  const expect = (manifest.documents ?? []).map((doc) => doc.file);
+  const have = await listed(join(CACHE, region.id));
+  reports += expect.length;
+  for (const file of expect) {
+    if (!have.has(file)) missing.push(`cache/${region.id}/${file}`);
+  }
+  for (const file of have) {
+    if (!expect.includes(file)) extra.push(`cache/${region.id}/${file}`);
+  }
+
+  const record = JSON.parse(
+    await readFile(join(DATA, region.releases), "utf8")
+  );
+  const days = record.days.filter(
+    (day) =>
+      day.seeded && day.releases.some((release) => release.located)
+  );
+
+  for (const day of days) {
+    const name = region.runs.painted.replace("{date}", day.date);
+    const path = join(OUT, name);
+    try {
+      await stat(path);
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        missing.push(`out/${name}`);
+        continue;
+      }
+      throw error;
+    }
+    const paintedDay = JSON.parse(await readFile(path, "utf8"));
+    if (!native(paintedDay.cellKm)) {
+      missing.push(`out/${name} (not native cellKm)`);
+      continue;
+    }
+    painted += 1;
+    for (const analysis of paintedDay.analyses ?? []) {
+      for (const flare of analysis.flares ?? []) {
+        flares += 1;
+        if (flare.drift) drifted += 1;
+        else missing.push(`out/${name} ${flare.timeZ} (no storm motion)`);
+      }
+    }
+  }
+
+  if (region.runs.balloons) {
+    const name = region.runs.balloons;
+    try {
+      await stat(join(OUT, name));
+      balloons += 1;
+    } catch (error) {
+      if (error.code === "ENOENT") missing.push(`out/${name}`);
+      else throw error;
+    }
+  }
+
+  if (region.runs.between) {
+    const name = region.runs.between;
+    try {
+      await stat(join(OUT, name));
+    } catch (error) {
+      if (error.code === "ENOENT") missing.push(`out/${name}`);
+      else throw error;
+    }
+  }
+}
+
+if (missing.length || extra.length) {
+  for (const line of missing) console.error(`missing  ${line}`);
+  for (const line of extra) console.error(`extra    ${line}`);
+  process.exit(1);
+}
+
+console.log("v1 ok");
+console.log(`  reports   ${reports}`);
+console.log(
+  `  painted   ${painted} native days, ${flares} located flares, storm motion on ${drifted}`
+);
+console.log(`  balloons  ${balloons}`);
+console.log("  between   1");

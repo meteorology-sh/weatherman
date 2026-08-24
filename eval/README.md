@@ -6,7 +6,9 @@ Distance rather than in-or-out, because a release 3 km outside a contour and one
 80 km outside are different results and "outside" calls them the same.
 
 `EVALUATION.md` at the repo root says what came of it. This file says how the
-answer is built.
+answer is built. **The 2025 season as published is v1**: the committed parsers
+and flight records in `data/`, plus the reports and painted days in the GitHub
+release `eval-2025-v1`.
 
 Everything here is plain Node reading the Weatherman server over HTTP. There is
 nothing to install, and the containers that run it are in the same
@@ -116,7 +118,13 @@ distance from the release to the nearest edge of each.
 {
   "date": "2025-04-19",
   "region": "wtwma",
-  "cellKm": 12,
+  "cellKm": {
+    "cloudBase": 3,
+    "cloudTop": 2,
+    "liquid": 3,
+    "radar": 1,
+    "candidate": 3
+  },
   "layers": [{ "key": "liquid", "name": "SUPERCOOLED LIQUID WATER", … }],
   "hours": ["2025-04-19T19:00:00.000Z", "2025-04-19T20:00:00.000Z"],
   "frames": { "2025-04-19T19:00:00.000Z": { /* the rings, per layer */ } },
@@ -219,7 +227,26 @@ resolve it from.
 | --------- | --------- | ------------------------------------------------------------------------------- |
 | `data/`   | yes       | The manifests, the parsed flight record, the county boundaries, the region list |
 | `cache/`  | no        | One subdirectory per programme, holding its 2025 reports — 128 PDFs, 99 MB      |
-| `out/`    | no        | What a run wrote. `painted-<date>.json` is one flying day                       |
+| `out/`    | no        | What a run wrote. One painted file per flying day, plus balloon and between-hours runs |
+
+**A fresh clone has `data/` and not the other two.** They are the GitHub
+release `eval-2025-v1`. From the repository root:
+
+```bash
+gh release download eval-2025-v1 -p eval-2025-v1.tar.gz
+sha256sum -c eval/v1.sha256
+tar -xzf eval-2025-v1.tar.gz
+node eval/verify.mjs
+```
+
+That puts 128 reports in `eval/cache/` and 121 run files in `eval/out/` —
+116 native painted days, four balloon runs, one between-hours run. The
+evaluation page at :5174 then has the season, and the figures in
+`EVALUATION.md` can be re-derived from disk.
+
+`verify.mjs` checks every expected PDF and every painted day against
+`data/`. It does not need the Weatherman server. To rebuild the archive
+from a machine that already has `cache/` and `out/`: `node eval/pack.mjs`.
 
 ## The five programmes
 
@@ -331,69 +358,12 @@ row names, against 94% and 96% for the two programmes that write coordinates one
 way all season. It is 53 releases of 1,353 and cannot move a conclusion, but it
 is the number to look at first if one of its days reads oddly.
 
-## Building another day
+## The 2025 season on disk
 
-Every flying day of every programme is built — **116 flying days, 1,353
-releases, 34 MB**. **A day is one command, and a day that already exists on disk
-does not need rebuilding.**
-
-**1. Check the Weatherman server answers.** Everything below reads from it and a
-run against a dead server fails one hour at a time rather than at the start.
-
-**2. Pick a day that has no file yet.** This prints each unbuilt flying day and
-how many flares it has, most flares first:
-
-```bash
-node -e '
-const { days } = require("./eval/data/releases-2025.json");
-const fs = require("node:fs");
-for (const day of days.filter((d) => d.seeded)) {
-  if (!fs.existsSync(`eval/out/painted-${day.date}.json`)) {
-    console.log(day.date, day.releases.filter((r) => r.located).length);
-  }
-}' | sort -k2 -rn
-```
-
-**3. Build it detached.** It is long, and editing anything under `server/src`
-restarts nodemon and kills every request in flight:
-
-```bash
-docker-compose run -d --name paint-2025-08-11 \
-  weatherman-eval-service node paint.mjs 2025-08-11
-docker logs -f paint-2025-08-11        # …and `docker rm` it when it is done
-```
-
-Give the container a name and leave off `--rm`: a one-off `run` container is not
-one `docker-compose logs` reports on, and `--rm` takes its log with it when it
-exits.
-
-**4. Read the log.** Per analysis hour it prints how many levels and rings each
-of the five layers came back with and how long it took; then per flare the offset
-to the analysis, the storm motion, and the distance to painted liquid; then the
-day's totals and the file size.
-
-**5. Reload the page.** Nothing needs restarting — `server.mjs` reads `out/` on
-every request, so a day appears in the day picker as soon as its file lands.
-
-**One day at a time.** Two builds at once evict each other's grids from the
-Weatherman server's cache, and both crawl re-reading what the other just dropped.
-
-**Budget one download per analysis hour, 30–60 seconds each.** A day's flares
-usually fall into a handful of hours. Every flare after the first in an hour is
-answered from cache in milliseconds, and the five layers cost one download
-between them: `paint.mjs` asks for the seeding opportunity first, and building
-that reads every source the other four need.
-
-**When something fails it is recorded, not thrown.** A layer that fails for one
-hour is written into the file with its error and the map draws the layers that
-did come back. A flare whose storm motion could not be read is measured at the
-release point instead, undrifted. A date with no seeded report stops the run
-before it downloads anything.
-
-**Six layer errors survive on disk**, all of them the GOES archive having no
-sweep near the hour: the 19Z frame on 26 March and the 22Z and 23Z frames on 31
-March, each costing that hour its cloud tops and its join. Rebuilding them
-returns the same answer, so it is the archive and not the run.
+**116 flying days, 1,353 located releases, every day native.** Inside means
+inside the contour after storm-motion drift, at each layer's own sampling —
+HRRR 3 km, GOES 2 km, MRMS 1 km. `EVALUATION.md` is the published table.
+`verify.mjs` is how to check the tree still matches.
 
 **A painted file is named by its programme, not by its date.** `regions.json`
 gives each one the name its runs are written under, because two programmes fly
@@ -401,23 +371,49 @@ the same afternoon — 17 August 2025 is a flying day in both West Texas and
 Trans-Pecos — and a name built from the date alone lets the second run overwrite
 the first.
 
-### Where that leaves the five
+**Six layer errors survive on disk**, all of them the GOES archive having no
+sweep near the hour: the 19Z frame on 26 March and the 22Z and 23Z frames on 31
+March, each costing that hour its cloud tops and its join. Rebuilding them
+returns the same answer, so it is the archive and not the run.
 
-| Region         | Days painted | Releases | In painted liquid | Within a cell |
-| -------------- | -----------: | -------: | ----------------: | ------------: |
-| West Texas     |     34 of 34 |      497 |             14.9% |         36.0% |
-| Trans-Pecos    |     38 of 38 |      465 |             19.6% |         49.2% |
-| Panhandle      |     25 of 25 |      255 |             34.1% |         75.0% |
-| South Texas    |     12 of 12 |       83 |             13.0% |         48.1% |
-| Rolling Plains |       7 of 7 |       53 |             16.7% |         56.3% |
+### Rebuilding a day
 
-Cloud base lands within a cell of 88% to 98% of releases in all five and cloud
-tops 87% to 95%. The liquid is where they part, and the spread is the finding —
-the median release is 34 km from painted liquid in West Texas and 4 km in the
-Panhandle. Counted by day, which is the honest unit because a sortie succeeds or
-fails as one thing, that is 10 of 34 days against 15 of 23. `EVALUATION.md` is
-where it is argued, including why the airmass explanation that fitted the first
-three programmes does not survive the other two.
+The season does not need painting again. Rebuilding a day is for a painter
+change, and it needs the Weatherman server. A run against a dead server fails
+one hour at a time rather than at the start.
+
+It is long, and editing anything under `server/src` restarts nodemon and kills
+every request in flight:
+
+```bash
+docker-compose run --rm --no-deps -T weatherman-eval-service \
+  node paint.mjs 2025-08-11 --region=wtwma </dev/null
+```
+
+`--no-deps -T` and `</dev/null>` keep Compose from attaching stdin. Without
+that, a loop that paints many days loses the rest of its list to Docker.
+
+Per analysis hour the log prints how many levels and rings each of the five
+layers came back with and how long it took; then per flare the offset to the
+analysis, the storm motion, and the distance to painted liquid; then the day's
+totals and the file size. `server.mjs` reads `out/` on every request, so a
+rebuilt day appears in the picker as soon as its file lands.
+
+**One day at a time on one server.** Two builds at once evict each other's
+grids from the Weatherman server's cache, and both crawl re-reading what the
+other just dropped.
+
+**Budget one download per analysis hour, a couple of minutes each at native
+sampling.** A day's flares usually fall into a handful of hours. Every flare
+after the first in an hour is answered from cache in milliseconds, and the
+five layers cost one download between them: `paint.mjs` asks for the seeding
+opportunity first, and building that reads every source the other four need.
+
+**When something fails it is recorded, not thrown.** A layer that fails for one
+hour is written into the file with its error and the map draws the layers that
+did come back. A flare whose storm motion could not be read is measured at the
+release point instead, undrifted. A date with no seeded report stops the run
+before it downloads anything.
 
 ## The band against the balloons
 

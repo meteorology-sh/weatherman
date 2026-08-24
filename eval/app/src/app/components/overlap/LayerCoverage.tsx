@@ -60,7 +60,7 @@ export const LayerCoverage = ({ layers }: PropsT) => {
           }
 
           const inside = stats.inside;
-          const further = Math.max(0, stats.n - stats.withinCell);
+          const further = Math.max(0, stats.n - inside);
           const on = hover === layer.key;
 
           return (

@@ -8,7 +8,7 @@
  *
  * Clipping contour polygons to county boundaries properly would want a real
  * geometry library, and it is the wrong shape of answer anyway: the seeding
- * opportunity is a decision per 12 km cell, and a clipped polygon area would
+ * opportunity is a decision per 3 km cell, and a clipped polygon area would
  * report the smoothed edge of a band rather than the cells it was traced from.
  */
 
@@ -19,7 +19,7 @@ const EARTH_KM = 6371;
  * Where a bearing and a range put a release.
  *
  * Great-circle rather than flat: at 50 nm a flat projection is off by a few
- * hundred metres, which is nothing against a 12 km cell, but the spherical form
+ * hundred metres, which is nothing against a 3 km cell, but the spherical form
  * is no harder and does not have to be explained.
  *
  * **The bearing is used as printed.** Two programmes position their releases

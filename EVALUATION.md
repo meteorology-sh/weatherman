@@ -35,10 +35,12 @@ for every day it flies. Each report carries:
 - **the pilots' radio calls**, timed to the minute
 - **radar cell readings** — echo top, liquid content, reflectivity
 
-`eval/releases.mjs` downloads the PDFs and writes `eval/data/releases-2025.json`.
-**34 flying days, 497 flares with a position, no parse failures.** Each report
-states its flare count three times and the parser checks all three against each
-other, so a dropped row cannot pass as a quiet day.
+`eval/releases.mjs` parses the West Texas reports from `eval/cache/wtwma/` and
+writes `eval/data/releases-2025.json`. **34 flying days, 497 flares with a
+position, no parse failures.** Each report states its flare count three times
+and the parser checks all three against each other, so a dropped row cannot
+pass as a quiet day. The reports and the painted days are not in git; they
+are the GitHub release `eval-2025-v1` (`eval/README.md`).
 
 Two flares in the season have a time and a county but no coordinates. They stay
 in the totals and out of the point results.
@@ -460,6 +462,18 @@ positions.
 2020-10-14, and satellite cloud top only 2023-03-23. The satellite binds.
 
 ---
+
+## Reproducing this
+
+The flight records, manifests and county boundaries in `eval/data/` are
+committed. The 128 reports and the 116 native painted days are the GitHub
+release `eval-2025-v1`. Putting them back, and checking the tree, is in
+`eval/README.md`.
+
+The figures in this file are computed from those runs by `eval/server.mjs`
+(the proximity summaries the evaluation page also reads) and by
+`eval/balloons.mjs --score` / `eval/between.mjs`. A number that cannot be
+re-derived from the v1 tree should not be quoted.
 
 ## Sources
 

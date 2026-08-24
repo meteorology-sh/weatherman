@@ -8,7 +8,7 @@
       35.2333,
       -101.7092
     ],
-    "note": "The flight tables give a bearing and a range and never say from where. Projected from Amarillo, 87% of the season's rows land inside the county their own row names; from the district office at White Deer, 9%. Whether the bearings are true or magnetic is not stated, and no rotation is applied: as printed, 76.5% of releases land in the county their row names, against 93.8% for West Texas and 96.1% for Trans-Pecos, the two programmes that print coordinates in one form all season. About 6° of eastward rotation closes most of that gap, which is what a magnetic display would mean — 4 km at 30 nm, under half a 12 km cell. South Texas projects its radials from an origin inferred the same way and wants about the same six degrees, which is the only corroboration there is. `positions.mjs` is where those figures come from."
+    "note": "The flight tables give a bearing and a range and never say from where. Projected from Amarillo, 87% of the season's rows land inside the county their own row names; from the district office at White Deer, 9%. Whether the bearings are true or magnetic is not stated, and no rotation is applied: as printed, 76.5% of releases land in the county their row names, against 93.8% for West Texas and 96.1% for Trans-Pecos, the two programmes that print coordinates in one form all season. About 6° of eastward rotation closes most of that gap, which is what a magnetic display would mean — 4 km at 30 nm, about a 3 km cell. South Texas projects its radials from an origin inferred the same way and wants about the same six degrees, which is the only corroboration there is. `positions.mjs` is where those figures come from."
   },
   "days": [
     {

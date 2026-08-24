@@ -2,6 +2,10 @@
 cache/
 out/
 
+# Packed v1 archive — GitHub release asset, not committed. Extract from the
+# repository root. `eval/v1.sha256` is committed so a download can be checked.
+eval-2025-v1.tar.gz
+
 # The evaluation app's install and build output.
 app/node_modules/
 app/dist/
