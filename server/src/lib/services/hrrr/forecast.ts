@@ -454,6 +454,10 @@ export class ForecastService {
     geo: Geo;
     baseFt: Float32Array;
     topFt: Float32Array;
+    /** 0 °C, ft MSL. NaN where the column never crosses freezing. */
+    freezingFt: Float32Array;
+    /** Terrain, ft MSL. The Texas window is applied in AGL. */
+    surfaceFt: Float32Array;
   }> {
     const profile = await this.profile(hour, at);
     return {
@@ -462,6 +466,8 @@ export class ForecastService {
       geo: this.geo!,
       baseFt: isothermFieldFt(profile, SEEDING.warmestC),
       topFt: isothermFieldFt(profile, SEEDING.coldestC),
+      freezingFt: isothermFieldFt(profile, 0),
+      surfaceFt: profile.surfaceFt,
     };
   }
 

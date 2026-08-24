@@ -17,6 +17,11 @@
  * **It exists only at the analysis hour.** Satellites cannot forecast, so a
  * join that leans on an observed cloud top cannot be run at f06. There is no
  * `hour` parameter, and `at` replays the whole join at a past hour instead.
+ *
+ * The same build also runs the Texas-target join in `target.ts`. That is a
+ * second question on the same arrays, not a retune of the opportunity field.
+ * The point readout returns both. Geometry for the target waits on the 2025
+ * score.
  */
 
 // Services
@@ -45,10 +50,25 @@ import {
   summarize,
   topHoldsLiquid,
 } from "./join";
+import {
+  join as targetJoin,
+  readTarget,
+  summarize as summarizeTarget,
+} from "./target";
+import type {
+  TargetInputs,
+  TargetJoin,
+  TargetPoint,
+  TargetStats,
+} from "./target";
 
 // Types
 import type { Geo, ContourFeature } from "../shared/contour";
-import type { CandidatePoint, CandidateStats, Inputs } from "./join";
+import type {
+  CandidatePoint as SeedabilityPoint,
+  CandidateStats,
+  Inputs,
+} from "./join";
 
 /**
  * The analysis hour. The candidate map is "right now", and every HRRR input
@@ -95,8 +115,11 @@ const CONFIRMED = {
 } as const;
 
 // The join's own shapes, re-exported: the routers and the app's types.ts are
-// written against this service, not against the arithmetic behind it.
-export type { CandidatePoint, CandidateStats, Rejected, Verdict } from "./join";
+// written against this service, not against the arithmetic behind it. The
+// point is both products: seeding-opportunity verdict plus the Texas target.
+export type { CandidateStats, Rejected, Verdict } from "./join";
+export type { TargetStats, TargetVerdict } from "./target";
+export type CandidatePoint = SeedabilityPoint & TargetPoint;
 export { CEILING_FT } from "../shared/aircraft";
 
 export type CandidateFrame = {
@@ -125,15 +148,18 @@ export type CandidateFrame = {
  *
  * `inputs` is null where the domain holds no seeding band at all and there is
  * no liquid grid to join. The grid itself is there either way, so a click still
- * lands on a cell and the readout still says which one.
+ * lands on a cell and the readout still says which one. The Texas target does
+ * not need the liquid grid, so `target` is always present.
  */
-type Cells = { geo: Geo; inputs: Inputs | null };
+type Cells = { geo: Geo; inputs: Inputs | null; target: TargetInputs };
 
 type Scene = {
   frame: CandidateFrame;
   /** The same build, traced around the ground the satellite confirms. */
   confirmed: CandidateFrame;
   stats: CandidateStats;
+  targetStats: TargetStats;
+  targetJoined: TargetJoin;
   cells: Cells;
   values: Float32Array | null;
   confirmedValues: Float32Array | null;
@@ -145,10 +171,7 @@ export class CandidateService {
   private archive = new Map<string, Scene>();
   private archiveInflight = new Map<string, Promise<Scene>>();
 
-  async field(
-    at?: Date,
-    box: LonLatBox = DRAWN
-  ): Promise<CandidateFrame> {
+  async field(at?: Date, box: LonLatBox = DRAWN): Promise<CandidateFrame> {
     const scene = await this.scene(at);
     if (!scene.values) return scene.frame;
     const geo = scene.cells.geo;
@@ -171,6 +194,27 @@ export class CandidateService {
   /** The same build's summary. Asking for either warms both. */
   async fieldStats(at?: Date): Promise<CandidateStats> {
     return (await this.scene(at)).stats;
+  }
+
+  /**
+   * How much of the asked ground looks like a Texas target.
+   *
+   * No box means the whole domain. A box counts only those cells, but the
+   * join still ran on the full grid so a cell just inside the box can see a
+   * neighbour just outside it. Flare hit-rate without this number is how a
+   * join that paints Texas cheats.
+   */
+  async targetStats(at?: Date, box?: LonLatBox): Promise<TargetStats> {
+    const scene = await this.scene(at);
+    if (!box) return scene.targetStats;
+    return summarizeTarget(scene.cells.target, scene.targetJoined, {
+      run: new Date(scene.frame.run),
+      validTime: scene.frame.validTime,
+      sceneTime: scene.frame.sceneTime,
+      radarTime: scene.frame.radarTime,
+      geo: scene.cells.geo,
+      box,
+    });
   }
 
   /**
@@ -234,7 +278,11 @@ export class CandidateService {
 
     // No seeding band anywhere in the domain, so there is nothing to seed in
     // this cell either — a real answer about it rather than a missing one.
-    return inputs ? readPoint(inputs, cell, where) : emptyPoint(where);
+    // The Texas target does not need that band and is still asked.
+    return {
+      ...(inputs ? readPoint(inputs, cell, where) : emptyPoint(where)),
+      ...readTarget(cells.target, cell),
+    };
   }
 
   private async scene(at?: Date): Promise<Scene> {
@@ -289,7 +337,7 @@ export class CandidateService {
   }
 
   /**
-   * Warm all five inputs, then join them.
+   * Warm the inputs, then run both joins.
    *
    * In parallel, and that is the difference between a cold build costing the
    * slowest source and costing their sum. They overlap more than they look:
@@ -303,23 +351,49 @@ export class CandidateService {
     // the mosaic nearest 18:43, rather than putting all three on 18:00.
     const cycle = at && nearestHour(at);
 
-    const [liquid, base, band, tops, radar, phase] = await Promise.all([
-      Hrrr.liquidField(ANALYSIS_HOUR, cycle),
-      Hrrr.diagnosticField("cloudBase", ANALYSIS_HOUR, cycle),
-      Hrrr.bandField(ANALYSIS_HOUR, cycle),
-      Goes.topField(at),
-      Mrms.reflectivityField(at),
-      observedPhase(at),
-    ]);
+    const [liquid, base, band, tops, radar, phase, echoTop] = await Promise.all(
+      [
+        Hrrr.liquidField(ANALYSIS_HOUR, cycle),
+        Hrrr.diagnosticField("cloudBase", ANALYSIS_HOUR, cycle),
+        Hrrr.bandField(ANALYSIS_HOUR, cycle),
+        Goes.topField(at),
+        Mrms.reflectivityField(at),
+        observedPhase(at),
+        Hrrr.diagnosticField("echoTop", ANALYSIS_HOUR, cycle),
+      ]
+    );
 
     const run = liquid.run;
     const validTime = new Date(
       run.getTime() + ANALYSIS_HOUR * 3_600_000
     ).toISOString();
     const geo = band.geo;
+    const dbz = sampleRadar(radar.grid, geo);
+
+    // The Texas target does not need the liquid grid. It runs even when the
+    // domain holds no seeding band, because that is a different question.
+    const target: TargetInputs = {
+      cloudBaseFt: base.values!,
+      surfaceFt: band.surfaceFt,
+      freezingFt: band.freezingFt,
+      echoTopFt:
+        echoTop.values ?? new Float32Array(geo.lats.length).fill(Number.NaN),
+      dbz,
+      nx: geo.nx,
+      ny: geo.ny,
+    };
+    const targetJoined = targetJoin(target);
+    const targetStats = summarizeTarget(target, targetJoined, {
+      run,
+      validTime,
+      sceneTime: tops.validTime,
+      radarTime: radar.validTime,
+      geo,
+    });
 
     // No point in the domain is in the seeding band at any level, so there is
-    // no liquid grid to join and nothing can be a candidate.
+    // no liquid grid to join and nothing can be a candidate. The target still
+    // has an answer.
     if (!liquid.values) {
       const empty: CandidateFrame = {
         type: "FeatureCollection",
@@ -340,7 +414,9 @@ export class CandidateService {
           radar.validTime,
           phase.validTime
         ),
-        cells: { geo, inputs: null },
+        targetStats,
+        targetJoined,
+        cells: { geo, inputs: null, target },
         values: null,
         confirmedValues: null,
       };
@@ -351,7 +427,7 @@ export class CandidateService {
       cloudBaseFt: base.values!,
       bandTopFt: band.topFt,
       topColdnessC: tops.cells.values,
-      dbz: sampleRadar(radar.grid, geo),
+      dbz,
       topPhase: phase.cells,
     };
     const joined = join(inputs);
@@ -411,7 +487,9 @@ export class CandidateService {
         stormU: stormU.values,
         stormV: stormV.values,
       }),
-      cells: { geo, inputs },
+      targetStats,
+      targetJoined,
+      cells: { geo, inputs, target },
     };
   }
 }

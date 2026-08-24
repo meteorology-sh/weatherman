@@ -19,6 +19,7 @@ import type {
   CandidateFrame,
   CandidatePoint,
   CandidateStats,
+  TargetStats,
 } from "../lib/services/candidate/field";
 
 const frame: CandidateFrame = {
@@ -84,6 +85,23 @@ const stats: CandidateStats = {
   },
 };
 
+const targetStats: TargetStats = {
+  run: "2025-05-15T18:00:00.000Z",
+  validTime: "2025-05-15T18:00:00.000Z",
+  sceneTime: "2025-05-15T18:01:17.900Z",
+  radarTime: "2025-05-15T18:00:39.000Z",
+  coveragePct: 4.2,
+  targetKm2: 18900,
+  boxKm2: 450000,
+  rejected: {
+    noCloudBase: 120000,
+    baseOutsideWindow: 81000,
+    noFreezingLevel: 9000,
+    topBelowFreezing: 162000,
+    noStorm: 59100,
+  },
+};
+
 const point: CandidatePoint = {
   run: "2025-05-15T18:00:00.000Z",
   validTime: "2025-05-15T18:00:00.000Z",
@@ -93,6 +111,10 @@ const point: CandidatePoint = {
   lat: 32.05,
   lon: -101.42,
   verdict: "candidate",
+  target: "target",
+  cloudBaseAglFt: 4000,
+  freezingFt: 16000,
+  echoTopFt: 18000,
   slwGM2: 140,
   cloudBaseFt: 5800,
   cloudTopC: -14,
@@ -204,6 +226,54 @@ describe("candidate router", () => {
 
     assert.equal(geo.type, "FeatureCollection");
     assert.equal(summary.coveragePct, 0.31);
+  });
+
+  it("responds with the Texas-target summary as JSON", async (t) => {
+    t.mock.method(Seedability, "targetStats", async () => targetStats);
+
+    const res = await fetch(`${origin}/candidate/target/stats`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), targetStats);
+  });
+
+  it("passes a box through to the target summary", async (t) => {
+    let seen: unknown = null;
+    t.mock.method(
+      Seedability,
+      "targetStats",
+      async (_at?: Date, box?: unknown) => {
+        seen = box;
+        return targetStats;
+      }
+    );
+
+    await fetch(
+      `${origin}/candidate/target/stats?west=-106&east=-96&south=27.5&north=36`
+    );
+
+    assert.deepEqual(seen, {
+      west: -106,
+      east: -96,
+      south: 27.5,
+      north: 36,
+    });
+  });
+
+  it("reads an absent box as the whole domain", async (t) => {
+    let seen: unknown = Symbol("unset");
+    t.mock.method(
+      Seedability,
+      "targetStats",
+      async (_at?: Date, box?: unknown) => {
+        seen = box;
+        return targetStats;
+      }
+    );
+
+    await fetch(`${origin}/candidate/target/stats`);
+
+    assert.equal(seen, undefined);
   });
 
   it("responds with the clicked cell as JSON", async (t) => {

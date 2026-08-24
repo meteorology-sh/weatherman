@@ -55,6 +55,23 @@ candidate.get("/field/stats", async (req: Request, res: Response) => {
   }
 });
 
+// How much of the asked ground looks like a Texas target. A box is optional
+// — absent means the whole domain — and is how eval measures selectivity
+// without painting geometry.
+candidate.get("/target/stats", async (req: Request, res: Response) => {
+  try {
+    const stats = await Seedability.targetStats(
+      parseAt(req.query.at),
+      req.query.west === undefined ? undefined : parseBox(req.query)
+    );
+    res.send(stats);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
 // The same join, read over the 3 km cell a click landed in. It comes off the
 // cached build the map is drawing, so the panel and the picture cannot disagree
 // about a cell.

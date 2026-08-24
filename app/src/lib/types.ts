@@ -90,6 +90,27 @@ export interface CandidateStats {
   phase: PhaseCheck;
 }
 
+/** Mirrors TargetStats in server/src/lib/services/candidate/target.ts */
+export interface TargetStats {
+  run: string;
+  validTime: string;
+  sceneTime: string;
+  radarTime: string;
+  /** Percent of the counted ground that passed every Texas test. */
+  coveragePct: number;
+  /** Ground that passed, km². */
+  targetKm2: number;
+  /** Ground that was asked, km² — the box, or the whole domain. */
+  boxKm2: number;
+  rejected: {
+    noCloudBase: number;
+    baseOutsideWindow: number;
+    noFreezingLevel: number;
+    topBelowFreezing: number;
+    noStorm: number;
+  };
+}
+
 /** Mirrors Verdict in server/src/lib/services/candidate/join.ts */
 export type Verdict =
   | "candidate"
@@ -99,6 +120,15 @@ export type Verdict =
   | "noCloudSeen"
   | "topTooWarm"
   | "raining";
+
+/** Mirrors TargetVerdict in server/src/lib/services/candidate/target.ts */
+export type TargetVerdict =
+  | "target"
+  | "noCloudBase"
+  | "baseOutsideWindow"
+  | "noFreezingLevel"
+  | "topBelowFreezing"
+  | "noStorm";
 
 /** Mirrors CandidatePoint in server/src/lib/services/candidate/join.ts */
 export interface CandidatePoint {
@@ -115,6 +145,17 @@ export interface CandidatePoint {
   lon: number;
   /** A candidate, nothing to seed, or the first test the cell failed. */
   verdict: Verdict;
+  /**
+   * Does this column look like the cloud Texas programmes say they seed?
+   * Independent of `verdict` — rain and missing liquid do not reject it.
+   */
+  target: TargetVerdict;
+  /** Cloud base above the terrain, ft. Null where there is no base. */
+  cloudBaseAglFt: number | null;
+  /** Freezing level, ft MSL. Null where the column never crosses 0 °C. */
+  freezingFt: number | null;
+  /** Modelled echo top, ft MSL. Null where the model diagnoses no echo. */
+  echoTopFt: number | null;
   /** Supercooled liquid water path in the seeding band over this cell, g/m². */
   slwGM2: number;
   /** Cloud base, ft MSL. Null where the model has no cloud over the cell. */

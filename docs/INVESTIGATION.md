@@ -507,6 +507,47 @@ What waits, and why:
 - A cold cutoff on cloud-top temperature — still no citation, and a −60 °C
   anvil over a growing feeder is the layered case the phase outline is for.
 
+### The first increment — a second join, not a retuned mask
+
+Step 1 of the sequence is a **second join**, not "stop vetoing rain" on the
+existing opportunity field. The opportunity join stays. Rain still vetoes
+it. Supercooled liquid still gates it. The Texas question is asked beside
+it, of the same 3 km cell, and scored before anything is painted.
+
+The tests, in order, each cited:
+
+1. **Cloud base exists.** HRRR `HGT:cloud base`.
+2. **Base in 4,000–12,000 ft AGL.** The Comptroller window, already in
+   `BASE_WINDOW_FT`, applied above the terrain rather than as MSL. MSL
+   would move the window with the ground; AGL is what transfers across
+   South Texas and Trans-Pecos.
+3. **Echo top at or above the freezing level**, in this cell or an
+   8-connected 3 km neighbour. Freezing height is `isothermFieldFt(profile,
+   0)`, the same function Finding 1 already trusts. Echo top is HRRR
+   `RETOP` — modelled height, labelled as such, not a volume scan. The
+   aircraft is not under the cold GOES top, so cloud-top temperature at
+   this cell is not this test.
+4. **Measured echo at 20 dBZ** in that same neighbourhood. `RAIN_DBZ`, the
+   lowest contour we already draw. South Texas's typical release sits
+   1.4 km outside 20 dBZ, which is inside one HRRR cell. The neighbourhood
+   is the grid's own spacing, not a radius chosen to swallow the 23 km
+   cloud-top miss.
+
+Rain in this cell is not a reject. Supercooled liquid is not a test. GOES
+top temperature and phase stay readings.
+
+The neighbourhood does not wrap. A cell on the domain edge has fewer
+neighbours; it does not see the opposite side of the country.
+
+`eval/target.mjs` scores this against every located 2025 flare, at both
+hours around the release, and writes boxed target area against each
+programme window. Paint waits on that score. A high flare-inside rate
+with target area covering most of the box has not worked.
+
+What this still cannot ask — remaining hypotheses if 2025 still misses,
+not a looser window: growth and first half-lifetime, inflow in ft/min,
+upwind flank versus core, TDLR severe-weather suspension.
+
 ---
 
 ## 7. How we will know it worked
