@@ -17,7 +17,9 @@
 // Services
 import { bandFeatures } from "../shared/contour";
 import { Hrrr } from "../hrrr/forecast";
-import { pixelAt } from "./abi";
+import { cellAt, crop, DRAWN, inBox } from "../shared/grid";
+import type { LonLatBox } from "../shared/grid";
+import { latLonAt, pixelAt, pixelWindow } from "./abi";
 import { download, gridOf, readScene, scalar, sceneTime } from "./scene";
 import { CLOUD_TOP_PRODUCT, latestPairedKey, pairedKeyAt } from "./sweep";
 
@@ -61,8 +63,8 @@ const ARCHIVE_CACHE = 8;
  */
 const ANALYSIS_HOUR = 0;
 
-/** Ground covered by one 12 km cell, km^2. Mirrors CELL_KM2 in forecast.ts. */
-const CELL_KM2 = 144;
+/** Ground covered by one ABI 2 km pixel at nadir, km^2. Off-nadir is larger. */
+const ABI_CELL_KM2 = 4;
 
 const CLOUD_TOP = {
   /**
@@ -124,16 +126,13 @@ export const TOP_WARMEST_C = -CLOUD_TOP.levels[0];
 export const CLEAR = -999;
 
 /**
- * GOES pixels across one 12 km cell. The ABI pixel is ~2 km at nadir, so six of
- * them span the cell there.
+ * GOES pixels across one 3 km HRRR cell. The ABI pixel is ~2 km at nadir, so
+ * two of them span the cell there.
  *
- * Approximate on purpose, and it errs the readable way: a pixel's ground
- * footprint grows away from the sub-satellite point, so over CONUS this window
- * covers somewhat more than 12 km and the block mean is slightly smoother than
- * the grid. Smoothing removes structure; it never invents any, which is the
- * same rule §3 applies to every other block average here.
+ * This window is only for the join, which samples the 2 km scene onto the 3 km
+ * grid the liquid is scored on. The layer itself is drawn on the ABI grid.
  */
-const WINDOW = 6;
+const WINDOW = 2;
 
 export type CloudTopFrame = {
   type: "FeatureCollection";
@@ -153,7 +152,7 @@ export type CloudTopStats = {
   fetchedAt: string;
   validTime: string;
   profileRun: string;
-  /** Percent of the 12 km grid the satellite sees any cloud over. */
+  /** Percent of the 2 km scene the satellite sees any cloud over. */
   cloudPct: number;
   /** Percent of the grid whose cloud top is at or below −5 °C. */
   seedableTopPct: number;
@@ -164,11 +163,18 @@ export type CloudTopStats = {
 };
 
 /**
- * `cells` is the resampled scene the bands were traced from: coldness at the
- * cloud top on the 12 km grid, `CLEAR` where the satellite sees no cloud. It is
- * kept because the candidate join reads it — see `topField`.
+ * `cells` is the scene sampled onto the 3 km join grid: coldness at the cloud
+ * top, `CLEAR` where the satellite sees no cloud. The bands on the map are
+ * traced from the native 2 km scene; the join reads this.
  */
-type Scene = { frame: CloudTopFrame; stats: CloudTopStats; cells: Grid };
+type Scene = {
+  frame: CloudTopFrame;
+  stats: CloudTopStats;
+  cells: Grid;
+  abi: AbiGrid;
+  pressure: Float32Array;
+  column: Column;
+};
 
 export class CloudTopService {
   private cache: { scene: Scene; fetchedAt: number } | null = null;
@@ -177,8 +183,27 @@ export class CloudTopService {
   private archive = new Map<string, Scene>();
   private archiveInflight = new Map<string, Promise<Scene>>();
 
-  async temperature(at?: Date): Promise<CloudTopFrame> {
-    return (await this.scene(at)).frame;
+  async temperature(
+    at?: Date,
+    box: LonLatBox = DRAWN
+  ): Promise<CloudTopFrame> {
+    const scene = await this.scene(at);
+    const native = this.nativeField(
+      scene.abi,
+      scene.pressure,
+      scene.column,
+      box
+    );
+    const drawn = crop(native, native.geo, box);
+    return {
+      ...scene.frame,
+      features: bandFeatures(
+        drawn.grid,
+        drawn.geo,
+        CLOUD_TOP.property,
+        CLOUD_TOP.levels
+      ),
+    };
   }
 
   /** The same build's summary. Asking for either warms both. */
@@ -187,12 +212,12 @@ export class CloudTopService {
   }
 
   /**
-   * The resampled scene the bands were traced from, for the candidate join.
+   * The 3 km sample the candidate join reads.
    *
-   * Coldness at the cloud top on the 12 km grid — `CLEAR` where the satellite
-   * sees nothing, so a single `>= 5` test asks both "is there cloud" and "does
-   * its top reach the seeding band". The scan's own time rides along, because a
-   * join is only as current as its slowest source and the panel reports it.
+   * Coldness at the cloud top — `CLEAR` where the satellite sees nothing, so a
+   * single `>= 5` test asks both "is there cloud" and "does its top reach the
+   * seeding band". The scan's own time rides along, because a join is only as
+   * current as its slowest source and the panel reports it.
    */
   async topField(at?: Date): Promise<{ cells: Grid; validTime: string }> {
     const scene = await this.scene(at);
@@ -274,21 +299,21 @@ export class CloudTopService {
 
     const validTime = sceneTime(sceneKey);
     const profileRun = column.run.toISOString();
+    const native = this.nativeField(grid, pressure, column, DRAWN);
+    const drawn = crop(native, native.geo, DRAWN);
 
     return {
       frame: {
         type: "FeatureCollection",
         validTime,
         profileRun,
-        features: bandFeatures(
-          cells,
-          column.geo,
-          CLOUD_TOP.property,
-          CLOUD_TOP.levels
-        ),
+        features: [],
       },
-      stats: summarize(cells, validTime, profileRun),
+      stats: summarize(drawn.grid, validTime, profileRun),
       cells,
+      abi: grid,
+      pressure,
+      column,
     };
   }
 
@@ -324,19 +349,83 @@ export class CloudTopService {
   }
 
   /**
-   * Fold the 2 km scene onto the 12 km grid the other layers are contoured on,
-   * and convert each cell's pressure to a temperature.
+   * The 2 km scene as a field we can contour: temperature at each ABI pixel,
+   * from the nearest HRRR 3 km column at that pixel's cloud-top pressure.
+   *
+   * Only the Texas window is walked. CONUS at 2 km is more geometry than the
+   * map will paint. Neighbouring pixels seed `cellAt` so lookups stay local.
+   */
+  private nativeField(
+    grid: AbiGrid,
+    pressure: Float32Array,
+    column: Column,
+    box: LonLatBox = DRAWN
+  ): Grid & { geo: Geo } {
+    const win = pixelWindow(grid, box);
+    if (!win) {
+      const empty = new Float32Array(0);
+      return {
+        nx: 0,
+        ny: 0,
+        values: empty,
+        geo: { nx: 0, ny: 0, lats: empty, lons: empty },
+      };
+    }
+
+    const ox = win.c1 - win.c0 + 1;
+    const oy = win.r1 - win.r0 + 1;
+    const n = ox * oy;
+    const values = new Float32Array(n).fill(CLEAR);
+    const lats = new Float32Array(n);
+    const lons = new Float32Array(n);
+    let west: number | undefined;
+    let lastLat = 0;
+    let lastLon = 0;
+
+    for (let row = win.r0; row <= win.r1; row++) {
+      let seed = west;
+      for (let col = win.c0; col <= win.c1; col++) {
+        const i = (row - win.r0) * ox + (col - win.c0);
+        const at = latLonAt(grid, col, row);
+        if (!at) {
+          lats[i] = lastLat;
+          lons[i] = lastLon;
+          continue;
+        }
+        const [lat, lon] = at;
+        lats[i] = lat;
+        lons[i] = lon;
+        lastLat = lat;
+        lastLon = lon;
+        if (!inBox(lat, lon, box)) continue;
+        seed = cellAt(column.geo, lat, lon, seed);
+        if (col === win.c0) west = seed;
+        const mb = pressure[row * grid.nx + col];
+        if (Number.isNaN(mb)) continue;
+        values[i] = -column.tempAt(seed, mb);
+      }
+    }
+
+    return {
+      nx: ox,
+      ny: oy,
+      values,
+      geo: { nx: ox, ny: oy, lats, lons },
+    };
+  }
+
+  /**
+   * Fold the 2 km scene onto the 3 km grid the join scores liquid on, and
+   * convert each cell's pressure to a temperature.
    *
    * Mapped **grid cell → pixel**, not the other way round. The forward
-   * geostationary projection is exact arithmetic, so 118k cells each index
-   * straight into the image; going pixel-first would mean searching 3.75M
-   * pixels for their nearest cell.
+   * geostationary projection is exact arithmetic, so each HRRR cell indexes
+   * straight into the image.
    *
    * **A cell is cloudy only if most of its pixels are.** The alternative — any
-   * cloudy pixel makes the cell cloudy — would inflate coverage at 12 km and
-   * paint solid cloud over scattered cumulus. A majority needs no tuning
-   * constant, and scattered cloud under half a 12 km box is not a target a
-   * drone is sent to.
+   * cloudy pixel makes the cell cloudy — would inflate coverage and paint solid
+   * cloud over scattered cumulus. A majority needs no tuning constant, and
+   * scattered cloud under half a 3 km box is not a target a drone is sent to.
    */
   private resample(
     grid: AbiGrid,
@@ -382,7 +471,7 @@ export class CloudTopService {
 export const Goes = new CloudTopService();
 
 /**
- * The sidebar's numbers, against the same 12 km grid the contours are drawn
+ * The sidebar's numbers, against the same 2 km scene the contours are drawn
  * from so the picture and the figures cannot disagree.
  */
 export function summarize(
@@ -410,7 +499,7 @@ export function summarize(
     profileRun,
     cloudPct: Math.round((10000 * cloudy) / total) / 100,
     seedableTopPct: Math.round((10000 * seedable) / total) / 100,
-    seedableKm2: seedable * CELL_KM2,
+    seedableKm2: seedable * ABI_CELL_KM2,
     // Stored negated, reported as the temperature an operator reads.
     coldestTopC: cloudy === 0 ? null : Math.round(-coldest * 10) / 10,
   };

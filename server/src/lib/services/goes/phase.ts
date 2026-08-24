@@ -55,8 +55,8 @@ const ARCHIVE_CACHE = 8;
 /** The analysis hour, as everywhere the observed sources are read. */
 const ANALYSIS_HOUR = 0;
 
-/** GOES pixels across one 12 km cell, as the cloud-top service resamples. */
-const WINDOW = 6;
+/** GOES pixels across one 3 km HRRR cell, as the cloud-top service resamples. */
+const WINDOW = 2;
 
 /**
  * What the satellite can say about a cloud top, in the words this app uses.
@@ -66,7 +66,7 @@ const WINDOW = 6;
  * here depends on the order the product happens to list them in.
  *
  * The numbers are how a class rides on a `Float32Array` beside every other
- * field on the 12 km grid, and they are nobody's vocabulary but this file's —
+ * field on the 3 km grid, and they are nobody's vocabulary but this file's —
  * the join and the panel speak in names.
  */
 export const PHASE = {
@@ -86,7 +86,7 @@ export const PHASE_NAMES = Object.keys(PHASE) as CloudPhase[];
 /**
  * Coldest first, and `unknown` last.
  *
- * This is the order a tie between two classes over one 12 km cell is settled
+ * This is the order a tie between two classes over one 3 km cell is settled
  * in. Ties are broken toward the colder class so the answer never flatters the
  * model: reading "ice" where it was a coin toss between ice and supercooled
  * costs a candidate its confirmation, and reading "supercooled" the same way
@@ -119,7 +119,7 @@ export class CloudPhaseService {
   private archiveInflight = new Map<string, Promise<Scene>>();
 
   /**
-   * Observed cloud-top phase on the 12 km grid, as the codes above.
+   * Observed cloud-top phase on the 3 km grid, as the codes above.
    *
    * The scan's own time rides along because the join reports it: an observed
    * check is only worth what its currency is, and a phase scan from 40 minutes
@@ -259,7 +259,7 @@ export function classify(
 }
 
 /**
- * Fold the 2 km scene onto the 12 km grid every other field sits on.
+ * Fold the 2 km scene onto the 3 km grid the join scores liquid on.
  *
  * Mapped **grid cell → pixel**, like the cloud-top service and for the same
  * reason: the forward geostationary projection is exact arithmetic, so each

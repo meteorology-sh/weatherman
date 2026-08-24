@@ -11,6 +11,8 @@ import type {
   RadarStats,
   Sounding,
 } from "@/lib/types";
+import { boxParams, INITIAL_BOX } from "@/lib/bbox";
+import type { MapBox } from "@/lib/bbox";
 
 export async function GetForecastMeta(): Promise<ForecastMeta> {
   const res = await fetch("/forecast/meta");
@@ -26,24 +28,39 @@ export async function GetForecastMeta(): Promise<ForecastMeta> {
  * GeoJSONLayer fetches these itself rather than routing them through Redux —
  * the same reasoning that keeps GIBS tiles out of the store.
  */
-export function ForecastCloudsUrl(hour: number): string {
-  return `/forecast/clouds?${new URLSearchParams({ hour: String(hour) })}`;
+export function ForecastCloudsUrl(hour: number, box: MapBox = INITIAL_BOX): string {
+  return `/forecast/clouds?${new URLSearchParams({
+    hour: String(hour),
+    ...boxParams(box),
+  })}`;
 }
 
-export function ForecastPrecipUrl(hour: number): string {
-  return `/forecast/precip?${new URLSearchParams({ hour: String(hour) })}`;
+export function ForecastPrecipUrl(hour: number, box: MapBox = INITIAL_BOX): string {
+  return `/forecast/precip?${new URLSearchParams({
+    hour: String(hour),
+    ...boxParams(box),
+  })}`;
 }
 
-export function ForecastLiquidUrl(hour: number): string {
-  return `/forecast/liquid?${new URLSearchParams({ hour: String(hour) })}`;
+export function ForecastLiquidUrl(hour: number, box: MapBox = INITIAL_BOX): string {
+  return `/forecast/liquid?${new URLSearchParams({
+    hour: String(hour),
+    ...boxParams(box),
+  })}`;
 }
 
 /**
  * Cloud base, banded server-side. Pinned to the analysis hour on the candidate
  * map, like the liquid-water layer, so nothing repoints this url.
  */
-export function ForecastCloudBaseUrl(hour: number): string {
-  return `/forecast/cloudbase?${new URLSearchParams({ hour: String(hour) })}`;
+export function ForecastCloudBaseUrl(
+  hour: number,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/forecast/cloudbase?${new URLSearchParams({
+    hour: String(hour),
+    ...boxParams(box),
+  })}`;
 }
 
 /** The same build's summary. Asking for it also warms the server's build. */
@@ -113,26 +130,38 @@ export async function GetSounding(
  * No `hour`, unlike the other HRRR routes: the join leans on an observed cloud
  * top and a satellite cannot forecast, so it exists at the analysis hour only.
  */
-export function CandidateFieldUrl(): string {
-  return "/candidate/field";
+export function CandidateFieldUrl(box: MapBox = INITIAL_BOX): string {
+  return `/candidate/field?${new URLSearchParams(boxParams(box))}`;
 }
 
 /** The same field at a past hour. `at` names the HRRR cycle to replay. */
-export function ReplayCandidateUrl(at: string): string {
-  return `/candidate/field?${new URLSearchParams({ at })}`;
+export function ReplayCandidateUrl(
+  at: string,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/candidate/field?${new URLSearchParams({
+    at,
+    ...boxParams(box),
+  })}`;
 }
 
 /**
  * The outline around the part of that field the satellite still sees liquid at
  * the top of. Same build, drawn over the field rather than instead of it.
  */
-export function CandidateConfirmedUrl(): string {
-  return "/candidate/field/confirmed";
+export function CandidateConfirmedUrl(box: MapBox = INITIAL_BOX): string {
+  return `/candidate/field/confirmed?${new URLSearchParams(boxParams(box))}`;
 }
 
 /** The same outline at a past hour. */
-export function ReplayConfirmedUrl(at: string): string {
-  return `/candidate/field/confirmed?${new URLSearchParams({ at })}`;
+export function ReplayConfirmedUrl(
+  at: string,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/candidate/field/confirmed?${new URLSearchParams({
+    at,
+    ...boxParams(box),
+  })}`;
 }
 
 /** The same build's summary. Asking for it also warms the server's build. */
@@ -222,8 +251,8 @@ export async function GetDomain(): Promise<DomainRing> {
  * no run, for the same reason the radar route has neither: this is whatever the
  * satellite scanned a few minutes ago, and the frame carries its own scan time.
  */
-export function CloudTopUrl(): string {
-  return "/cloudtop/temperature";
+export function CloudTopUrl(box: MapBox = INITIAL_BOX): string {
+  return `/cloudtop/temperature?${new URLSearchParams(boxParams(box))}`;
 }
 
 /**
@@ -233,23 +262,48 @@ export function CloudTopUrl(): string {
  * every route treats its absence as "live", so these builders exist to keep the
  * parameter spelled one way rather than to reach different endpoints.
  */
-export function ReplayCloudTopUrl(at: string): string {
-  return `/cloudtop/temperature?${new URLSearchParams({ at })}`;
-}
-
-export function ReplayLiquidUrl(at: string, hour = 0): string {
-  return `/forecast/liquid?${new URLSearchParams({ hour: String(hour), at })}`;
-}
-
-export function ReplayCloudBaseUrl(at: string, hour = 0): string {
-  return `/forecast/cloudbase?${new URLSearchParams({
-    hour: String(hour),
+export function ReplayCloudTopUrl(
+  at: string,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/cloudtop/temperature?${new URLSearchParams({
     at,
+    ...boxParams(box),
   })}`;
 }
 
-export function ReplayRadarUrl(at: string): string {
-  return `/radar/reflectivity?${new URLSearchParams({ at })}`;
+export function ReplayLiquidUrl(
+  at: string,
+  hour = 0,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/forecast/liquid?${new URLSearchParams({
+    hour: String(hour),
+    at,
+    ...boxParams(box),
+  })}`;
+}
+
+export function ReplayCloudBaseUrl(
+  at: string,
+  hour = 0,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/forecast/cloudbase?${new URLSearchParams({
+    hour: String(hour),
+    at,
+    ...boxParams(box),
+  })}`;
+}
+
+export function ReplayRadarUrl(
+  at: string,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/radar/reflectivity?${new URLSearchParams({
+    at,
+    ...boxParams(box),
+  })}`;
 }
 
 /** The same scene's summary. Asking for it also warms the server's build. */
@@ -271,8 +325,8 @@ export async function GetCloudTopStats(at?: string): Promise<CloudTopStats> {
  * and no run: a radar scene is whatever the network saw a few minutes ago, and
  * the frame carries its own valid time.
  */
-export function RadarReflectivityUrl(): string {
-  return "/radar/reflectivity";
+export function RadarReflectivityUrl(box: MapBox = INITIAL_BOX): string {
+  return `/radar/reflectivity?${new URLSearchParams(boxParams(box))}`;
 }
 
 /** The same scene's summary. Asking for it also warms the server's build. */

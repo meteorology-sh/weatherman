@@ -3,7 +3,7 @@ import express, { Request, Response } from "express";
 
 // Services
 import { Seedability } from "../lib/services/candidate/field";
-import { OutsideDomain } from "../lib/services/shared/grid";
+import { OutsideDomain, parseBox } from "../lib/services/shared/grid";
 import { parseAt } from "../lib/services/shared/replay";
 
 export const candidate = express.Router();
@@ -15,7 +15,10 @@ export const candidate = express.Router();
 // first pays.
 candidate.get("/field", async (req: Request, res: Response) => {
   try {
-    const frame = await Seedability.field(parseAt(req.query.at));
+    const frame = await Seedability.field(
+      parseAt(req.query.at),
+      parseBox(req.query)
+    );
     res.send(frame);
   } catch (error) {
     res
@@ -29,7 +32,10 @@ candidate.get("/field", async (req: Request, res: Response) => {
 // and never subsets it, so both are drawn and neither is a filter on the other.
 candidate.get("/field/confirmed", async (req: Request, res: Response) => {
   try {
-    const frame = await Seedability.confirmedField(parseAt(req.query.at));
+    const frame = await Seedability.confirmedField(
+      parseAt(req.query.at),
+      parseBox(req.query)
+    );
     res.send(frame);
   } catch (error) {
     res
@@ -49,7 +55,7 @@ candidate.get("/field/stats", async (req: Request, res: Response) => {
   }
 });
 
-// The same join, read over the 12 km cell a click landed in. It comes off the
+// The same join, read over the 3 km cell a click landed in. It comes off the
 // cached build the map is drawing, so the panel and the picture cannot disagree
 // about a cell.
 candidate.get("/point", async (req: Request, res: Response) => {

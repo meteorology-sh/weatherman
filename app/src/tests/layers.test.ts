@@ -10,9 +10,17 @@ import {
   CandidateRadarLayer,
 } from "@/lib/arcgis/layers";
 
+const BOX = {
+  west: "-107",
+  east: "-93",
+  south: "25.5",
+  north: "37",
+};
+
 describe("GOES cloud-top layer", () => {
   it("reads the banded scene from our own server, not from GIBS", () => {
     expect(CandidateCloudTopLayer.url).toBe("/cloudtop/temperature");
+    expect(CandidateCloudTopLayer.customParameters).toEqual(BOX);
   });
 
   // The layer this replaced was a raster, and a raster has no nodata. Declaring
@@ -41,7 +49,10 @@ describe("HRRR cloud-base layer", () => {
   // it lands rather than on the url it was written on.
   it("reads the analysis hour from our own server", () => {
     expect(CandidateCloudBaseLayer.url).toBe("/forecast/cloudbase");
-    expect(CandidateCloudBaseLayer.customParameters).toEqual({ hour: "0" });
+    expect(CandidateCloudBaseLayer.customParameters).toEqual({
+      hour: "0",
+      ...BOX,
+    });
   });
 
   // The field has real nodata — most of the domain has no cloud — so the
@@ -108,7 +119,10 @@ describe("HRRR contour layers", () => {
   // actually lands — reading `url` alone would pass while the hour went missing.
   it("pins the liquid layer to the analysis hour", () => {
     expect(CandidateLiquidLayer.url).toBe("/forecast/liquid");
-    expect(CandidateLiquidLayer.customParameters).toEqual({ hour: "0" });
+    expect(CandidateLiquidLayer.customParameters).toEqual({
+      hour: "0",
+      ...BOX,
+    });
   });
 });
 
@@ -138,8 +152,8 @@ describe("MRMS radar layer", () => {
    * Contours, not NOAA's ready-made image service of the same data. An image
    * cannot composite with the liquid-water layer underneath it, and reading
    * cyan against amber is the whole reason this layer is on the candidate map.
-   * MRMS samples at 1 km, so a 12 km block average removes structure rather
-   * than inventing it — which is what earns this field a surface at all.
+   * MRMS samples at 1 km, so contouring that mosaic removes no structure and
+   * invents none — which is what earns this field a surface at all.
    */
   it("draws a surface, which its sampling density earns", () => {
     expect(CandidateRadarLayer.geometryType).not.toBe("point");
@@ -147,15 +161,16 @@ describe("MRMS radar layer", () => {
 
   // A scene, not a forecast: no run and no hour to ask for. A query string here
   // would be split into customParameters rather than staying on the url.
-  it("asks for whatever scene is current", () => {
-    expect(CandidateRadarLayer.url).not.toContain("?");
-    expect(CandidateRadarLayer.customParameters).toBeFalsy();
+  it("asks for the current scene in the window the map can paint", () => {
+    expect(CandidateRadarLayer.url).toBe("/radar/reflectivity");
+    expect(CandidateRadarLayer.customParameters).toEqual(BOX);
   });
 });
 
 describe("CandidateFieldLayer", () => {
   it("points at the joined field", () => {
     expect(CandidateFieldLayer.url).toBe("/candidate/field");
+    expect(CandidateFieldLayer.customParameters).toEqual(BOX);
   });
 
   // The renderer matches on this field, and the layer starts empty on a day

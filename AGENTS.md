@@ -550,7 +550,7 @@ server/src/
                            #   contour.ts      marching squares, features(),
                            #                   bandFeatures(), the frame shape
                            #   grib.ts         eccodes, streaming values
-                           #   grid.ts         the 12 km grid + block averaging
+                           #   grid.ts         the 3 km HRRR grid + averaging helpers
                            #   replay.ts       the `at` parameter
     data/                  # (optional) on-disk JSON datasets read by services
   tests/                   # All test files (.test.ts)

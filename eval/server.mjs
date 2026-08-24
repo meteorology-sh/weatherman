@@ -258,11 +258,9 @@ const forDate = (template, date) => template.replace("{date}", date);
 /**
  * A set of measured distances, as the few numbers worth quoting.
  *
- * **One cell is the yardstick, not a judgement about seeding.** The layers are
- * contoured on a 12 km grid, so the map cannot resolve anything finer, and a
- * release within a cell of the paint is inside it as far as this map can tell.
- * Two cells is carried as the next honest step out. Neither is a claim about how
- * near an aircraft ought to be.
+ * **Inside is inside the contour.** Native cell size is the next honest step
+ * out, not a second definition of inside. Two cells is carried as the step
+ * after that. Neither is a claim about how near an aircraft ought to be.
  */
 function summarise(measured, cell) {
   const kms = measured.map((near) => near.km).sort((a, b) => a - b);
@@ -308,17 +306,26 @@ function offsets(flares) {
  * figure quoted anywhere has to come from one place, or the map and the prose
  * drift apart while both look right.
  */
+function cellOf(painted, layer) {
+  if (painted.cellKm && typeof painted.cellKm === "object") {
+    return layer.cellKm ?? painted.cellKm[layer.key] ?? 3;
+  }
+  return layer.cellKm ?? painted.cellKm ?? 3;
+}
+
 function proximity(painted) {
   const flares = flaresOf(painted);
-  const cell = painted.cellKm;
   const layers = {};
 
   for (const layer of painted.layers ?? []) {
-    layers[layer.key] = summarise(measuredAgainst(flares, layer.key), cell);
+    layers[layer.key] = summarise(
+      measuredAgainst(flares, layer.key),
+      cellOf(painted, layer)
+    );
   }
 
   return {
-    cellKm: cell,
+    cellKm: painted.cellKm,
     flares: flares.length,
     layers,
     // The point of printing it is that it bounds what the drift correction

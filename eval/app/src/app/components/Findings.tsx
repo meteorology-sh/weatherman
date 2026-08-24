@@ -153,17 +153,18 @@ export const Findings = () => {
               QUESTION 2 — {near ? "MEASURED" : "NOT MEASURED HERE YET"}
             </div>
             <h2 className="card-title">
-              Do the flares fall inside what we paint?
+              Do the flares fall inside the layers we draw?
             </h2>
             {near ? (
               <>
                 <p className="text-sm">
                   {near.flares} releases over {near.days} of {near.flying}{" "}
                   flying days. Each bar is this programme's season against one
-                  layer — inside is overlap, the number on the right is how far
+                  layer — inside is inside the contour after storm-motion drift
+                  to that layer's own scan. The number on the right is how far
                   a typical release sat from that layer.
                 </p>
-                <LayerCoverage cellKm={near.cellKm} layers={near.layers} />
+                <LayerCoverage layers={near.layers} />
                 <Link
                   to={`/${region}/flares`}
                   className="btn btn-sm btn-outline self-start"

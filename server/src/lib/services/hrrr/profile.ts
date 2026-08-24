@@ -41,7 +41,7 @@ export const SCOUT_LADDER_MB = [300, 400, 500, 600, 700, 800, 900, 1000];
  * in the domain", which is a false negative rather than a small error.
  *
  * They are set from the temperature, not from an altitude convention. Measured
- * on a real August analysis, the warmest 12 km cell at 400 mb was **−13.4 °C** —
+ * on a real August analysis, the warmest 3 km cell at 400 mb was **−13.4 °C** —
  * only 1.4 °C of margin against the −12 °C edge of the band, which is thin
  * enough that a hotter airmass could push the band's top above a 400 mb ceiling.
  * 300 mb (~30,000 ft) puts ~10 °C between the band and the ceiling. The floor is
@@ -87,7 +87,7 @@ const STEP_MB = 50;
  * **Build wide, display narrow.** The sounding panel wants 300 mb because that
  * is where a drone's target altitudes live and levels above it are noise on the
  * readout. The cloud-top layer wants far more: anvil and cirrus sit at
- * 100–300 mb routinely, and roughly half of all cloudy 12 km cells have tops
+ * 100–300 mb routinely, and roughly half of all cloudy 3 km cells have tops
  * above 300 mb. A 300 mb ceiling clamps every one of them to the same
  * temperature and piles most of the grid into a single bin.
  *

@@ -262,7 +262,7 @@ export type LayerProximity = {
 };
 
 export type Proximity = {
-  cellKm: number;
+  cellKm: number | Record<string, number>;
   flares: number;
   layers: Record<string, LayerProximity>;
   offset: { median: number; worst: number } | null;
@@ -275,7 +275,7 @@ export type Proximity = {
  * `rows` is one summary per painted day; the page does not re-derive either.
  */
 export type NearFinding = {
-  cellKm: number;
+  cellKm: number | Record<string, number>;
   days: number;
   flying: number;
   flares: number;
@@ -289,9 +289,15 @@ export type Painted = {
   date: string;
   region: string;
   window: { west: number; east: number; south: number; north: number };
-  /** The grid the layers are contoured on — the yardstick for "near". */
-  cellKm: number;
-  layers: { key: string; name: string; property: string; unit: string }[];
+  /** Native cell size per layer, km. Older files carry a single number. */
+  cellKm: number | Record<string, number>;
+  layers: {
+    key: string;
+    name: string;
+    property: string;
+    unit: string;
+    cellKm?: number;
+  }[];
   hours: string[];
   /** By hour, then by layer key. */
   frames: Record<string, Record<string, Frame>>;

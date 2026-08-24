@@ -19,7 +19,7 @@ import {
   BLOCK_NO_COVERAGE,
   BLOCK_NO_ECHO,
   RAIN_DBZ,
-  blockIndex,
+  mosaicIndex,
 } from "../mrms/radar";
 import { CELL_KM2 } from "../shared/grid";
 import { BASE_WINDOW_FT, bearing } from "../hrrr/diagnostics";
@@ -117,7 +117,7 @@ export type CandidatePoint = {
   radarTime: string;
   /** Start of the phase scan. Null where no scene could be read. */
   phaseTime: string | null;
-  /** The 12 km cell sampled — not the click, which is finer than the grid. */
+  /** The 3 km cell sampled — not the click, which is finer than the grid. */
   lat: number;
   lon: number;
   verdict: Verdict;
@@ -262,18 +262,23 @@ export type Join = {
 /**
  * Sample the radar mosaic onto the HRRR grid.
  *
- * The mosaic is a regular lat/lon grid and HRRR's is Lambert, so the two arrays
- * do not line up cell for cell and the join cannot assume they do. Both are
- * ~12 km, so taking the block each HRRR cell's centre falls in resamples one
- * grid onto another of the same spacing — no interpolation, and no structure
- * invented (`MEASUREMENTS.md` §3).
+ * The mosaic is a regular 1 km lat/lon grid and HRRR's is 3 km Lambert, so the
+ * two arrays do not line up cell for cell and the join cannot assume they do.
+ * Taking the 1 km cell each HRRR centre falls in resamples the finer grid onto
+ * the coarser one — no interpolation, and no structure invented
+ * (`MEASUREMENTS.md` §3).
  *
  * A cell outside the mosaic's box reads as no coverage, which is what it is.
  */
 export function sampleRadar(mosaic: Grid, geo: Geo): Float32Array {
   const out = new Float32Array(geo.lats.length).fill(BLOCK_NO_COVERAGE);
   for (let cell = 0; cell < geo.lats.length; cell++) {
-    const k = blockIndex(geo.lats[cell], geo.lons[cell]);
+    const k = mosaicIndex(
+      geo.lats[cell],
+      geo.lons[cell],
+      mosaic.nx,
+      mosaic.ny
+    );
     if (k >= 0) out[cell] = mosaic.values[k];
   }
   return out;

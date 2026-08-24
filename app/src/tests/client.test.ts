@@ -87,21 +87,29 @@ describe("GetLiquidStats", () => {
 
 describe("ForecastCloudsUrl", () => {
   it("builds a relative url so the proxy routes it", () => {
-    expect(ForecastCloudsUrl(0)).toBe("/forecast/clouds?hour=0");
+    expect(ForecastCloudsUrl(0)).toBe(
+      "/forecast/clouds?hour=0&west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   it("carries the requested hour", () => {
-    expect(ForecastCloudsUrl(12)).toBe("/forecast/clouds?hour=12");
+    expect(ForecastCloudsUrl(12)).toBe(
+      "/forecast/clouds?hour=12&west=-107&east=-93&south=25.5&north=37"
+    );
   });
 });
 
 describe("ForecastPrecipUrl", () => {
   it("builds a relative url so the proxy routes it", () => {
-    expect(ForecastPrecipUrl(1)).toBe("/forecast/precip?hour=1");
+    expect(ForecastPrecipUrl(1)).toBe(
+      "/forecast/precip?hour=1&west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   it("carries the requested hour", () => {
-    expect(ForecastPrecipUrl(12)).toBe("/forecast/precip?hour=12");
+    expect(ForecastPrecipUrl(12)).toBe(
+      "/forecast/precip?hour=12&west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   it("asks a different route than the cloud frame", () => {
@@ -142,7 +150,9 @@ describe("GetCloudBaseStats", () => {
 
 describe("ForecastCloudBaseUrl", () => {
   it("builds a relative url so the proxy routes it", () => {
-    expect(ForecastCloudBaseUrl(0)).toBe("/forecast/cloudbase?hour=0");
+    expect(ForecastCloudBaseUrl(0)).toBe(
+      "/forecast/cloudbase?hour=0&west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   // One cached server build serves both, but they are separate routes: the
@@ -156,7 +166,9 @@ describe("ForecastCloudBaseUrl", () => {
 
 describe("ForecastLiquidUrl", () => {
   it("builds a relative url so the proxy routes it", () => {
-    expect(ForecastLiquidUrl(0)).toBe("/forecast/liquid?hour=0");
+    expect(ForecastLiquidUrl(0)).toBe(
+      "/forecast/liquid?hour=0&west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   // The frame and the stats come from one cached server build, but they are
@@ -168,13 +180,13 @@ describe("ForecastLiquidUrl", () => {
 
 describe("RadarReflectivityUrl", () => {
   it("builds a relative url so the proxy routes it", () => {
-    expect(RadarReflectivityUrl()).toBe("/radar/reflectivity");
+    expect(RadarReflectivityUrl()).toBe(
+      "/radar/reflectivity?west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
-  // A radar scene has no run and no forecast hour, and a query string here
-  // would be stripped into ArcGIS's customParameters rather than the url.
-  it("takes no parameters, because a scene is whatever is current", () => {
-    expect(RadarReflectivityUrl()).not.toContain("?");
+  it("names the window the map can paint", () => {
+    expect(RadarReflectivityUrl()).toContain("west=-107");
   });
 });
 
@@ -309,7 +321,9 @@ describe("cloud tops", () => {
   // A scene has no run and no hour to ask for — the frame carries its own scan
   // time, exactly like the radar mosaic.
   it("points the layer at the banded scene with no parameters", () => {
-    expect(CloudTopUrl()).toBe("/cloudtop/temperature");
+    expect(CloudTopUrl()).toBe(
+      "/cloudtop/temperature?west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   it("fetches the summary from its own route", async () => {
@@ -369,24 +383,28 @@ describe("GetCandidateStats", () => {
 
 describe("candidate field urls", () => {
   it("names the live field without a date", () => {
-    expect(CandidateFieldUrl()).toBe("/candidate/field");
+    expect(CandidateFieldUrl()).toBe(
+      "/candidate/field?west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   it("names a replayed field by its hour", () => {
     expect(ReplayCandidateUrl("2025-05-15T18:00:00.000Z")).toBe(
-      "/candidate/field?at=2025-05-15T18%3A00%3A00.000Z"
+      "/candidate/field?at=2025-05-15T18%3A00%3A00.000Z&west=-107&east=-93&south=25.5&north=37"
     );
   });
 
   // A second trace of the same build, not a subset of the field's route — the
   // outline is drawn over the field rather than instead of it.
   it("names the observed outline on its own route", () => {
-    expect(CandidateConfirmedUrl()).toBe("/candidate/field/confirmed");
+    expect(CandidateConfirmedUrl()).toBe(
+      "/candidate/field/confirmed?west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   it("names a replayed outline by its hour", () => {
     expect(ReplayConfirmedUrl("2025-05-15T18:00:00.000Z")).toBe(
-      "/candidate/field/confirmed?at=2025-05-15T18%3A00%3A00.000Z"
+      "/candidate/field/confirmed?at=2025-05-15T18%3A00%3A00.000Z&west=-107&east=-93&south=25.5&north=37"
     );
   });
 });

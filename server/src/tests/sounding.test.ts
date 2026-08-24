@@ -10,8 +10,11 @@ import {
 } from "../lib/services/hrrr/profile";
 import {
   cellAt,
+  clampBox,
+  crop,
   inGrid,
   nearestCell,
+  parseBox,
   perimeter,
 } from "../lib/services/shared/grid";
 
@@ -215,7 +218,7 @@ describe("the edge of the grid", () => {
   };
 
   it("covers a point inside the grid", () => {
-    assert.equal(inGrid(geo, 40.02, -99.02), true);
+    assert.equal(inGrid(geo, 40.001, -99.001), true);
   });
 
   // The bug this is here for: a click on the ocean used to snap to the nearest
@@ -224,9 +227,8 @@ describe("the edge of the grid", () => {
     assert.equal(inGrid(geo, 21, -158), false);
   });
 
-  // Cells are 12 km apart, so a point half a cell's diagonal out is the
-  // farthest one inside can be. A degree of latitude is ~111 km, so a tenth of
-  // a degree past the edge is ~11 km — outside.
+  // Cells in this toy are a degree apart; SNAP_KM is half a 3 km diagonal.
+  // A tenth of a degree past the edge is ~11 km — outside.
   it("does not cover a point just past the last cell", () => {
     assert.equal(inGrid(geo, 41.1, -99), false);
   });
@@ -261,6 +263,78 @@ describe("the edge of the grid", () => {
         true
       );
     }
+  });
+});
+
+describe("parseBox", () => {
+  it("falls back to the Texas window when the query is empty", () => {
+    const box = parseBox({});
+    assert.equal(box.west, -107);
+    assert.equal(box.east, -93);
+  });
+
+  it("reads a named window", () => {
+    const box = parseBox({
+      west: "-105",
+      east: "-95",
+      south: "28",
+      north: "35",
+    });
+    assert.deepEqual(box, { west: -105, east: -95, south: 28, north: 35 });
+  });
+
+  it("shrinks a country-scale box around its centre", () => {
+    const box = clampBox({
+      west: -125,
+      east: -70,
+      south: 25,
+      north: 50,
+    });
+    assert.ok(box.east - box.west <= 16);
+    assert.ok(box.north - box.south <= 14);
+  });
+});
+
+describe("crop", () => {
+  const geo = {
+    nx: 4,
+    ny: 3,
+    lats: Float32Array.from([30, 30, 30, 30, 31, 31, 31, 31, 32, 32, 32, 32]),
+    lons: Float32Array.from([
+      -102, -101, -100, -99, -102, -101, -100, -99, -102, -101, -100, -99,
+    ]),
+  };
+  const grid = {
+    nx: 4,
+    ny: 3,
+    values: Float32Array.from([0, 1, 2, 3, 10, 11, 12, 13, 20, 21, 22, 23]),
+  };
+
+  it("keeps the rectangle that covers the box", () => {
+    const cut = crop(grid, geo, {
+      west: -101.5,
+      east: -99.5,
+      south: 30.5,
+      north: 31.5,
+    });
+
+    assert.equal(cut.grid.nx, 4);
+    assert.equal(cut.grid.ny, 3);
+    assert.deepEqual(Array.from(cut.grid.values), Array.from(grid.values));
+  });
+
+  it("drops rows and columns outside the box", () => {
+    const cut = crop(grid, geo, {
+      west: -101.1,
+      east: -100.9,
+      south: 30.9,
+      north: 31.1,
+    });
+
+    // One cell, padded one on each side that exists.
+    assert.equal(cut.grid.nx, 3);
+    assert.equal(cut.grid.ny, 3);
+    assert.equal(cut.grid.values[4], 11);
   });
 });
 

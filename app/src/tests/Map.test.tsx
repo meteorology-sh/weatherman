@@ -54,12 +54,12 @@ import { ArcGIS } from "@/app/components/Map";
 import type { DomainRing } from "@/lib/types";
 
 describe("ArcGIS", () => {
-  it("centers a dark national map on the continental U.S.", () => {
+  it("centers a dark map on Texas", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     expect(map().basemap).toBe("dark-gray-vector");
-    expect(view().center).toEqual([-98.58, 39.83]);
-    expect(view().zoom).toBe(3);
+    expect(view().center).toEqual([-99.9, 31.4]);
+    expect(view().zoom).toBe(5);
   });
 
   it("builds the view only once across rerenders", () => {
@@ -324,7 +324,9 @@ describe("ArcGIS in forecast mode", () => {
   it("starts on the analysis hour", () => {
     renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
 
-    expect(forecastLayer.url).toBe("/forecast/clouds?hour=0");
+    expect(forecastLayer.url).toBe(
+      "/forecast/clouds?hour=0&west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   it("repoints the layer when the forecast hour changes", () => {
@@ -335,7 +337,9 @@ describe("ArcGIS in forecast mode", () => {
       store.dispatch(forecastActions.setHour(12));
     });
 
-    expect(forecastLayer.url).toBe("/forecast/clouds?hour=12");
+    expect(forecastLayer.url).toBe(
+      "/forecast/clouds?hour=12&west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   it("refreshes the layer so the new frame is drawn", () => {
@@ -458,7 +462,9 @@ describe("ArcGIS precipitation", () => {
     atHour(6);
 
     expect(precipLayer.visible).toBe(true);
-    expect(precipLayer.url).toBe("/forecast/precip?hour=6");
+    expect(precipLayer.url).toBe(
+      "/forecast/precip?hour=6&west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   // HRRR diagnoses PRATE by stepping forward, so f00 is zero everywhere. A
@@ -491,7 +497,9 @@ describe("ArcGIS precipitation", () => {
     renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
 
     expect(forecastLayer.visible).toBe(true);
-    expect(forecastLayer.url).toBe("/forecast/clouds?hour=0");
+    expect(forecastLayer.url).toBe(
+      "/forecast/clouds?hour=0&west=-107&east=-93&south=25.5&north=37"
+    );
   });
 
   it("hides precipitation when the operator turns it off", () => {

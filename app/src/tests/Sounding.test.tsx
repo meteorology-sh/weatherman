@@ -161,7 +161,7 @@ describe("Sounding", () => {
     expect(screen.queryByText(/starts below ground here/)).toBeNull();
   });
 
-  // The readout is about a 12 km cell, not about the pixel that was clicked,
+  // The readout is about a 3 km cell, not about the pixel that was clicked,
   // and saying otherwise would imply a precision the grid does not have.
   it("reports the cell it sampled, not the click", () => {
     withData();

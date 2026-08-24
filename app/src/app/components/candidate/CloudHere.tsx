@@ -59,7 +59,7 @@ const PHASE_READING: Record<CloudPhase, string> = {
  *
  * The layers below report their own field across the whole model domain, which
  * is a statement about the country. This is the same five tests asked of the
- * one 12 km cell an operator is looking at: what is in the cloud there, what
+ * one 3 km cell an operator is looking at: what is in the cloud there, what
  * ruled it out, when each source saw it and which cell it is.
  */
 export const CloudHere = () => {
@@ -153,9 +153,9 @@ export const CloudHere = () => {
       </div>
 
       <div className="text-xs">
-        Coordinates: {here.lat}, {here.lon}
-        <br />Time:
-        model {utc(here.run)}Z, satellite {utc(here.sceneTime)}Z, radar{" "}
+        {here.lat}, {here.lon} · the 3 km cell containing your click
+        <br />
+        Model {utc(here.run)}Z, satellite {utc(here.sceneTime)}Z, radar{" "}
         {utc(here.radarTime)}Z
         {here.phaseTime !== null && <>, phase {utc(here.phaseTime)}Z</>}.
       </div>

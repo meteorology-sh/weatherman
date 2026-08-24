@@ -231,79 +231,50 @@ describe("accumulate", () => {
       })
       .join("\n");
 
-  it("block-averages the 4x4 cells into one", () => {
-    const values = Array.from({ length: 16 }, (_, i) => i); // mean 7.5
+  it("keeps every native cell", () => {
+    const values = Array.from({ length: 16 }, (_, i) => i);
     const { grid } = accumulate(dump(values, 4), 1, 4, 4);
 
-    assert.equal(grid.nx, 1);
-    assert.equal(grid.ny, 1);
-    assert.equal(grid.values[0], 7.5);
+    assert.equal(grid.nx, 4);
+    assert.equal(grid.ny, 4);
+    assert.deepEqual(Array.from(grid.values), values);
   });
 
   // PRATE arrives as kg m-2 s-1; the map, the legend and the operator all talk
   // in mm/hr.
-  it("scales the block mean into the units we contour", () => {
-    const values = new Array(16).fill(2);
-    const { grid } = accumulate(dump(values, 4), 3600, 4, 4);
+  it("scales into the units we contour", () => {
+    const values = new Array(4).fill(2);
+    const { grid } = accumulate(dump(values, 2), 3600, 2, 2);
 
     assert.equal(grid.values[0], 7200);
   });
 
-  it("keeps the block's lat/lon centroid", () => {
-    const values = new Array(16).fill(1);
-    const { geo } = accumulate(dump(values, 4), 1, 4, 4);
+  it("keeps each point's lat/lon", () => {
+    const values = new Array(4).fill(1);
+    const { geo } = accumulate(dump(values, 2), 1, 2, 2);
 
-    assert.equal(geo.lats[0], 1.5);
-    assert.equal(geo.lons[0], 1.5);
+    assert.equal(geo.lats[0], 0);
+    assert.equal(geo.lons[0], 0);
+    assert.equal(geo.lats[3], 1);
+    assert.equal(geo.lons[3], 1);
   });
 
   it("folds longitudes past the antimeridian back into -180..180", () => {
-    const text =
-      "Latitude Longitude Value\n" +
-      new Array(16)
-        .fill(0)
-        .map(() => `40 260 1`)
-        .join("\n");
-    const { geo } = accumulate(text, 1, 4, 4);
+    const text = "Latitude Longitude Value\n40 260 1\n";
+    const { geo } = accumulate(text, 1, 1, 1);
 
     assert.equal(geo.lons[0], -100);
   });
 
   // We ask grib_get_data to print 9999 for absent values, so 9999 must be
-  // dropped rather than averaged in: it is finite, and would read as permanent
+  // dropped rather than drawn: it is finite, and would read as permanent
   // overcast or a cloudburst.
-  it("drops the missing sentinel instead of averaging it in", () => {
-    const values = [...new Array(15).fill(10), 9999];
-    const { grid } = accumulate(dump(values, 4), 1, 4, 4);
+  it("drops the missing sentinel instead of drawing it", () => {
+    const values = [10, 9999];
+    const { grid } = accumulate(dump(values, 2), 1, 2, 1);
 
     assert.equal(grid.values[0], 10);
-  });
-
-  // The location is good even where the value is not, so a missing row must
-  // still count toward the centroid or the block drifts.
-  it("keeps a missing point's location in the centroid", () => {
-    const values = [...new Array(15).fill(10), 9999];
-    const { geo } = accumulate(dump(values, 4), 1, 4, 4);
-
-    assert.equal(geo.lats[0], 1.5);
-    assert.equal(geo.lons[0], 1.5);
-  });
-
-  it("contours a fully missing block as nothing rather than as 9999", () => {
-    const values = new Array(16).fill(9999);
-    const { grid } = accumulate(dump(values, 4), 1, 4, 4);
-
-    assert.equal(grid.values[0], 0);
-  });
-
-  it("drops the partial block a non-multiple grid leaves over", () => {
-    // 6x6 at BLOCK 4 -> one 4x4 block; the ragged edge is not half-counted.
-    const values = new Array(36).fill(5);
-    const { grid } = accumulate(dump(values, 6), 1, 6, 6);
-
-    assert.equal(grid.nx, 1);
-    assert.equal(grid.ny, 1);
-    assert.equal(grid.values[0], 5);
+    assert.equal(grid.values[1], 0);
   });
 });
 

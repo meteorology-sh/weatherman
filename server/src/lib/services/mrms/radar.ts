@@ -5,6 +5,8 @@ import { promisify } from "util";
 // Services
 import { features } from "../shared/contour";
 import { eachMessage } from "../shared/grib";
+import { crop, DRAWN } from "../shared/grid";
+import type { LonLatBox } from "../shared/grid";
 
 // Types
 import type { Grid, Geo, ContourFeature } from "../shared/contour";
@@ -58,9 +60,8 @@ const LON0 = -129.995;
 const STEP = 0.01;
 
 /**
- * ~1 km -> ~12 km, matching the grid the HRRR layers contour on so the two
- * agree about how much detail a national map is allowed to show. Block
- * averaging removes structure; it never invents it.
+ * 1 km -> 12 km, kept for the averaging helper the tests drive. Contours and
+ * the join use the native mosaic; averaging is not on that path.
  */
 const BLOCK = 12;
 
@@ -94,11 +95,9 @@ export const BLOCK_NO_COVERAGE = -999;
 const REFLECTIVITY = {
   property: "reflectivity",
   /**
-   * dBZ. The NWS intensity classes, and measured against a real mosaic rather
-   * than chosen for round numbers: at 12 km, >=20 covers 1.41% of the box,
-   * >=30 0.36%, >=40 0.074%, >=50 0.008%. That is the same footprint the HRRR
-   * precipitation and liquid-water layers have, so the same faint stacked fills
-   * keep the map underneath readable.
+   * dBZ. The NWS intensity classes. Faint stacked fills keep the map
+   * underneath readable because rain is sparse; that is true at 1 km the same
+   * way it was at 12 km.
    */
   levels: [20, 30, 40, 50],
 } as const;
@@ -142,18 +141,18 @@ export type RadarStats = {
   echoPct: number;
   /** Ground at or above the lowest contour, km^2. */
   echoKm2: number;
-  /** Strongest 12 km cell, dBZ. Null when nothing reaches the lowest contour. */
+  /** Strongest 1 km cell, dBZ. Null when nothing reaches the lowest contour. */
   peakDbz: number | null;
 };
 
 /**
- * `grid` is the block-averaged mosaic the contours were traced from, kept
- * because the candidate join reads it — see `reflectivityField`.
+ * `grid` is the native mosaic the contours were traced from, kept because the
+ * candidate join reads it — see `reflectivityField`.
  */
 type Scene = { frame: RadarFrame; stats: RadarStats; grid: Grid };
 
 export class RadarService {
-  /** The block grid is fixed, so it is built once and reused for every scene. */
+  /** The mosaic grid is fixed, so it is built once and reused for every scene. */
   private geo: Geo | null = null;
   private cache: { scene: Scene; fetchedAt: number } | null = null;
   private inflight: Promise<Scene> | null = null;
@@ -161,8 +160,22 @@ export class RadarService {
   private archive = new Map<string, Scene>();
   private archiveInflight = new Map<string, Promise<Scene>>();
 
-  async reflectivity(at?: Date): Promise<RadarFrame> {
-    return (await this.scene(at)).frame;
+  async reflectivity(
+    at?: Date,
+    box: LonLatBox = DRAWN
+  ): Promise<RadarFrame> {
+    const scene = await this.scene(at);
+    if (!this.geo) return scene.frame;
+    const drawn = crop(scene.grid, this.geo, box);
+    return {
+      ...scene.frame,
+      features: features(
+        drawn.grid,
+        drawn.geo,
+        REFLECTIVITY.property,
+        REFLECTIVITY.levels
+      ),
+    };
   }
 
   /** The same build's summary. Asking for either warms both. */
@@ -302,7 +315,7 @@ export class RadarService {
         points: POINTS,
         onMessage: ([date, time], values) => {
           validTime = sceneTime(date, time);
-          grid = blockAverage(values);
+          grid = nativeGrid(values);
         },
       },
       "mrms"
@@ -310,18 +323,13 @@ export class RadarService {
 
     if (!grid) throw new Error("MRMS mosaic carried no message");
 
-    this.geo ??= blockGeo();
+    this.geo ??= nativeGeo();
 
     return {
       frame: {
         type: "FeatureCollection",
         validTime,
-        features: features(
-          grid,
-          this.geo,
-          REFLECTIVITY.property,
-          REFLECTIVITY.levels
-        ),
+        features: [],
       },
       stats: summarize(grid, this.geo, validTime),
       grid,
@@ -409,6 +417,64 @@ export function blockAverage(values: Float32Array, nx = NX, ny = NY): Grid {
 }
 
 /**
+ * Flip a north-up mosaic south-up and keep every 1 km cell.
+ *
+ * MRMS scans north to south; the shared contourer infers ring orientation from
+ * signed area, so a north-up grid would drop every exterior as a hole. The
+ * block-average helper flips for the same reason.
+ */
+export function nativeGrid(
+  values: Float32Array,
+  nx = NX,
+  ny = NY
+): Grid {
+  const out = new Float32Array(nx * ny);
+  for (let sj = 0; sj < ny; sj++) {
+    out.set(values.subarray(sj * nx, (sj + 1) * nx), (ny - 1 - sj) * nx);
+  }
+  return { nx, ny, values: out };
+}
+
+/**
+ * Lat/lon of each 1 km cell, south row first. The mosaic is a regular lat/lon
+ * grid, so this is arithmetic — no GRIB read required.
+ */
+export function nativeGeo(nx = NX, ny = NY): Geo {
+  const lats = new Float32Array(nx * ny);
+  const lons = new Float32Array(nx * ny);
+  for (let sj = 0; sj < ny; sj++) {
+    const lat = LAT0 - STEP * sj;
+    const oj = ny - 1 - sj;
+    for (let i = 0; i < nx; i++) {
+      const k = oj * nx + i;
+      lats[k] = lat;
+      lons[k] = LON0 + STEP * i;
+    }
+  }
+  return { nx, ny, lats, lons };
+}
+
+/**
+ * Index of the 1 km cell a point falls in, or -1 outside the mosaic's box.
+ *
+ * Nearest cell, and nothing between cells. Interpolating would invent structure
+ * the mosaic does not have (`MEASUREMENTS.md` §3). Rows are found in scan order
+ * — the mosaic runs north to south — and then flipped, because `nativeGrid`
+ * stores them south-up to match HRRR.
+ */
+export function mosaicIndex(
+  lat: number,
+  lon: number,
+  nx = NX,
+  ny = NY
+): number {
+  const sj = Math.round((LAT0 - lat) / STEP);
+  const i = Math.round((lon - LON0) / STEP);
+  if (sj < 0 || sj >= ny || i < 0 || i >= nx) return -1;
+  return (ny - 1 - sj) * nx + i;
+}
+
+/**
  * Lat/lon of each block's centre, south row first. The mosaic is a regular
  * lat/lon grid, so this is arithmetic — no GRIB read required.
  */
@@ -432,40 +498,12 @@ export function blockGeo(nx = NX, ny = NY): Geo {
 }
 
 /**
- * Index of the block a point falls in, or -1 outside the mosaic's box.
- *
- * The mosaic is a regular lat/lon grid, so this is arithmetic rather than the
- * scan `nearestCell` has to do on HRRR's Lambert grid — which is what makes
- * sampling the whole 118k-cell HRRR grid onto this one cheap enough to do on
- * every candidate build.
- *
- * **Nearest block, and nothing between blocks.** The two grids are both ~12 km,
- * so taking the block a cell's centre lands in resamples one grid onto another
- * of the same spacing. Interpolating between blocks would invent structure the
- * mosaic does not have, which is the rule `MEASUREMENTS.md` §3 sets.
- *
- * Rows are found in scan order — the mosaic runs north to south — and then
- * flipped, because `blockAverage` stores them south-up to match HRRR.
- */
-export function blockIndex(lat: number, lon: number, nx = NX, ny = NY): number {
-  const ox = Math.floor(nx / BLOCK);
-  const oy = Math.floor(ny / BLOCK);
-  const half = (BLOCK - 1) / 2;
-
-  const sj = Math.round((LAT0 - STEP * half - lat) / CELL_DEG);
-  const bi = Math.round((lon - LON0 - STEP * half) / CELL_DEG);
-  if (sj < 0 || sj >= oy || bi < 0 || bi >= ox) return -1;
-
-  return (oy - 1 - sj) * ox + bi;
-}
-
-/**
- * Ground covered by one block at a given latitude, km^2. A 0.12 degree cell is
- * ~13 km tall everywhere and ~10 km wide at 40 N, so a fixed figure would
- * overstate the area of everything north of the Gulf.
+ * Ground covered by one 1 km cell at a given latitude, km^2. A 0.01 degree
+ * cell is ~1.1 km tall everywhere and ~0.85 km wide at 40 N, so a fixed figure
+ * would overstate the area of everything north of the Gulf.
  */
 function cellKm2(lat: number): number {
-  const tall = CELL_DEG * KM_PER_DEG;
+  const tall = STEP * KM_PER_DEG;
   const wide = tall * Math.cos((lat * Math.PI) / 180);
   return tall * wide;
 }

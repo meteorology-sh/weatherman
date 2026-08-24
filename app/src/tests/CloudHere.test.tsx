@@ -127,12 +127,12 @@ describe("CloudHere", () => {
   });
 
   // The cell, not the click: reporting the click back would imply a precision
-  // the 12 km grid does not have.
+  // the 3 km grid does not have.
   it("reports the cell it read, and when each source saw it", () => {
     withPoint();
 
     expect(
-      screen.getByText(/32.05, -101.42 · the 12 km cell containing your click/)
+      screen.getByText(/32.05, -101.42 · the 3 km cell containing your click/)
     ).toBeTruthy();
     expect(
       screen.getByText(/Model 18:00Z, satellite 18:01Z, radar 18:00Z/)

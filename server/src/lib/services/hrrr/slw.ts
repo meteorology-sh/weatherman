@@ -20,7 +20,7 @@ import {
   index,
   pick,
 } from "./bytes";
-import { CELL_KM2, POINTS, blockAverage } from "../shared/grid";
+import { CELL_KM2, NX, NY, POINTS } from "../shared/grid";
 import {
   GRAVITY,
   LAYER_PA,
@@ -155,7 +155,7 @@ export async function buildSlw(
   );
   const grib = await fetchRanges(url, wanted, origin);
 
-  // kg/m^2 at the native 3 km grid; block-averaged to 12 km after.
+  // kg/m^2 at the native 3 km grid.
   const path = new Float32Array(POINTS);
   let temps: Float32Array | null = null;
   let topMb: number | null = null;
@@ -190,7 +190,8 @@ export async function buildSlw(
 
   // kg/m^2 -> g/m^2, which is the unit the seeding literature uses and the
   // one the contour levels are expressed in.
-  const grid = blockAverage(path, 1000);
+  for (let i = 0; i < path.length; i++) path[i] *= 1000;
+  const grid: Grid = { nx: NX, ny: NY, values: path };
 
   return {
     frame: frame(run, hour, await contour(grid, grib)),
@@ -278,7 +279,7 @@ export function stats(
     run: run.toISOString(),
     hour,
     validTime: new Date(run.getTime() + hour * 3_600_000).toISOString(),
-    // Reported against the same 12 km grid the contours are drawn from, so the
+    // Reported against the same 3 km grid the contours are drawn from, so the
     // number and the picture cannot disagree.
     coveragePct: Math.round((10000 * seedable) / total) / 100,
     seedableKm2: seedable * CELL_KM2,

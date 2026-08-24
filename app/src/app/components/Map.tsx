@@ -1,5 +1,5 @@
 // Hooks
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Store
 import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
@@ -13,6 +13,12 @@ import { insideRing } from "@/lib/geometry";
 import {
   ForecastCloudsUrl,
   ForecastPrecipUrl,
+  ForecastCloudBaseUrl,
+  ForecastLiquidUrl,
+  CloudTopUrl,
+  RadarReflectivityUrl,
+  CandidateFieldUrl,
+  CandidateConfirmedUrl,
   ReplayCandidateUrl,
   ReplayConfirmedUrl,
   ReplayCloudBaseUrl,
@@ -43,6 +49,11 @@ import {
   ReplayRadarLayer,
 } from "@/lib/arcgis/layers";
 import { PRECIP_FIRST_HOUR } from "@/lib/arcgis/bands";
+import {
+  INITIAL_BOX,
+  LAYER_MIN_ZOOM,
+  boxFromExtent,
+} from "@/lib/bbox";
 
 // Types
 import type { ClickEvent } from "@arcgis/core/views/input/types";
@@ -61,6 +72,9 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const drawnPrecipUrl = useRef<string | null>(null);
   const drawnReplayAt = useRef<string | null>(null);
   const drawnBuild = useRef<string | null>(null);
+  const drawnBoxKey = useRef<string | null>(null);
+  const [viewBox, setViewBox] = useState(INITIAL_BOX);
+  const [closeEnough, setCloseEnough] = useState(true);
 
   const dispatch = useAppDispatch();
   const coordinates = useAppSelector((state) => state.interactions.coordinates);
@@ -113,8 +127,8 @@ export const ArcGIS = ({ mode }: PropsT) => {
       const view = new MapView({
         container: mapDiv.current,
         map: map,
-        center: [-98.58, 39.83],
-        zoom: 3,
+        center: [-99.9, 31.4],
+        zoom: 5,
       });
       view.attributionVisible = false;
 
@@ -135,6 +149,32 @@ export const ArcGIS = ({ mode }: PropsT) => {
     }
   }, []);
 
+  // National grids stay on the server. The map only asks for the window it
+  // can paint, and only when zoomed in far enough that a native frame is a
+  // Texas-sized bite rather than the whole country.
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    const apply = () => {
+      const z = view.zoom ?? 0;
+      setCloseEnough(z >= LAYER_MIN_ZOOM);
+      if (z < LAYER_MIN_ZOOM) return;
+      const extent = view.extent as
+        | { xmin: number; ymin: number; xmax: number; ymax: number }
+        | undefined;
+      if (!extent) return;
+      setViewBox(boxFromExtent(extent));
+    };
+    apply();
+    const handle = reactiveUtils.watch(
+      () => view.stationary,
+      (stationary) => {
+        if (stationary) apply();
+      }
+    );
+    return () => handle.remove();
+  }, []);
+
   // Layer visibility is derived from the route's mode plus the store, in one
   // place. The forecast map is modelled contours; the candidate map is observed
   // cloud tops plus the analysis of what is inside the cloud. Both stay on the
@@ -149,24 +189,24 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const candidating = mode === "candidate";
 
   useEffect(() => {
-    ForecastCloudsLayer.visible = forecasting;
-    ForecastPrecipLayer.visible = raining && precip;
-    CandidateCloudBaseLayer.visible = candidating && cloudBase;
-    CandidateCloudTopLayer.visible = candidating && cloudTop;
-    CandidateLiquidLayer.visible = candidating && liquid;
+    ForecastCloudsLayer.visible = forecasting && closeEnough;
+    ForecastPrecipLayer.visible = raining && precip && closeEnough;
+    CandidateCloudBaseLayer.visible = candidating && cloudBase && closeEnough;
+    CandidateCloudTopLayer.visible = candidating && cloudTop && closeEnough;
+    CandidateLiquidLayer.visible = candidating && liquid && closeEnough;
     // Observations, so they never appear on the modelled map — the same rule
     // that keeps the satellite cloud tops off it.
-    CandidateRadarLayer.visible = candidating && radar;
+    CandidateRadarLayer.visible = candidating && radar && closeEnough;
     // The answer, drawn over its own inputs, and the observed outline over
     // that. One switch drives both: the outline says which part of the field
     // the satellite backs, which is meaningless without the field under it.
-    CandidateFieldLayer.visible = candidating && field;
-    CandidateConfirmedLayer.visible = candidating && field;
+    CandidateFieldLayer.visible = candidating && field && closeEnough;
+    CandidateConfirmedLayer.visible = candidating && field && closeEnough;
     // Gated on `ready`, not on the hour that was asked for. `setAt` clears
     // `ready`, so picking a date blanks the map immediately and it stays blank
     // until every source has answered — they take 10 s to 40 s and finish
     // apart, and revealing each as it landed showed two dates at once.
-    const drawable = replaying && ready !== null;
+    const drawable = replaying && ready !== null && closeEnough;
     ReplayCloudBaseLayer.visible = drawable && replayCloudBase;
     ReplayCloudTopLayer.visible = drawable && replayCloudTop;
     ReplayLiquidLayer.visible = drawable && replayLiquid;
@@ -190,6 +230,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     replayLiquid,
     replayRadar,
     replayField,
+    closeEnough,
   ]);
 
   // Point each forecast contour layer at the selected hour. Repointing the url
@@ -200,8 +241,8 @@ export const ArcGIS = ({ mode }: PropsT) => {
   //
   // The candidate liquid layer has no equivalent — it is pinned to the analysis
   // hour, so its constructor url is the only one it ever needs.
-  const cloudUrl = forecasting ? ForecastCloudsUrl(hour) : null;
-  const precipUrl = raining ? ForecastPrecipUrl(hour) : null;
+  const cloudUrl = forecasting ? ForecastCloudsUrl(hour, viewBox) : null;
+  const precipUrl = raining ? ForecastPrecipUrl(hour, viewBox) : null;
 
   useEffect(() => {
     if (cloudUrl === null || drawnCloudUrl.current === cloudUrl) return;
@@ -216,6 +257,27 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ForecastPrecipLayer.url = precipUrl;
     ForecastPrecipLayer.refresh();
   }, [precipUrl]);
+
+  // Live candidate layers are pinned to the analysis hour, but the window
+  // they contour follows the view. Repointing the url refetches that window
+  // off the same cached national build.
+  const boxKey = `${viewBox.west},${viewBox.east},${viewBox.south},${viewBox.north}`;
+  useEffect(() => {
+    if (drawnBoxKey.current === boxKey) return;
+    drawnBoxKey.current = boxKey;
+    CandidateCloudBaseLayer.url = ForecastCloudBaseUrl(0, viewBox);
+    CandidateCloudTopLayer.url = CloudTopUrl(viewBox);
+    CandidateLiquidLayer.url = ForecastLiquidUrl(0, viewBox);
+    CandidateRadarLayer.url = RadarReflectivityUrl(viewBox);
+    CandidateFieldLayer.url = CandidateFieldUrl(viewBox);
+    CandidateConfirmedLayer.url = CandidateConfirmedUrl(viewBox);
+    CandidateCloudBaseLayer.refresh();
+    CandidateCloudTopLayer.refresh();
+    CandidateLiquidLayer.refresh();
+    CandidateRadarLayer.refresh();
+    CandidateFieldLayer.refresh();
+    CandidateConfirmedLayer.refresh();
+  }, [boxKey, viewBox]);
 
   // Send the candidate layers after the build the store says is current.
   //
@@ -257,15 +319,16 @@ export const ArcGIS = ({ mode }: PropsT) => {
   // refetching the same frames.
   useEffect(() => {
     const at = ready;
-    if (at === null || drawnReplayAt.current === at) return;
-    drawnReplayAt.current = at;
+    const key = at === null ? null : `${at}:${boxKey}`;
+    if (at === null || drawnReplayAt.current === key) return;
+    drawnReplayAt.current = key;
 
-    ReplayCloudBaseLayer.url = ReplayCloudBaseUrl(at);
-    ReplayCloudTopLayer.url = ReplayCloudTopUrl(at);
-    ReplayLiquidLayer.url = ReplayLiquidUrl(at);
-    ReplayRadarLayer.url = ReplayRadarUrl(at);
-    ReplayFieldLayer.url = ReplayCandidateUrl(at);
-    ReplayConfirmedLayer.url = ReplayConfirmedUrl(at);
+    ReplayCloudBaseLayer.url = ReplayCloudBaseUrl(at, 0, viewBox);
+    ReplayCloudTopLayer.url = ReplayCloudTopUrl(at, viewBox);
+    ReplayLiquidLayer.url = ReplayLiquidUrl(at, 0, viewBox);
+    ReplayRadarLayer.url = ReplayRadarUrl(at, viewBox);
+    ReplayFieldLayer.url = ReplayCandidateUrl(at, viewBox);
+    ReplayConfirmedLayer.url = ReplayConfirmedUrl(at, viewBox);
 
     const map = mapRef.current;
     if (map && !map.layers.includes(ReplayCloudTopLayer)) {
@@ -287,7 +350,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayRadarLayer.refresh();
     ReplayFieldLayer.refresh();
     ReplayConfirmedLayer.refresh();
-  }, [ready]);
+  }, [ready, boxKey, viewBox]);
 
   // Surface "still drawing" so the slider can say so rather than looking stuck.
   useEffect(() => {
