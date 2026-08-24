@@ -2,7 +2,8 @@
  * Everything a map needs to show one flying day, in one file.
  *
  * `node eval/paint.mjs 2025-04-19 [--region=wtwma]` — with the Weatherman server
- * running. Writes `eval/out/painted-<date>.json`.
+ * running. Writes the name `data/regions.json` gives that programme, e.g.
+ * `eval/out/painted-2025-04-19.json` for West Texas.
  *
  * **It paints the product's own layers, not a layer invented for the page.**
  * Every one of the five is the same route the replay map fetches, at the same
@@ -174,7 +175,7 @@ const FETCH_ORDER = ["candidate", "liquid", "cloudBase", "cloudTop", "radar"];
 
 /* ---------- geometry ---------- */
 
-/** Three decimals is about 100 m, which is finer than a 12 km cell can justify. */
+/** Three decimals is about 100 m, finer than the 1 km radar cell. */
 const round = (value) => Math.round(value * 1000) / 1000;
 
 function inWindow([lon, lat]) {

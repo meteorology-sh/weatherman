@@ -329,7 +329,7 @@ map can say "this is the upwind quiet side of a live cell." It cannot say
 hourly would be a modelled hint, and it must be labelled as one.
 
 This is the geometry that makes Option 1 operationally real. Lifting the veto
-without flanks just paints the core they already see on TITAN.
+without flanks just draws the core they already see on TITAN.
 
 Test: distance from each flare to the upwind quiet side versus to the
 reflectivity maximum. If crews work flanks, the first distance is the one
@@ -437,8 +437,8 @@ this climb-rate call, against this model column**.
 
 That is the briefing tool a programme could use the next morning, and the
 publication figure for Finding 2 that is not a table. It is also how Option
-2–5 get developed: paint a day, look at the objects, see whether the flank
-geometry matches the radio log.
+2–5 get developed: look at a scored day, look at the objects, see whether
+the flank geometry matches the radio log.
 
 No new physics. The eval app is the prototype. The operator app should be
 able to do the same thing without a second codebase.
@@ -475,7 +475,7 @@ named.
 ## 6. Recommended sequence
 
 Do these in order. Each step is shippable without the next, and each is
-scored against the 2025 paints that already exist.
+scored against the 2025 comparison days that already exist.
 
 1. **Option 1 + 7.** Rain is drawn, not a veto. SLW is a reading on a point
    (and later a cell), not the thing that empties the map. This is the
@@ -525,7 +525,7 @@ days someone already decided to fly. The tests are:
 | Liquid remains an open check | SLW-inside rate, still reported, no longer a ship gate |
 | Rain is no longer a silent veto | Opportunity-with-rain-ignored is the headline; raining share is next to it |
 
-A change that raises flare overlap by painting every echo in Texas, or by
+A change that raises flare overlap by drawing every echo in Texas, or by
 dropping the liquid reading, has not worked. It has hidden the disagreement
 the evaluation found.
 

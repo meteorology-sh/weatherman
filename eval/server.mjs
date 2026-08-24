@@ -372,7 +372,10 @@ async function near({ region, seeded }) {
     layers: Object.fromEntries(
       layers.map((layer) => [
         layer.key,
-        summarise(measuredAgainst(all, layer.key), cell),
+        summarise(
+          measuredAgainst(all, layer.key),
+          cellOf(built[0].painted, layer)
+        ),
       ])
     ),
     offset: offsets(all),

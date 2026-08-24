@@ -7,19 +7,19 @@ there supercooled liquid water in the seeding band worth sending a drone to, and
 did seeding work. The system design lives outside this repo at
 `/home/nathan/code/rainmaker/weatherman`. This web app is the operator dashboard.
 
-**Scope is Texas, rainy season.** `CLAUDE.md` says how the code is written;
+**Scope is Texas, rainy season.** `AGENTS.md` says how the code is written;
 `MEASUREMENTS.md` says what the free feeds can and cannot answer, and holds the
 sampling rule that decides whether a proposed layer is honest at all. **Read
 `MEASUREMENTS.md` before adding a data source** — most of it rules things out.
 
 ## Standing rules
 
-- **No raster on any map, ever.** An image has no nodata: it paints clear sky
+- **No raster on any map, ever.** An image has no nodata: it fills clear sky
   opaquely and buries the basemap. Every layer is GeoJSON from our own server.
 - **No sampled field is interpolated past what it measured.** Each layer is
   drawn at native sampling — HRRR 3 km, GOES 2 km, MRMS 1 km. The server
   still builds the national grid; the map asks for one window of it, about
-  the size of Texas, and does not paint that window when zoomed out further.
+  the size of Texas, and does not draw that window when zoomed out further.
   Averaging removes structure and is fine; interpolating invents it and is
   not. The join samples GOES and MRMS onto HRRR's 3 km cells (majority /
   nearest), never the other way. Compare a variable's correlation length to

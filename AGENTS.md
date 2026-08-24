@@ -1,9 +1,9 @@
 # Weatherman — coding standards
 
 How this repository is written. **What it is and what its layers mean lives in
-`WEATHERMAN.md`; the physics and sampling limits live in `MEASUREMENTS.md`.**
-Read `WEATHERMAN.md` before touching a layer and `MEASUREMENTS.md` before adding
-a data source.
+`docs/WEATHERMAN.md`; the physics and sampling limits live in
+`docs/MEASUREMENTS.md`.** Read `docs/WEATHERMAN.md` before touching a layer and
+`docs/MEASUREMENTS.md` before adding a data source.
 
 A React SPA in `/app` and an Express API in `/server`, orchestrated with Docker
 Compose.
@@ -31,7 +31,7 @@ Compose.
   rounding them. This governs code comments, docs, commit messages and anything
   the operator reads.
 - **Name a thing by what it measures, not by its code.** The criterion labels
-  C1–C7 are planning shorthand. They belong in `PLAN.md`, `INVESTIGATION.md` and
+  C1–C7 are planning shorthand. They belong in `docs/INVESTIGATION.md` and
   the system design, and **nowhere in the app** — not in the UI, not in code
   comments, not in test names. A label is not a reason. Write the thing the
   criterion is about: "the seeding band has to lie between cloud base and cloud
@@ -39,7 +39,7 @@ Compose.
   are implementation rather than information.
 - **Docs are axioms, not logs.** State the rule that holds now. No "decided",
   "rejected", "verified", "was X until Y". Evidence and dates belong in
-  `PLAN.md`, `INVESTIGATION.md` and `EVALUATION.md`, which are allowed to argue.
+  `docs/INVESTIGATION.md` and `docs/EVALUATION.md`, which are allowed to argue.
 
 ## Repository layout
 
@@ -47,12 +47,10 @@ Compose.
 weatherman/
   app/                       # React SPA (Vite dev server, port 5173)
   server/                    # Express API (ts-node/nodemon, port 3000)
+  eval/                      # Evaluation harness
+  docs/                      # What the app is, the physics, the evaluation
   docker-compose.yaml        # Runs both services with bind mounts + HMR
-  CLAUDE.md                  # This file — how the code is written
-  WEATHERMAN.md              # What the app is, and what each layer claims
-  MEASUREMENTS.md            # Physics and sampling limits on any layer
-  PLAN.md / INVESTIGATION.md # Where the arguing happens
-  EVALUATION.md              # How the platform is tested against real seeding
+  AGENTS.md                  # This file — how the code is written
 ```
 
 ## Running it
@@ -164,7 +162,7 @@ app/src/
       legends.ts           #   Per layer: on-screen name, source, what it
                            #   measures, and what it does not tell you
       bands.ts             #   Contour levels, colours and labels per layer
-      renderers.ts         #   The ArcGIS symbols those bands are painted with
+      renderers.ts         #   The ArcGIS symbols those bands are drawn with
     context/               # One data provider per domain
     store/
       store.ts             # Singleton store + AppStore/RootState/AppDispatch
@@ -332,7 +330,7 @@ hand on both sides. Component prop types are declared locally as
 Both are GeoJSON from our own server, and the choice is not cosmetic:
 
 - **Nested contours** — `features()` server-side, stacked `Ramp` in the panel. An
-  area meeting the top level is painted by every band, so fills composite and
+  area meeting the top level is filled by every band, so fills composite and
   each stays faint. Use where the field's extremes are rare and "more" genuinely
   means "more".
 - **Disjoint bands** — `bandFeatures()` server-side, unstacked ramp. Exactly one
@@ -341,12 +339,12 @@ Both are GeoJSON from our own server, and the choice is not cosmetic:
 
 **Measure the coverage of each level before choosing.** Nesting only works where
 the extremes are rare; if every level covers a similar share of the grid the
-bands are four rings almost on top of each other painting a third of the map at
+bands are four rings almost on top of each other covering a third of the map at
 full opacity. A bimodal field takes disjoint bands.
 
 **The opacity ramp is not always quiet-to-loud, and is not always a ramp.** Take
 its shape from what the field means, not from a house style. `renderers.test.ts`
-pins the directions. Which layer uses which, and why, is in `WEATHERMAN.md`.
+pins the directions. Which layer uses which, and why, is in `docs/WEATHERMAN.md`.
 
 A third shape exists for sparse point sources: discrete classes on a marker ramp,
 each marker where the observation was, nothing interpolated between them. Nothing
@@ -692,7 +690,7 @@ runner; `/app` and `/server` differ on purpose, like their module systems.
    the reference for each layer.
 10. **Run it** — start both services and drive the actual page before calling it
     done. The suites fake ArcGIS and the network, so they cannot tell you whether
-    a layer painted, a URL 404s, or text is invisible against the background.
+    a layer appeared, a URL 404s, or text is invisible against the background.
 
 ## Ecosystem defaults that do not apply here
 
