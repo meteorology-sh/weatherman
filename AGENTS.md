@@ -23,13 +23,9 @@ Compose.
   rather than from its README.
 - **Follow the existing pattern.** Each layer below has one canonical example in
   the code. Copy its shape rather than inventing a parallel approach.
-- **Write in plain technical language.** Say it the way you would say it out loud
-  to another engineer. Short sentences, ordinary words, the direct verb — "this
-  reads the cloud base", not "this facilitates the ingestion of cloud-base data".
-  Keep every fact, name, number, file path, unit and threshold exactly as it is;
-  plain language is about the words around them, never about dropping or
-  rounding them. This governs code comments, docs, commit messages and anything
-  the operator reads.
+- **Write in plain technical language.** The rule below. It governs code
+  comments, docs, commit messages, anything the operator reads, and replies
+  about this work.
 - **Name a thing by what it measures, not by its code.** The criterion labels
   C1–C7 are planning shorthand. They belong in `docs/INVESTIGATION.md` and
   the system design, and **nowhere in the app** — not in the UI, not in code
@@ -40,6 +36,36 @@ Compose.
 - **Docs are axioms, not logs.** State the rule that holds now. No "decided",
   "rejected", "verified", "was X until Y". Evidence and dates belong in
   `docs/INVESTIGATION.md` and `docs/EVALUATION.md`, which are allowed to argue.
+
+## Written language
+
+A restricted form of technical English: ordinary words, one meaning each, the
+measurement instead of a nickname. Mean what you say. Say what you mean.
+
+The test: a reader who has never opened this repository can tell what every
+sentence is about, and what every number is a count of. If they cannot, rewrite.
+
+- **Say the measurement.** Cloud base, freezing level, reflectivity,
+  supercooled liquid water, seeding band. Write those words. Do not replace
+  them with a layer name, a function name, a planning label, or a name you
+  just made up.
+- **One word, one meaning.** Do not call the same thing two names on one page.
+  Do not use one name for two things.
+- **A number names what it counted.** "27 of 46 flares sat in a column the
+  tests accepted at 00:00 UTC, the hour after the release." Not a percentage
+  hanging on a verb nobody defined.
+- **Do not coin a noun for a procedure.** If you need to talk about looking at
+  the model hour before a flare and the model hour after it, write that. Do
+  not name the pair.
+- **No metaphor for what the computer does.** The map draws a layer. A column
+  passed a test, or it did not. We do not paint, hit, miss, or win.
+- **Short sentences. Active voice. Ordinary verbs.** "This reads the cloud
+  base." A pile of nouns is a clause you refused to write.
+- **A short name earns its first sentence.** If you cannot define it in the
+  sentence that introduces it, you do not need it.
+
+Keep every fact, name, number, file path, unit and threshold exactly as it is.
+Plain language is the words around them, never dropping or rounding them.
 
 ## Repository layout
 
