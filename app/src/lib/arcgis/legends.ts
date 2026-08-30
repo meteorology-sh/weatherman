@@ -142,6 +142,27 @@ export const LiquidLegend: LayerLegend = {
   ],
 };
 
+export const StormLegend: LayerLegend = {
+  name: "RADAR STORMS",
+  source: "NOAA MRMS",
+  summary:
+    "One storm per outline. The line is the edge of the rain (20 dBZ). " +
+    "The dot is the heaviest rain in that storm.",
+  detail: [
+    "Contiguous cells of the 1 km MRMS mosaic at 20 dBZ or more, the same " +
+      "threshold and the same colour as the lowest radar-reflectivity band. " +
+      "The outline is the edge of that rain. The dot is the 1 km cell with " +
+      "the strongest echo.",
+    "This is a 2D composite, not a volume scan. These objects have area and " +
+      "a strongest cell, not a 3D top or a precipitation mass. Age and " +
+      "direction of travel are computed when consecutive scans are kept; " +
+      "they are not shown on this page yet.",
+    "Click a storm to read how far the click is from the dot and from the " +
+      "edge, and what the model says about supercooled liquid over that " +
+      "point. Liquid is a reading, not a test that hides the storm.",
+  ],
+};
+
 export const RadarLegend: LayerLegend = {
   name: "RADAR REFLECTIVITY",
   source: "NOAA MRMS",
@@ -247,6 +268,7 @@ export const PrecipLegend: LayerLegend = {
  */
 export const ALL_LEGENDS: readonly LayerLegend[] = [
   CandidateLegend,
+  StormLegend,
   LiquidLegend,
   CloudTopLegend,
   CloudBaseLegend,

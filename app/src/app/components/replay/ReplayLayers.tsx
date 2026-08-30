@@ -9,6 +9,7 @@ import {
   CloudTopLegend,
   LiquidLegend,
   RadarLegend,
+  StormLegend,
 } from "@/lib/arcgis/legends";
 import {
   CANDIDATE_BANDS,
@@ -39,6 +40,7 @@ export const ReplayLayers = () => {
   const cloudTop = useAppSelector((state) => state.replay.cloudTop);
   const liquid = useAppSelector((state) => state.replay.liquid);
   const radar = useAppSelector((state) => state.replay.radar);
+  const storms = useAppSelector((state) => state.replay.storms);
   const field = useAppSelector((state) => state.replay.field);
 
   return (
@@ -95,6 +97,17 @@ export const ReplayLayers = () => {
         />
         <div className="text-xs">
           g/m² in the {BAND_LABEL} band, from that hour's HRRR analysis.
+        </div>
+      </LayerToggle>
+
+      <LayerToggle
+        legend={StormLegend}
+        checked={storms}
+        onChange={(on) => dispatch(replayActions.setStorms(on))}
+      >
+        <div className="text-xs">
+          Same colour as the 20 dBZ radar band. The line is the edge of the
+          rain. The dot is the heaviest rain in that storm.
         </div>
       </LayerToggle>
 

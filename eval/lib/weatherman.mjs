@@ -55,3 +55,20 @@ export async function targetStats(at, box) {
   }
   return res.json();
 }
+
+/**
+ * The radar storm containing this point, or the nearest one, at this hour.
+ * Null when that window has no echo at 20 dBZ.
+ */
+export async function stormNear(lat, lon, at) {
+  const url = new URL("/radar/objects/near", SERVER);
+  url.searchParams.set("lat", lat);
+  url.searchParams.set("lon", lon);
+  url.searchParams.set("at", at);
+
+  const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+  if (!res.ok) {
+    throw new Error(`${res.status}: ${(await res.text()).slice(0, 200)}`);
+  }
+  return res.json();
+}

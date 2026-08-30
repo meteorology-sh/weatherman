@@ -7,6 +7,7 @@ import interactionsReducer from "./features/interactions";
 import forecastReducer from "./features/forecast";
 import radarReducer from "./features/radar";
 import seedabilityReducer from "./features/seedability";
+import stormsReducer from "./features/storms";
 import replayReducer from "./features/replay";
 import soundingReducer from "./features/sounding";
 
@@ -23,6 +24,7 @@ export const store = configureStore({
     forecast: forecastReducer,
     radar: radarReducer,
     seedability: seedabilityReducer,
+    storms: stormsReducer,
     replay: replayReducer,
     sounding: soundingReducer,
   },

@@ -5,6 +5,7 @@ import { useAppSelector } from "@/lib/store/hooks";
 import { CloudHere } from "./CloudHere";
 import { Convective } from "./Convective";
 import { Sounding } from "./Sounding";
+import { StormHere } from "./StormHere";
 
 /**
  * Everything the panel says about one clicked cell, and nothing at all until
@@ -34,6 +35,7 @@ export const ClickedPoint = () => {
   return (
     <>
       <CloudHere />
+      <StormHere />
       <Sounding />
       <Convective />
     </>

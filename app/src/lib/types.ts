@@ -264,6 +264,31 @@ export interface Sounding {
   diagnostics: Diagnostics;
 }
 
+/** Mirrors nearJson in server/src/lib/services/mrms/objects.ts */
+export interface StormObjectView {
+  id: number;
+  firstSeen: string;
+  nCells: number;
+  areaKm2: number;
+  maxDbz: number;
+  coreLon: number;
+  coreLat: number;
+  centroidLon: number;
+  centroidLat: number;
+  ageMin: number | null;
+  motionTowardDeg: number | null;
+  motionKmh: number | null;
+}
+
+export interface StormNear {
+  validTime: string;
+  inside: boolean;
+  coreKm: number;
+  edgeKm: number;
+  upwindEdgeKm: number | null;
+  object: StormObjectView;
+}
+
 /** Mirrors RadarStats in server/src/lib/services/mrms/radar.ts */
 export interface RadarStats {
   /** When the server last built the scene, ISO 8601. */

@@ -8,6 +8,8 @@ import {
   ForecastPrecipLayer,
   CandidateLiquidLayer,
   CandidateRadarLayer,
+  CandidateStormLayer,
+  CandidateStormCoreLayer,
 } from "@/lib/arcgis/layers";
 
 const BOX = {
@@ -164,6 +166,23 @@ describe("MRMS radar layer", () => {
   it("asks for the current scene in the window the map can paint", () => {
     expect(CandidateRadarLayer.url).toBe("/radar/reflectivity");
     expect(CandidateRadarLayer.customParameters).toEqual(BOX);
+  });
+});
+
+describe("CandidateStormLayer", () => {
+  it("reads storms from the same mosaic as the reflectivity contours", () => {
+    expect(CandidateStormLayer.url).toBe("/radar/objects");
+    expect(CandidateStormLayer.customParameters).toEqual(BOX);
+  });
+
+  it("declares its schema, so an hour with no echo still renders", () => {
+    expect(CandidateStormLayer.geometryType).toBe("polygon");
+    expect(CandidateStormLayer.fields.map((f) => f.name)).toContain("stormId");
+  });
+
+  it("marks the heaviest rain as a point, not a filled blob", () => {
+    expect(CandidateStormCoreLayer.geometryType).toBe("point");
+    expect(CandidateStormCoreLayer.url).toBe("/radar/objects/cores");
   });
 });
 

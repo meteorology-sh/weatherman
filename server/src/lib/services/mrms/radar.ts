@@ -7,6 +7,16 @@ import { features } from "../shared/contour";
 import { eachMessage } from "../shared/grib";
 import { crop, DRAWN } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
+import {
+  coresFrame,
+  flankFrame,
+  frame as stormFrame,
+  identify,
+  matchTracks,
+  near,
+  nearJson,
+} from "./objects";
+import type { StormFrame, StormObject } from "./objects";
 
 // Types
 import type { Grid, Geo, ContourFeature } from "../shared/contour";
@@ -159,6 +169,9 @@ export class RadarService {
   /** Replayed scenes, keyed by the archive key they were built from. */
   private archive = new Map<string, Scene>();
   private archiveInflight = new Map<string, Promise<Scene>>();
+  /** Live objects from the previous mosaic, so an id can last across scans. */
+  private tracks: { validTime: string; objects: StormObject[] } | null = null;
+  private nextStormId = 1;
 
   async reflectivity(
     at?: Date,
@@ -195,6 +208,109 @@ export class RadarService {
   ): Promise<{ grid: Grid; validTime: string }> {
     const scene = await this.scene(at);
     return { grid: scene.grid, validTime: scene.frame.validTime };
+  }
+
+  /**
+   * Contiguous ≥20 dBZ regions in `box`, as polygons. Live requests keep an
+   * identity from the previous mosaic so age and motion are real; a replayed
+   * hour has no previous scan in this process, so those stay null.
+   */
+  async objects(at?: Date, box: LonLatBox = DRAWN): Promise<StormFrame> {
+    const { storms, validTime } = await this.storms(at, box, !at);
+    return stormFrame(validTime, storms);
+  }
+
+  /** One point per storm, at the 1 km cell with the strongest echo. */
+  async cores(at?: Date, box: LonLatBox = DRAWN) {
+    const { storms, validTime } = await this.storms(at, box, !at);
+    return coresFrame(validTime, storms);
+  }
+
+  /**
+   * Clear or weak-echo cells that touch each storm. The place next to the
+   * rain, not the rain itself.
+   */
+  async flanks(at?: Date, box: LonLatBox = DRAWN): Promise<StormFrame> {
+    const { storms, grid, geo, validTime } = await this.storms(
+      at,
+      box,
+      !at
+    );
+    return flankFrame(validTime, storms, grid, geo, RAIN_DBZ);
+  }
+
+  /**
+   * The object containing this point, or the nearest one in a ~40 km window.
+   * Null when that window has no echo at 20 dBZ. Does not move the live
+   * track list — a click is not a new mosaic.
+   */
+  async objectNear(
+    lat: number,
+    lon: number,
+    at?: Date
+  ): Promise<ReturnType<typeof nearJson> | null> {
+    const pad = 0.4;
+    const { storms, grid, geo, validTime } = await this.storms(
+      at,
+      {
+        west: lon - pad,
+        east: lon + pad,
+        south: lat - pad,
+        north: lat + pad,
+      },
+      false
+    );
+    const reading = near(lat, lon, storms, grid, geo, RAIN_DBZ, validTime);
+    return reading ? nearJson(reading) : null;
+  }
+
+  private async storms(
+    at: Date | undefined,
+    box: LonLatBox,
+    track: boolean
+  ): Promise<{
+    storms: StormObject[];
+    grid: Grid;
+    geo: Geo;
+    validTime: string;
+  }> {
+    const scene = await this.scene(at);
+    if (!this.geo) {
+      return {
+        storms: [],
+        grid: scene.grid,
+        geo: { nx: 0, ny: 0, lats: new Float32Array(), lons: new Float32Array() },
+        validTime: scene.frame.validTime,
+      };
+    }
+    const drawn = crop(scene.grid, this.geo, box);
+    let storms = identify(
+      drawn.grid,
+      drawn.geo,
+      RAIN_DBZ,
+      scene.frame.validTime
+    );
+    if (track && this.tracks) {
+      const nextId = { value: this.nextStormId };
+      storms = matchTracks(
+        this.tracks.objects,
+        storms,
+        this.tracks.validTime,
+        scene.frame.validTime,
+        nextId
+      );
+      this.nextStormId = nextId.value;
+      this.tracks = { validTime: scene.frame.validTime, objects: storms };
+    } else if (track) {
+      this.nextStormId = storms.length + 1;
+      this.tracks = { validTime: scene.frame.validTime, objects: storms };
+    }
+    return {
+      storms,
+      grid: drawn.grid,
+      geo: drawn.geo,
+      validTime: scene.frame.validTime,
+    };
   }
 
   private async scene(at?: Date): Promise<Scene> {

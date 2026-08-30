@@ -10,6 +10,7 @@
 import UniqueValueRenderer from "@arcgis/core/renderers/UniqueValueRenderer";
 import SimpleRenderer from "@arcgis/core/renderers/SimpleRenderer";
 import SimpleFillSymbol from "@arcgis/core/symbols/SimpleFillSymbol";
+import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol";
 import {
   CLOUD_BANDS,
   CLOUD_RGB,
@@ -21,6 +22,7 @@ import {
   CANDIDATE_RGB,
   CONFIRMED_RGB,
   CONFIRMED_WIDTH,
+  STORM_WIDTH,
   PRECIP_BANDS,
   PRECIP_RGB,
   RADAR_BANDS,
@@ -81,6 +83,27 @@ export const candidateConfirmedRenderer = new SimpleRenderer({
     outline: { color: [...CONFIRMED_RGB, 0.9], width: CONFIRMED_WIDTH },
   }),
 });
+
+/**
+ * Storm outline: the same cyan as the 20 dBZ radar band, so the line is
+ * visibly the edge of that rain, not a second variable.
+ */
+export const stormObjectsRenderer = new SimpleRenderer({
+  symbol: new SimpleFillSymbol({
+    color: [0, 0, 0, 0],
+    outline: { color: [...RADAR_RGB, 0.95], width: STORM_WIDTH },
+  }),
+});
+
+/** The heaviest rain in the storm — one point at the strongest 1 km cell. */
+export const stormCoreRenderer = new SimpleRenderer({
+  symbol: new SimpleMarkerSymbol({
+    color: [...RADAR_RGB, 0.95],
+    size: 7,
+    outline: { color: [0, 0, 0, 0], width: 0 },
+  }),
+});
+
 
 export const candidateCloudTopRenderer = new UniqueValueRenderer({
   field: "topColdnessC",

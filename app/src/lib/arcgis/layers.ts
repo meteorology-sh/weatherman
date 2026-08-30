@@ -9,6 +9,8 @@ import {
   candidateCloudTopRenderer,
   candidateLiquidRenderer,
   candidateRadarRenderer,
+  stormCoreRenderer,
+  stormObjectsRenderer,
 } from "./renderers";
 
 // Client
@@ -21,6 +23,8 @@ import {
   ForecastPrecipUrl,
   ForecastLiquidUrl,
   RadarReflectivityUrl,
+  RadarObjectsUrl,
+  RadarStormCoresUrl,
 } from "@/lib/client";
 
 /**
@@ -89,6 +93,40 @@ export const ReplayRadarLayer = new GeoJSONLayer({
   fields: [
     { name: "OBJECTID", type: "oid" },
     { name: "reflectivity", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayStormLayer = new GeoJSONLayer({
+  title: "MRMS radar storms (replay)",
+  copyright: "NOAA / National Weather Service MRMS",
+  renderer: stormObjectsRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "stormId", type: "integer" },
+    { name: "maxDbz", type: "double" },
+    { name: "areaKm2", type: "double" },
+    { name: "ageMin", type: "double" },
+    { name: "motionTowardDeg", type: "double" },
+    { name: "motionKmh", type: "double" },
+    { name: "coreLon", type: "double" },
+    { name: "coreLat", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayStormCoreLayer = new GeoJSONLayer({
+  title: "MRMS radar storm cores (replay)",
+  copyright: "NOAA / National Weather Service MRMS",
+  renderer: stormCoreRenderer,
+  geometryType: "point",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "stormId", type: "integer" },
+    { name: "maxDbz", type: "double" },
   ],
   visible: false,
 });
@@ -318,3 +356,50 @@ export const CandidateRadarLayer = new GeoJSONLayer({
   renderer: candidateRadarRenderer,
   visible: false,
 });
+
+/**
+ * Contiguous ≥20 dBZ storms on the same mosaic. Hollow outlines so the
+ * reflectivity fills still say how hard it is raining; the line says which
+ * cells belong to one storm.
+ *
+ * Declares its schema: a clear hour is an empty collection, and ArcGIS
+ * cannot infer fields from that.
+ */
+export const CandidateStormLayer = new GeoJSONLayer({
+  title: "MRMS radar storms",
+  url: RadarObjectsUrl(),
+  copyright: "NOAA / National Weather Service MRMS",
+  renderer: stormObjectsRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "stormId", type: "integer" },
+    { name: "maxDbz", type: "double" },
+    { name: "areaKm2", type: "double" },
+    { name: "ageMin", type: "double" },
+    { name: "motionTowardDeg", type: "double" },
+    { name: "motionKmh", type: "double" },
+    { name: "coreLon", type: "double" },
+    { name: "coreLat", type: "double" },
+  ],
+  visible: false,
+});
+
+/** The strongest 1 km cell in each storm. One switch drives this and the outline. */
+export const CandidateStormCoreLayer = new GeoJSONLayer({
+  title: "MRMS radar storm cores",
+  url: RadarStormCoresUrl(),
+  copyright: "NOAA / National Weather Service MRMS",
+  renderer: stormCoreRenderer,
+  geometryType: "point",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "stormId", type: "integer" },
+    { name: "maxDbz", type: "double" },
+  ],
+  visible: false,
+});
+
+

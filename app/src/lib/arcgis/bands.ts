@@ -127,6 +127,9 @@ export const CANDIDATE_RGB = [52, 211, 153] as const;
 export const CONFIRMED_RGB = [209, 255, 232] as const;
 export const CONFIRMED_WIDTH = 1.5;
 
+/** Line weight of a storm outline. Colour is RADAR_RGB — the 20 dBZ band. */
+export const STORM_WIDTH = 2;
+
 /**
  * Observed reflectivity, dBZ, mirroring REFLECTIVITY.levels in
  * server/src/lib/services/mrms/radar.ts. The NWS intensity classes: light, moderate,

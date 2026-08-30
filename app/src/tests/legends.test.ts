@@ -15,6 +15,7 @@ import {
   CloudTopLegend,
   LiquidLegend,
   RadarLegend,
+  StormLegend,
   CLOUD_TOP_WARMEST_C,
 } from "@/lib/arcgis/legends";
 
@@ -137,6 +138,13 @@ describe("LiquidLegend", () => {
 
   it("admits the layer is modelled rather than observed", () => {
     expect(detailOf(LiquidLegend)).toContain("Modelled, not observed");
+  });
+});
+
+describe("StormLegend", () => {
+  it("names the 20 dBZ threshold that defines a storm", () => {
+    expect(StormLegend.summary).toContain("20 dBZ");
+    expect(StormLegend.summary).toContain("heaviest rain");
   });
 });
 

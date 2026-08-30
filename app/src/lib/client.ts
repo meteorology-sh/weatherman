@@ -10,6 +10,7 @@ import type {
   SlwStats,
   RadarStats,
   Sounding,
+  StormNear,
 } from "@/lib/types";
 import { boxParams, INITIAL_BOX } from "@/lib/bbox";
 import type { MapBox } from "@/lib/bbox";
@@ -327,6 +328,47 @@ export async function GetCloudTopStats(at?: string): Promise<CloudTopStats> {
  */
 export function RadarReflectivityUrl(box: MapBox = INITIAL_BOX): string {
   return `/radar/reflectivity?${new URLSearchParams(boxParams(box))}`;
+}
+
+/** Contiguous ≥20 dBZ storms on the same mosaic as the reflectivity contours. */
+export function RadarObjectsUrl(box: MapBox = INITIAL_BOX): string {
+  return `/radar/objects?${new URLSearchParams(boxParams(box))}`;
+}
+
+export function RadarStormCoresUrl(box: MapBox = INITIAL_BOX): string {
+  return `/radar/objects/cores?${new URLSearchParams(boxParams(box))}`;
+}
+
+export function ReplayRadarObjectsUrl(
+  at: string,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/radar/objects?${new URLSearchParams({ at, ...boxParams(box) })}`;
+}
+
+export function ReplayRadarStormCoresUrl(
+  at: string,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/radar/objects/cores?${new URLSearchParams({ at, ...boxParams(box) })}`;
+}
+
+/** The storm containing this click, or the nearest one. Null when none is near. */
+export async function GetStormNear(
+  lon: number,
+  lat: number,
+  at?: string
+): Promise<StormNear | null> {
+  const query = new URLSearchParams({
+    lat: String(lat),
+    lon: String(lon),
+  });
+  if (at) query.set("at", at);
+  const res = await fetch(`/radar/objects/near?${query}`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch storm at point: ${res.status}`);
+  }
+  return res.json();
 }
 
 /** The same scene's summary. Asking for it also warms the server's build. */

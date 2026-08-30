@@ -15,8 +15,9 @@ describe("replay slice", () => {
     expect(initial.at).toBe(null);
   });
 
-  it("starts with the candidate field alone, like the candidate map", () => {
+  it("starts with the candidate field and radar storms, like the candidate map", () => {
     expect(initial.field).toBe(true);
+    expect(initial.storms).toBe(true);
     expect(initial.cloudTop).toBe(false);
     expect(initial.liquid).toBe(false);
     expect(initial.radar).toBe(false);

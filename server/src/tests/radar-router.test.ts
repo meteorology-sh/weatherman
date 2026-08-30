@@ -140,6 +140,102 @@ describe("radar router", () => {
     });
   });
 
+  it("responds with storm objects as GeoJSON", async (t) => {
+    t.mock.method(Mrms, "objects", async () => ({
+      type: "FeatureCollection",
+      validTime: "2026-08-12T04:10:00.000Z",
+      features: [
+        {
+          type: "Feature",
+          properties: {
+            stormId: 1,
+            maxDbz: 48,
+            areaKm2: 36,
+            ageMin: 6,
+            motionTowardDeg: 40,
+            motionKmh: 25,
+            coreLon: -101.4,
+            coreLat: 32.1,
+          },
+          geometry: {
+            type: "MultiPolygon",
+            coordinates: [[[[-101.5, 32], [-101.4, 32], [-101.4, 32.1], [-101.5, 32]]]],
+          },
+        },
+      ],
+    }));
+
+    const res = await fetch(`${origin}/radar/objects`);
+
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.type, "FeatureCollection");
+    assert.equal(body.features[0].properties.stormId, 1);
+    assert.equal(body.features[0].properties.maxDbz, 48);
+  });
+
+  it("passes a replayed hour and a box through to the objects", async (t) => {
+    let seen: { at?: Date; box?: { west: number } } = {};
+    t.mock.method(
+      Mrms,
+      "objects",
+      async (at?: Date, box?: { west: number }) => {
+        seen = { at, box };
+        return { type: "FeatureCollection", validTime: "", features: [] };
+      }
+    );
+
+    await fetch(
+      `${origin}/radar/objects?at=2025-08-11T18:00:00.000Z&west=-102&east=-100&south=31&north=33`
+    );
+
+    assert.equal(seen.at?.toISOString(), "2025-08-11T18:00:00.000Z");
+    assert.equal(seen.box?.west, -102);
+  });
+
+  it("responds with the storm nearest a click", async (t) => {
+    t.mock.method(Mrms, "objectNear", async () => ({
+      validTime: "2026-08-12T04:10:00.000Z",
+      inside: true,
+      coreKm: 2.1,
+      edgeKm: 0.4,
+      upwindEdgeKm: 0.8,
+      object: { id: 3, maxDbz: 44, areaKm2: 22 },
+    }));
+
+    const res = await fetch(`${origin}/radar/objects/near?lat=32.1&lon=-101.4`);
+
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.inside, true);
+    assert.equal(body.object.id, 3);
+  });
+
+  it("responds with a point at each storm's strongest cell", async (t) => {
+    t.mock.method(Mrms, "cores", async () => ({
+      type: "FeatureCollection",
+      validTime: "2026-08-12T04:10:00.000Z",
+      features: [
+        {
+          type: "Feature",
+          properties: { stormId: 1, maxDbz: 48 },
+          geometry: { type: "Point", coordinates: [-101.4, 32.1] },
+        },
+      ],
+    }));
+
+    const body = await fetch(`${origin}/radar/objects/cores`).then((r) =>
+      r.json()
+    );
+    assert.equal(body.features[0].geometry.type, "Point");
+    assert.equal(body.features[0].properties.maxDbz, 48);
+  });
+
+  it("responds 400 when a click has no coordinates", async () => {
+    const res = await fetch(`${origin}/radar/objects/near`);
+    assert.equal(res.status, 400);
+  });
+
   it("responds 500 when the summary fails", async (t) => {
     t.mock.method(Mrms, "reflectivityStats", async () => {
       throw new Error("MRMS mosaic unavailable: 503");

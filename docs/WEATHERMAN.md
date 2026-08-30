@@ -45,7 +45,7 @@ here. This map is entirely model output.
 
 ### `/map/candidate` — observed
 
-Five layers, and they are not the same kind of claim. Bottom to top:
+Six layers, and they are not the same kind of claim. Bottom to top:
 
 | Layer                    | Claim        | Source                    |
 | ------------------------ | ------------ | ------------------------- |
@@ -53,9 +53,18 @@ Five layers, and they are not the same kind of claim. Bottom to top:
 | Cloud-top temperature    | observed     | GOES-East geometry + HRRR |
 | Supercooled liquid water | **modelled** | HRRR `wrfprs`             |
 | Radar reflectivity       | measured     | MRMS                      |
+| Radar storms             | measured     | MRMS, same mosaic         |
 
 The supercooled-liquid contours are the deliberate exception on an observed map,
 and the sidebar says so. The radar mosaic is the only measurement on either map.
+
+**Radar storms** are that mosaic grouped into contiguous ≥20 dBZ objects. The
+outline is the edge of the rain, in the same colour as the 20 dBZ radar band.
+A dot marks the 1 km cell with the strongest echo. Nothing is filled outside
+that line: ground below 20 dBZ is not rain. A click says whether you are
+inside the outline, how far you are from the dot, and what the model says
+about supercooled liquid over that point. Liquid does not hide the storm.
+Age and direction of travel are not shown on this page yet.
 
 **Clicking is how the panel is read.** A click profiles that point's column,
 reads that cell's convective diagnostics, and asks every layer what it says over
@@ -89,11 +98,12 @@ the same heading over a cell, so a domain total sitting under a click is read as
 that cell's. Every one of those summaries is still built and the replay panel
 reports them, where the question really is what a whole hour looked like.
 
-**The seeding-opportunity layer is the answer the other four are inputs to**, drawn over
-all of them. It is the only layer that starts on: the map opens on its answer,
-and the operator switches on whichever inputs they want to check it against.
-Switching the amber back on reads the two together — amber with no green over it
-is liquid the join rejected, and clicking it says which condition ruled it out.
+**The seeding-opportunity layer is the answer the liquid, top, base and radar
+layers are inputs to**, drawn over all of them. It starts on, and so do radar
+storms: the map opens on the quiet-liquid join and on the storm outlines at
+once, so the two can disagree in view. The other inputs start off. Switching
+the amber back on reads the two together — amber with no green over it is
+liquid the join rejected, and clicking it says which condition ruled it out.
 
 **Cloud base sits at the bottom because it is the question asked first** — can an
 aircraft climb into this cloud at all — and the layers above are answers about a

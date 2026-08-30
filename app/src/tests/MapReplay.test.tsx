@@ -36,6 +36,7 @@ import {
   replayFieldLayer,
   replayLiquidLayer,
   replayRadarLayer,
+  replayStormLayer,
 } from "./arcgis-fakes";
 
 // Components
@@ -144,14 +145,20 @@ describe("ArcGIS in replay mode", () => {
     });
 
     const at = encodeURIComponent(AT);
-    expect(replayCloudTopLayer.url).toBe(`/cloudtop/temperature?at=${at}`);
-    expect(replayLiquidLayer.url).toBe(`/forecast/liquid?hour=0&at=${at}`);
-    expect(replayRadarLayer.url).toBe(`/radar/reflectivity?at=${at}`);
+    const box = "west=-107&east=-93&south=25.5&north=37";
+    expect(replayCloudTopLayer.url).toBe(
+      `/cloudtop/temperature?at=${at}&${box}`
+    );
+    expect(replayLiquidLayer.url).toBe(
+      `/forecast/liquid?hour=0&at=${at}&${box}`
+    );
+    expect(replayRadarLayer.url).toBe(`/radar/reflectivity?at=${at}&${box}`);
+    expect(replayStormLayer.url).toBe(`/radar/objects?at=${at}&${box}`);
     expect(replayCloudBaseLayer.url).toBe(
-      `/forecast/cloudbase?hour=0&at=${at}`
+      `/forecast/cloudbase?hour=0&at=${at}&${box}`
     );
     expect(replayConfirmedLayer.url).toBe(
-      `/candidate/field/confirmed?at=${at}`
+      `/candidate/field/confirmed?at=${at}&${box}`
     );
   });
 

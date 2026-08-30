@@ -44,6 +44,8 @@ import {
   map,
   precipLayer,
   radarLayer,
+  stormLayer,
+  stormCoreLayer,
   view,
 } from "./arcgis-fakes";
 
@@ -83,6 +85,8 @@ describe("ArcGIS", () => {
       precipLayer,
       liquidLayer,
       radarLayer,
+      stormLayer,
+      stormCoreLayer,
       fieldLayer,
       confirmedLayer,
     ]);
@@ -156,10 +160,11 @@ describe("ArcGIS", () => {
 describe("ArcGIS in candidate mode", () => {
   // The map opens on the candidate field alone. Every input to it starts off,
   // so a layer on screen is one the operator asked for.
-  it("opens with the inputs off and the answer on", () => {
+  it("opens with the liquid join and radar storms on", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     expect(fieldLayer.visible).toBe(true);
+    expect(stormLayer.visible).toBe(true);
     expect(cloudTopLayer.visible).toBe(false);
     expect(liquidLayer.visible).toBe(false);
     expect(radarLayer.visible).toBe(false);
@@ -548,10 +553,10 @@ describe("ArcGIS sounding point", () => {
 
     renderWithStore(<ArcGIS mode="candidate" />, store);
     act(() => {
-      clickAt(-104.9903, 39.7392);
+      clickAt(-104.9912, 39.7394);
     });
 
-    expect(store.getState().sounding.point).toEqual([-104.99, 39.74]);
+    expect(store.getState().sounding.point).toEqual([-104.991, 39.739]);
   });
 
   // The profile is the analysis hour, so offering it under a slider set to
@@ -585,13 +590,13 @@ describe("ArcGIS sounding point", () => {
     renderWithStore(<ArcGIS mode="candidate" />, store);
     act(() => {
       store.dispatch(domainActions.setRing(ring));
-      clickAt(-104.9903, 39.7392);
+      clickAt(-104.9912, 39.7394);
     });
     act(() => {
       clickAt(-160, 21);
     });
 
-    expect(store.getState().sounding.point).toEqual([-104.99, 39.74]);
+    expect(store.getState().sounding.point).toEqual([-104.991, 39.739]);
   });
 
   // Until the ring lands there is nothing to test against, and refusing every

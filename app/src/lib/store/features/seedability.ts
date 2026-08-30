@@ -42,9 +42,8 @@ type SeedabilityState = {
 };
 
 /**
- * **The only layer on by default.** This is the answer the map exists to give,
- * so the map opens on it alone: every input to it starts off, and the operator
- * switches on the ones they want to check the answer against.
+ * On by default, with radar storms. This is the quiet-liquid answer; storms
+ * are the object Texas programmes fly. The other inputs start off.
  */
 const initialState: SeedabilityState = {
   visible: true,

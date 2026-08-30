@@ -110,13 +110,41 @@ if (REGION && wanted.length === 0) {
   process.exit(1);
 }
 
+/** A day is finished only if every flare and every hour actually answered. */
+function dayComplete(day) {
+  if (!day.rows?.length) return false;
+  const rowsOk = day.rows.every(
+    (row) =>
+      row.lo &&
+      row.hi &&
+      !row.lo.error &&
+      !row.hi.error &&
+      row.present?.target &&
+      row.present.target !== "unknown"
+  );
+  const coverage = Object.values(day.coverage ?? {});
+  const hoursOk =
+    coverage.length > 0 && coverage.every((entry) => entry && !entry.error);
+  return rowsOk && hoursOk;
+}
+
 /** Days already written, so a lost server does not cost the whole run. */
 let done = [];
 if (RESUME) {
   try {
     done = JSON.parse(await readFile(FILE, "utf8")).regions ?? [];
+    let kept = 0;
+    let dropped = 0;
+    for (const region of done) {
+      const complete = region.days.filter(dayComplete);
+      dropped += region.days.length - complete.length;
+      kept += complete.length;
+      region.days = complete;
+    }
     console.log(
-      `resuming — ${done.reduce((n, r) => n + r.days.length, 0)} days already scored\n`
+      `resuming — ${kept} days already scored` +
+        (dropped ? `, ${dropped} incomplete days to retry` : "") +
+        "\n"
     );
   } catch {
     console.log("resuming — nothing to resume from\n");
