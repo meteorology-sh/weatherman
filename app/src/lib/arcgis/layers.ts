@@ -10,6 +10,7 @@ import {
   candidateLiquidRenderer,
   candidateRadarRenderer,
   stormCoreRenderer,
+  stormFlankRenderer,
   stormObjectsRenderer,
 } from "./renderers";
 
@@ -25,6 +26,7 @@ import {
   RadarReflectivityUrl,
   RadarObjectsUrl,
   RadarStormCoresUrl,
+  RadarStormFlanksUrl,
 } from "@/lib/client";
 
 /**
@@ -111,6 +113,7 @@ export const ReplayStormLayer = new GeoJSONLayer({
     { name: "ageMin", type: "double" },
     { name: "motionTowardDeg", type: "double" },
     { name: "motionKmh", type: "double" },
+    { name: "areaDeltaKm2", type: "double" },
     { name: "coreLon", type: "double" },
     { name: "coreLat", type: "double" },
   ],
@@ -127,6 +130,27 @@ export const ReplayStormCoreLayer = new GeoJSONLayer({
     { name: "OBJECTID", type: "oid" },
     { name: "stormId", type: "integer" },
     { name: "maxDbz", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayStormFlankLayer = new GeoJSONLayer({
+  title: "MRMS radar storm working area (replay)",
+  copyright: "NOAA / National Weather Service MRMS",
+  renderer: stormFlankRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "stormId", type: "integer" },
+    { name: "maxDbz", type: "double" },
+    { name: "areaKm2", type: "double" },
+    { name: "ageMin", type: "double" },
+    { name: "motionTowardDeg", type: "double" },
+    { name: "motionKmh", type: "double" },
+    { name: "areaDeltaKm2", type: "double" },
+    { name: "coreLon", type: "double" },
+    { name: "coreLat", type: "double" },
   ],
   visible: false,
 });
@@ -380,6 +404,7 @@ export const CandidateStormLayer = new GeoJSONLayer({
     { name: "ageMin", type: "double" },
     { name: "motionTowardDeg", type: "double" },
     { name: "motionKmh", type: "double" },
+    { name: "areaDeltaKm2", type: "double" },
     { name: "coreLon", type: "double" },
     { name: "coreLat", type: "double" },
   ],
@@ -398,6 +423,32 @@ export const CandidateStormCoreLayer = new GeoJSONLayer({
     { name: "OBJECTID", type: "oid" },
     { name: "stormId", type: "integer" },
     { name: "maxDbz", type: "double" },
+  ],
+  visible: false,
+});
+
+/**
+ * Quiet, covered air on the upwind side of each storm. Hollow, so no-rain
+ * ground is not filled. One switch drives this, the outline, and the dot.
+ */
+export const CandidateStormFlankLayer = new GeoJSONLayer({
+  title: "MRMS radar storm working area",
+  url: RadarStormFlanksUrl(),
+  copyright: "NOAA / National Weather Service MRMS",
+  renderer: stormFlankRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "stormId", type: "integer" },
+    { name: "maxDbz", type: "double" },
+    { name: "areaKm2", type: "double" },
+    { name: "ageMin", type: "double" },
+    { name: "motionTowardDeg", type: "double" },
+    { name: "motionKmh", type: "double" },
+    { name: "areaDeltaKm2", type: "double" },
+    { name: "coreLon", type: "double" },
+    { name: "coreLat", type: "double" },
   ],
   visible: false,
 });

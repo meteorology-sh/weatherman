@@ -10,6 +10,7 @@ import {
   CandidateRadarLayer,
   CandidateStormLayer,
   CandidateStormCoreLayer,
+  CandidateStormFlankLayer,
 } from "@/lib/arcgis/layers";
 
 const BOX = {
@@ -183,6 +184,11 @@ describe("CandidateStormLayer", () => {
   it("marks the heaviest rain as a point, not a filled blob", () => {
     expect(CandidateStormCoreLayer.geometryType).toBe("point");
     expect(CandidateStormCoreLayer.url).toBe("/radar/objects/cores");
+  });
+
+  it("draws the upwind working area hollow, from the same mosaic", () => {
+    expect(CandidateStormFlankLayer.geometryType).toBe("polygon");
+    expect(CandidateStormFlankLayer.url).toBe("/radar/objects/flanks");
   });
 });
 

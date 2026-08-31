@@ -339,6 +339,11 @@ export function RadarStormCoresUrl(box: MapBox = INITIAL_BOX): string {
   return `/radar/objects/cores?${new URLSearchParams(boxParams(box))}`;
 }
 
+/** Quiet air on the upwind side of each storm. Empty when there is no motion. */
+export function RadarStormFlanksUrl(box: MapBox = INITIAL_BOX): string {
+  return `/radar/objects/flanks?${new URLSearchParams(boxParams(box))}`;
+}
+
 export function ReplayRadarObjectsUrl(
   at: string,
   box: MapBox = INITIAL_BOX
@@ -353,7 +358,17 @@ export function ReplayRadarStormCoresUrl(
   return `/radar/objects/cores?${new URLSearchParams({ at, ...boxParams(box) })}`;
 }
 
-/** The storm containing this click, or the nearest one. Null when none is near. */
+export function ReplayRadarStormFlanksUrl(
+  at: string,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/radar/objects/flanks?${new URLSearchParams({ at, ...boxParams(box) })}`;
+}
+
+/**
+ * The storm containing this click, or the nearest one, with modelled liquid
+ * and the observed top change over that storm. Null when none is near.
+ */
 export async function GetStormNear(
   lon: number,
   lat: number,
@@ -364,7 +379,7 @@ export async function GetStormNear(
     lon: String(lon),
   });
   if (at) query.set("at", at);
-  const res = await fetch(`/radar/objects/near?${query}`);
+  const res = await fetch(`/candidate/storm?${query}`);
   if (!res.ok) {
     throw new Error(`Failed to fetch storm at point: ${res.status}`);
   }

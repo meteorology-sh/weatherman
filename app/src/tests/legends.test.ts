@@ -146,6 +146,13 @@ describe("StormLegend", () => {
     expect(StormLegend.summary).toContain("20 dBZ");
     expect(StormLegend.summary).toContain("heaviest rain");
   });
+
+  it("says the dashed line is the working area, not rain", () => {
+    expect(StormLegend.summary).toContain("working area");
+    expect(StormLegend.summary).toContain("upwind");
+    expect(detailOf(StormLegend)).toContain("not rain");
+    expect(detailOf(StormLegend)).toContain("moving away from");
+  });
 });
 
 describe("RadarLegend", () => {

@@ -59,12 +59,20 @@ The supercooled-liquid contours are the deliberate exception on an observed map,
 and the sidebar says so. The radar mosaic is the only measurement on either map.
 
 **Radar storms** are that mosaic grouped into contiguous ≥20 dBZ objects. The
-outline is the edge of the rain, in the same colour as the 20 dBZ radar band.
-A dot marks the 1 km cell with the strongest echo. Nothing is filled outside
-that line: ground below 20 dBZ is not rain. A click says whether you are
-inside the outline, how far you are from the dot, and what the model says
-about supercooled liquid over that point. Liquid does not hide the storm.
-Age and direction of travel are not shown on this page yet.
+cyan outline is the edge of the rain, in the same colour as the 20 dBZ radar
+band. A dot marks the 1 km cell with the strongest echo. Nothing is filled
+outside that line: ground below 20 dBZ is not rain. A dashed rose line marks
+quiet, radar-covered air on the side the storm is moving away from — the
+working area crews fly, not rain. That line is drawn only when a previous
+mosaic gives the storm a direction; a storm with no motion has no dashed
+line.
+
+A click says whether you are inside the rain, on the upwind working area, or
+outside both, how far you are from the dot, which way the storm is moving,
+whether the raining area grew or shrank since the previous scan, the coldest
+GOES cloud top over the storm and whether that top is colder than five
+minutes ago, and the highest modelled supercooled liquid in the seeding
+band over the storm. Liquid does not hide the storm.
 
 **Clicking is how the panel is read.** A click profiles that point's column,
 reads that cell's convective diagnostics, and asks every layer what it says over

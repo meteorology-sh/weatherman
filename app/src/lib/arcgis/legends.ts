@@ -146,20 +146,28 @@ export const StormLegend: LayerLegend = {
   name: "RADAR STORMS",
   source: "NOAA MRMS",
   summary:
-    "One storm per outline. The line is the edge of the rain (20 dBZ). " +
-    "The dot is the heaviest rain in that storm.",
+    "One storm per outline. The cyan line is the edge of the rain (20 dBZ). " +
+    "The dot is the heaviest rain in that storm. The dashed rose line is " +
+    "quiet air on the upwind side — the working area, not rain.",
   detail: [
     "Contiguous cells of the 1 km MRMS mosaic at 20 dBZ or more, the same " +
       "threshold and the same colour as the lowest radar-reflectivity band. " +
-      "The outline is the edge of that rain. The dot is the 1 km cell with " +
-      "the strongest echo.",
+      "The cyan outline is the edge of that rain. The dot is the 1 km cell " +
+      "with the strongest echo. Nothing is filled outside that line: ground " +
+      "below 20 dBZ is not rain.",
+    "The dashed rose line is quiet, radar-covered air on the side the storm " +
+      "is moving away from. That is the working area crews fly: next to the " +
+      "rain, on the inflow side, not in the heaviest echo. It is drawn only " +
+      "when a previous mosaic gives the storm a direction; it is a hollow " +
+      "line, so it cannot be read as rain. A storm with no motion has no " +
+      "dashed line.",
     "This is a 2D composite, not a volume scan. These objects have area and " +
-      "a strongest cell, not a 3D top or a precipitation mass. Age and " +
-      "direction of travel are computed when consecutive scans are kept; " +
-      "they are not shown on this page yet.",
-    "Click a storm to read how far the click is from the dot and from the " +
-      "edge, and what the model says about supercooled liquid over that " +
-      "point. Liquid is a reading, not a test that hides the storm.",
+      "a strongest cell, not a 3D top or a precipitation mass. Motion and " +
+      "the change in raining area come from the mosaic about two minutes " +
+      "earlier. The click also reports the coldest GOES cloud top over the " +
+      "storm and whether that top is colder than five minutes ago, and the " +
+      "highest modelled supercooled liquid in the seeding band over the " +
+      "storm. Liquid is a reading, not a test that hides the storm.",
   ],
 };
 

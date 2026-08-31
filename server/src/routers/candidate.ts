@@ -3,6 +3,7 @@ import express, { Request, Response } from "express";
 
 // Services
 import { Seedability } from "../lib/services/candidate/field";
+import { Storms } from "../lib/services/candidate/storm";
 import { OutsideDomain, parseBox } from "../lib/services/shared/grid";
 import { parseAt } from "../lib/services/shared/replay";
 
@@ -92,6 +93,24 @@ candidate.get("/point", async (req: Request, res: Response) => {
       res.status(404).json({ error: error.message });
       return;
     }
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+// The radar storm at a click, with modelled liquid and the observed cloud-top
+// change over that storm. Null when no 20 dBZ echo sits within about 40 km.
+candidate.get("/storm", async (req: Request, res: Response) => {
+  try {
+    const lat = Number(req.query.lat);
+    const lon = Number(req.query.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      res.status(400).json({ error: "lat and lon are required numbers" });
+      return;
+    }
+    res.json(await Storms.reading(lat, lon, parseAt(req.query.at)));
+  } catch (error) {
     res
       .status(500)
       .json({ error: error instanceof Error ? error.message : String(error) });

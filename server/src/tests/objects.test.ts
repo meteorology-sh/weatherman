@@ -10,6 +10,8 @@ import {
   matchTracks,
   near,
   quietRing,
+  upwindOf,
+  upwindRing,
 } from "../lib/services/mrms/objects";
 
 // Types
@@ -139,6 +141,16 @@ describe("matchTracks", () => {
     assert.equal(tracked[0].ageMin, 2);
     assert.equal(tracked[0].motionTowardDeg, 0);
     assert.ok((tracked[0].motionKmh ?? 0) > 0);
+    assert.equal(tracked[0].areaDeltaKm2, 0);
+  });
+
+  it("records a growing raining area as a positive change", () => {
+    const first = scene([[0, 40, 0]]);
+    const second = scene([[40, 40, 40]]);
+    const prev = identify(first.grid, first.geo, 20, TIME);
+    const next = identify(second.grid, second.geo, 20, LATER);
+    const tracked = matchTracks(prev, next, TIME, LATER, { value: 10 });
+    assert.ok((tracked[0].areaDeltaKm2 ?? 0) > 0);
   });
 
   it("issues a new id when the jump is farther than a storm moves in two minutes", () => {
@@ -221,6 +233,14 @@ describe("near", () => {
     assert.ok(reading);
     assert.ok(reading.upwindEdgeKm !== null);
   });
+
+  it("marks a quiet upwind cell as the working area, not as rain", () => {
+    storms[0].motionTowardDeg = 90;
+    const reading = near(30.01, -100, storms, grid, geo, 20, TIME);
+    assert.ok(reading);
+    assert.equal(reading.inside, false);
+    assert.equal(reading.inWorking, true);
+  });
 });
 
 describe("quietRing", () => {
@@ -249,6 +269,51 @@ describe("quietRing", () => {
     ]);
     const [storm] = identify(grid, geo, 20, TIME);
     assert.equal(quietRing(storm, grid, 20).length, 0);
+  });
+});
+
+describe("upwindRing", () => {
+  it("is empty when the storm has no motion", () => {
+    const { grid, geo } = scene([
+      [0, 0, 0],
+      [0, 40, 0],
+      [0, 0, 0],
+    ]);
+    const [storm] = identify(grid, geo, 20, TIME);
+    assert.equal(upwindRing(storm, grid, geo, 20).length, 0);
+  });
+
+  it("keeps only the quiet cells on the side the storm is moving away from", () => {
+    const { grid, geo } = scene([
+      [0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0],
+      [0, 0, 40, 0, 0],
+      [0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0],
+    ]);
+    const [storm] = identify(grid, geo, 20, TIME);
+    storm.motionTowardDeg = 90;
+    const ring = upwindRing(storm, grid, geo, 20);
+    assert.ok(ring.length > 0);
+    for (const k of ring) {
+      assert.ok(grid.values[k] < 20);
+      assert.ok(
+        upwindOf(
+          storm.coreLat,
+          storm.coreLon,
+          geo.lats[k],
+          geo.lons[k],
+          90
+        )
+      );
+    }
+  });
+});
+
+describe("upwindOf", () => {
+  it("reads west as upwind of a storm moving east", () => {
+    assert.equal(upwindOf(30, -100, 30, -100.1, 90), true);
+    assert.equal(upwindOf(30, -100, 30, -99.9, 90), false);
   });
 });
 

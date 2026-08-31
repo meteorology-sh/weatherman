@@ -12,6 +12,7 @@ import { candidate } from "../routers/candidate";
 
 // Services
 import { Seedability } from "../lib/services/candidate/field";
+import { Storms } from "../lib/services/candidate/storm";
 import { OutsideDomain } from "../lib/services/shared/grid";
 
 // Types
@@ -337,6 +338,34 @@ describe("candidate router", () => {
     assert.deepEqual(await res.json(), {
       error: "MRMS mosaic unavailable: 503",
     });
+  });
+
+  it("responds with the radar storm at a click", async (t) => {
+    t.mock.method(Storms, "reading", async () => ({
+      validTime: "2025-08-11T18:02:00.000Z",
+      inside: true,
+      coreKm: 0.4,
+      edgeKm: 1.2,
+      upwindEdgeKm: 1.1,
+      inWorking: false,
+      slwGM2: 22,
+      goesTopC: -14,
+      goesTopDeltaC: -2,
+      object: { id: 3, maxDbz: 44, areaKm2: 22 },
+    }));
+
+    const res = await fetch(`${origin}/candidate/storm?lat=32.1&lon=-101.4`);
+
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.inside, true);
+    assert.equal(body.slwGM2, 22);
+    assert.equal(body.goesTopDeltaC, -2);
+  });
+
+  it("responds 400 when a storm click has no coordinates", async () => {
+    const res = await fetch(`${origin}/candidate/storm`);
+    assert.equal(res.status, 400);
   });
 
   it("responds 500 when the summary fails", async (t) => {

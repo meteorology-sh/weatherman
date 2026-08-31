@@ -19,6 +19,7 @@ import {
   RadarReflectivityUrl,
   RadarObjectsUrl,
   RadarStormCoresUrl,
+  RadarStormFlanksUrl,
   CandidateFieldUrl,
   CandidateConfirmedUrl,
   ReplayCandidateUrl,
@@ -29,6 +30,7 @@ import {
   ReplayRadarUrl,
   ReplayRadarObjectsUrl,
   ReplayRadarStormCoresUrl,
+  ReplayRadarStormFlanksUrl,
 } from "@/lib/client";
 
 // ArcGIS
@@ -45,6 +47,7 @@ import {
   CandidateRadarLayer,
   CandidateStormLayer,
   CandidateStormCoreLayer,
+  CandidateStormFlankLayer,
   CandidateConfirmedLayer,
   CandidateFieldLayer,
   ReplayCloudBaseLayer,
@@ -55,6 +58,7 @@ import {
   ReplayRadarLayer,
   ReplayStormLayer,
   ReplayStormCoreLayer,
+  ReplayStormFlankLayer,
 } from "@/lib/arcgis/layers";
 import { PRECIP_FIRST_HOUR } from "@/lib/arcgis/bands";
 import {
@@ -129,6 +133,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
           ForecastPrecipLayer,
           CandidateLiquidLayer,
           CandidateRadarLayer,
+          CandidateStormFlankLayer,
           CandidateStormLayer,
           CandidateStormCoreLayer,
           CandidateFieldLayer,
@@ -211,6 +216,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     CandidateRadarLayer.visible = candidating && radar && closeEnough;
     CandidateStormLayer.visible = candidating && storms && closeEnough;
     CandidateStormCoreLayer.visible = candidating && storms && closeEnough;
+    CandidateStormFlankLayer.visible = candidating && storms && closeEnough;
     // The answer, drawn over its own inputs, and the observed outline over
     // that. One switch drives both: the outline says which part of the field
     // the satellite backs, which is meaningless without the field under it.
@@ -227,6 +233,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayRadarLayer.visible = drawable && replayRadar;
     ReplayStormLayer.visible = drawable && replayStorms;
     ReplayStormCoreLayer.visible = drawable && replayStorms;
+    ReplayStormFlankLayer.visible = drawable && replayStorms;
     ReplayFieldLayer.visible = drawable && replayField;
     ReplayConfirmedLayer.visible = drawable && replayField;
   }, [
@@ -289,6 +296,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     CandidateRadarLayer.url = RadarReflectivityUrl(viewBox);
     CandidateStormLayer.url = RadarObjectsUrl(viewBox);
     CandidateStormCoreLayer.url = RadarStormCoresUrl(viewBox);
+    CandidateStormFlankLayer.url = RadarStormFlanksUrl(viewBox);
     CandidateFieldLayer.url = CandidateFieldUrl(viewBox);
     CandidateConfirmedLayer.url = CandidateConfirmedUrl(viewBox);
     CandidateCloudBaseLayer.refresh();
@@ -297,6 +305,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     CandidateRadarLayer.refresh();
     CandidateStormLayer.refresh();
     CandidateStormCoreLayer.refresh();
+    CandidateStormFlankLayer.refresh();
     CandidateFieldLayer.refresh();
     CandidateConfirmedLayer.refresh();
   }, [boxKey, viewBox]);
@@ -351,6 +360,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayRadarLayer.url = ReplayRadarUrl(at, viewBox);
     ReplayStormLayer.url = ReplayRadarObjectsUrl(at, viewBox);
     ReplayStormCoreLayer.url = ReplayRadarStormCoresUrl(at, viewBox);
+    ReplayStormFlankLayer.url = ReplayRadarStormFlanksUrl(at, viewBox);
     ReplayFieldLayer.url = ReplayCandidateUrl(at, viewBox);
     ReplayConfirmedLayer.url = ReplayConfirmedUrl(at, viewBox);
 
@@ -363,6 +373,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
         ReplayCloudTopLayer,
         ReplayLiquidLayer,
         ReplayRadarLayer,
+        ReplayStormFlankLayer,
         ReplayStormLayer,
         ReplayStormCoreLayer,
         ReplayFieldLayer,
@@ -376,6 +387,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayRadarLayer.refresh();
     ReplayStormLayer.refresh();
     ReplayStormCoreLayer.refresh();
+    ReplayStormFlankLayer.refresh();
     ReplayFieldLayer.refresh();
     ReplayConfirmedLayer.refresh();
   }, [ready, boxKey, viewBox]);

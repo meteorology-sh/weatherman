@@ -219,9 +219,15 @@ export class CloudTopService {
    * seeding band". The scan's own time rides along, because a join is only as
    * current as its slowest source and the panel reports it.
    */
-  async topField(at?: Date): Promise<{ cells: Grid; validTime: string }> {
+  async topField(
+    at?: Date
+  ): Promise<{ cells: Grid; geo: Geo; validTime: string }> {
     const scene = await this.scene(at);
-    return { cells: scene.cells, validTime: scene.frame.validTime };
+    return {
+      cells: scene.cells,
+      geo: scene.column.geo,
+      validTime: scene.frame.validTime,
+    };
   }
 
   private async scene(at?: Date): Promise<Scene> {

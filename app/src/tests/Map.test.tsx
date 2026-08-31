@@ -46,6 +46,7 @@ import {
   radarLayer,
   stormLayer,
   stormCoreLayer,
+  stormFlankLayer,
   view,
 } from "./arcgis-fakes";
 
@@ -85,6 +86,7 @@ describe("ArcGIS", () => {
       precipLayer,
       liquidLayer,
       radarLayer,
+      stormFlankLayer,
       stormLayer,
       stormCoreLayer,
       fieldLayer,
@@ -165,6 +167,7 @@ describe("ArcGIS in candidate mode", () => {
 
     expect(fieldLayer.visible).toBe(true);
     expect(stormLayer.visible).toBe(true);
+    expect(stormFlankLayer.visible).toBe(true);
     expect(cloudTopLayer.visible).toBe(false);
     expect(liquidLayer.visible).toBe(false);
     expect(radarLayer.visible).toBe(false);

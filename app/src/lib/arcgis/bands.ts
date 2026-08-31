@@ -131,6 +131,13 @@ export const CONFIRMED_WIDTH = 1.5;
 export const STORM_WIDTH = 2;
 
 /**
+ * Quiet air on the upwind side of the rain. Rose, because cyan is already
+ * rain, amber is modelled liquid, and green is the quiet-liquid join: this
+ * is none of those. It is the working area, and it is not filled.
+ */
+export const WORKING_RGB = [244, 63, 94] as const;
+
+/**
  * Observed reflectivity, dBZ, mirroring REFLECTIVITY.levels in
  * server/src/lib/services/mrms/radar.ts. The NWS intensity classes: light, moderate,
  * heavy, and the top band where a summer cell is producing hail.

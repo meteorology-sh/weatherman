@@ -16,7 +16,7 @@ import {
   near,
   nearJson,
 } from "./objects";
-import type { StormFrame, StormObject } from "./objects";
+import type { StormFrame, StormNear, StormObject } from "./objects";
 
 // Types
 import type { Grid, Geo, ContourFeature } from "../shared/contour";
@@ -211,44 +211,48 @@ export class RadarService {
   }
 
   /**
-   * Contiguous ≥20 dBZ regions in `box`, as polygons. Live requests keep an
-   * identity from the previous mosaic so age and motion are real; a replayed
-   * hour has no previous scan in this process, so those stay null.
+   * Contiguous ≥20 dBZ regions in `box`, as polygons. Outlines do not wait
+   * on a previous mosaic; age and motion ride the working-area request and
+   * the click, which is where they are read.
    */
   async objects(at?: Date, box: LonLatBox = DRAWN): Promise<StormFrame> {
-    const { storms, validTime } = await this.storms(at, box, !at);
+    const scene = await this.scene(at);
+    this.ensurePrevious(scene);
+    const { storms, validTime } = await this.storms(at, box, false, false);
     return stormFrame(validTime, storms);
   }
 
   /** One point per storm, at the 1 km cell with the strongest echo. */
   async cores(at?: Date, box: LonLatBox = DRAWN) {
-    const { storms, validTime } = await this.storms(at, box, !at);
+    const { storms, validTime } = await this.storms(at, box, false, false);
     return coresFrame(validTime, storms);
   }
 
   /**
-   * Clear or weak-echo cells that touch each storm. The place next to the
-   * rain, not the rain itself.
+   * Quiet, covered cells on the upwind side of each storm. Empty when the
+   * storm has no motion from a previous mosaic: we do not guess inflow.
    */
   async flanks(at?: Date, box: LonLatBox = DRAWN): Promise<StormFrame> {
     const { storms, grid, geo, validTime } = await this.storms(
       at,
       box,
-      !at
+      !at,
+      true
     );
     return flankFrame(validTime, storms, grid, geo, RAIN_DBZ);
   }
 
   /**
-   * The object containing this point, or the nearest one in a ~40 km window.
-   * Null when that window has no echo at 20 dBZ. Does not move the live
-   * track list — a click is not a new mosaic.
+   * The object containing this point, or the nearest one in a ~40 km window,
+   * with motion from the previous mosaic. Null when that window has no echo
+   * at 20 dBZ. Does not move the live track list — a click is not a new
+   * mosaic.
    */
-  async objectNear(
+  async atPoint(
     lat: number,
     lon: number,
     at?: Date
-  ): Promise<ReturnType<typeof nearJson> | null> {
+  ): Promise<{ reading: StormNear; geo: Geo } | null> {
     const pad = 0.4;
     const { storms, grid, geo, validTime } = await this.storms(
       at,
@@ -258,16 +262,58 @@ export class RadarService {
         south: lat - pad,
         north: lat + pad,
       },
-      false
+      false,
+      true
     );
     const reading = near(lat, lon, storms, grid, geo, RAIN_DBZ, validTime);
-    return reading ? nearJson(reading) : null;
+    return reading ? { reading, geo } : null;
+  }
+
+  async objectNear(
+    lat: number,
+    lon: number,
+    at?: Date
+  ): Promise<ReturnType<typeof nearJson> | null> {
+    const hit = await this.atPoint(lat, lon, at);
+    return hit ? nearJson(hit.reading) : null;
+  }
+
+  /**
+   * How far back a previous mosaic may sit and still be the last scan of
+   * the same storm, ms. The mosaic refreshes every ~2 minutes; 3 minutes
+   * lands on the previous key without landing on this one.
+   */
+  private static readonly PREV_MS = 3 * 60_000;
+
+  private ensurePrevious(scene: Scene): void {
+    void this.previousScene(scene);
+  }
+
+  /**
+   * The mosaic just before `current`. Archive, not `.latest`: the live
+   * alias has no history. Null when the archive has nothing distinct.
+   */
+  private async previousScene(current: Scene): Promise<Scene | null> {
+    const t = Date.parse(current.frame.validTime);
+    if (Number.isNaN(t)) return null;
+    try {
+      for (const back of [1, 2]) {
+        const prev = await this.replay(
+          new Date(t - back * RadarService.PREV_MS)
+        );
+        if (prev.frame.validTime !== current.frame.validTime) return prev;
+      }
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   private async storms(
     at: Date | undefined,
     box: LonLatBox,
-    track: boolean
+    track: boolean,
+    wantMotion: boolean
   ): Promise<{
     storms: StormObject[];
     grid: Grid;
@@ -290,21 +336,49 @@ export class RadarService {
       RAIN_DBZ,
       scene.frame.validTime
     );
-    if (track && this.tracks) {
-      const nextId = { value: this.nextStormId };
+
+    const livePrev =
+      track &&
+      this.tracks !== null &&
+      this.tracks.validTime !== scene.frame.validTime
+        ? this.tracks
+        : null;
+
+    let prevObjects: StormObject[] | null = livePrev?.objects ?? null;
+    let prevTime: string | null = livePrev?.validTime ?? null;
+
+    if (wantMotion && prevObjects === null) {
+      const prev = await this.previousScene(scene);
+      if (prev && this.geo) {
+        const prevDrawn = crop(prev.grid, this.geo, box);
+        prevObjects = identify(
+          prevDrawn.grid,
+          prevDrawn.geo,
+          RAIN_DBZ,
+          prev.frame.validTime
+        );
+        prevTime = prev.frame.validTime;
+      }
+    }
+
+    if (prevObjects && prevTime) {
+      const nextId = { value: track ? this.nextStormId : prevObjects.length + 1 };
       storms = matchTracks(
-        this.tracks.objects,
+        prevObjects,
         storms,
-        this.tracks.validTime,
+        prevTime,
         scene.frame.validTime,
         nextId
       );
-      this.nextStormId = nextId.value;
-      this.tracks = { validTime: scene.frame.validTime, objects: storms };
+      if (track) this.nextStormId = nextId.value;
     } else if (track) {
       this.nextStormId = storms.length + 1;
+    }
+
+    if (track) {
       this.tracks = { validTime: scene.frame.validTime, objects: storms };
     }
+
     return {
       storms,
       grid: drawn.grid,

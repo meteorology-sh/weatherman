@@ -17,6 +17,10 @@ const reading: StormNear = {
   coreKm: 4.2,
   edgeKm: 0.6,
   upwindEdgeKm: 0.8,
+  inWorking: false,
+  slwGM2: 22,
+  goesTopC: -14,
+  goesTopDeltaC: -2,
   object: {
     id: 7,
     firstSeen: "2025-08-11T17:50:00.000Z",
@@ -30,6 +34,7 @@ const reading: StormNear = {
     ageMin: 12,
     motionTowardDeg: 40,
     motionKmh: 28,
+    areaDeltaKm2: 4.2,
   },
 };
 
@@ -59,7 +64,25 @@ describe("StormHere", () => {
     expect(screen.getByText("48 dBZ")).toBeTruthy();
     expect(screen.getByText(/0.6 km from the edge/)).toBeTruthy();
     expect(screen.getByText(/outside the rain/)).toBeTruthy();
-    expect(screen.queryByText(/min/)).toBe(null);
+    expect(screen.getByText(/Moving toward NE at 28 km\/h/)).toBeTruthy();
+    expect(screen.getByText(/4.2 km² more than the previous scan/)).toBeTruthy();
+    expect(screen.getByText(/2 °C colder than five minutes ago/)).toBeTruthy();
+    expect(screen.getByText(/22 g\/m² of supercooled liquid/)).toBeTruthy();
+  });
+
+  it("names the working area when the click is in quiet upwind air", () => {
+    const store = createTestStore();
+    renderWithStore(<StormHere />, store);
+    act(() => {
+      store.dispatch(
+        stormsActions.setHere({
+          ...reading,
+          inWorking: true,
+        })
+      );
+    });
+    expect(screen.getByText(/working area/)).toBeTruthy();
+    expect(screen.getByText(/not rain/)).toBeTruthy();
   });
 
   it("says you clicked the heaviest rain when the click is on the dot", () => {

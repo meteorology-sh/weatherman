@@ -29,6 +29,7 @@ import {
   RADAR_RGB,
   SLW_BANDS,
   SLW_RGB,
+  WORKING_RGB,
 } from "./bands";
 
 // Types
@@ -101,6 +102,21 @@ export const stormCoreRenderer = new SimpleRenderer({
     color: [...RADAR_RGB, 0.95],
     size: 7,
     outline: { color: [0, 0, 0, 0], width: 0 },
+  }),
+});
+
+/**
+ * Quiet air on the upwind side of a storm. Hollow and dashed so it cannot
+ * be read as rain: nothing is filled outside the 20 dBZ line.
+ */
+export const stormFlankRenderer = new SimpleRenderer({
+  symbol: new SimpleFillSymbol({
+    color: [0, 0, 0, 0],
+    outline: {
+      color: [...WORKING_RGB, 0.95],
+      width: STORM_WIDTH,
+      style: "dash",
+    },
   }),
 });
 

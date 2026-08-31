@@ -278,6 +278,8 @@ export interface StormObjectView {
   ageMin: number | null;
   motionTowardDeg: number | null;
   motionKmh: number | null;
+  /** Change in raining area from the previous scan, km². Null if no previous. */
+  areaDeltaKm2: number | null;
 }
 
 export interface StormNear {
@@ -286,7 +288,15 @@ export interface StormNear {
   coreKm: number;
   edgeKm: number;
   upwindEdgeKm: number | null;
+  /** Quiet air on the upwind side of this storm — the working area, not rain. */
+  inWorking: boolean;
   object: StormObjectView;
+  /** Highest modelled in-band liquid over the storm, g/m². */
+  slwGM2: number | null;
+  /** Coldest observed cloud top over the storm, °C. */
+  goesTopC: number | null;
+  /** Change in that top from the previous sweep, °C. Negative is colder. */
+  goesTopDeltaC: number | null;
 }
 
 /** Mirrors RadarStats in server/src/lib/services/mrms/radar.ts */

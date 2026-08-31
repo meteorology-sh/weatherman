@@ -39,6 +39,11 @@ export type StormObject = {
   /** Direction the centroid is moving toward, degrees. Null if still or new. */
   motionTowardDeg: number | null;
   motionKmh: number | null;
+  /**
+   * Change in raining area from the previous scan, km². Null when this
+   * mosaic has no previous scan. Positive is more rain than two minutes ago.
+   */
+  areaDeltaKm2: number | null;
   cells: Uint32Array;
   geometry: ContourRing[][];
 };
@@ -52,6 +57,7 @@ export type StormFeature = {
     ageMin: number | null;
     motionTowardDeg: number | null;
     motionKmh: number | null;
+    areaDeltaKm2: number | null;
     coreLon: number;
     coreLat: number;
   };
@@ -79,6 +85,11 @@ export type StormNear = {
    * Null if it is still or new.
    */
   upwindEdgeKm: number | null;
+  /**
+   * The point sits in quiet, covered air on the upwind side of this storm —
+   * the working area, not the rain.
+   */
+  inWorking: boolean;
 };
 
 export function km(
@@ -205,6 +216,7 @@ export function identify(
       ageMin: null,
       motionTowardDeg: null,
       motionKmh: null,
+      areaDeltaKm2: null,
       cells: Uint32Array.from(cells),
       geometry: objectPolygon(cells, grid, geo),
     });
@@ -309,9 +321,26 @@ export function matchTracks(
           )
         : null,
       motionKmh: moving ? Math.round(best.dist / dtH) : null,
+      areaDeltaKm2:
+        Math.round((storm.areaKm2 - best.prev.areaKm2) * 10) / 10,
     });
   }
   return out;
+}
+
+/** True when B sits on the side A is moving away from. */
+export function upwindOf(
+  fromLat: number,
+  fromLon: number,
+  toLat: number,
+  toLon: number,
+  motionTowardDeg: number
+): boolean {
+  const upwind = (motionTowardDeg + 180) % 360;
+  const deg = bearingDeg(fromLat, fromLon, toLat, toLon);
+  let delta = Math.abs(deg - upwind);
+  if (delta > 180) delta = 360 - delta;
+  return delta <= 90;
 }
 
 /** Even-odd test on one ring. Same rule the contourer uses to nest holes. */
@@ -422,24 +451,14 @@ export function near(
 
   const edge = boundaryCells(chosen, grid, threshold);
   const edgeKm = nearestKm(lat, lon, edge, geo);
-  let upwindEdgeKm: number | null = null;
-  if (chosen.motionTowardDeg !== null && edge.length) {
-    const upwind = (chosen.motionTowardDeg + 180) % 360;
-    const upwindCells = edge.filter((k) => {
-      const deg = bearingDeg(
-        chosen.coreLat,
-        chosen.coreLon,
-        geo.lats[k],
-        geo.lons[k]
-      );
-      let delta = Math.abs(deg - upwind);
-      if (delta > 180) delta = 360 - delta;
-      return delta <= 90;
-    });
-    if (upwindCells.length) {
-      upwindEdgeKm = nearestKm(lat, lon, upwindCells, geo);
-    }
-  }
+  const working = upwindRing(chosen, grid, geo, threshold);
+  const upwindEdgeKm = working.length
+    ? nearestKm(lat, lon, working, geo)
+    : null;
+  const inWorking =
+    inside === null &&
+    working.length > 0 &&
+    (working.includes(cell) || nearestKm(lat, lon, working, geo) < 1.05);
 
   return {
     validTime,
@@ -448,6 +467,7 @@ export function near(
     coreKm: km(lat, lon, chosen.coreLat, chosen.coreLon),
     edgeKm,
     upwindEdgeKm,
+    inWorking,
   };
 }
 
@@ -483,6 +503,23 @@ export function quietRing(
     }
   }
   return [...ring];
+}
+
+/**
+ * The quiet, covered cells on the side this storm is moving away from.
+ * Empty when the storm has no motion: we do not guess an inflow side.
+ */
+export function upwindRing(
+  storm: StormObject,
+  grid: Grid,
+  geo: Geo,
+  threshold: number
+): number[] {
+  if (storm.motionTowardDeg === null) return [];
+  const toward = storm.motionTowardDeg;
+  return quietRing(storm, grid, threshold).filter((k) =>
+    upwindOf(storm.coreLat, storm.coreLon, geo.lats[k], geo.lons[k], toward)
+  );
 }
 
 export function coresFrame(
@@ -522,7 +559,7 @@ export function flankFrame(
     type: "FeatureCollection",
     validTime,
     features: storms.flatMap((storm) => {
-      const cells = quietRing(storm, grid, threshold);
+      const cells = upwindRing(storm, grid, geo, threshold);
       if (cells.length === 0) return [];
       const geometry = objectPolygon(cells, grid, geo);
       if (geometry.length === 0) return [];
@@ -536,6 +573,7 @@ export function flankFrame(
             ageMin: storm.ageMin,
             motionTowardDeg: storm.motionTowardDeg,
             motionKmh: storm.motionKmh,
+            areaDeltaKm2: storm.areaDeltaKm2,
             coreLon: storm.coreLon,
             coreLat: storm.coreLat,
           },
@@ -561,6 +599,7 @@ export function frame(validTime: string, storms: StormObject[]): StormFrame {
           ageMin: storm.ageMin,
           motionTowardDeg: storm.motionTowardDeg,
           motionKmh: storm.motionKmh,
+          areaDeltaKm2: storm.areaDeltaKm2,
           coreLon: storm.coreLon,
           coreLat: storm.coreLat,
         },
@@ -587,6 +626,7 @@ export function nearJson(reading: StormNear) {
       ageMin: object.ageMin,
       motionTowardDeg: object.motionTowardDeg,
       motionKmh: object.motionKmh,
+      areaDeltaKm2: object.areaDeltaKm2,
       geometry: object.geometry,
     },
   };

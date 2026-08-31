@@ -107,7 +107,8 @@ export const ReplayLayers = () => {
       >
         <div className="text-xs">
           Same colour as the 20 dBZ radar band. The line is the edge of the
-          rain. The dot is the heaviest rain in that storm.
+          rain. The dot is the heaviest rain in that storm. The dashed rose
+          line is quiet air on the upwind side — the working area, not rain.
         </div>
       </LayerToggle>
 

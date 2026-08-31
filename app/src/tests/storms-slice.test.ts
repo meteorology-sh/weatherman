@@ -17,6 +17,10 @@ describe("storms slice", () => {
         coreKm: 1,
         edgeKm: 2,
         upwindEdgeKm: null,
+        inWorking: false,
+        slwGM2: null,
+        goesTopC: null,
+        goesTopDeltaC: null,
         object: {
           id: 1,
           firstSeen: "2025-08-11T18:00:00.000Z",
@@ -30,6 +34,7 @@ describe("storms slice", () => {
           ageMin: null,
           motionTowardDeg: null,
           motionKmh: null,
+          areaDeltaKm2: null,
         },
       })
     );
