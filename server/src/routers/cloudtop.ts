@@ -3,6 +3,7 @@ import express, { Request, Response } from "express";
 
 // Services
 import { Goes } from "../lib/services/goes/cloudtop";
+import { Glm } from "../lib/services/goes/lightning";
 import { parseAt } from "../lib/services/shared/replay";
 import { parseBox } from "../lib/services/shared/grid";
 
@@ -29,6 +30,16 @@ cloudtop.get("/temperature/stats", async (req: Request, res: Response) => {
   try {
     const stats = await Goes.temperatureStats(parseAt(req.query.at));
     res.send(stats);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+cloudtop.get("/lightning", async (req: Request, res: Response) => {
+  try {
+    res.send(await Glm.flashes(parseAt(req.query.at), parseBox(req.query)));
   } catch (error) {
     res
       .status(500)

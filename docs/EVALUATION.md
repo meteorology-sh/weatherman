@@ -377,6 +377,41 @@ in the operator's briefing and absent from ours.
 
 ---
 
+## Finding 4 — they seed the inside of the rain's upwind edge, not the quiet ring outside it
+
+The same 216 located flares scored as a Texas-shaped column in `eval/target.mjs`
+were asked again of the 1 km radar storm, at the same two hours, with motion
+from the mosaic about two minutes earlier (`eval/storms.mjs`).
+
+**216 of 216 had a ≥20 dBZ storm within about 40 km at either hour.** 145 sat
+inside the rain at least one of the two hours (27 at both, 118 at exactly one).
+Of those 145:
+
+| | Count | Share of 145 |
+| --- | ---: | ---: |
+| Closer to the 20 dBZ edge than to the heaviest-rain cell | 122 | 84% |
+| Closer to the upwind edge than to the heaviest-rain cell | 86 | 59% |
+| Raining area larger than two minutes earlier | 93 | 64% |
+
+Median distance, using the hour the flare is inside: **9.3 km to the heaviest
+rain, 2.1 km to the edge, 5.9 km to the upwind edge.**
+
+A 1 km ring of quiet air on the upwind side of that rain — the hypothesized
+inflow working area, outside 20 dBZ — held **15 of 216** flares at either hour.
+
+**They work the storm, near the edge, on the upwind side, while the rain is
+still spreading.** They do not release in the no-rain cell next to it. The
+candidate map therefore treats the 20 dBZ fill, the heaviest-rain cell, and
+the heading as one radar layer. The click names the upwind inside-edge.
+
+This is still not overlap with the quiet-liquid join. It is overlap with the
+object Texas already flies. Age of the rain, GOES top change, GLM flashes,
+and measured 18 dBZ echo-top versus freezing are now on that same click
+and in `eval/storms.mjs`; they have not yet been scored for the 216
+flares.
+
+---
+
 ## Limits to quote alongside the results
 
 **The balloon is close in time, not simultaneous.** It is released about 45

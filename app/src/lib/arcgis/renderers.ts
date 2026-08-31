@@ -10,6 +10,7 @@
 import UniqueValueRenderer from "@arcgis/core/renderers/UniqueValueRenderer";
 import SimpleRenderer from "@arcgis/core/renderers/SimpleRenderer";
 import SimpleFillSymbol from "@arcgis/core/symbols/SimpleFillSymbol";
+import SimpleLineSymbol from "@arcgis/core/symbols/SimpleLineSymbol";
 import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol";
 import {
   CLOUD_BANDS,
@@ -22,14 +23,15 @@ import {
   CANDIDATE_RGB,
   CONFIRMED_RGB,
   CONFIRMED_WIDTH,
-  STORM_WIDTH,
+  LIGHTNING_RGB,
+  MOTION_RGB,
+  MOTION_WIDTH,
   PRECIP_BANDS,
   PRECIP_RGB,
   RADAR_BANDS,
   RADAR_RGB,
   SLW_BANDS,
   SLW_RGB,
-  WORKING_RGB,
 } from "./bands";
 
 // Types
@@ -89,13 +91,6 @@ export const candidateConfirmedRenderer = new SimpleRenderer({
  * Storm outline: the same cyan as the 20 dBZ radar band, so the line is
  * visibly the edge of that rain, not a second variable.
  */
-export const stormObjectsRenderer = new SimpleRenderer({
-  symbol: new SimpleFillSymbol({
-    color: [0, 0, 0, 0],
-    outline: { color: [...RADAR_RGB, 0.95], width: STORM_WIDTH },
-  }),
-});
-
 /** The heaviest rain in the storm — one point at the strongest 1 km cell. */
 export const stormCoreRenderer = new SimpleRenderer({
   symbol: new SimpleMarkerSymbol({
@@ -105,18 +100,20 @@ export const stormCoreRenderer = new SimpleRenderer({
   }),
 });
 
-/**
- * Quiet air on the upwind side of a storm. Hollow and dashed so it cannot
- * be read as rain: nothing is filled outside the 20 dBZ line.
- */
-export const stormFlankRenderer = new SimpleRenderer({
-  symbol: new SimpleFillSymbol({
-    color: [0, 0, 0, 0],
-    outline: {
-      color: [...WORKING_RGB, 0.95],
-      width: STORM_WIDTH,
-      style: "dash",
-    },
+/** Heading of the storm, from the heaviest-rain cell. Not a nowcast. */
+export const stormMotionRenderer = new SimpleRenderer({
+  symbol: new SimpleLineSymbol({
+    color: [...MOTION_RGB, 0.95],
+    width: MOTION_WIDTH,
+  }),
+});
+
+/** One GLM flash. Points only — lightning is not a surface. */
+export const lightningRenderer = new SimpleRenderer({
+  symbol: new SimpleMarkerSymbol({
+    color: [...LIGHTNING_RGB, 0.95],
+    size: 5,
+    outline: { color: [0, 0, 0, 0], width: 0 },
   }),
 });
 

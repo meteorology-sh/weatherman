@@ -15,7 +15,6 @@ import {
   CloudTopLegend,
   LiquidLegend,
   RadarLegend,
-  StormLegend,
   CLOUD_TOP_WARMEST_C,
 } from "@/lib/arcgis/legends";
 
@@ -141,26 +140,22 @@ describe("LiquidLegend", () => {
   });
 });
 
-describe("StormLegend", () => {
-  it("names the 20 dBZ threshold that defines a storm", () => {
-    expect(StormLegend.summary).toContain("20 dBZ");
-    expect(StormLegend.summary).toContain("heaviest rain");
-  });
-
-  it("says the dashed line is the working area, not rain", () => {
-    expect(StormLegend.summary).toContain("working area");
-    expect(StormLegend.summary).toContain("upwind");
-    expect(detailOf(StormLegend)).toContain("not rain");
-    expect(detailOf(StormLegend)).toContain("moving away from");
-  });
-});
-
 describe("RadarLegend", () => {
   // The only measurement on either map, and the only layer that can cross a
   // candidate off. Both halves of that have to be said.
   it("says it is measured and that it cannot confirm a candidate", () => {
     expect(detailOf(RadarLegend)).toContain("Measured, not modelled");
     expect(detailOf(RadarLegend)).toContain("never confirm one");
+  });
+
+  it("names the dot, the heading, and the lightning on the same layer", () => {
+    expect(RadarLegend.summary).toContain("heaviest rain");
+    expect(RadarLegend.summary).toContain("moving");
+    expect(RadarLegend.summary).toContain("lightning");
+    expect(detailOf(RadarLegend)).toContain("not a forecast");
+    expect(detailOf(RadarLegend)).toContain("not inflow");
+    expect(detailOf(RadarLegend)).toContain("18 dBZ echo top");
+    expect(detailOf(RadarLegend)).toContain("not of the cloud");
   });
 });
 

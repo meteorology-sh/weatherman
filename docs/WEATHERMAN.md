@@ -45,34 +45,39 @@ here. This map is entirely model output.
 
 ### `/map/candidate` — observed
 
-Six layers, and they are not the same kind of claim. Bottom to top:
+Five layers, and they are not the same kind of claim. Bottom to top:
 
 | Layer                    | Claim        | Source                    |
 | ------------------------ | ------------ | ------------------------- |
 | Cloud base               | modelled     | HRRR `wrfsfc`             |
 | Cloud-top temperature    | observed     | GOES-East geometry + HRRR |
 | Supercooled liquid water | **modelled** | HRRR `wrfprs`             |
-| Radar reflectivity       | measured     | MRMS                      |
-| Radar storms             | measured     | MRMS, same mosaic         |
+| Radar                    | measured     | MRMS mosaic, GOES GLM     |
 
 The supercooled-liquid contours are the deliberate exception on an observed map,
 and the sidebar says so. The radar mosaic is the only measurement on either map.
 
-**Radar storms** are that mosaic grouped into contiguous ≥20 dBZ objects. The
-cyan outline is the edge of the rain, in the same colour as the 20 dBZ radar
-band. A dot marks the 1 km cell with the strongest echo. Nothing is filled
-outside that line: ground below 20 dBZ is not rain. A dashed rose line marks
-quiet, radar-covered air on the side the storm is moving away from — the
-working area crews fly, not rain. That line is drawn only when a previous
-mosaic gives the storm a direction; a storm with no motion has no dashed
-line.
+**Radar** is that mosaic, plus what we can honestly hang on a contiguous
+≥20 dBZ storm. The fills are how hard it is raining. A dot marks the 1 km
+cell with the strongest echo. A white arrow at that dot is the heading from
+the previous mosaic — not a forecast of where the storm will be, and not
+inflow. A storm with no motion has no arrow. Yellow markers are GOES-East
+GLM flashes in the last five minutes, drawn where they were. Lightning is
+too sparse to contour.
 
-A click says whether you are inside the rain, on the upwind working area, or
-outside both, how far you are from the dot, which way the storm is moving,
-whether the raining area grew or shrank since the previous scan, the coldest
-GOES cloud top over the storm and whether that top is colder than five
-minutes ago, and the highest modelled supercooled liquid in the seeding
-band over the storm. Liquid does not hide the storm.
+A click says whether you are inside the rain, on the upwind side nearer the
+edge than the heaviest rain, or outside; how far you are from the dot;
+which way the storm is moving; how long that rain has been on the mosaic
+(from earlier scans, about 18 minutes back); whether the raining area grew
+or shrank; the coldest GOES cloud top over the storm and whether that top
+is colder than five minutes ago; how many GLM flashes sat over the storm
+in those five minutes; the highest modelled supercooled liquid in the
+seeding band over the storm; and how high the measured 18 dBZ echo top
+sits relative to the freezing level. Liquid does not hide the storm. The
+arrow is heading, not inflow: pilots measure climb rate with the aircraft.
+Echo top is the top of precipitating drops, not of the cloud the satellite
+sees, and it is a number on the click rather than a second fill on the
+rain. Freezing level stays modelled.
 
 **Clicking is how the panel is read.** A click profiles that point's column,
 reads that cell's convective diagnostics, and asks every layer what it says over
@@ -244,8 +249,9 @@ base is, so a depth layer would vanish over most of the cloud the base layer
 shows. Depth, and whether the seeding band lies between base and top, are
 answered at the clicked point instead, and the map's cloud top comes from the
 satellite. The rest of the file's diagnostics — CAPE, storm motion, lightning,
-vertically integrated liquid, echo top — ride the same build as **attributes on
-that point readout, and nothing gates on them.**
+vertically integrated liquid, modelled echo top — ride the same build as
+**attributes on that point readout, and nothing gates on them.** The storm
+click's 18 dBZ echo-top is the measured height from MRMS, not this field.
 
 ### Seeding opportunity — the join
 
@@ -394,10 +400,14 @@ is drawn and never filtered, because a spreading anvil classifies as ice over
 cloud that is still growing underneath it — the outline says where the evidence
 is, not where the cloud is.
 
-**What the map still cannot tell you is whether a cloud is growing.** One scene
-gives the state of a cloud top, not its direction, and a turret that has just
-frozen looks the same as one that froze an hour ago. Until that is answered, the
-outline narrows where to look and the operator judges the rest.
+**Growth is a reading on the storm, not a filled layer.** The click reports
+how long the rain has been on the mosaic (earlier scans, about 18 minutes
+back), whether the raining area grew since the previous scan, whether the
+GOES top over the storm is colder than five minutes ago, and how many GLM
+flashes sat over it in those five minutes. That is not first-half-lifetime
+as TITAN would score it, and it is not inflow. One ABI scene still cannot
+tell a turret that has just frozen from one that froze an hour ago;
+differencing and the lightning count are what break that.
 
 ### Rain — MRMS
 

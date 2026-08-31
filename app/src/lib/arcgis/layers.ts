@@ -9,9 +9,9 @@ import {
   candidateCloudTopRenderer,
   candidateLiquidRenderer,
   candidateRadarRenderer,
+  lightningRenderer,
   stormCoreRenderer,
-  stormFlankRenderer,
-  stormObjectsRenderer,
+  stormMotionRenderer,
 } from "./renderers";
 
 // Client
@@ -24,9 +24,9 @@ import {
   ForecastPrecipUrl,
   ForecastLiquidUrl,
   RadarReflectivityUrl,
-  RadarObjectsUrl,
   RadarStormCoresUrl,
-  RadarStormFlanksUrl,
+  RadarStormMotionUrl,
+  LightningUrl,
 } from "@/lib/client";
 
 /**
@@ -99,27 +99,6 @@ export const ReplayRadarLayer = new GeoJSONLayer({
   visible: false,
 });
 
-export const ReplayStormLayer = new GeoJSONLayer({
-  title: "MRMS radar storms (replay)",
-  copyright: "NOAA / National Weather Service MRMS",
-  renderer: stormObjectsRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "stormId", type: "integer" },
-    { name: "maxDbz", type: "double" },
-    { name: "areaKm2", type: "double" },
-    { name: "ageMin", type: "double" },
-    { name: "motionTowardDeg", type: "double" },
-    { name: "motionKmh", type: "double" },
-    { name: "areaDeltaKm2", type: "double" },
-    { name: "coreLon", type: "double" },
-    { name: "coreLat", type: "double" },
-  ],
-  visible: false,
-});
-
 export const ReplayStormCoreLayer = new GeoJSONLayer({
   title: "MRMS radar storm cores (replay)",
   copyright: "NOAA / National Weather Service MRMS",
@@ -134,24 +113,28 @@ export const ReplayStormCoreLayer = new GeoJSONLayer({
   visible: false,
 });
 
-export const ReplayStormFlankLayer = new GeoJSONLayer({
-  title: "MRMS radar storm working area (replay)",
+export const ReplayStormMotionLayer = new GeoJSONLayer({
+  title: "MRMS radar storm motion (replay)",
   copyright: "NOAA / National Weather Service MRMS",
-  renderer: stormFlankRenderer,
-  geometryType: "polygon",
+  renderer: stormMotionRenderer,
+  geometryType: "polyline",
   objectIdField: "OBJECTID",
   fields: [
     { name: "OBJECTID", type: "oid" },
     { name: "stormId", type: "integer" },
-    { name: "maxDbz", type: "double" },
-    { name: "areaKm2", type: "double" },
-    { name: "ageMin", type: "double" },
     { name: "motionTowardDeg", type: "double" },
     { name: "motionKmh", type: "double" },
-    { name: "areaDeltaKm2", type: "double" },
-    { name: "coreLon", type: "double" },
-    { name: "coreLat", type: "double" },
   ],
+  visible: false,
+});
+
+export const ReplayLightningLayer = new GeoJSONLayer({
+  title: "GOES-East GLM flashes (replay)",
+  copyright: "NOAA GOES-East GLM",
+  renderer: lightningRenderer,
+  geometryType: "point",
+  objectIdField: "OBJECTID",
+  fields: [{ name: "OBJECTID", type: "oid" }],
   visible: false,
 });
 
@@ -382,36 +365,9 @@ export const CandidateRadarLayer = new GeoJSONLayer({
 });
 
 /**
- * Contiguous ≥20 dBZ storms on the same mosaic. Hollow outlines so the
- * reflectivity fills still say how hard it is raining; the line says which
- * cells belong to one storm.
- *
- * Declares its schema: a clear hour is an empty collection, and ArcGIS
- * cannot infer fields from that.
+ * The strongest 1 km cell in each contiguous ≥20 dBZ storm. One radar
+ * switch drives this, the heading tick, the lightning, and the fills.
  */
-export const CandidateStormLayer = new GeoJSONLayer({
-  title: "MRMS radar storms",
-  url: RadarObjectsUrl(),
-  copyright: "NOAA / National Weather Service MRMS",
-  renderer: stormObjectsRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "stormId", type: "integer" },
-    { name: "maxDbz", type: "double" },
-    { name: "areaKm2", type: "double" },
-    { name: "ageMin", type: "double" },
-    { name: "motionTowardDeg", type: "double" },
-    { name: "motionKmh", type: "double" },
-    { name: "areaDeltaKm2", type: "double" },
-    { name: "coreLon", type: "double" },
-    { name: "coreLat", type: "double" },
-  ],
-  visible: false,
-});
-
-/** The strongest 1 km cell in each storm. One switch drives this and the outline. */
 export const CandidateStormCoreLayer = new GeoJSONLayer({
   title: "MRMS radar storm cores",
   url: RadarStormCoresUrl(),
@@ -428,28 +384,38 @@ export const CandidateStormCoreLayer = new GeoJSONLayer({
 });
 
 /**
- * Quiet, covered air on the upwind side of each storm. Hollow, so no-rain
- * ground is not filled. One switch drives this, the outline, and the dot.
+ * Heading of each storm, from the heaviest-rain cell. Empty when the
+ * previous mosaic gave no direction. Not a forecast of where the storm
+ * will be.
  */
-export const CandidateStormFlankLayer = new GeoJSONLayer({
-  title: "MRMS radar storm working area",
-  url: RadarStormFlanksUrl(),
+export const CandidateStormMotionLayer = new GeoJSONLayer({
+  title: "MRMS radar storm motion",
+  url: RadarStormMotionUrl(),
   copyright: "NOAA / National Weather Service MRMS",
-  renderer: stormFlankRenderer,
-  geometryType: "polygon",
+  renderer: stormMotionRenderer,
+  geometryType: "polyline",
   objectIdField: "OBJECTID",
   fields: [
     { name: "OBJECTID", type: "oid" },
     { name: "stormId", type: "integer" },
-    { name: "maxDbz", type: "double" },
-    { name: "areaKm2", type: "double" },
-    { name: "ageMin", type: "double" },
     { name: "motionTowardDeg", type: "double" },
     { name: "motionKmh", type: "double" },
-    { name: "areaDeltaKm2", type: "double" },
-    { name: "coreLon", type: "double" },
-    { name: "coreLat", type: "double" },
   ],
+  visible: false,
+});
+
+/**
+ * GLM flashes in the last five minutes. Points only. One radar switch
+ * drives this with the mosaic.
+ */
+export const CandidateLightningLayer = new GeoJSONLayer({
+  title: "GOES-East GLM flashes",
+  url: LightningUrl(),
+  copyright: "NOAA GOES-East GLM",
+  renderer: lightningRenderer,
+  geometryType: "point",
+  objectIdField: "OBJECTID",
+  fields: [{ name: "OBJECTID", type: "oid" }],
   visible: false,
 });
 

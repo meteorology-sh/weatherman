@@ -127,15 +127,12 @@ export const CANDIDATE_RGB = [52, 211, 153] as const;
 export const CONFIRMED_RGB = [209, 255, 232] as const;
 export const CONFIRMED_WIDTH = 1.5;
 
-/** Line weight of a storm outline. Colour is RADAR_RGB — the 20 dBZ band. */
-export const STORM_WIDTH = 2;
+/** Heading tick at the heaviest-rain cell. White on the dark basemap. */
+export const MOTION_RGB = [255, 255, 255] as const;
+export const MOTION_WIDTH = 2;
 
-/**
- * Quiet air on the upwind side of the rain. Rose, because cyan is already
- * rain, amber is modelled liquid, and green is the quiet-liquid join: this
- * is none of those. It is the working area, and it is not filled.
- */
-export const WORKING_RGB = [244, 63, 94] as const;
+/** GLM flash. Yellow so it is not the cyan rain and not the white arrow. */
+export const LIGHTNING_RGB = [250, 204, 21] as const;
 
 /**
  * Observed reflectivity, dBZ, mirroring REFLECTIVITY.levels in

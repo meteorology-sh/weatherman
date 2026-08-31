@@ -36,8 +36,9 @@ import {
   replayFieldLayer,
   replayLiquidLayer,
   replayRadarLayer,
-  replayStormLayer,
-  replayStormFlankLayer,
+  replayStormCoreLayer,
+  replayStormMotionLayer,
+  replayLightningLayer,
 } from "./arcgis-fakes";
 
 // Components
@@ -154,9 +155,14 @@ describe("ArcGIS in replay mode", () => {
       `/forecast/liquid?hour=0&at=${at}&${box}`
     );
     expect(replayRadarLayer.url).toBe(`/radar/reflectivity?at=${at}&${box}`);
-    expect(replayStormLayer.url).toBe(`/radar/objects?at=${at}&${box}`);
-    expect(replayStormFlankLayer.url).toBe(
-      `/radar/objects/flanks?at=${at}&${box}`
+    expect(replayStormCoreLayer.url).toBe(
+      `/radar/objects/cores?at=${at}&${box}`
+    );
+    expect(replayStormMotionLayer.url).toBe(
+      `/radar/objects/motion?at=${at}&${box}`
+    );
+    expect(replayLightningLayer.url).toBe(
+      `/cloudtop/lightning?at=${at}&${box}`
     );
     expect(replayCloudBaseLayer.url).toBe(
       `/forecast/cloudbase?hour=0&at=${at}&${box}`

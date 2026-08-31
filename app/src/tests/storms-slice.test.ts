@@ -4,10 +4,6 @@ import { soundingActions } from "@/lib/store/features/sounding";
 const initial = reducer(undefined, { type: "@@init" });
 
 describe("storms slice", () => {
-  it("starts visible, like the layer the map now opens on", () => {
-    expect(initial.visible).toBe(true);
-  });
-
   it("clears the clicked storm when the point moves", () => {
     const filled = reducer(
       initial,
@@ -21,6 +17,10 @@ describe("storms slice", () => {
         slwGM2: null,
         goesTopC: null,
         goesTopDeltaC: null,
+        echoTopFt: null,
+        modelEchoTopFt: null,
+        freezingFt: null,
+        glmFlashes: null,
         object: {
           id: 1,
           firstSeen: "2025-08-11T18:00:00.000Z",
@@ -32,6 +32,7 @@ describe("storms slice", () => {
           centroidLon: -101,
           centroidLat: 32,
           ageMin: null,
+          ageFloor: false,
           motionTowardDeg: null,
           motionKmh: null,
           areaDeltaKm2: null,

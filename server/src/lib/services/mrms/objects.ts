@@ -36,6 +36,11 @@ export type StormObject = {
   centroidLat: number;
   /** Minutes since `firstSeen`. Null when this mosaic has no previous scan. */
   ageMin: number | null;
+  /**
+   * True when `firstSeen` is the oldest scan we looked at, so `ageMin` is
+   * a lower bound rather than the storm's first appearance.
+   */
+  ageFloor: boolean;
   /** Direction the centroid is moving toward, degrees. Null if still or new. */
   motionTowardDeg: number | null;
   motionKmh: number | null;
@@ -86,8 +91,8 @@ export type StormNear = {
    */
   upwindEdgeKm: number | null;
   /**
-   * The point sits in quiet, covered air on the upwind side of this storm —
-   * the working area, not the rain.
+   * The point sits inside the rain, on the upwind side, nearer the edge
+   * than the heaviest rain — the flank crews fly.
    */
   inWorking: boolean;
 };
@@ -214,6 +219,7 @@ export function identify(
       centroidLon,
       centroidLat,
       ageMin: null,
+      ageFloor: false,
       motionTowardDeg: null,
       motionKmh: null,
       areaDeltaKm2: null,
@@ -310,6 +316,7 @@ export function matchTracks(
       id: best.prev.id,
       firstSeen: best.prev.firstSeen,
       ageMin,
+      ageFloor: best.prev.ageFloor,
       motionTowardDeg: moving
         ? Math.round(
             bearingDeg(
@@ -451,20 +458,22 @@ export function near(
 
   const edge = boundaryCells(chosen, grid, threshold);
   const edgeKm = nearestKm(lat, lon, edge, geo);
-  const working = upwindRing(chosen, grid, geo, threshold);
+  const working = upwindBoundary(chosen, grid, geo, threshold);
   const upwindEdgeKm = working.length
     ? nearestKm(lat, lon, working, geo)
     : null;
+  const coreKm = km(lat, lon, chosen.coreLat, chosen.coreLon);
   const inWorking =
-    inside === null &&
-    working.length > 0 &&
-    (working.includes(cell) || nearestKm(lat, lon, working, geo) < 1.05);
+    inside !== null &&
+    upwindEdgeKm !== null &&
+    upwindEdgeKm <= edgeKm + 0.5 &&
+    edgeKm < coreKm;
 
   return {
     validTime,
     object: chosen,
     inside: inside !== null,
-    coreKm: km(lat, lon, chosen.coreLat, chosen.coreLon),
+    coreKm,
     edgeKm,
     upwindEdgeKm,
     inWorking,
@@ -522,6 +531,23 @@ export function upwindRing(
   );
 }
 
+/**
+ * Raining cells on the upwind edge of this storm. The flank, still ≥20 dBZ,
+ * not the no-rain ground outside it. Empty when the storm has no motion.
+ */
+export function upwindBoundary(
+  storm: StormObject,
+  grid: Grid,
+  geo: Geo,
+  threshold: number
+): number[] {
+  if (storm.motionTowardDeg === null) return [];
+  const toward = storm.motionTowardDeg;
+  return boundaryCells(storm, grid, threshold).filter((k) =>
+    upwindOf(storm.coreLat, storm.coreLon, geo.lats[k], geo.lons[k], toward)
+  );
+}
+
 export function coresFrame(
   validTime: string,
   storms: StormObject[]
@@ -559,7 +585,7 @@ export function flankFrame(
     type: "FeatureCollection",
     validTime,
     features: storms.flatMap((storm) => {
-      const cells = upwindRing(storm, grid, geo, threshold);
+      const cells = upwindBoundary(storm, grid, geo, threshold);
       if (cells.length === 0) return [];
       const geometry = objectPolygon(cells, grid, geo);
       if (geometry.length === 0) return [];
@@ -608,6 +634,110 @@ export function frame(validTime: string, storms: StormObject[]): StormFrame {
   };
 }
 
+/**
+ * Point `km` along `towardDeg` from a lat/lon. Bearing is clockwise from
+ * north, the same as `motionTowardDeg`.
+ */
+export function destPoint(
+  lat: number,
+  lon: number,
+  towardDeg: number,
+  km: number
+): [number, number] {
+  const rad = (towardDeg * Math.PI) / 180;
+  const dlat = (km * Math.cos(rad)) / KM_PER_DEG;
+  const dlon =
+    (km * Math.sin(rad)) /
+    (KM_PER_DEG * Math.cos((lat * Math.PI) / 180));
+  return [lon + dlon, lat + dlat];
+}
+
+/** Heading-tick length, km. Follows speed; clamped so a crawl is still drawn. */
+export function motionLengthKm(motionKmh: number): number {
+  return Math.min(12, Math.max(3, motionKmh / 10));
+}
+
+/**
+ * Match storms forward through a chain of mosaics, oldest first, so
+ * `firstSeen` is the earliest scan the centroid still matches.
+ */
+export function foldTracks(
+  scans: { time: string; storms: StormObject[] }[]
+): StormObject[] {
+  if (scans.length === 0) return [];
+  let storms = scans[0].storms;
+  let time = scans[0].time;
+  const nextId = {
+    value: storms.reduce((max, s) => Math.max(max, s.id), 0) + 1,
+  };
+  for (let i = 1; i < scans.length; i++) {
+    storms = matchTracks(
+      storms,
+      scans[i].storms,
+      time,
+      scans[i].time,
+      nextId
+    );
+    time = scans[i].time;
+  }
+  if (scans.length === 1) return storms;
+  const oldest = scans[0].time;
+  return storms.map((storm) =>
+    storm.firstSeen === oldest ? { ...storm, ageFloor: true } : storm
+  );
+}
+
+export function motionFrame(
+  validTime: string,
+  storms: StormObject[]
+): {
+  type: "FeatureCollection";
+  validTime: string;
+  features: {
+    type: "Feature";
+    properties: {
+      stormId: number;
+      motionTowardDeg: number;
+      motionKmh: number;
+    };
+    geometry: { type: "LineString"; coordinates: [number, number][] };
+  }[];
+} {
+  return {
+    type: "FeatureCollection",
+    validTime,
+    features: storms.flatMap((storm) => {
+      if (storm.motionTowardDeg === null || storm.motionKmh === null) {
+        return [];
+      }
+      if (storm.motionKmh < 1) return [];
+      const km = motionLengthKm(storm.motionKmh);
+      return [
+        {
+          type: "Feature" as const,
+          properties: {
+            stormId: storm.id,
+            motionTowardDeg: storm.motionTowardDeg,
+            motionKmh: storm.motionKmh,
+          },
+          geometry: {
+            type: "LineString" as const,
+            coordinates: [
+              [storm.coreLon, storm.coreLat],
+              destPoint(
+                storm.coreLat,
+                storm.coreLon,
+                storm.motionTowardDeg,
+                km
+              ),
+            ],
+          },
+        },
+      ];
+    }),
+  };
+}
+
 /** JSON for one nearby object, without the cell list. */
 export function nearJson(reading: StormNear) {
   const { object, ...rest } = reading;
@@ -624,6 +754,7 @@ export function nearJson(reading: StormNear) {
       centroidLon: object.centroidLon,
       centroidLat: object.centroidLat,
       ageMin: object.ageMin,
+      ageFloor: object.ageFloor,
       motionTowardDeg: object.motionTowardDeg,
       motionKmh: object.motionKmh,
       areaDeltaKm2: object.areaDeltaKm2,

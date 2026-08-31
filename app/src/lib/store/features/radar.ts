@@ -7,11 +7,8 @@ type RadarState = {
   /**
    * Observed reflectivity on the candidate map.
    *
-   * Off on arrival, like every layer but the candidate field. The question it
-   * answers — is this candidate already precipitating — is a disqualifier, but
-   * the join has already applied it: a raining cell is one of the reasons the
-   * candidate field rejects ground, so the answer layer never offers one. This
-   * layer is here to show the operator *where* that happened.
+   * On by default: this is the object an operator flies, and the map should
+   * open on rain plus the liquid join, so the two answers can disagree in view.
    */
   visible: boolean;
   /** Summary of the scene. The contours themselves never enter the store. */
@@ -21,7 +18,7 @@ type RadarState = {
 };
 
 const initialState: RadarState = {
-  visible: false,
+  visible: true,
   stats: undefined,
   loading: false,
   error: null,

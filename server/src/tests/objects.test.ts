@@ -5,11 +5,16 @@ import assert from "node:assert/strict";
 // Services
 import {
   bearingDeg,
+  destPoint,
+  foldTracks,
   identify,
   km,
   matchTracks,
+  motionFrame,
+  motionLengthKm,
   near,
   quietRing,
+  upwindBoundary,
   upwindOf,
   upwindRing,
 } from "../lib/services/mrms/objects";
@@ -234,12 +239,16 @@ describe("near", () => {
     assert.ok(reading.upwindEdgeKm !== null);
   });
 
-  it("marks a quiet upwind cell as the working area, not as rain", () => {
+  it("marks the upwind inside edge as the working area, not quiet ground outside", () => {
     storms[0].motionTowardDeg = 90;
-    const reading = near(30.01, -100, storms, grid, geo, 20, TIME);
-    assert.ok(reading);
-    assert.equal(reading.inside, false);
-    assert.equal(reading.inWorking, true);
+    const insideWest = near(30.01, -99.99, storms, grid, geo, 20, TIME);
+    assert.ok(insideWest);
+    assert.equal(insideWest.inside, true);
+    assert.equal(insideWest.inWorking, true);
+    const outside = near(30.01, -100, storms, grid, geo, 20, TIME);
+    assert.ok(outside);
+    assert.equal(outside.inside, false);
+    assert.equal(outside.inWorking, false);
   });
 });
 
@@ -310,10 +319,101 @@ describe("upwindRing", () => {
   });
 });
 
+describe("upwindBoundary", () => {
+  it("is raining cells on the upwind edge, not the quiet cells outside", () => {
+    const { grid, geo } = scene([
+      [0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0],
+      [0, 0, 40, 0, 0],
+      [0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0],
+    ]);
+    const [storm] = identify(grid, geo, 20, TIME);
+    storm.motionTowardDeg = 90;
+    const edge = upwindBoundary(storm, grid, geo, 20);
+    assert.ok(edge.length > 0);
+    for (const k of edge) {
+      assert.ok(grid.values[k] >= 20);
+      assert.ok(storm.cells.includes(k));
+    }
+  });
+});
+
 describe("upwindOf", () => {
   it("reads west as upwind of a storm moving east", () => {
     assert.equal(upwindOf(30, -100, 30, -100.1, 90), true);
     assert.equal(upwindOf(30, -100, 30, -99.9, 90), false);
+  });
+});
+
+describe("destPoint", () => {
+  it("puts due north of a point at a higher latitude", () => {
+    const [lon, lat] = destPoint(30, -100, 0, 11.132);
+    assert.ok(Math.abs(lon - -100) < 1e-4);
+    assert.ok(Math.abs(lat - 30.1) < 1e-3);
+  });
+});
+
+describe("foldTracks", () => {
+  it("keeps firstSeen from the oldest matching scan", () => {
+    const t0 = "2025-08-11T18:00:00.000Z";
+    const t1 = "2025-08-11T18:03:00.000Z";
+    const t2 = "2025-08-11T18:06:00.000Z";
+    const a = identify(
+      scene([[0, 40, 0]]).grid,
+      scene([[0, 40, 0]]).geo,
+      20,
+      t0
+    );
+    const b = identify(
+      scene([[0, 0, 40]]).grid,
+      scene([[0, 0, 40]]).geo,
+      20,
+      t1
+    );
+    const c = identify(
+      scene([[0, 0, 40]]).grid,
+      scene([[0, 0, 40]]).geo,
+      20,
+      t2
+    );
+    const tracked = foldTracks([
+      { time: t0, storms: a },
+      { time: t1, storms: b },
+      { time: t2, storms: c },
+    ]);
+    assert.equal(tracked.length, 1);
+    assert.equal(tracked[0].firstSeen, t0);
+    assert.equal(tracked[0].ageMin, 6);
+    assert.equal(tracked[0].ageFloor, true);
+  });
+});
+
+describe("motionFrame", () => {
+  it("draws a line from the core along the heading", () => {
+    const { grid, geo } = scene([[40]]);
+    const [storm] = identify(grid, geo, 20, TIME);
+    storm.motionTowardDeg = 90;
+    storm.motionKmh = 40;
+    const frame = motionFrame(TIME, [storm]);
+    assert.equal(frame.features.length, 1);
+    const [from, to] = frame.features[0].geometry.coordinates;
+    assert.equal(from[0], storm.coreLon);
+    assert.equal(from[1], storm.coreLat);
+    assert.ok(to[0] > from[0]);
+    assert.ok(Math.abs(to[1] - from[1]) < 0.02);
+    assert.equal(frame.features[0].properties.motionKmh, 40);
+  });
+
+  it("draws nothing when the storm has no motion", () => {
+    const { grid, geo } = scene([[40]]);
+    const [storm] = identify(grid, geo, 20, TIME);
+    assert.equal(motionFrame(TIME, [storm]).features.length, 0);
+  });
+
+  it("clamps a fast heading to 12 km", () => {
+    assert.equal(motionLengthKm(200), 12);
+    assert.equal(motionLengthKm(20), 3);
   });
 });
 

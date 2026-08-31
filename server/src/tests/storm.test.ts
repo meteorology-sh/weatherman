@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 // Services
 import {
   coldestTopC,
+  maxCellOver,
   maxOver,
   valuesOver,
 } from "../lib/services/candidate/storm";
@@ -72,5 +73,22 @@ describe("maxOver", () => {
     liquid[storm.cells[0]] = 12;
     assert.equal(maxOver(storm, geo, geo, liquid), 12);
     assert.ok(valuesOver(storm, geo, geo, { values: liquid }).includes(12));
+  });
+});
+
+describe("maxCellOver", () => {
+  it("returns the cell of the highest value covering the storm", () => {
+    const { grid, geo } = scene([
+      [0, 0, 0],
+      [0, 30, 0],
+      [0, 0, 0],
+    ]);
+    const [storm] = identify(grid, geo, 20, "2025-08-11T18:00:00.000Z");
+    const echo = new Float32Array(geo.lats.length);
+    echo[storm.cells[0]] = 18000;
+    const hit = maxCellOver(storm, geo, geo, echo);
+    assert.ok(hit);
+    assert.equal(hit.value, 18000);
+    assert.equal(hit.cell, storm.cells[0]);
   });
 });

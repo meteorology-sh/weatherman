@@ -142,50 +142,36 @@ export const LiquidLegend: LayerLegend = {
   ],
 };
 
-export const StormLegend: LayerLegend = {
-  name: "RADAR STORMS",
-  source: "NOAA MRMS",
-  summary:
-    "One storm per outline. The cyan line is the edge of the rain (20 dBZ). " +
-    "The dot is the heaviest rain in that storm. The dashed rose line is " +
-    "quiet air on the upwind side — the working area, not rain.",
-  detail: [
-    "Contiguous cells of the 1 km MRMS mosaic at 20 dBZ or more, the same " +
-      "threshold and the same colour as the lowest radar-reflectivity band. " +
-      "The cyan outline is the edge of that rain. The dot is the 1 km cell " +
-      "with the strongest echo. Nothing is filled outside that line: ground " +
-      "below 20 dBZ is not rain.",
-    "The dashed rose line is quiet, radar-covered air on the side the storm " +
-      "is moving away from. That is the working area crews fly: next to the " +
-      "rain, on the inflow side, not in the heaviest echo. It is drawn only " +
-      "when a previous mosaic gives the storm a direction; it is a hollow " +
-      "line, so it cannot be read as rain. A storm with no motion has no " +
-      "dashed line.",
-    "This is a 2D composite, not a volume scan. These objects have area and " +
-      "a strongest cell, not a 3D top or a precipitation mass. Motion and " +
-      "the change in raining area come from the mosaic about two minutes " +
-      "earlier. The click also reports the coldest GOES cloud top over the " +
-      "storm and whether that top is colder than five minutes ago, and the " +
-      "highest modelled supercooled liquid in the seeding band over the " +
-      "storm. Liquid is a reading, not a test that hides the storm.",
-  ],
-};
-
 export const RadarLegend: LayerLegend = {
   name: "RADAR REFLECTIVITY",
-  source: "NOAA MRMS",
+  source: "NOAA MRMS / GOES-East GLM",
   summary:
-    "How hard it is raining, in dBZ. Rain already falling crosses a " +
-    "candidate off.",
+    "How hard it is raining, in dBZ. The dot is the heaviest rain in that " +
+    "storm. The white arrow is which way the storm is moving. Yellow " +
+    "markers are lightning in the last five minutes.",
   detail: [
     "MRMS merges every NEXRAD radar into one national mosaic at 1 km, " +
       "replaced every 2 minutes; the server contours that mosaic on the NWS " +
-      "intensity classes.",
-    "Measured, not modelled — the only layer here that is. Radar sees the " +
-      "water that is already falling, not the liquid inside a cloud, so it " +
-      "can cross a candidate off but never confirm one. A third of this map " +
-      "has no radar over it at all, and no coverage is not a report of clear " +
-      "air.",
+      "intensity classes. Contiguous cells at 20 dBZ or more are one storm: " +
+      "the fills are the rain, the dot is the 1 km cell with the strongest " +
+      "echo, and a white arrow at that dot is the heading from the previous " +
+      "mosaic. The arrow is not a forecast of where the storm will be. A " +
+      "storm with no motion has no arrow.",
+    "Yellow markers are GOES-East GLM flashes in the last five minutes, " +
+      "drawn where they were. Lightning is too sparse to contour. A click " +
+      "counts flashes over that storm, reports how long the rain has been " +
+      "seen (from earlier mosaics), whether the raining area grew, whether " +
+      "the GOES cloud top over the storm is colder than five minutes ago, " +
+      "and how high the 18 dBZ echo top sits relative to the freezing " +
+      "level. Echo top is the top of precipitating drops, not of the cloud, " +
+      "and it is a reading, not a second fill. None of those is a test " +
+      "that hides the storm.",
+    "Measured, not modelled — the only rain layer here that is. Radar sees " +
+      "the water that is already falling, not the liquid inside a cloud, so " +
+      "it can cross a candidate off but never confirm one. A third of this " +
+      "map has no radar over it at all, and no coverage is not a report of " +
+      "clear air. The arrow is heading, not inflow: pilots measure climb " +
+      "rate with the aircraft.",
   ],
 };
 
@@ -276,7 +262,6 @@ export const PrecipLegend: LayerLegend = {
  */
 export const ALL_LEGENDS: readonly LayerLegend[] = [
   CandidateLegend,
-  StormLegend,
   LiquidLegend,
   CloudTopLegend,
   CloudBaseLegend,

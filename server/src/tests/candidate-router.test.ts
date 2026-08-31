@@ -351,6 +351,10 @@ describe("candidate router", () => {
       slwGM2: 22,
       goesTopC: -14,
       goesTopDeltaC: -2,
+      echoTopFt: 28000,
+      modelEchoTopFt: 26000,
+      freezingFt: 14000,
+      glmFlashes: 3,
       object: { id: 3, maxDbz: 44, areaKm2: 22 },
     }));
 

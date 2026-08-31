@@ -54,9 +54,9 @@ export const forecastLayer = layer("forecast-layer");
 export const precipLayer = layer("precip-layer");
 export const liquidLayer = layer("liquid-layer");
 export const radarLayer = layer("radar-layer");
-export const stormLayer = layer("storm-layer");
 export const stormCoreLayer = layer("storm-core-layer");
-export const stormFlankLayer = layer("storm-flank-layer");
+export const stormMotionLayer = layer("storm-motion-layer");
+export const lightningLayer = layer("lightning-layer");
 export const fieldLayer = layer("candidate-field-layer");
 export const confirmedLayer = layer("candidate-confirmed-layer");
 
@@ -67,9 +67,9 @@ export const replayCloudBaseLayer = layer("replay-cloud-base-layer");
 export const replayCloudTopLayer = layer("replay-cloud-top-layer");
 export const replayLiquidLayer = layer("replay-liquid-layer");
 export const replayRadarLayer = layer("replay-radar-layer");
-export const replayStormLayer = layer("replay-storm-layer");
 export const replayStormCoreLayer = layer("replay-storm-core-layer");
-export const replayStormFlankLayer = layer("replay-storm-flank-layer");
+export const replayStormMotionLayer = layer("replay-storm-motion-layer");
+export const replayLightningLayer = layer("replay-lightning-layer");
 export const replayFieldLayer = layer("replay-field-layer");
 export const replayConfirmedLayer = layer("replay-confirmed-layer");
 
@@ -81,18 +81,18 @@ export const layers = {
   ForecastPrecipLayer: precipLayer,
   CandidateLiquidLayer: liquidLayer,
   CandidateRadarLayer: radarLayer,
-  CandidateStormLayer: stormLayer,
   CandidateStormCoreLayer: stormCoreLayer,
-  CandidateStormFlankLayer: stormFlankLayer,
+  CandidateStormMotionLayer: stormMotionLayer,
+  CandidateLightningLayer: lightningLayer,
   CandidateFieldLayer: fieldLayer,
   CandidateConfirmedLayer: confirmedLayer,
   ReplayCloudBaseLayer: replayCloudBaseLayer,
   ReplayCloudTopLayer: replayCloudTopLayer,
   ReplayLiquidLayer: replayLiquidLayer,
   ReplayRadarLayer: replayRadarLayer,
-  ReplayStormLayer: replayStormLayer,
   ReplayStormCoreLayer: replayStormCoreLayer,
-  ReplayStormFlankLayer: replayStormFlankLayer,
+  ReplayStormMotionLayer: replayStormMotionLayer,
+  ReplayLightningLayer: replayLightningLayer,
   ReplayFieldLayer: replayFieldLayer,
   ReplayConfirmedLayer: replayConfirmedLayer,
 };

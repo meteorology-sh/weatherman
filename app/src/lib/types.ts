@@ -276,6 +276,8 @@ export interface StormObjectView {
   centroidLon: number;
   centroidLat: number;
   ageMin: number | null;
+  /** True when ageMin is a lower bound — the storm was already there on the oldest scan we looked at. */
+  ageFloor: boolean;
   motionTowardDeg: number | null;
   motionKmh: number | null;
   /** Change in raining area from the previous scan, km². Null if no previous. */
@@ -288,7 +290,7 @@ export interface StormNear {
   coreKm: number;
   edgeKm: number;
   upwindEdgeKm: number | null;
-  /** Quiet air on the upwind side of this storm — the working area, not rain. */
+  /** Inside the rain, on the upwind side, nearer the edge than the heaviest rain. */
   inWorking: boolean;
   object: StormObjectView;
   /** Highest modelled in-band liquid over the storm, g/m². */
@@ -297,6 +299,21 @@ export interface StormNear {
   goesTopC: number | null;
   /** Change in that top from the previous sweep, °C. Negative is colder. */
   goesTopDeltaC: number | null;
+  /**
+   * Highest measured 18 dBZ echo-top over the storm, ft MSL.
+   * Null when no raining cell has an 18 dBZ top, or the feed could not
+   * be read.
+   */
+  echoTopFt: number | null;
+  /** Highest modelled echo top over the storm, ft MSL. */
+  modelEchoTopFt: number | null;
+  /** Freezing level in the column of the echo top that is reported, ft MSL. */
+  freezingFt: number | null;
+  /**
+   * GLM flashes over this storm in the last five minutes. Null when the
+   * lightning feed could not be read. Zero means we looked and saw none.
+   */
+  glmFlashes: number | null;
 }
 
 /** Mirrors RadarStats in server/src/lib/services/mrms/radar.ts */

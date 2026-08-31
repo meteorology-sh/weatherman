@@ -5,7 +5,6 @@ import { cloudBaseActions } from "@/lib/store/features/cloudbase";
 import { cloudTopActions } from "@/lib/store/features/cloudtop";
 import { radarActions } from "@/lib/store/features/radar";
 import { seedabilityActions } from "@/lib/store/features/seedability";
-import { stormsActions } from "@/lib/store/features/storms";
 
 // ArcGIS
 import {
@@ -14,7 +13,6 @@ import {
   CloudTopLegend,
   LiquidLegend,
   RadarLegend,
-  StormLegend,
 } from "@/lib/arcgis/legends";
 import {
   CANDIDATE_BANDS,
@@ -41,7 +39,6 @@ export const CandidateLayers = () => {
   const cloudTop = useAppSelector((state) => state.cloudtop.visible);
   const liquid = useAppSelector((state) => state.candidate.liquid);
   const radar = useAppSelector((state) => state.radar.visible);
-  const storms = useAppSelector((state) => state.storms.visible);
   const field = useAppSelector((state) => state.seedability.visible);
 
   return (
@@ -106,18 +103,6 @@ export const CandidateLayers = () => {
       </LayerToggle>
 
       <LayerToggle
-        legend={StormLegend}
-        checked={storms}
-        onChange={(on) => dispatch(stormsActions.setVisible(on))}
-      >
-        <div className="text-xs">
-          Same colour as the 20 dBZ radar band. The line is the edge of the
-          rain. The dot is the heaviest rain in that storm. The dashed rose
-          line is quiet air on the upwind side — the working area, not rain.
-        </div>
-      </LayerToggle>
-
-      <LayerToggle
         legend={RadarLegend}
         checked={radar}
         onChange={(on) => dispatch(radarActions.setVisible(on))}
@@ -130,7 +115,10 @@ export const CandidateLayers = () => {
         />
         <div className="text-xs">
           dBZ &middot; {RADAR_LABELS[0]} to{" "}
-          {RADAR_LABELS[RADAR_LABELS.length - 1]}.
+          {RADAR_LABELS[RADAR_LABELS.length - 1]}. The 20 dBZ fill is the
+          edge of the rain. The dot is the heaviest rain. The white arrow
+          is heading, not a forecast. Yellow markers are lightning in the
+          last five minutes.
         </div>
       </LayerToggle>
     </div>

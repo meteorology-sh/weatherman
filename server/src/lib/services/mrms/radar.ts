@@ -10,9 +10,11 @@ import type { LonLatBox } from "../shared/grid";
 import {
   coresFrame,
   flankFrame,
+  foldTracks,
   frame as stormFrame,
   identify,
   matchTracks,
+  motionFrame,
   near,
   nearJson,
 } from "./objects";
@@ -222,15 +224,27 @@ export class RadarService {
     return stormFrame(validTime, storms);
   }
 
-  /** One point per storm, at the 1 km cell with the strongest echo. */
+  /**
+   * One point per storm, at the 1 km cell with the strongest echo.
+   * Waits on the previous mosaic so motion on the cores matches the arrows.
+   */
   async cores(at?: Date, box: LonLatBox = DRAWN) {
-    const { storms, validTime } = await this.storms(at, box, false, false);
+    const { storms, validTime } = await this.storms(at, box, !at, true);
     return coresFrame(validTime, storms);
   }
 
   /**
-   * Quiet, covered cells on the upwind side of each storm. Empty when the
-   * storm has no motion from a previous mosaic: we do not guess inflow.
+   * Heading ticks from each core. Empty when the storm has no motion:
+   * we do not guess a direction.
+   */
+  async motion(at?: Date, box: LonLatBox = DRAWN) {
+    const { storms, validTime } = await this.storms(at, box, false, true);
+    return motionFrame(validTime, storms);
+  }
+
+  /**
+   * Raining cells on the upwind edge of each storm. Empty when the storm
+   * has no motion from a previous mosaic: we do not guess inflow.
    */
   async flanks(at?: Date, box: LonLatBox = DRAWN): Promise<StormFrame> {
     const { storms, grid, geo, validTime } = await this.storms(
@@ -263,6 +277,7 @@ export class RadarService {
         north: lat + pad,
       },
       false,
+      true,
       true
     );
     const reading = near(lat, lon, storms, grid, geo, RAIN_DBZ, validTime);
@@ -284,6 +299,14 @@ export class RadarService {
    * lands on the previous key without landing on this one.
    */
   private static readonly PREV_MS = 3 * 60_000;
+
+  /**
+   * How many previous mosaics a click may walk to age a storm. Six is
+   * about 18 minutes — long enough to tell a new cell from one already
+   * raining, short enough that a click does not decode a half hour of
+   * national mosaics.
+   */
+  private static readonly AGE_LOOKBACK = 6;
 
   private ensurePrevious(scene: Scene): void {
     void this.previousScene(scene);
@@ -309,11 +332,52 @@ export class RadarService {
     }
   }
 
+  /**
+   * Walk older mosaics, oldest first, so `firstSeen` is the earliest
+   * centroid match in the window rather than the scan before this one.
+   */
+  private async agedStorms(
+    scene: Scene,
+    box: LonLatBox,
+    current: StormObject[]
+  ): Promise<StormObject[]> {
+    const t = Date.parse(scene.frame.validTime);
+    if (Number.isNaN(t) || !this.geo) return current;
+    const scans: { time: string; storms: StormObject[] }[] = [
+      { time: scene.frame.validTime, storms: current },
+    ];
+    let lastTime = scene.frame.validTime;
+    for (let back = 1; back <= RadarService.AGE_LOOKBACK; back++) {
+      try {
+        const prev = await this.replay(
+          new Date(t - back * RadarService.PREV_MS)
+        );
+        if (prev.frame.validTime === lastTime) continue;
+        const drawn = crop(prev.grid, this.geo, box);
+        scans.push({
+          time: prev.frame.validTime,
+          storms: identify(
+            drawn.grid,
+            drawn.geo,
+            RAIN_DBZ,
+            prev.frame.validTime
+          ),
+        });
+        lastTime = prev.frame.validTime;
+      } catch {
+        break;
+      }
+    }
+    scans.reverse();
+    return foldTracks(scans);
+  }
+
   private async storms(
     at: Date | undefined,
     box: LonLatBox,
     track: boolean,
-    wantMotion: boolean
+    wantMotion: boolean,
+    wantAge = false
   ): Promise<{
     storms: StormObject[];
     grid: Grid;
@@ -337,7 +401,12 @@ export class RadarService {
       scene.frame.validTime
     );
 
+    if (wantAge) {
+      storms = await this.agedStorms(scene, box, storms);
+    }
+
     const livePrev =
+      !wantAge &&
       track &&
       this.tracks !== null &&
       this.tracks.validTime !== scene.frame.validTime
@@ -347,7 +416,7 @@ export class RadarService {
     let prevObjects: StormObject[] | null = livePrev?.objects ?? null;
     let prevTime: string | null = livePrev?.validTime ?? null;
 
-    if (wantMotion && prevObjects === null) {
+    if (!wantAge && wantMotion && prevObjects === null) {
       const prev = await this.previousScene(scene);
       if (prev && this.geo) {
         const prevDrawn = crop(prev.grid, this.geo, box);

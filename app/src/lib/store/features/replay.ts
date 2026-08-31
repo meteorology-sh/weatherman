@@ -53,7 +53,6 @@ type ReplayState = {
   cloudTop: boolean;
   liquid: boolean;
   radar: boolean;
-  storms: boolean;
   field: boolean;
 };
 
@@ -63,14 +62,12 @@ const initialState: ReplayState = {
   loading: false,
   error: null,
   stats: null,
-  // The candidate field alone, like the candidate map: the page opens on its
-  // answer and the operator switches on the inputs they want to check it
-  // against.
+  // The candidate field and the radar, like the candidate map: the page
+  // opens on those two answers and the operator switches on the rest.
   cloudBase: false,
   cloudTop: false,
   liquid: false,
-  radar: false,
-  storms: true,
+  radar: true,
   field: true,
 };
 
@@ -111,9 +108,6 @@ const replaySlice = createSlice({
     },
     setRadar(state, action: PayloadAction<boolean>) {
       state.radar = action.payload;
-    },
-    setStorms(state, action: PayloadAction<boolean>) {
-      state.storms = action.payload;
     },
     setField(state, action: PayloadAction<boolean>) {
       state.field = action.payload;

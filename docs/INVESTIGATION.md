@@ -500,8 +500,10 @@ What waits, and why:
 
 - Hygroscopic candidate logic — warm-cloud depth must exist as a layer
   first, and salt is rare in the 2025 log.
-- MRMS 3D / echo-top / VIL products — new decode, real gain for Option 2
-  attributes, needs a `MEASUREMENTS.md` pass.
+- MRMS 18 dBZ echo-top is now a reading on the storm click, compared to
+  modelled freezing. It is not a map fill. VIL and the 33-level cube
+  (storm volume, height of the maximum) still wait. Score the 216
+  flares for measured top past freezing before colouring anything.
 - Aircraft telemetry live — they have it; we would need a feed, not a
   cleverer use of HRRR.
 - A cold cutoff on cloud-top temperature — still no citation, and a −60 °C

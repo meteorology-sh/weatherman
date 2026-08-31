@@ -61,7 +61,7 @@ export async function targetStats(at, box) {
  * Null when that window has no echo at 20 dBZ.
  */
 export async function stormNear(lat, lon, at) {
-  const url = new URL("/radar/objects/near", SERVER);
+  const url = new URL("/candidate/storm", SERVER);
   url.searchParams.set("lat", lat);
   url.searchParams.set("lon", lon);
   url.searchParams.set("at", at);

@@ -17,9 +17,9 @@ import {
   ForecastLiquidUrl,
   CloudTopUrl,
   RadarReflectivityUrl,
-  RadarObjectsUrl,
   RadarStormCoresUrl,
-  RadarStormFlanksUrl,
+  RadarStormMotionUrl,
+  LightningUrl,
   CandidateFieldUrl,
   CandidateConfirmedUrl,
   ReplayCandidateUrl,
@@ -28,9 +28,9 @@ import {
   ReplayCloudTopUrl,
   ReplayLiquidUrl,
   ReplayRadarUrl,
-  ReplayRadarObjectsUrl,
   ReplayRadarStormCoresUrl,
-  ReplayRadarStormFlanksUrl,
+  ReplayRadarStormMotionUrl,
+  ReplayLightningUrl,
 } from "@/lib/client";
 
 // ArcGIS
@@ -45,9 +45,9 @@ import {
   ForecastPrecipLayer,
   CandidateLiquidLayer,
   CandidateRadarLayer,
-  CandidateStormLayer,
   CandidateStormCoreLayer,
-  CandidateStormFlankLayer,
+  CandidateStormMotionLayer,
+  CandidateLightningLayer,
   CandidateConfirmedLayer,
   CandidateFieldLayer,
   ReplayCloudBaseLayer,
@@ -56,9 +56,9 @@ import {
   ReplayFieldLayer,
   ReplayLiquidLayer,
   ReplayRadarLayer,
-  ReplayStormLayer,
   ReplayStormCoreLayer,
-  ReplayStormFlankLayer,
+  ReplayStormMotionLayer,
+  ReplayLightningLayer,
 } from "@/lib/arcgis/layers";
 import { PRECIP_FIRST_HOUR } from "@/lib/arcgis/bands";
 import {
@@ -96,7 +96,6 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const cloudTop = useAppSelector((state) => state.cloudtop.visible);
   const liquid = useAppSelector((state) => state.candidate.liquid);
   const radar = useAppSelector((state) => state.radar.visible);
-  const storms = useAppSelector((state) => state.storms.visible);
   const field = useAppSelector((state) => state.seedability.visible);
   const build = useAppSelector((state) => state.seedability.drawn);
   const ring = useAppSelector((state) => state.domain.ring);
@@ -105,7 +104,6 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const replayCloudTop = useAppSelector((state) => state.replay.cloudTop);
   const replayLiquid = useAppSelector((state) => state.replay.liquid);
   const replayRadar = useAppSelector((state) => state.replay.radar);
-  const replayStorms = useAppSelector((state) => state.replay.storms);
   const replayField = useAppSelector((state) => state.replay.field);
   const forecasting = mode === "forecast";
   const replaying = mode === "replay";
@@ -133,8 +131,8 @@ export const ArcGIS = ({ mode }: PropsT) => {
           ForecastPrecipLayer,
           CandidateLiquidLayer,
           CandidateRadarLayer,
-          CandidateStormFlankLayer,
-          CandidateStormLayer,
+          CandidateLightningLayer,
+          CandidateStormMotionLayer,
           CandidateStormCoreLayer,
           CandidateFieldLayer,
           CandidateConfirmedLayer,
@@ -214,9 +212,9 @@ export const ArcGIS = ({ mode }: PropsT) => {
     // Observations, so they never appear on the modelled map — the same rule
     // that keeps the satellite cloud tops off it.
     CandidateRadarLayer.visible = candidating && radar && closeEnough;
-    CandidateStormLayer.visible = candidating && storms && closeEnough;
-    CandidateStormCoreLayer.visible = candidating && storms && closeEnough;
-    CandidateStormFlankLayer.visible = candidating && storms && closeEnough;
+    CandidateLightningLayer.visible = candidating && radar && closeEnough;
+    CandidateStormMotionLayer.visible = candidating && radar && closeEnough;
+    CandidateStormCoreLayer.visible = candidating && radar && closeEnough;
     // The answer, drawn over its own inputs, and the observed outline over
     // that. One switch drives both: the outline says which part of the field
     // the satellite backs, which is meaningless without the field under it.
@@ -231,9 +229,9 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayCloudTopLayer.visible = drawable && replayCloudTop;
     ReplayLiquidLayer.visible = drawable && replayLiquid;
     ReplayRadarLayer.visible = drawable && replayRadar;
-    ReplayStormLayer.visible = drawable && replayStorms;
-    ReplayStormCoreLayer.visible = drawable && replayStorms;
-    ReplayStormFlankLayer.visible = drawable && replayStorms;
+    ReplayLightningLayer.visible = drawable && replayRadar;
+    ReplayStormMotionLayer.visible = drawable && replayRadar;
+    ReplayStormCoreLayer.visible = drawable && replayRadar;
     ReplayFieldLayer.visible = drawable && replayField;
     ReplayConfirmedLayer.visible = drawable && replayField;
   }, [
@@ -246,14 +244,12 @@ export const ArcGIS = ({ mode }: PropsT) => {
     cloudTop,
     liquid,
     radar,
-    storms,
     field,
     ready,
     replayCloudBase,
     replayCloudTop,
     replayLiquid,
     replayRadar,
-    replayStorms,
     replayField,
     closeEnough,
   ]);
@@ -294,18 +290,18 @@ export const ArcGIS = ({ mode }: PropsT) => {
     CandidateCloudTopLayer.url = CloudTopUrl(viewBox);
     CandidateLiquidLayer.url = ForecastLiquidUrl(0, viewBox);
     CandidateRadarLayer.url = RadarReflectivityUrl(viewBox);
-    CandidateStormLayer.url = RadarObjectsUrl(viewBox);
+    CandidateLightningLayer.url = LightningUrl(viewBox);
+    CandidateStormMotionLayer.url = RadarStormMotionUrl(viewBox);
     CandidateStormCoreLayer.url = RadarStormCoresUrl(viewBox);
-    CandidateStormFlankLayer.url = RadarStormFlanksUrl(viewBox);
     CandidateFieldLayer.url = CandidateFieldUrl(viewBox);
     CandidateConfirmedLayer.url = CandidateConfirmedUrl(viewBox);
     CandidateCloudBaseLayer.refresh();
     CandidateCloudTopLayer.refresh();
     CandidateLiquidLayer.refresh();
     CandidateRadarLayer.refresh();
-    CandidateStormLayer.refresh();
+    CandidateLightningLayer.refresh();
+    CandidateStormMotionLayer.refresh();
     CandidateStormCoreLayer.refresh();
-    CandidateStormFlankLayer.refresh();
     CandidateFieldLayer.refresh();
     CandidateConfirmedLayer.refresh();
   }, [boxKey, viewBox]);
@@ -358,9 +354,9 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayCloudTopLayer.url = ReplayCloudTopUrl(at, viewBox);
     ReplayLiquidLayer.url = ReplayLiquidUrl(at, 0, viewBox);
     ReplayRadarLayer.url = ReplayRadarUrl(at, viewBox);
-    ReplayStormLayer.url = ReplayRadarObjectsUrl(at, viewBox);
+    ReplayLightningLayer.url = ReplayLightningUrl(at, viewBox);
+    ReplayStormMotionLayer.url = ReplayRadarStormMotionUrl(at, viewBox);
     ReplayStormCoreLayer.url = ReplayRadarStormCoresUrl(at, viewBox);
-    ReplayStormFlankLayer.url = ReplayRadarStormFlanksUrl(at, viewBox);
     ReplayFieldLayer.url = ReplayCandidateUrl(at, viewBox);
     ReplayConfirmedLayer.url = ReplayConfirmedUrl(at, viewBox);
 
@@ -373,8 +369,8 @@ export const ArcGIS = ({ mode }: PropsT) => {
         ReplayCloudTopLayer,
         ReplayLiquidLayer,
         ReplayRadarLayer,
-        ReplayStormFlankLayer,
-        ReplayStormLayer,
+        ReplayLightningLayer,
+        ReplayStormMotionLayer,
         ReplayStormCoreLayer,
         ReplayFieldLayer,
         ReplayConfirmedLayer,
@@ -385,9 +381,9 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayCloudTopLayer.refresh();
     ReplayLiquidLayer.refresh();
     ReplayRadarLayer.refresh();
-    ReplayStormLayer.refresh();
+    ReplayLightningLayer.refresh();
+    ReplayStormMotionLayer.refresh();
     ReplayStormCoreLayer.refresh();
-    ReplayStormFlankLayer.refresh();
     ReplayFieldLayer.refresh();
     ReplayConfirmedLayer.refresh();
   }, [ready, boxKey, viewBox]);

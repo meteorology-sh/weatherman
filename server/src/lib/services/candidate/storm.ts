@@ -2,13 +2,15 @@
  * The radar storm at a click, with modelled liquid and the observed cloud-top
  * change over that storm — not over the one 3 km column the click snapped to.
  *
- * Motion comes from the previous mosaic. Liquid and the top are readings on
- * the object; they are not tests that hide it.
+ * Motion comes from the previous mosaic. Liquid, the top, and the 18 dBZ
+ * echo-top are readings on the object; they are not tests that hide it.
  */
 
 // Services
 import { Goes, CLEAR } from "../goes/cloudtop";
+import { Glm } from "../goes/lightning";
 import { Hrrr } from "../hrrr/forecast";
+import { EchoTops } from "../mrms/echotop";
 import { nearJson } from "../mrms/objects";
 import type { StormObject } from "../mrms/objects";
 import { Mrms } from "../mrms/radar";
@@ -32,6 +34,21 @@ export type StormReading = ReturnType<typeof nearJson> & {
    * the top went up or the anvil spread. Null when either sweep is missing.
    */
   goesTopDeltaC: number | null;
+  /**
+   * Highest measured 18 dBZ echo-top over the storm, ft MSL.
+   * Null when no raining cell has an 18 dBZ top, or the feed could not
+   * be read.
+   */
+  echoTopFt: number | null;
+  /** Highest modelled echo top over the storm, ft MSL. */
+  modelEchoTopFt: number | null;
+  /** Freezing level in the column of the echo top that is reported, ft MSL. */
+  freezingFt: number | null;
+  /**
+   * GLM flashes over this storm in the last five minutes. Null when the
+   * lightning feed could not be read. Zero means we looked and saw none.
+   */
+  glmFlashes: number | null;
 };
 
 export async function reading(
@@ -56,14 +73,45 @@ async function overStorm(
   slwGM2: number | null;
   goesTopC: number | null;
   goesTopDeltaC: number | null;
+  echoTopFt: number | null;
+  modelEchoTopFt: number | null;
+  freezingFt: number | null;
+  glmFlashes: number | null;
 }> {
   let slwGM2: number | null = null;
   let goesTopC: number | null = null;
   let goesTopDeltaC: number | null = null;
+  let echoTopFt: number | null = null;
+  let modelEchoTopFt: number | null = null;
+  let freezingFt: number | null = null;
+  let glmFlashes: number | null = null;
 
   const liquidP = Hrrr.liquidField(ANALYSIS_HOUR, at).then((field) => {
     if (!field.values) return;
     slwGM2 = maxOver(storm, stormGeo, field.geo, field.values);
+  });
+
+  const echoP = Promise.all([
+    EchoTops.tallest(storm, stormGeo, at).catch(() => null),
+    Hrrr.diagnosticField("echoTop", ANALYSIS_HOUR, at),
+    Hrrr.bandField(ANALYSIS_HOUR, at),
+  ]).then(([measured, echo, band]) => {
+    const modelled = echo.values
+      ? maxCellOver(storm, stormGeo, echo.geo, echo.values)
+      : null;
+    if (modelled) modelEchoTopFt = Math.round(modelled.value);
+    if (measured) {
+      echoTopFt = measured.echoTopFt;
+      const freeze = band.freezingFt[cellAt(band.geo, measured.lat, measured.lon)];
+      freezingFt = Number.isFinite(freeze) ? Math.round(freeze) : null;
+    } else if (modelled) {
+      const freeze = band.freezingFt[modelled.cell];
+      freezingFt = Number.isFinite(freeze) ? Math.round(freeze) : null;
+    }
+  });
+
+  const glmP = Glm.overStorm(storm, stormGeo, at).then((n) => {
+    glmFlashes = n;
   });
 
   const topsP = Goes.topField(at).then(async (current) => {
@@ -83,10 +131,20 @@ async function overStorm(
 
   await Promise.all([
     liquidP.catch(() => undefined),
+    echoP.catch(() => undefined),
     topsP.catch(() => undefined),
+    glmP.catch(() => undefined),
   ]);
 
-  return { slwGM2, goesTopC, goesTopDeltaC };
+  return {
+    slwGM2,
+    goesTopC,
+    goesTopDeltaC,
+    echoTopFt,
+    modelEchoTopFt,
+    freezingFt,
+    glmFlashes,
+  };
 }
 
 /**
@@ -100,12 +158,29 @@ export function maxOver(
   fieldGeo: Geo,
   values: Float32Array
 ): number | null {
-  const sampled = valuesOver(storm, stormGeo, fieldGeo, { values });
-  let max = -Infinity;
-  for (const v of sampled) {
-    if (v > max) max = v;
+  const hit = maxCellOver(storm, stormGeo, fieldGeo, values);
+  return hit ? Math.round(hit.value * 10) / 10 : null;
+}
+
+/** The 3 km cell of the highest finite value covering this storm. */
+export function maxCellOver(
+  storm: StormObject,
+  stormGeo: Geo,
+  fieldGeo: Geo,
+  values: Float32Array
+): { value: number; cell: number } | null {
+  const seen = new Set<number>();
+  let seed: number | undefined;
+  let best: { value: number; cell: number } | null = null;
+  for (const k of storm.cells) {
+    seed = cellAt(fieldGeo, stormGeo.lats[k], stormGeo.lons[k], seed);
+    if (seen.has(seed)) continue;
+    seen.add(seed);
+    const v = values[seed];
+    if (!Number.isFinite(v)) continue;
+    if (!best || v > best.value) best = { value: v, cell: seed };
   }
-  return Number.isFinite(max) ? Math.round(max * 10) / 10 : null;
+  return best;
 }
 
 /** Coldest cloudy top in a list of coldness values, as a temperature. */

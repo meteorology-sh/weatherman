@@ -1,13 +1,15 @@
 /**
  * Where each scored 2025 flare sat in its radar storm.
  *
- * `node eval/storms.mjs` — Weatherman server running. Reads the days already
- * in `eval/out/target-2025.json` so it scores the same 216 flares, at the
- * same two hours. Writes `eval/out/storms-2025.json`.
+ * `node eval/storms.mjs [--resume]` — Weatherman server running. Reads the
+ * days already in `eval/out/target-2025.json` so it scores the same 216
+ * flares, at the same two hours. Writes `eval/out/storms-2025.json`.
  *
  * Asks, of each hour: is the flare inside a ≥20 dBZ object, how far is the
- * strongest cell, how far is the quiet edge, and (when the object is moving)
- * how far is the upwind edge. Age is blank on a single archived scan.
+ * strongest cell, how far is the quiet edge, and (when a previous mosaic
+ * gives the storm a direction) how far is the upwind working area. Also
+ * whether the raining area grew, and whether the flare sits on the
+ * upwind inside edge of the rain rather than in the heaviest echo.
  */
 
 // Node
@@ -22,16 +24,60 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, "out");
 const SOURCE = join(OUT, "target-2025.json");
 const FILE = join(OUT, "storms-2025.json");
+const RESUME = process.argv.includes("--resume");
 
 const data = JSON.parse(await readFile(SOURCE, "utf8"));
+
+function rowOk(row) {
+  return (
+    row.lo &&
+    row.hi &&
+    !row.lo.error &&
+    !row.hi.error &&
+    typeof row.lo.inWorking === "boolean" &&
+    typeof row.hi.inWorking === "boolean"
+  );
+}
+
+function dayComplete(day) {
+  return day.rows?.length > 0 && day.rows.every(rowOk);
+}
+
+let done = [];
+if (RESUME) {
+  try {
+    done = JSON.parse(await readFile(FILE, "utf8")).regions ?? [];
+    let kept = 0;
+    let dropped = 0;
+    for (const region of done) {
+      const complete = region.days.filter(dayComplete);
+      dropped += region.days.length - complete.length;
+      kept += complete.length;
+      region.days = complete;
+    }
+    console.log(
+      `resuming — ${kept} days already scored` +
+        (dropped ? `, ${dropped} incomplete days to retry` : "") +
+        "\n"
+    );
+  } catch {
+    console.log("resuming — nothing to resume from\n");
+  }
+}
 
 console.log(`against ${SERVER}\n`);
 
 const regions = [];
 
 for (const region of data.regions) {
-  const days = [];
+  let entry = done.find((row) => row.id === region.id);
+  if (!entry) {
+    entry = { id: region.id, name: region.name, days: [] };
+    done.push(entry);
+  }
+  const already = new Set(entry.days.map((day) => day.date));
   for (const day of region.days) {
+    if (already.has(day.date)) continue;
     const started = Date.now();
     const rows = [];
     for (const row of day.rows) {
@@ -47,41 +93,113 @@ for (const region of data.regions) {
         hi,
       });
     }
-    days.push({ date: day.date, rows });
+    entry.days.push({ date: day.date, rows });
+    await mkdir(OUT, { recursive: true });
+    await writeFile(
+      FILE,
+      `${JSON.stringify({ server: SERVER, regions: done }, null, 2)}\n`
+    );
     const mins = ((Date.now() - started) / 60000).toFixed(1);
-    const inside = rows.filter(
-      (r) => r.lo?.inside || r.hi?.inside
+    const inside = rows.filter((r) => r.lo?.inside || r.hi?.inside).length;
+    const working = rows.filter(
+      (r) => r.lo?.inWorking || r.hi?.inWorking
     ).length;
     console.log(
-      `  ${region.id} ${day.date}  ${String(rows.length).padStart(3)} flares  ${mins.padStart(5)} min   inside at least one hour ${inside}/${rows.length}`
+      `  ${region.id} ${day.date}  ${String(rows.length).padStart(3)} flares  ${mins.padStart(5)} min   inside ${inside}/${rows.length}  working area ${working}/${rows.length}`
     );
   }
-  regions.push({ id: region.id, name: region.name, days });
+  regions.push(entry);
 }
 
 await mkdir(OUT, { recursive: true });
 await writeFile(FILE, `${JSON.stringify({ server: SERVER, regions }, null, 2)}\n`);
 
+function pickInside(row) {
+  if (row.hi?.inside) return row.hi;
+  if (row.lo?.inside) return row.lo;
+  return row.hi?.object ? row.hi : row.lo;
+}
+
+function median(values) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? sorted[mid]
+    : Math.round(((sorted[mid - 1] + sorted[mid]) / 2) * 10) / 10;
+}
+
 function tally(label, rows) {
-  const scored = rows.filter((r) => r.lo && r.hi && !r.lo.error && !r.hi.error);
+  const scored = rows.filter(rowOk);
   const bothInside = scored.filter((r) => r.lo.inside && r.hi.inside).length;
   const oneInside = scored.filter(
     (r) => r.lo.inside !== r.hi.inside
   ).length;
-  const anyNear = scored.filter(
-    (r) => r.lo.object || r.hi.object
-  ).length;
-  const closerToEdge = scored.filter((r) => {
-    const a = r.hi.inside || r.lo.inside ? (r.hi.inside ? r.hi : r.lo) : r.hi.object ? r.hi : r.lo;
-    if (!a?.object) return false;
-    return a.edgeKm < a.coreKm;
+  const anyNear = scored.filter((r) => r.lo.object || r.hi.object).length;
+  const insideRows = scored.filter((r) => r.lo.inside || r.hi.inside);
+  const working = scored.filter((r) => r.lo.inWorking || r.hi.inWorking);
+  const closerToEdge = insideRows.filter((r) => {
+    const a = pickInside(r);
+    return a && a.edgeKm < a.coreKm;
   }).length;
+  const closerToUpwind = insideRows.filter((r) => {
+    const a = pickInside(r);
+    return a && a.upwindEdgeKm !== null && a.upwindEdgeKm < a.coreKm;
+  }).length;
+  const growing = insideRows.filter((r) => {
+    const a = pickInside(r);
+    return (a?.object?.areaDeltaKm2 ?? 0) > 0.5;
+  }).length;
+  const colderTop = insideRows.filter((r) => {
+    const a = pickInside(r);
+    return (a?.goesTopDeltaC ?? 0) < -0.5;
+  }).length;
+  const withLightning = insideRows.filter((r) => {
+    const a = pickInside(r);
+    return (a?.glmFlashes ?? 0) > 0;
+  }).length;
+  const pastFreezing = insideRows.filter((r) => {
+    const a = pickInside(r);
+    return (
+      a?.echoTopFt != null &&
+      a?.freezingFt != null &&
+      a.echoTopFt >= a.freezingFt
+    );
+  }).length;
+  const ages = insideRows
+    .map((r) => pickInside(r)?.object?.ageMin)
+    .filter((v) => v != null);
+  const coreKm = insideRows
+    .map((r) => pickInside(r)?.coreKm)
+    .filter((v) => v != null);
+  const edgeKm = insideRows
+    .map((r) => pickInside(r)?.edgeKm)
+    .filter((v) => v != null);
+  const upwindKm = insideRows
+    .map((r) => pickInside(r)?.upwindEdgeKm)
+    .filter((v) => v != null);
+
   console.log(`\n${label}`);
   console.log(`${rows.length} flares, ${scored.length} with an answer at both hours`);
-  console.log(`  inside the storm at both hours:     ${bothInside}`);
-  console.log(`  inside at exactly one of the two:   ${oneInside}`);
-  console.log(`  a storm within ~40 km at either:    ${anyNear}`);
-  console.log(`  closer to the quiet edge than core: ${closerToEdge} (using the hour it is inside, else the later hour)`);
+  console.log(`  inside the rain at both hours:           ${bothInside}`);
+  console.log(`  inside at exactly one of the two:        ${oneInside}`);
+  console.log(`  in the upwind working area at either:    ${working.length}`);
+  console.log(`  a storm within ~40 km at either:         ${anyNear}`);
+  console.log(
+    `  of ${insideRows.length} inside at least one hour:`
+  );
+  console.log(`    closer to the quiet edge than the core:  ${closerToEdge}`);
+  console.log(`    closer to the upwind edge than the core: ${closerToUpwind}`);
+  console.log(`    raining area larger than previous scan:  ${growing}`);
+  console.log(`    GOES top colder than five minutes ago:   ${colderTop}`);
+  console.log(`    lightning over the storm in five minutes: ${withLightning}`);
+  console.log(
+    `    18 dBZ echo top at or above freezing:     ${pastFreezing}`
+  );
+  console.log(`    median age of the rain, minutes:         ${median(ages)}`);
+  console.log(
+    `    median km to core / edge / upwind edge:  ${median(coreKm)} / ${median(edgeKm)} / ${median(upwindKm)}`
+  );
 }
 
 console.log(`\n${"=".repeat(72)}`);
@@ -100,18 +218,38 @@ console.log(`\nwritten to eval/out/storms-2025.json`);
 async function ask(lat, lon, hour) {
   try {
     const reading = await stormNear(lat, lon, hour);
-    if (!reading) return { object: null, inside: false, coreKm: null, edgeKm: null, upwindEdgeKm: null };
+    if (!reading) {
+      return {
+        object: null,
+        inside: false,
+        inWorking: false,
+        coreKm: null,
+        edgeKm: null,
+        upwindEdgeKm: null,
+      };
+    }
     return {
       object: {
         id: reading.object.id,
         maxDbz: reading.object.maxDbz,
         areaKm2: reading.object.areaKm2,
         ageMin: reading.object.ageMin,
+        ageFloor: reading.object.ageFloor ?? false,
+        motionTowardDeg: reading.object.motionTowardDeg ?? null,
+        motionKmh: reading.object.motionKmh ?? null,
+        areaDeltaKm2: reading.object.areaDeltaKm2 ?? null,
       },
       inside: reading.inside,
+      inWorking: reading.inWorking ?? false,
       coreKm: reading.coreKm,
       edgeKm: reading.edgeKm,
       upwindEdgeKm: reading.upwindEdgeKm,
+      goesTopC: reading.goesTopC ?? null,
+      goesTopDeltaC: reading.goesTopDeltaC ?? null,
+      glmFlashes: reading.glmFlashes ?? null,
+      echoTopFt: reading.echoTopFt ?? null,
+      modelEchoTopFt: reading.modelEchoTopFt ?? null,
+      freezingFt: reading.freezingFt ?? null,
     };
   } catch (error) {
     return { error: error.message };

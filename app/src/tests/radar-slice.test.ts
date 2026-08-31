@@ -16,10 +16,8 @@ const stats: RadarStats = {
 const initial = reducer(undefined, { type: "@@INIT" });
 
 describe("radar slice", () => {
-  // The join has already applied the rain test, so the answer layer never
-  // offers a raining cell. This layer shows where that happened, on request.
-  it("starts with the mosaic hidden", () => {
-    expect(initial.visible).toBe(false);
+  it("starts with the mosaic on, like the layer the map opens on", () => {
+    expect(initial.visible).toBe(true);
   });
 
   it("starts with no stats and no error", () => {

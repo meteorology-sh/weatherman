@@ -60,6 +60,16 @@ radar.get("/objects/cores", async (req: Request, res: Response) => {
   }
 });
 
+radar.get("/objects/motion", async (req: Request, res: Response) => {
+  try {
+    res.send(await Mrms.motion(parseAt(req.query.at), parseBox(req.query)));
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
 radar.get("/objects/flanks", async (req: Request, res: Response) => {
   try {
     res.send(await Mrms.flanks(parseAt(req.query.at), parseBox(req.query)));

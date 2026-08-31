@@ -159,6 +159,6 @@ describe("Convective panel", () => {
   it("says these are attributes rather than gates", () => {
     withDiagnostics();
 
-    expect(screen.getByText(/none of it filters the map/)).toBeTruthy();
+    expect(screen.getByText(/Nothing here filters the map/)).toBeTruthy();
   });
 });

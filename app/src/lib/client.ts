@@ -330,25 +330,18 @@ export function RadarReflectivityUrl(box: MapBox = INITIAL_BOX): string {
   return `/radar/reflectivity?${new URLSearchParams(boxParams(box))}`;
 }
 
-/** Contiguous ≥20 dBZ storms on the same mosaic as the reflectivity contours. */
-export function RadarObjectsUrl(box: MapBox = INITIAL_BOX): string {
-  return `/radar/objects?${new URLSearchParams(boxParams(box))}`;
-}
-
 export function RadarStormCoresUrl(box: MapBox = INITIAL_BOX): string {
   return `/radar/objects/cores?${new URLSearchParams(boxParams(box))}`;
 }
 
-/** Quiet air on the upwind side of each storm. Empty when there is no motion. */
-export function RadarStormFlanksUrl(box: MapBox = INITIAL_BOX): string {
-  return `/radar/objects/flanks?${new URLSearchParams(boxParams(box))}`;
+/** Heading ticks from each core. Empty when the storm has no motion. */
+export function RadarStormMotionUrl(box: MapBox = INITIAL_BOX): string {
+  return `/radar/objects/motion?${new URLSearchParams(boxParams(box))}`;
 }
 
-export function ReplayRadarObjectsUrl(
-  at: string,
-  box: MapBox = INITIAL_BOX
-): string {
-  return `/radar/objects?${new URLSearchParams({ at, ...boxParams(box) })}`;
+/** GLM flashes in the last five minutes, as points. */
+export function LightningUrl(box: MapBox = INITIAL_BOX): string {
+  return `/cloudtop/lightning?${new URLSearchParams(boxParams(box))}`;
 }
 
 export function ReplayRadarStormCoresUrl(
@@ -358,11 +351,18 @@ export function ReplayRadarStormCoresUrl(
   return `/radar/objects/cores?${new URLSearchParams({ at, ...boxParams(box) })}`;
 }
 
-export function ReplayRadarStormFlanksUrl(
+export function ReplayRadarStormMotionUrl(
   at: string,
   box: MapBox = INITIAL_BOX
 ): string {
-  return `/radar/objects/flanks?${new URLSearchParams({ at, ...boxParams(box) })}`;
+  return `/radar/objects/motion?${new URLSearchParams({ at, ...boxParams(box) })}`;
+}
+
+export function ReplayLightningUrl(
+  at: string,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/cloudtop/lightning?${new URLSearchParams({ at, ...boxParams(box) })}`;
 }
 
 /**

@@ -43,7 +43,10 @@ run. Incomplete days are retried. Do not commit `eval/out/`.
 
 `storms.mjs` reads the days already in `eval/out/target-2025.json` and asks
 each flare whether it sat inside a contiguous ≥20 dBZ object, how far the
-core was, and how far the quiet edge was.
+core was, how far the edge was, how long that rain has been seen, whether
+the GOES top over the storm is colder than five minutes ago, how many GLM
+flashes sat over it, and whether the measured 18 dBZ echo top sits above
+the freezing level.
 
 ```bash
 node eval/storms.mjs

@@ -231,6 +231,32 @@ describe("radar router", () => {
     assert.equal(body.features[0].properties.maxDbz, 48);
   });
 
+  it("responds with a heading tick from each core", async (t) => {
+    t.mock.method(Mrms, "motion", async () => ({
+      type: "FeatureCollection",
+      validTime: "2026-08-12T04:10:00.000Z",
+      features: [
+        {
+          type: "Feature",
+          properties: { stormId: 1, motionTowardDeg: 90, motionKmh: 40 },
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [-101.4, 32.1],
+              [-101.0, 32.1],
+            ],
+          },
+        },
+      ],
+    }));
+
+    const body = await fetch(`${origin}/radar/objects/motion`).then((r) =>
+      r.json()
+    );
+    assert.equal(body.features[0].geometry.type, "LineString");
+    assert.equal(body.features[0].properties.motionKmh, 40);
+  });
+
   it("responds 400 when a click has no coordinates", async () => {
     const res = await fetch(`${origin}/radar/objects/near`);
     assert.equal(res.status, 400);

@@ -44,9 +44,9 @@ import {
   map,
   precipLayer,
   radarLayer,
-  stormLayer,
   stormCoreLayer,
-  stormFlankLayer,
+  stormMotionLayer,
+  lightningLayer,
   view,
 } from "./arcgis-fakes";
 
@@ -86,8 +86,8 @@ describe("ArcGIS", () => {
       precipLayer,
       liquidLayer,
       radarLayer,
-      stormFlankLayer,
-      stormLayer,
+      lightningLayer,
+      stormMotionLayer,
       stormCoreLayer,
       fieldLayer,
       confirmedLayer,
@@ -162,15 +162,16 @@ describe("ArcGIS", () => {
 describe("ArcGIS in candidate mode", () => {
   // The map opens on the candidate field alone. Every input to it starts off,
   // so a layer on screen is one the operator asked for.
-  it("opens with the liquid join and radar storms on", () => {
+  it("opens with the liquid join and radar on", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     expect(fieldLayer.visible).toBe(true);
-    expect(stormLayer.visible).toBe(true);
-    expect(stormFlankLayer.visible).toBe(true);
+    expect(radarLayer.visible).toBe(true);
+    expect(stormCoreLayer.visible).toBe(true);
+    expect(stormMotionLayer.visible).toBe(true);
+    expect(lightningLayer.visible).toBe(true);
     expect(cloudTopLayer.visible).toBe(false);
     expect(liquidLayer.visible).toBe(false);
-    expect(radarLayer.visible).toBe(false);
     expect(cloudBaseLayer.visible).toBe(false);
   });
 
@@ -305,6 +306,9 @@ describe("ArcGIS radar", () => {
     });
 
     expect(radarLayer.visible).toBe(false);
+    expect(stormCoreLayer.visible).toBe(false);
+    expect(stormMotionLayer.visible).toBe(false);
+    expect(lightningLayer.visible).toBe(false);
   });
 });
 

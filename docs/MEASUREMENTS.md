@@ -80,7 +80,25 @@ MRMS onto HRRR's 3 km cells rather than averaging everything to a shared
 
 **Ask "what is the correlation length" before drawing any new surface.** A
 source too sparse or irregular to pass this test may still be drawn — as
-points, and only points, with no interpolation between them.
+points, and only points, with no interpolation between them. GOES-East GLM
+flashes are that case: 8 km pixels, 20-second granules, clustered on
+storms. They are markers where a flash was, counted on a storm, never a
+lightning surface.
+
+**MRMS 18 dBZ echo-top is the height of precipitating drops, not of the
+cloud.** It is taken from the same 3D reflectivity cube the mosaic is
+built from: walk each column from the top down and report the highest
+altitude where reflectivity still meets 18 dBZ. The field is 1 km / 2
+minutes, same grid as the mosaic. Storm-scale heights have a long enough
+correlation length to draw as a surface; this product does not, because
+the raining cells already have a fill and a second colour on the same
+blobs would not show a different object. The number lives on the storm
+click: feet MSL, compared to the modelled freezing level in that column.
+Sentinels are the same kind as reflectivity, different values: −1 is no
+18 dBZ, −3 is no radar. Units in the GRIB are kilometres. GOES still
+owns the cloud top. Radar still cannot see 10 µm droplets, so a tall
+18 dBZ top is not supercooled liquid and a missing one is not a quiet
+candidate.
 
 ## 4. What each source can and cannot answer
 

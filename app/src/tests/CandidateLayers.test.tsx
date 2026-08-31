@@ -351,7 +351,7 @@ describe("CandidateLayers radar", () => {
     expect(within(section).getAllByText(/dBZ/).length).toBeGreaterThan(0);
   });
 
-  it("turns the mosaic on when its toggle is clicked", () => {
+  it("turns the mosaic off when its toggle is clicked", () => {
     const store = createTestStore();
 
     renderWithStore(<CandidateLayers />, store);
@@ -359,7 +359,7 @@ describe("CandidateLayers radar", () => {
       (screen.getByLabelText(RadarLegend.name) as HTMLElement).click();
     });
 
-    expect(store.getState().radar.visible).toBe(true);
+    expect(store.getState().radar.visible).toBe(false);
   });
 
   it("turns the mosaic off again when its toggle is clicked twice", () => {

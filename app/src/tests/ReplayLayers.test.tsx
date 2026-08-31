@@ -61,13 +61,13 @@ describe("ReplayLayers", () => {
 
     renderWithStore(<ReplayLayers />, store);
     const radar = screen.getByLabelText(RadarLegend.name) as HTMLInputElement;
-    expect(radar.checked).toBe(false);
+    expect(radar.checked).toBe(true);
 
     act(() => {
-      store.dispatch(replayActions.setRadar(true));
+      store.dispatch(replayActions.setRadar(false));
     });
 
-    expect(radar.checked).toBe(true);
+    expect(radar.checked).toBe(false);
   });
 
   // Both maps read one set of legends, so the same layer cannot end up

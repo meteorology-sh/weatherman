@@ -15,12 +15,11 @@ describe("replay slice", () => {
     expect(initial.at).toBe(null);
   });
 
-  it("starts with the candidate field and radar storms, like the candidate map", () => {
+  it("starts with the candidate field and radar, like the candidate map", () => {
     expect(initial.field).toBe(true);
-    expect(initial.storms).toBe(true);
+    expect(initial.radar).toBe(true);
     expect(initial.cloudTop).toBe(false);
     expect(initial.liquid).toBe(false);
-    expect(initial.radar).toBe(false);
     expect(initial.cloudBase).toBe(false);
   });
 
@@ -84,15 +83,15 @@ describe("replay slice", () => {
     let state = reducer(initial, replayActions.setLiquid(true));
     expect(state.liquid).toBe(true);
     expect(state.cloudTop).toBe(false);
-    expect(state.radar).toBe(false);
-
-    state = reducer(state, replayActions.setRadar(true));
     expect(state.radar).toBe(true);
+
+    state = reducer(state, replayActions.setRadar(false));
+    expect(state.radar).toBe(false);
     expect(state.liquid).toBe(true);
 
     state = reducer(state, replayActions.setCloudTop(true));
     expect(state.cloudTop).toBe(true);
     expect(state.liquid).toBe(true);
-    expect(state.radar).toBe(true);
+    expect(state.radar).toBe(false);
   });
 });

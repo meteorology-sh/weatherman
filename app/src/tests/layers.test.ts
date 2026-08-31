@@ -8,9 +8,9 @@ import {
   ForecastPrecipLayer,
   CandidateLiquidLayer,
   CandidateRadarLayer,
-  CandidateStormLayer,
   CandidateStormCoreLayer,
-  CandidateStormFlankLayer,
+  CandidateStormMotionLayer,
+  CandidateLightningLayer,
 } from "@/lib/arcgis/layers";
 
 const BOX = {
@@ -170,25 +170,20 @@ describe("MRMS radar layer", () => {
   });
 });
 
-describe("CandidateStormLayer", () => {
-  it("reads storms from the same mosaic as the reflectivity contours", () => {
-    expect(CandidateStormLayer.url).toBe("/radar/objects");
-    expect(CandidateStormLayer.customParameters).toEqual(BOX);
-  });
-
-  it("declares its schema, so an hour with no echo still renders", () => {
-    expect(CandidateStormLayer.geometryType).toBe("polygon");
-    expect(CandidateStormLayer.fields.map((f) => f.name)).toContain("stormId");
-  });
-
+describe("CandidateStormCoreLayer", () => {
   it("marks the heaviest rain as a point, not a filled blob", () => {
     expect(CandidateStormCoreLayer.geometryType).toBe("point");
     expect(CandidateStormCoreLayer.url).toBe("/radar/objects/cores");
   });
 
-  it("draws the upwind working area hollow, from the same mosaic", () => {
-    expect(CandidateStormFlankLayer.geometryType).toBe("polygon");
-    expect(CandidateStormFlankLayer.url).toBe("/radar/objects/flanks");
+  it("draws heading as a line from that point", () => {
+    expect(CandidateStormMotionLayer.geometryType).toBe("polyline");
+    expect(CandidateStormMotionLayer.url).toBe("/radar/objects/motion");
+  });
+
+  it("draws lightning as points, not a surface", () => {
+    expect(CandidateLightningLayer.geometryType).toBe("point");
+    expect(CandidateLightningLayer.url).toBe("/cloudtop/lightning");
   });
 });
 

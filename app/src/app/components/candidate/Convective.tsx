@@ -100,7 +100,7 @@ export const Convective = () => {
         </span>
         <span>Integrated liquid</span>
         <span>{d.vilKgM2} kg/m²</span>
-        <span>Echo top</span>
+        <span>Modelled echo top</span>
         <span>{feet(d.echoTopFt)}</span>
         <span>Lightning</span>
         <span>
@@ -109,11 +109,13 @@ export const Convective = () => {
       </div>
 
       <div className="text-xs">
-        All modelled data. 
+        All modelled data. Nothing here filters the map.
         <br />
-        CAPE is the energy a
-        growing turret has to work with; storm motion is the direction of travel; integrated liquid is a second opinion on{" "}
-        {LiquidLegend.name}, worked out from a different field.
+        CAPE is the energy a growing turret has to work with; storm motion is
+        the direction of travel; integrated liquid is a second opinion on{" "}
+        {LiquidLegend.name}, worked out from a different field. Modelled echo
+        top is the model's height; the radar storm on this click reports the
+        measured 18 dBZ top.
       </div>
     </div>
   );
