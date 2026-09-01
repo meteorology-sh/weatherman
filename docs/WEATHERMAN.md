@@ -17,13 +17,17 @@ sampling rule that decides whether a proposed layer is honest at all. **Read
 - **No raster on any map, ever.** An image has no nodata: it fills clear sky
   opaquely and buries the basemap. Every layer is GeoJSON from our own server.
 - **No sampled field is interpolated past what it measured.** Each layer is
-  drawn at native sampling — HRRR 3 km, GOES 2 km, MRMS 1 km. The server
-  still builds the national grid; the map asks for one window of it, about
-  the size of Texas, and does not draw that window when zoomed out further.
-  Averaging removes structure and is fine; interpolating invents it and is
-  not. The join samples GOES and MRMS onto HRRR's 3 km cells (majority /
-  nearest), never the other way. Compare a variable's correlation length to
-  the sample spacing before drawing any new field (`MEASUREMENTS.md` §3).
+  traced at native sampling — HRRR 3 km, GOES 2 km, MRMS 1 km — then the
+  candidate map averages each 4×4 of those cells and contours that coarser
+  field. Averaging removes structure and is fine; interpolating invents it
+  and is not. The remaining corners are rounded so a storm is a blob, not
+  a triangle. Evaluation maps skip the average and keep the native stairs.
+  The factor does not change with the window, so zooming does not restyle
+  the rings. The map holds a padded covering window and does not refetch
+  while the view sits inside it. Clicks still read the native cell. The
+  join samples GOES and MRMS onto HRRR's 3 km cells (majority / nearest),
+  never the other way. Compare a variable's correlation length to the
+  sample spacing before drawing any new field (`MEASUREMENTS.md` §3).
 - **A source too sparse to pass that test is drawn as points, and only points** —
   colour banding in a marker ramp, each marker where the observation was, nothing
   between them.
@@ -58,12 +62,18 @@ The supercooled-liquid contours are the deliberate exception on an observed map,
 and the sidebar says so. The radar mosaic is the only measurement on either map.
 
 **Radar** is that mosaic, plus what we can honestly hang on a contiguous
-≥20 dBZ storm. The fills are how hard it is raining. A dot marks the 1 km
-cell with the strongest echo. A white arrow at that dot is the heading from
-the previous mosaic — not a forecast of where the storm will be, and not
-inflow. A storm with no motion has no arrow. Yellow markers are GOES-East
-GLM flashes in the last five minutes, drawn where they were. Lightning is
-too sparse to contour.
+≥20 dBZ storm. The fills are how hard it is raining. A switch under this
+layer draws a dot and a heading only for a raining area of at least
+16 km² — one cell of the 4 km grid this map used to paint the country
+with. Smaller echoes stay in the fill. Nearby specks within 10 km of a
+larger echo belong to that shower. A click uses the same averaged,
+rounded 20 dBZ ring the fill draws; the evaluation harness asks for the
+native ring. The dot is the strongest cell in that storm. A white arrow
+at that dot is the heading from the previous mosaic — not a forecast of
+where the storm will be, and not inflow. A storm with no motion has no
+arrow. Lightning is a switch under this layer: yellow markers are
+GOES-East GLM flashes in the last five minutes, drawn where they were,
+and only while radar is on. Lightning is too sparse to contour.
 
 A click says whether you are inside the rain, on the upwind side nearer the
 edge than the heaviest rain, or outside; how far you are from the dot;

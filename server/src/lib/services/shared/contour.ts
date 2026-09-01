@@ -57,6 +57,49 @@ export function frame(
 type Pt = readonly [number, number];
 
 /**
+ * How a traced ring is thinned before it is projected.
+ *
+ * The field is already at the cell the map asked for — native on eval,
+ * four native cells averaged on the candidate map. These numbers are in
+ * **cells of that field**. Stair-steps closer than `epsilon` become a
+ * diagonal; rings smaller than `minArea` are not drawn. `round` is Chaikin
+ * passes after that: each pass cuts corners, so the fill is a blob rather
+ * than a triangle. Eval skips it and keeps the stairs.
+ */
+export type RingStyle = {
+  epsilon: number;
+  minArea: number;
+  /** Chaikin passes after RDP. Omit or 0 to leave the ring faceted. */
+  round?: number;
+};
+
+/** RDP tolerance that keeps a one-cell protrusion and flattens stairs. */
+export const SIMPLIFY_CELL = 0.4;
+
+/** Drop drawn islands and holes smaller than one cell of the drawn grid. */
+export const MIN_RING_AREA = 1;
+
+/** Two Chaikin passes: quadratic B-spline of the ring. */
+export const MAP_ROUND = 2;
+
+export const FINE_STYLE: RingStyle = {
+  epsilon: SIMPLIFY_CELL,
+  minArea: MIN_RING_AREA,
+};
+
+export const MAP_STYLE: RingStyle = {
+  epsilon: SIMPLIFY_CELL,
+  minArea: MIN_RING_AREA,
+  round: MAP_ROUND,
+};
+
+export function styleFor(fine: boolean): RingStyle {
+  return fine ? FINE_STYLE : MAP_STYLE;
+}
+
+const DRAWN_STYLE: RingStyle = MAP_STYLE;
+
+/**
  * One nested MultiPolygon per level, dropping levels nothing in the grid
  * reaches. Every contoured layer in this server — HRRR's fields and MRMS
  * reflectivity alike — is built by this, so they nest and stack identically.
@@ -65,7 +108,8 @@ export function features(
   grid: Grid,
   geo: Geo,
   property: string,
-  levels: readonly number[]
+  levels: readonly number[],
+  style: RingStyle = DRAWN_STYLE
 ): ContourFeature[] {
   return levels
     .map((level) => ({
@@ -73,7 +117,7 @@ export function features(
       properties: { [property]: level },
       geometry: {
         type: "MultiPolygon" as const,
-        coordinates: polygons(grid, geo, level),
+        coordinates: polygons(grid, geo, level, style),
       },
     }))
     .filter((f) => f.geometry.coordinates.length > 0);
@@ -102,7 +146,8 @@ export function bandFeatures(
   grid: Grid,
   geo: Geo,
   property: string,
-  edges: readonly number[]
+  edges: readonly number[],
+  style: RingStyle = DRAWN_STYLE
 ): ContourFeature[] {
   return edges
     .map((lo, i) => {
@@ -119,7 +164,7 @@ export function bandFeatures(
         properties: { [property]: lo },
         geometry: {
           type: "MultiPolygon" as const,
-          coordinates: polygons({ ...grid, values: mask }, geo, 1),
+          coordinates: polygons({ ...grid, values: mask }, geo, 1, style),
         },
       };
     })
@@ -130,17 +175,26 @@ export function bandFeatures(
  * Marching squares over {value >= level}, stitched into closed rings, with
  * holes nested inside the exterior that contains them (GeoJSON needs
  * [exterior, ...holes] or a clear patch inside a cloud mass renders as cloud).
+ *
+ * Rings are thinned in grid space, then projected. Storm object polygons
+ * pass `minArea: 0` so a one-cell echo still has a ring; drawn layers drop
+ * specks. Eval passes `round: 0` so the stairs stay.
  */
-export function polygons(grid: Grid, geo: Geo, level: number): ContourRing[][] {
-  const rings = trace(grid, level).map((ring) =>
-    ring.map(([fi, fj]) => project(fi, fj, geo))
-  );
-
+export function polygons(
+  grid: Grid,
+  geo: Geo,
+  level: number,
+  style: RingStyle = { epsilon: SIMPLIFY_CELL, minArea: 0 }
+): ContourRing[][] {
   const exteriors: { ring: ContourRing; area: number; holes: ContourRing[] }[] =
     [];
   const holes: ContourRing[] = [];
 
-  for (const ring of rings) {
+  for (const traced of trace(grid, level)) {
+    const simple = simplifyRing(traced, style);
+    if (simple.length < 4) continue;
+    if (Math.abs(signedArea(simple as ContourRing)) < style.minArea) continue;
+    const ring = simple.map(([fi, fj]) => project(fi, fj, geo));
     const a = signedArea(ring);
     if (a > 0) exteriors.push({ ring, area: a, holes: [] });
     else if (a < 0) holes.push(ring);
@@ -268,6 +322,123 @@ function trace(grid: Grid, level: number): Pt[][] {
     }
   }
   return rings;
+}
+
+/**
+ * Drop collinear vertices, then Ramer–Douglas–Peucker, then optional
+ * Chaikin, in grid coordinates. Projecting first would curve Lambert
+ * rows and hide the collinear runs.
+ */
+function simplifyRing(ring: Pt[], style: RingStyle): Pt[] {
+  const collapsed = collapseCollinear(ring);
+  if (collapsed.length < 4) return collapsed;
+  const thinned =
+    style.epsilon > 0 ? rdpClosed(collapsed, style.epsilon) : collapsed;
+  const passes = style.round ?? 0;
+  return passes > 0 ? chaikinClosed(thinned, passes) : thinned;
+}
+
+/**
+ * Cut each corner to the quarter-points of its two edges. Two passes
+ * is the quadratic B-spline of the RDP ring: the fill follows the
+ * storm, not the cell stairs and not a box.
+ */
+function chaikinClosed(ring: Pt[], passes: number): Pt[] {
+  let pts = same(ring[0], ring[ring.length - 1])
+    ? ring.slice(0, -1)
+    : ring.slice();
+  if (pts.length < 3 || passes <= 0) return ring;
+  for (let n = 0; n < passes; n++) {
+    const next: Pt[] = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length];
+      next.push([0.75 * a[0] + 0.25 * b[0], 0.75 * a[1] + 0.25 * b[1]]);
+      next.push([0.25 * a[0] + 0.75 * b[0], 0.25 * a[1] + 0.75 * b[1]]);
+    }
+    pts = next;
+  }
+  const out: Pt[] = pts.concat([pts[0]]);
+  return out.length >= 4 ? out : ring;
+}
+
+function same(a: Pt, b: Pt): boolean {
+  return a[0] === b[0] && a[1] === b[1];
+}
+
+function collapseCollinear(ring: Pt[]): Pt[] {
+  if (ring.length < 4) return ring;
+  const pts =
+    same(ring[0], ring[ring.length - 1]) ? ring.slice(0, -1) : ring.slice();
+  const n = pts.length;
+  if (n < 3) return ring;
+  const out: Pt[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = pts[(i - 1 + n) % n];
+    const b = pts[i];
+    const c = pts[(i + 1) % n];
+    const cross =
+      (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+    if (cross !== 0) out.push(b);
+  }
+  if (out.length < 3) return ring;
+  out.push(out[0]);
+  return out;
+}
+
+function distToSeg(p: Pt, a: Pt, b: Pt): number {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const l2 = dx * dx + dy * dy;
+  if (l2 === 0) return Math.hypot(p[0] - a[0], p[1] - a[1]);
+  const t = Math.max(
+    0,
+    Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2)
+  );
+  return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+}
+
+function rdpOpen(pts: Pt[], epsilon: number): Pt[] {
+  if (pts.length <= 2) return pts;
+  const a = pts[0];
+  const b = pts[pts.length - 1];
+  let dmax = -1;
+  let idx = 0;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const d = distToSeg(pts[i], a, b);
+    if (d > dmax) {
+      dmax = d;
+      idx = i;
+    }
+  }
+  if (dmax > epsilon) {
+    const left = rdpOpen(pts.slice(0, idx + 1), epsilon);
+    const right = rdpOpen(pts.slice(idx), epsilon);
+    return left.slice(0, -1).concat(right);
+  }
+  return [a, b];
+}
+
+function rdpClosed(ring: Pt[], epsilon: number): Pt[] {
+  const pts = same(ring[0], ring[ring.length - 1])
+    ? ring.slice(0, -1)
+    : ring.slice();
+  if (pts.length <= 3) return ring;
+  let k = 1;
+  let farthest = -1;
+  for (let i = 1; i < pts.length; i++) {
+    const d = Math.hypot(pts[i][0] - pts[0][0], pts[i][1] - pts[0][1]);
+    if (d > farthest) {
+      farthest = d;
+      k = i;
+    }
+  }
+  const first = rdpOpen(pts.slice(0, k + 1), epsilon);
+  const second = rdpOpen(pts.slice(k).concat([pts[0]]), epsilon);
+  const out = first.concat(second.slice(1));
+  if (out.length < 3) return ring;
+  if (!same(out[0], out[out.length - 1])) out.push(out[0]);
+  return out.length >= 4 ? out : ring;
 }
 
 function signedArea(ring: ContourRing): number {

@@ -3,7 +3,7 @@ import express, { Request, Response } from "express";
 
 // Services
 import { Hrrr } from "../lib/services/hrrr/forecast";
-import { OutsideDomain, parseBox } from "../lib/services/shared/grid";
+import { OutsideDomain, parseBox, parseFine } from "../lib/services/shared/grid";
 import { parseAt } from "../lib/services/shared/replay";
 
 export const forecast = express.Router();
@@ -25,7 +25,8 @@ forecast.get("/clouds", async (req: Request, res: Response) => {
     const frame = await Hrrr.clouds(
       hour,
       parseAt(req.query.at),
-      parseBox(req.query)
+      parseBox(req.query),
+      parseFine(req.query)
     );
     res.send(frame);
   } catch (error) {
@@ -41,7 +42,8 @@ forecast.get("/precip", async (req: Request, res: Response) => {
     const frame = await Hrrr.precip(
       hour,
       parseAt(req.query.at),
-      parseBox(req.query)
+      parseBox(req.query),
+      parseFine(req.query)
     );
     res.send(frame);
   } catch (error) {
@@ -60,7 +62,8 @@ forecast.get("/liquid", async (req: Request, res: Response) => {
     const frame = await Hrrr.liquid(
       hour,
       parseAt(req.query.at),
-      parseBox(req.query)
+      parseBox(req.query),
+      parseFine(req.query)
     );
     res.send(frame);
   } catch (error) {
@@ -94,7 +97,8 @@ forecast.get("/cloudbase", async (req: Request, res: Response) => {
     const frame = await Hrrr.cloudBase(
       hour,
       parseAt(req.query.at),
-      parseBox(req.query)
+      parseBox(req.query),
+      parseFine(req.query)
     );
     res.send(frame);
   } catch (error) {

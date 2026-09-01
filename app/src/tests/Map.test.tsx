@@ -167,12 +167,85 @@ describe("ArcGIS in candidate mode", () => {
 
     expect(fieldLayer.visible).toBe(true);
     expect(radarLayer.visible).toBe(true);
-    expect(stormCoreLayer.visible).toBe(true);
-    expect(stormMotionLayer.visible).toBe(true);
-    expect(lightningLayer.visible).toBe(true);
+    expect(stormCoreLayer.visible).toBe(false);
+    expect(stormMotionLayer.visible).toBe(false);
+    expect(lightningLayer.visible).toBe(false);
     expect(cloudTopLayer.visible).toBe(false);
     expect(liquidLayer.visible).toBe(false);
     expect(cloudBaseLayer.visible).toBe(false);
+  });
+
+  it("does not refetch when the view zooms in inside the held window", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+    const url = radarLayer.url;
+    const v = view();
+    v.extent = { xmin: -102, ymin: 28, xmax: -98, ymax: 32 };
+    const onStationary = watch.mock.calls[0]?.[1] as
+      | ((stationary: boolean) => void)
+      | undefined;
+    act(() => {
+      onStationary?.(true);
+    });
+
+    expect(radarLayer.url).toBe(url);
+  });
+
+  it("keeps cores, heading, and lightning off until asked, even zoomed out", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+    const v = view();
+    v.zoom = 4;
+    v.extent = { xmin: -125, ymin: 24, xmax: -70, ymax: 50 };
+    const onStationary = watch.mock.calls[0]?.[1] as
+      | ((stationary: boolean) => void)
+      | undefined;
+    act(() => {
+      onStationary?.(true);
+    });
+
+    expect(radarLayer.visible).toBe(true);
+    expect(stormCoreLayer.visible).toBe(false);
+    expect(stormMotionLayer.visible).toBe(false);
+    expect(lightningLayer.visible).toBe(false);
+  });
+
+  it("shows lightning only while radar is on and the switch is on", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+
+    expect(lightningLayer.visible).toBe(false);
+
+    act(() => {
+      store.dispatch(radarActions.setLightning(true));
+    });
+    expect(lightningLayer.visible).toBe(true);
+    expect(lightningLayer.url).toContain("/cloudtop/lightning");
+
+    act(() => {
+      store.dispatch(radarActions.setVisible(false));
+    });
+    expect(lightningLayer.visible).toBe(false);
+  });
+
+  it("shows the core and heading only while radar is on and the switch is on", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+
+    expect(stormCoreLayer.visible).toBe(false);
+    expect(stormMotionLayer.visible).toBe(false);
+
+    act(() => {
+      store.dispatch(radarActions.setHeading(true));
+    });
+    expect(stormCoreLayer.visible).toBe(true);
+    expect(stormMotionLayer.visible).toBe(true);
+    expect(stormCoreLayer.url).toContain("/radar/objects/cores");
+    expect(stormMotionLayer.url).toContain("/radar/objects/motion");
+
+    act(() => {
+      store.dispatch(radarActions.setVisible(false));
+    });
+    expect(stormCoreLayer.visible).toBe(false);
+    expect(stormMotionLayer.visible).toBe(false);
   });
 
   it("shows the observed cloud tops and the modelled liquid water together", () => {

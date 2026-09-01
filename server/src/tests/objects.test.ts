@@ -6,14 +6,19 @@ import assert from "node:assert/strict";
 import {
   bearingDeg,
   destPoint,
+  drawnStorms,
   foldTracks,
   identify,
   km,
   matchTracks,
+  MERGE_STORM_KM,
+  MIN_DRAWN_STORM_KM2,
+  motionArrow,
   motionFrame,
   motionLengthKm,
   near,
   quietRing,
+  stormStyle,
   upwindBoundary,
   upwindOf,
   upwindRing,
@@ -72,7 +77,7 @@ describe("identify", () => {
     assert.equal(storms[0].maxDbz, 41);
     assert.ok(Math.abs(storms[0].coreLon - -99.99) < 1e-4);
     assert.ok(Math.abs(storms[0].coreLat - 30.01) < 1e-4);
-    assert.ok(storms[0].geometry.length >= 1);
+    assert.equal(storms[0].geometry.length, 0);
   });
 
   it("joins diagonal neighbours (8-connected)", () => {
@@ -172,33 +177,26 @@ describe("matchTracks", () => {
 });
 
 describe("near", () => {
-  const { grid, geo } = scene([
-    [0, 0, 0, 0, 0],
-    [0, 25, 25, 50, 0],
-    [0, 25, 25, 25, 0],
-    [0, 0, 0, 0, 0],
-  ]);
+  const rows = Array.from({ length: 10 }, () => Array(10).fill(0));
+  for (let j = 1; j <= 8; j++) {
+    for (let i = 1; i <= 8; i++) rows[j][i] = 25;
+  }
+  rows[4][8] = 50;
+  rows[4][9] = 25;
+  const { grid, geo } = scene(rows);
   const storms = identify(grid, geo, 20, TIME);
 
-  it("counts the raining cell centre as inside a one-cell storm", () => {
+  it("does not treat a one-cell echo as inside — it is not drawn", () => {
     const { grid, geo } = scene([
       [0, 0, 0],
       [0, 22, 0],
       [0, 0, 0],
     ]);
     const storms = identify(grid, geo, 20, TIME);
-    const reading = near(30.01, -99.99, storms, grid, geo, 20, TIME);
-    assert.ok(reading);
-    assert.equal(reading.inside, true);
-    assert.equal(reading.object.nCells, 1);
+    assert.equal(near(30.01, -99.99, storms, grid, geo, 20, TIME), null);
   });
 
   it("counts a click inside the drawn outline as inside", () => {
-    const { grid, geo } = scene([
-      [0, 0, 0],
-      [0, 22, 0],
-      [0, 0, 0],
-    ]);
     const storms = identify(grid, geo, 20, TIME);
     assert.ok(storms[0].geometry.length > 0);
     const [lon, lat] = storms[0].geometry[0][0][0];
@@ -209,15 +207,28 @@ describe("near", () => {
     assert.equal(reading.inside, true);
   });
 
-  it("says a point in an echoing cell is inside", () => {
+  it("keeps a one-cell ring when the evaluation asks for the fine outline", () => {
+    const { grid, geo } = scene([
+      [0, 0, 0],
+      [0, 22, 0],
+      [0, 0, 0],
+    ]);
+    const storms = identify(grid, geo, 20, TIME, stormStyle(true));
     const reading = near(30.01, -99.99, storms, grid, geo, 20, TIME);
+    assert.ok(reading);
+    assert.equal(reading.inside, true);
+    assert.equal(reading.object.nCells, 1);
+  });
+
+  it("says a point in an echoing cell is inside", () => {
+    const reading = near(30.04, -99.99, storms, grid, geo, 20, TIME);
     assert.ok(reading);
     assert.equal(reading.inside, true);
     assert.equal(reading.object.maxDbz, 50);
   });
 
   it("is closer to the edge than to the core on a flank cell", () => {
-    const reading = near(30.01, -99.99, storms, grid, geo, 20, TIME);
+    const reading = near(30.04, -99.99, storms, grid, geo, 20, TIME);
     assert.ok(reading);
     assert.ok(
       reading.edgeKm < reading.coreKm,
@@ -226,26 +237,32 @@ describe("near", () => {
   });
 
   it("still names the object from a quiet cell next to it", () => {
-    const reading = near(30.01, -100, storms, grid, geo, 20, TIME);
+    const reading = near(30.04, -100, storms, grid, geo, 20, TIME);
     assert.ok(reading);
     assert.equal(reading.inside, false);
     assert.equal(reading.object.maxDbz, 50);
   });
 
+  it("does not count a rounded-off protrusion as inside", () => {
+    const reading = near(30.04, -99.91, storms, grid, geo, 20, TIME);
+    assert.ok(reading);
+    assert.equal(reading.inside, false);
+  });
+
   it("measures the upwind edge when the storm has a motion", () => {
     storms[0].motionTowardDeg = 90;
-    const reading = near(30.01, -99.99, storms, grid, geo, 20, TIME);
+    const reading = near(30.04, -99.99, storms, grid, geo, 20, TIME);
     assert.ok(reading);
     assert.ok(reading.upwindEdgeKm !== null);
   });
 
   it("marks the upwind inside edge as the working area, not quiet ground outside", () => {
     storms[0].motionTowardDeg = 90;
-    const insideWest = near(30.01, -99.99, storms, grid, geo, 20, TIME);
+    const insideWest = near(30.04, -99.99, storms, grid, geo, 20, TIME);
     assert.ok(insideWest);
     assert.equal(insideWest.inside, true);
     assert.equal(insideWest.inWorking, true);
-    const outside = near(30.01, -100, storms, grid, geo, 20, TIME);
+    const outside = near(30.04, -100, storms, grid, geo, 20, TIME);
     assert.ok(outside);
     assert.equal(outside.inside, false);
     assert.equal(outside.inWorking, false);
@@ -390,19 +407,28 @@ describe("foldTracks", () => {
 });
 
 describe("motionFrame", () => {
-  it("draws a line from the core along the heading", () => {
+  it("draws a dart from the core along the heading", () => {
     const { grid, geo } = scene([[40]]);
     const [storm] = identify(grid, geo, 20, TIME);
     storm.motionTowardDeg = 90;
     storm.motionKmh = 40;
     const frame = motionFrame(TIME, [storm]);
     assert.equal(frame.features.length, 1);
-    const [from, to] = frame.features[0].geometry.coordinates;
-    assert.equal(from[0], storm.coreLon);
-    assert.equal(from[1], storm.coreLat);
-    assert.ok(to[0] > from[0]);
-    assert.ok(Math.abs(to[1] - from[1]) < 0.02);
+    assert.equal(frame.features[0].geometry.type, "Polygon");
+    const ring = frame.features[0].geometry.coordinates[0];
+    assert.deepEqual(ring[0], ring[ring.length - 1]);
+    const tip = ring.reduce((east, p) => (p[0] > east[0] ? p : east));
+    assert.ok(tip[0] > storm.coreLon);
+    assert.ok(Math.abs(tip[1] - storm.coreLat) < 0.02);
     assert.equal(frame.features[0].properties.motionKmh, 40);
+  });
+
+  it("sizes the head as a fraction of the tick, so it shrinks with the line", () => {
+    const short = motionArrow(30, -100, 90, 4);
+    const long = motionArrow(30, -100, 90, 12);
+    const width = (ring: [number, number][]) =>
+      Math.max(...ring.map((p) => p[1])) - Math.min(...ring.map((p) => p[1]));
+    assert.ok(width(long) > width(short) * 2);
   });
 
   it("draws nothing when the storm has no motion", () => {
@@ -414,6 +440,82 @@ describe("motionFrame", () => {
   it("clamps a fast heading to 12 km", () => {
     assert.equal(motionLengthKm(200), 12);
     assert.equal(motionLengthKm(20), 3);
+  });
+});
+
+describe("drawnStorms", () => {
+  it("drops an isolated echo smaller than one 4 km cell", () => {
+    const { grid, geo } = scene([
+      [0, 0, 0],
+      [0, 41, 0],
+      [0, 0, 0],
+    ]);
+    const storms = identify(grid, geo, 20, TIME);
+    assert.equal(storms.length, 1);
+    assert.ok(storms[0].areaKm2 < MIN_DRAWN_STORM_KM2);
+    assert.equal(drawnStorms(storms).length, 0);
+  });
+
+  it("keeps a raining area at least 16 km²", () => {
+    const rows = Array.from({ length: 8 }, () =>
+      Array.from({ length: 8 }, () => 30)
+    );
+    const { grid, geo } = scene(rows);
+    const storms = identify(grid, geo, 20, TIME);
+    assert.equal(storms.length, 1);
+    assert.ok(storms[0].areaKm2 >= MIN_DRAWN_STORM_KM2);
+    const drawn = drawnStorms(storms);
+    assert.equal(drawn.length, 1);
+    assert.equal(drawn[0].nCells, 64);
+  });
+
+  it("absorbs a speck into a nearby larger echo", () => {
+    // 6×6 blob on the west, one cell ~9 km east of its centroid.
+    const rows = Array.from({ length: 6 }, () =>
+      Array.from({ length: 14 }, () => 0)
+    );
+    for (let j = 0; j < 6; j++) {
+      for (let i = 0; i < 6; i++) rows[j][i] = 30;
+    }
+    rows[2][12] = 45;
+    const { grid, geo } = scene(rows);
+    const storms = identify(grid, geo, 20, TIME);
+    assert.equal(storms.length, 2);
+    const gap = km(
+      storms[0].centroidLat,
+      storms[0].centroidLon,
+      storms[1].centroidLat,
+      storms[1].centroidLon
+    );
+    assert.ok(gap <= MERGE_STORM_KM);
+    const drawn = drawnStorms(storms);
+    assert.equal(drawn.length, 1);
+    assert.equal(drawn[0].nCells, 37);
+    assert.equal(drawn[0].maxDbz, 45);
+  });
+
+  it("does not merge two storms that both clear the floor", () => {
+    const rows = Array.from({ length: 6 }, () =>
+      Array.from({ length: 14 }, () => 0)
+    );
+    for (let j = 0; j < 6; j++) {
+      for (let i = 0; i < 6; i++) {
+        rows[j][i] = 30;
+        rows[j][i + 8] = 40;
+      }
+    }
+    const { grid, geo } = scene(rows);
+    const storms = identify(grid, geo, 20, TIME);
+    assert.equal(storms.length, 2);
+    assert.ok(storms.every((s) => s.areaKm2 >= MIN_DRAWN_STORM_KM2));
+    const gap = km(
+      storms[0].centroidLat,
+      storms[0].centroidLon,
+      storms[1].centroidLat,
+      storms[1].centroidLon
+    );
+    assert.ok(gap <= MERGE_STORM_KM);
+    assert.equal(drawnStorms(storms).length, 2);
   });
 });
 

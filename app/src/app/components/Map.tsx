@@ -61,11 +61,7 @@ import {
   ReplayLightningLayer,
 } from "@/lib/arcgis/layers";
 import { PRECIP_FIRST_HOUR } from "@/lib/arcgis/bands";
-import {
-  INITIAL_BOX,
-  LAYER_MIN_ZOOM,
-  boxFromExtent,
-} from "@/lib/bbox";
+import { INITIAL_BOX, heldBox } from "@/lib/bbox";
 
 // Types
 import type { ClickEvent } from "@arcgis/core/views/input/types";
@@ -86,7 +82,6 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const drawnBuild = useRef<string | null>(null);
   const drawnBoxKey = useRef<string | null>(null);
   const [viewBox, setViewBox] = useState(INITIAL_BOX);
-  const [closeEnough, setCloseEnough] = useState(true);
 
   const dispatch = useAppDispatch();
   const coordinates = useAppSelector((state) => state.interactions.coordinates);
@@ -96,6 +91,8 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const cloudTop = useAppSelector((state) => state.cloudtop.visible);
   const liquid = useAppSelector((state) => state.candidate.liquid);
   const radar = useAppSelector((state) => state.radar.visible);
+  const lightning = useAppSelector((state) => state.radar.lightning);
+  const heading = useAppSelector((state) => state.radar.heading);
   const field = useAppSelector((state) => state.seedability.visible);
   const build = useAppSelector((state) => state.seedability.drawn);
   const ring = useAppSelector((state) => state.domain.ring);
@@ -104,6 +101,8 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const replayCloudTop = useAppSelector((state) => state.replay.cloudTop);
   const replayLiquid = useAppSelector((state) => state.replay.liquid);
   const replayRadar = useAppSelector((state) => state.replay.radar);
+  const replayLightning = useAppSelector((state) => state.replay.lightning);
+  const replayHeading = useAppSelector((state) => state.replay.heading);
   const replayField = useAppSelector((state) => state.replay.field);
   const forecasting = mode === "forecast";
   const replaying = mode === "replay";
@@ -164,21 +163,19 @@ export const ArcGIS = ({ mode }: PropsT) => {
     }
   }, []);
 
-  // National grids stay on the server. The map only asks for the window it
-  // can paint, and only when zoomed in far enough that a native frame is a
-  // Texas-sized bite rather than the whole country.
+  // National grids stay on the server. The map asks for a padded window
+  // that covers the view and keeps it while the view sits inside, so
+  // zooming does not refetch. The rings are smoothed the same way at
+  // every zoom; eval asks for the fine stairs separately.
   useEffect(() => {
     const view = viewRef.current;
     if (!view) return;
     const apply = () => {
-      const z = view.zoom ?? 0;
-      setCloseEnough(z >= LAYER_MIN_ZOOM);
-      if (z < LAYER_MIN_ZOOM) return;
       const extent = view.extent as
         | { xmin: number; ymin: number; xmax: number; ymax: number }
         | undefined;
       if (!extent) return;
-      setViewBox(boxFromExtent(extent));
+      setViewBox((held) => heldBox(held, extent));
     };
     apply();
     const handle = reactiveUtils.watch(
@@ -204,34 +201,34 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const candidating = mode === "candidate";
 
   useEffect(() => {
-    ForecastCloudsLayer.visible = forecasting && closeEnough;
-    ForecastPrecipLayer.visible = raining && precip && closeEnough;
-    CandidateCloudBaseLayer.visible = candidating && cloudBase && closeEnough;
-    CandidateCloudTopLayer.visible = candidating && cloudTop && closeEnough;
-    CandidateLiquidLayer.visible = candidating && liquid && closeEnough;
+    ForecastCloudsLayer.visible = forecasting;
+    ForecastPrecipLayer.visible = raining && precip;
+    CandidateCloudBaseLayer.visible = candidating && cloudBase;
+    CandidateCloudTopLayer.visible = candidating && cloudTop;
+    CandidateLiquidLayer.visible = candidating && liquid;
     // Observations, so they never appear on the modelled map — the same rule
     // that keeps the satellite cloud tops off it.
-    CandidateRadarLayer.visible = candidating && radar && closeEnough;
-    CandidateLightningLayer.visible = candidating && radar && closeEnough;
-    CandidateStormMotionLayer.visible = candidating && radar && closeEnough;
-    CandidateStormCoreLayer.visible = candidating && radar && closeEnough;
+    CandidateRadarLayer.visible = candidating && radar;
+    CandidateLightningLayer.visible = candidating && radar && lightning;
+    CandidateStormMotionLayer.visible = candidating && radar && heading;
+    CandidateStormCoreLayer.visible = candidating && radar && heading;
     // The answer, drawn over its own inputs, and the observed outline over
     // that. One switch drives both: the outline says which part of the field
     // the satellite backs, which is meaningless without the field under it.
-    CandidateFieldLayer.visible = candidating && field && closeEnough;
-    CandidateConfirmedLayer.visible = candidating && field && closeEnough;
+    CandidateFieldLayer.visible = candidating && field;
+    CandidateConfirmedLayer.visible = candidating && field;
     // Gated on `ready`, not on the hour that was asked for. `setAt` clears
     // `ready`, so picking a date blanks the map immediately and it stays blank
     // until every source has answered — they take 10 s to 40 s and finish
     // apart, and revealing each as it landed showed two dates at once.
-    const drawable = replaying && ready !== null && closeEnough;
+    const drawable = replaying && ready !== null;
     ReplayCloudBaseLayer.visible = drawable && replayCloudBase;
     ReplayCloudTopLayer.visible = drawable && replayCloudTop;
     ReplayLiquidLayer.visible = drawable && replayLiquid;
     ReplayRadarLayer.visible = drawable && replayRadar;
-    ReplayLightningLayer.visible = drawable && replayRadar;
-    ReplayStormMotionLayer.visible = drawable && replayRadar;
-    ReplayStormCoreLayer.visible = drawable && replayRadar;
+    ReplayLightningLayer.visible = drawable && replayRadar && replayLightning;
+    ReplayStormMotionLayer.visible = drawable && replayRadar && replayHeading;
+    ReplayStormCoreLayer.visible = drawable && replayRadar && replayHeading;
     ReplayFieldLayer.visible = drawable && replayField;
     ReplayConfirmedLayer.visible = drawable && replayField;
   }, [
@@ -244,14 +241,17 @@ export const ArcGIS = ({ mode }: PropsT) => {
     cloudTop,
     liquid,
     radar,
+    lightning,
+    heading,
     field,
     ready,
     replayCloudBase,
     replayCloudTop,
     replayLiquid,
     replayRadar,
+    replayLightning,
+    replayHeading,
     replayField,
-    closeEnough,
   ]);
 
   // Point each forecast contour layer at the selected hour. Repointing the url
@@ -290,21 +290,39 @@ export const ArcGIS = ({ mode }: PropsT) => {
     CandidateCloudTopLayer.url = CloudTopUrl(viewBox);
     CandidateLiquidLayer.url = ForecastLiquidUrl(0, viewBox);
     CandidateRadarLayer.url = RadarReflectivityUrl(viewBox);
-    CandidateLightningLayer.url = LightningUrl(viewBox);
-    CandidateStormMotionLayer.url = RadarStormMotionUrl(viewBox);
-    CandidateStormCoreLayer.url = RadarStormCoresUrl(viewBox);
     CandidateFieldLayer.url = CandidateFieldUrl(viewBox);
     CandidateConfirmedLayer.url = CandidateConfirmedUrl(viewBox);
     CandidateCloudBaseLayer.refresh();
     CandidateCloudTopLayer.refresh();
     CandidateLiquidLayer.refresh();
     CandidateRadarLayer.refresh();
-    CandidateLightningLayer.refresh();
-    CandidateStormMotionLayer.refresh();
-    CandidateStormCoreLayer.refresh();
     CandidateFieldLayer.refresh();
     CandidateConfirmedLayer.refresh();
   }, [boxKey, viewBox]);
+
+  // Lightning is a switch, not a zoom. The url is pointed only while the
+  // operator has asked for it, so a national pan does not download GLM.
+  const drawnLightningKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (!(candidating && radar && lightning)) return;
+    if (drawnLightningKey.current === boxKey) return;
+    drawnLightningKey.current = boxKey;
+    CandidateLightningLayer.url = LightningUrl(viewBox);
+    CandidateLightningLayer.refresh();
+  }, [candidating, radar, lightning, boxKey, viewBox]);
+
+  // Cores and heading ticks are the same kind of switch. They are not
+  // fetched until asked for.
+  const drawnHeadingKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (!(candidating && radar && heading)) return;
+    if (drawnHeadingKey.current === boxKey) return;
+    drawnHeadingKey.current = boxKey;
+    CandidateStormMotionLayer.url = RadarStormMotionUrl(viewBox);
+    CandidateStormCoreLayer.url = RadarStormCoresUrl(viewBox);
+    CandidateStormMotionLayer.refresh();
+    CandidateStormCoreLayer.refresh();
+  }, [candidating, radar, heading, boxKey, viewBox]);
 
   // Send the candidate layers after the build the store says is current.
   //
@@ -354,9 +372,6 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayCloudTopLayer.url = ReplayCloudTopUrl(at, viewBox);
     ReplayLiquidLayer.url = ReplayLiquidUrl(at, 0, viewBox);
     ReplayRadarLayer.url = ReplayRadarUrl(at, viewBox);
-    ReplayLightningLayer.url = ReplayLightningUrl(at, viewBox);
-    ReplayStormMotionLayer.url = ReplayRadarStormMotionUrl(at, viewBox);
-    ReplayStormCoreLayer.url = ReplayRadarStormCoresUrl(at, viewBox);
     ReplayFieldLayer.url = ReplayCandidateUrl(at, viewBox);
     ReplayConfirmedLayer.url = ReplayConfirmedUrl(at, viewBox);
 
@@ -381,12 +396,23 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayCloudTopLayer.refresh();
     ReplayLiquidLayer.refresh();
     ReplayRadarLayer.refresh();
-    ReplayLightningLayer.refresh();
-    ReplayStormMotionLayer.refresh();
-    ReplayStormCoreLayer.refresh();
     ReplayFieldLayer.refresh();
     ReplayConfirmedLayer.refresh();
   }, [ready, boxKey, viewBox]);
+
+  useEffect(() => {
+    if (!(replaying && ready && replayRadar && replayLightning)) return;
+    ReplayLightningLayer.url = ReplayLightningUrl(ready, viewBox);
+    ReplayLightningLayer.refresh();
+  }, [replaying, ready, replayRadar, replayLightning, boxKey, viewBox]);
+
+  useEffect(() => {
+    if (!(replaying && ready && replayRadar && replayHeading)) return;
+    ReplayStormMotionLayer.url = ReplayRadarStormMotionUrl(ready, viewBox);
+    ReplayStormCoreLayer.url = ReplayRadarStormCoresUrl(ready, viewBox);
+    ReplayStormMotionLayer.refresh();
+    ReplayStormCoreLayer.refresh();
+  }, [replaying, ready, replayRadar, replayHeading, boxKey, viewBox]);
 
   // Surface "still drawing" so the slider can say so rather than looking stuck.
   useEffect(() => {

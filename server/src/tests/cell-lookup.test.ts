@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 // Services
-import { features } from "../lib/services/shared/contour";
+import { FINE_STYLE, features } from "../lib/services/shared/contour";
 import { cellAt, nearestCell } from "../lib/services/shared/grid";
 
 // Types
@@ -97,7 +97,9 @@ function stray(
   field: Grid,
   lookup: (geo: Geo, lat: number, lon: number) => number
 ): { inside: number; stray: number } {
-  const drawn = features(field, geo, "v", [1]);
+  // The lookup half is about marching-squares chamfers, not the map's
+  // rounded ring.
+  const drawn = features(field, geo, "v", [1], FINE_STYLE);
   const polygons = (
     drawn[0].geometry as unknown as { coordinates: number[][][][] }
   ).coordinates;

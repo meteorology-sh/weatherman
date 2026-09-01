@@ -120,8 +120,17 @@ export class EchoTopService {
     stormGeo: Geo,
     at?: Date
   ): Promise<EchoTopHit | null> {
+    if (!at && !this.cache && !this.inflight) {
+      this.warm();
+      return null;
+    }
     const scene = await this.scene(at);
     return tallestOver(storm, stormGeo, scene.geo, scene.grid.values);
+  }
+
+  /** Start a decode without waiting. A click does not wait on a cold GRIB. */
+  warm(at?: Date): void {
+    void this.scene(at).catch(() => undefined);
   }
 
   private async scene(at?: Date): Promise<Scene> {

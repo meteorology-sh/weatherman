@@ -3,8 +3,9 @@ import express, { Request, Response } from "express";
 
 // Services
 import { Mrms } from "../lib/services/mrms/radar";
+import { EchoTops } from "../lib/services/mrms/echotop";
 import { parseAt } from "../lib/services/shared/replay";
-import { parseBox } from "../lib/services/shared/grid";
+import { parseBox, parseFine } from "../lib/services/shared/grid";
 
 export const radar = express.Router();
 
@@ -15,7 +16,8 @@ radar.get("/reflectivity", async (req: Request, res: Response) => {
   try {
     const frame = await Mrms.reflectivity(
       parseAt(req.query.at),
-      parseBox(req.query)
+      parseBox(req.query),
+      parseFine(req.query)
     );
     res.send(frame);
   } catch (error) {
@@ -27,7 +29,9 @@ radar.get("/reflectivity", async (req: Request, res: Response) => {
 
 radar.get("/reflectivity/stats", async (req: Request, res: Response) => {
   try {
-    const stats = await Mrms.reflectivityStats(parseAt(req.query.at));
+    const at = parseAt(req.query.at);
+    const stats = await Mrms.reflectivityStats(at);
+    EchoTops.warm(at);
     res.send(stats);
   } catch (error) {
     res

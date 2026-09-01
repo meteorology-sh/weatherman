@@ -127,9 +127,8 @@ export const CANDIDATE_RGB = [52, 211, 153] as const;
 export const CONFIRMED_RGB = [209, 255, 232] as const;
 export const CONFIRMED_WIDTH = 1.5;
 
-/** Heading tick at the heaviest-rain cell. White on the dark basemap. */
+/** Heading dart at the heaviest-rain cell. White on the dark basemap. */
 export const MOTION_RGB = [255, 255, 255] as const;
-export const MOTION_WIDTH = 2;
 
 /** GLM flash. Yellow so it is not the cyan rain and not the white arrow. */
 export const LIGHTNING_RGB = [250, 204, 21] as const;

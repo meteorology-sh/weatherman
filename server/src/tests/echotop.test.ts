@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 
 // Services
 import {
+  EchoTopService,
   heightFt,
   tallestOver,
   KM_TO_FT,
@@ -100,5 +101,23 @@ describe("tallestOver", () => {
     const [storm] = identify(grid, geo, 20, "2025-08-11T18:00:00.000Z");
     const echo = new Float32Array(geo.lats.length).fill(NO_COVERAGE_KM);
     assert.equal(tallestOver(storm, geo, geo, echo), null);
+  });
+});
+
+describe("EchoTopService.tallest", () => {
+  it("does not wait on a cold live scene", async (t) => {
+    const svc = new EchoTopService();
+    t.mock.method(globalThis, "fetch", async () => {
+      throw new Error("echo-top is not warm");
+    });
+    const { grid, geo } = scene([
+      [0, 40],
+      [40, 40],
+    ]);
+    const [storm] = identify(grid, geo, 20, "2026-08-31T00:00:00.000Z");
+    const t0 = Date.now();
+    const hit = await svc.tallest(storm, geo);
+    assert.equal(hit, null);
+    assert.ok(Date.now() - t0 < 500);
   });
 });

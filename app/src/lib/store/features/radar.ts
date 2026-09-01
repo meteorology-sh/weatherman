@@ -11,6 +11,16 @@ type RadarState = {
    * open on rain plus the liquid join, so the two answers can disagree in view.
    */
   visible: boolean;
+  /**
+   * GLM flashes on the same layer. Off until asked for, and only drawn
+   * while reflectivity is on — lightning without rain is not a map here.
+   */
+  lightning: boolean;
+  /**
+   * The core dot and the heading arrow. Off until asked for, and only
+   * drawn while reflectivity is on.
+   */
+  heading: boolean;
   /** Summary of the scene. The contours themselves never enter the store. */
   stats: RadarStats | undefined;
   loading: boolean;
@@ -19,6 +29,8 @@ type RadarState = {
 
 const initialState: RadarState = {
   visible: true,
+  lightning: false,
+  heading: false,
   stats: undefined,
   loading: false,
   error: null,
@@ -30,6 +42,12 @@ const radarSlice = createSlice({
   reducers: {
     setVisible(state, action: PayloadAction<boolean>) {
       state.visible = action.payload;
+    },
+    setLightning(state, action: PayloadAction<boolean>) {
+      state.lightning = action.payload;
+    },
+    setHeading(state, action: PayloadAction<boolean>) {
+      state.heading = action.payload;
     },
     setStats(state, action: PayloadAction<RadarStats>) {
       state.stats = action.payload;

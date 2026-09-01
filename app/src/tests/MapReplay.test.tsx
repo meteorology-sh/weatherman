@@ -155,15 +155,9 @@ describe("ArcGIS in replay mode", () => {
       `/forecast/liquid?hour=0&at=${at}&${box}`
     );
     expect(replayRadarLayer.url).toBe(`/radar/reflectivity?at=${at}&${box}`);
-    expect(replayStormCoreLayer.url).toBe(
-      `/radar/objects/cores?at=${at}&${box}`
-    );
-    expect(replayStormMotionLayer.url).toBe(
-      `/radar/objects/motion?at=${at}&${box}`
-    );
-    expect(replayLightningLayer.url).toBe(
-      `/cloudtop/lightning?at=${at}&${box}`
-    );
+    expect(replayStormCoreLayer.url).toBe("");
+    expect(replayStormMotionLayer.url).toBe("");
+    expect(replayLightningLayer.url).toBe("");
     expect(replayCloudBaseLayer.url).toBe(
       `/forecast/cloudbase?hour=0&at=${at}&${box}`
     );
@@ -273,6 +267,39 @@ describe("ArcGIS in replay mode", () => {
     });
 
     expect(replayCloudBaseLayer.visible).toBe(true);
+  });
+
+  it("points the core and heading at the hour when the switch is on", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(ready(AT));
+      store.dispatch(replayActions.setHeading(true));
+    });
+
+    const at = encodeURIComponent(AT);
+    const box = "west=-107&east=-93&south=25.5&north=37";
+    expect(replayStormCoreLayer.url).toBe(
+      `/radar/objects/cores?at=${at}&${box}`
+    );
+    expect(replayStormMotionLayer.url).toBe(
+      `/radar/objects/motion?at=${at}&${box}`
+    );
+  });
+
+  it("points lightning at the hour when the switch is on", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(ready(AT));
+      store.dispatch(replayActions.setLightning(true));
+    });
+
+    const at = encodeURIComponent(AT);
+    const box = "west=-107&east=-93&south=25.5&north=37";
+    expect(replayLightningLayer.url).toBe(
+      `/cloudtop/lightning?at=${at}&${box}`
+    );
   });
 
   it("hides a replay layer the operator turns off", () => {

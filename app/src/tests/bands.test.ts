@@ -15,6 +15,7 @@ import {
   PRECIP_BANDS,
   PRECIP_LABELS,
   PRECIP_FIRST_HOUR,
+  MOTION_RGB,
   RADAR_BANDS,
   RADAR_LABELS,
   RADAR_RGB,
@@ -107,6 +108,12 @@ describe("RADAR_BANDS", () => {
   // amber underneath legible rather than covering it.
   it("stays translucent enough to read the layer underneath", () => {
     expect(stackedAlpha(RADAR_BANDS, RADAR_BANDS.length)).toBeLessThan(0.7);
+  });
+});
+
+describe("heading mark", () => {
+  it("is white on the dark basemap", () => {
+    expect(MOTION_RGB).toEqual([255, 255, 255]);
   });
 });
 

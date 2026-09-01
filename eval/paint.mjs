@@ -126,7 +126,8 @@ const LAYERS = [
   {
     key: "cloudBase",
     name: "CLOUD BASE",
-    path: (at) => `/forecast/cloudbase?hour=0&at=${encodeURIComponent(at)}`,
+    path: (at) =>
+      `/forecast/cloudbase?hour=0&at=${encodeURIComponent(at)}&fine=1`,
     property: "cloudBaseFt",
     unit: "ft MSL",
     shape: "disjoint",
@@ -135,7 +136,8 @@ const LAYERS = [
   {
     key: "cloudTop",
     name: "CLOUD TOPS",
-    path: (at) => `/cloudtop/temperature?at=${encodeURIComponent(at)}`,
+    path: (at) =>
+      `/cloudtop/temperature?at=${encodeURIComponent(at)}&fine=1`,
     property: "topColdnessC",
     unit: "°C below zero",
     shape: "disjoint",
@@ -144,7 +146,8 @@ const LAYERS = [
   {
     key: "liquid",
     name: "SUPERCOOLED LIQUID WATER",
-    path: (at) => `/forecast/liquid?hour=0&at=${encodeURIComponent(at)}`,
+    path: (at) =>
+      `/forecast/liquid?hour=0&at=${encodeURIComponent(at)}&fine=1`,
     property: "slwPath",
     unit: "g/m²",
     shape: "nested",
@@ -153,7 +156,8 @@ const LAYERS = [
   {
     key: "radar",
     name: "RADAR REFLECTIVITY",
-    path: (at) => `/radar/reflectivity?at=${encodeURIComponent(at)}`,
+    path: (at) =>
+      `/radar/reflectivity?at=${encodeURIComponent(at)}&fine=1`,
     property: "reflectivity",
     unit: "dBZ",
     shape: "nested",
@@ -162,7 +166,8 @@ const LAYERS = [
   {
     key: "candidate",
     name: "SEEDING OPPORTUNITY",
-    path: (at) => `/candidate/field?at=${encodeURIComponent(at)}`,
+    path: (at) =>
+      `/candidate/field?at=${encodeURIComponent(at)}&fine=1`,
     property: "seedableSlwPath",
     unit: "g/m²",
     shape: "nested",

@@ -18,6 +18,8 @@ describe("replay slice", () => {
   it("starts with the candidate field and radar, like the candidate map", () => {
     expect(initial.field).toBe(true);
     expect(initial.radar).toBe(true);
+    expect(initial.lightning).toBe(false);
+    expect(initial.heading).toBe(false);
     expect(initial.cloudTop).toBe(false);
     expect(initial.liquid).toBe(false);
     expect(initial.cloudBase).toBe(false);
@@ -88,6 +90,10 @@ describe("replay slice", () => {
     state = reducer(state, replayActions.setRadar(false));
     expect(state.radar).toBe(false);
     expect(state.liquid).toBe(true);
+
+    state = reducer(state, replayActions.setLightning(true));
+    expect(state.lightning).toBe(true);
+    expect(state.radar).toBe(false);
 
     state = reducer(state, replayActions.setCloudTop(true));
     expect(state.cloudTop).toBe(true);

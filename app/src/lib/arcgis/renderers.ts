@@ -10,7 +10,6 @@
 import UniqueValueRenderer from "@arcgis/core/renderers/UniqueValueRenderer";
 import SimpleRenderer from "@arcgis/core/renderers/SimpleRenderer";
 import SimpleFillSymbol from "@arcgis/core/symbols/SimpleFillSymbol";
-import SimpleLineSymbol from "@arcgis/core/symbols/SimpleLineSymbol";
 import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol";
 import {
   CLOUD_BANDS,
@@ -25,7 +24,6 @@ import {
   CONFIRMED_WIDTH,
   LIGHTNING_RGB,
   MOTION_RGB,
-  MOTION_WIDTH,
   PRECIP_BANDS,
   PRECIP_RGB,
   RADAR_BANDS,
@@ -100,11 +98,16 @@ export const stormCoreRenderer = new SimpleRenderer({
   }),
 });
 
-/** Heading of the storm, from the heaviest-rain cell. Not a nowcast. */
+/**
+ * Heading of the storm, from the heaviest-rain cell. Not a nowcast.
+ *
+ * A filled dart in map coordinates, so the head shrinks with the tick
+ * when the view zooms out. A screen-pixel triangle would stay huge.
+ */
 export const stormMotionRenderer = new SimpleRenderer({
-  symbol: new SimpleLineSymbol({
+  symbol: new SimpleFillSymbol({
     color: [...MOTION_RGB, 0.95],
-    width: MOTION_WIDTH,
+    outline: { color: [...MOTION_RGB, 0], width: 0 },
   }),
 });
 

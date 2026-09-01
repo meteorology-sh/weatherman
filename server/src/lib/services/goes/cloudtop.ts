@@ -15,9 +15,9 @@
  */
 
 // Services
-import { bandFeatures } from "../shared/contour";
+import { bandFeatures, styleFor } from "../shared/contour";
 import { Hrrr } from "../hrrr/forecast";
-import { cellAt, crop, DRAWN, inBox } from "../shared/grid";
+import { cellAt, crop, DRAWN, inBox, prepareDraw } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
 import { latLonAt, pixelAt, pixelWindow } from "./abi";
 import { download, gridOf, readScene, scalar, sceneTime } from "./scene";
@@ -185,7 +185,8 @@ export class CloudTopService {
 
   async temperature(
     at?: Date,
-    box: LonLatBox = DRAWN
+    box: LonLatBox = DRAWN,
+    fine = false
   ): Promise<CloudTopFrame> {
     const scene = await this.scene(at);
     const native = this.nativeField(
@@ -194,14 +195,22 @@ export class CloudTopService {
       scene.column,
       box
     );
-    const drawn = crop(native, native.geo, box);
+    const drawn = prepareDraw(
+      native,
+      native.geo,
+      box,
+      fine,
+      (v) => v === CLEAR,
+      true
+    );
     return {
       ...scene.frame,
       features: bandFeatures(
         drawn.grid,
         drawn.geo,
         CLOUD_TOP.property,
-        CLOUD_TOP.levels
+        CLOUD_TOP.levels,
+        styleFor(fine)
       ),
     };
   }

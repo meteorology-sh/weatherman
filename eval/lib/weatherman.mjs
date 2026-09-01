@@ -65,6 +65,7 @@ export async function stormNear(lat, lon, at) {
   url.searchParams.set("lat", lat);
   url.searchParams.set("lon", lon);
   url.searchParams.set("at", at);
+  url.searchParams.set("fine", "1");
 
   const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (!res.ok) {

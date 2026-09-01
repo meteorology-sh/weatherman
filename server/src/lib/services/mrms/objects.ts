@@ -3,15 +3,15 @@
  *
  * Not TITAN: the mosaic is a 2D composite, so these have area, a max, a
  * centroid, and an age, not volume or precipitation mass. The polygon is the
- * mosaic cells that belonged to the cluster. Nothing is interpolated.
+ * same averaged 20 dBZ ring the map fills; a click is inside that ring,
+ * not a 1 km cell. Nothing is interpolated.
  */
 
 // Services
-import { polygons } from "../shared/contour";
-import { nearestCell } from "../shared/grid";
+import { MAP_STYLE, polygons, SIMPLIFY_CELL } from "../shared/contour";
 
 // Types
-import type { Grid, Geo, ContourRing } from "../shared/contour";
+import type { Grid, Geo, ContourRing, RingStyle } from "../shared/contour";
 
 /** Degrees of latitude to kilometres. */
 const KM_PER_DEG = 111.32;
@@ -142,6 +142,13 @@ function find(parent: Int32Array, x: number): number {
   return x;
 }
 
+/** Map click: the fill's ring. Eval: keep a one-cell echo, no rounding. */
+export function stormStyle(fine: boolean): RingStyle {
+  return fine
+    ? { epsilon: SIMPLIFY_CELL, minArea: 0, round: 0 }
+    : MAP_STYLE;
+}
+
 /**
  * 8-connected regions at or above `threshold`. The domain does not wrap: a
  * cell on the west edge does not see the east edge.
@@ -150,7 +157,8 @@ export function identify(
   grid: Grid,
   geo: Geo,
   threshold: number,
-  validTime: string
+  validTime: string,
+  style: RingStyle = MAP_STYLE
 ): StormObject[] {
   const { nx, ny, values } = grid;
   const n = nx * ny;
@@ -224,16 +232,134 @@ export function identify(
       motionKmh: null,
       areaDeltaKm2: null,
       cells: Uint32Array.from(cells),
-      geometry: objectPolygon(cells, grid, geo),
+      geometry: objectPolygon(cells, grid, geo, style),
     });
   }
   return objects;
 }
 
+/**
+ * Smallest raining area the candidate map draws a core and a heading for,
+ * km². One cell of the 4 km grid this map used to paint the country with.
+ * A click uses the same averaged ring as the fill; the evaluation harness
+ * asks for the native ring.
+ */
+export const MIN_DRAWN_STORM_KM2 = 16;
+
+/**
+ * Nearby specks within this many kilometres of a larger echo belong to
+ * that shower. Two storms both above {@link MIN_DRAWN_STORM_KM2} stay
+ * two storms even if they sit this close.
+ */
+export const MERGE_STORM_KM = 10;
+
+function absorb(host: StormObject, extra: StormObject): StormObject {
+  const n = host.nCells + extra.nCells;
+  const cells = new Uint32Array(n);
+  cells.set(host.cells);
+  cells.set(extra.cells, host.nCells);
+  const hostHeavier = host.maxDbz >= extra.maxDbz;
+  const firstSeen =
+    Date.parse(extra.firstSeen) < Date.parse(host.firstSeen)
+      ? extra.firstSeen
+      : host.firstSeen;
+  const areaDelta =
+    host.areaDeltaKm2 == null && extra.areaDeltaKm2 == null
+      ? null
+      : Math.round(
+          ((host.areaDeltaKm2 ?? 0) + (extra.areaDeltaKm2 ?? 0)) * 10
+        ) / 10;
+  return {
+    ...host,
+    nCells: n,
+    areaKm2: Math.round((host.areaKm2 + extra.areaKm2) * 10) / 10,
+    maxDbz: hostHeavier ? host.maxDbz : extra.maxDbz,
+    coreLon: hostHeavier ? host.coreLon : extra.coreLon,
+    coreLat: hostHeavier ? host.coreLat : extra.coreLat,
+    centroidLon:
+      (host.centroidLon * host.nCells + extra.centroidLon * extra.nCells) / n,
+    centroidLat:
+      (host.centroidLat * host.nCells + extra.centroidLat * extra.nCells) / n,
+    firstSeen,
+    ageMin:
+      host.ageMin == null && extra.ageMin == null
+        ? null
+        : Math.max(host.ageMin ?? 0, extra.ageMin ?? 0),
+    ageFloor: host.ageFloor || extra.ageFloor,
+    motionTowardDeg: host.motionTowardDeg ?? extra.motionTowardDeg,
+    motionKmh:
+      host.motionTowardDeg != null ? host.motionKmh : extra.motionKmh,
+    areaDeltaKm2: areaDelta,
+    cells,
+    geometry: host.geometry.concat(extra.geometry),
+  };
+}
+
+/**
+ * Storms the candidate map draws a core and a heading for.
+ *
+ * Isolated echoes under {@link MIN_DRAWN_STORM_KM2} are dropped. Specks
+ * that sit within {@link MERGE_STORM_KM} of a larger echo are absorbed
+ * into it. A cluster of specks that together clear the floor is kept as
+ * one storm. Identify itself is unchanged, so a click still reports the
+ * 1 km object under the point.
+ */
+export function drawnStorms(storms: StormObject[]): StormObject[] {
+  const n = storms.length;
+  if (n === 0) return [];
+  const parent = new Int32Array(n);
+  for (let i = 0; i < n; i++) parent[i] = i;
+  const findRoot = (x: number): number => {
+    while (parent[x] !== x) {
+      parent[x] = parent[parent[x]];
+      x = parent[x];
+    }
+    return x;
+  };
+  const unite = (a: number, b: number) => {
+    const ra = findRoot(a);
+    const rb = findRoot(b);
+    if (ra !== rb) parent[rb] = ra;
+  };
+
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const a = storms[i];
+      const b = storms[j];
+      const small =
+        a.areaKm2 < MIN_DRAWN_STORM_KM2 || b.areaKm2 < MIN_DRAWN_STORM_KM2;
+      if (!small) continue;
+      if (
+        km(a.centroidLat, a.centroidLon, b.centroidLat, b.centroidLon) <=
+        MERGE_STORM_KM
+      ) {
+        unite(i, j);
+      }
+    }
+  }
+
+  const groups = new Map<number, StormObject[]>();
+  for (let i = 0; i < n; i++) {
+    const root = findRoot(i);
+    const list = groups.get(root);
+    if (list) list.push(storms[i]);
+    else groups.set(root, [storms[i]]);
+  }
+
+  const out: StormObject[] = [];
+  for (const group of groups.values()) {
+    group.sort((a, b) => b.areaKm2 - a.areaKm2);
+    const merged = group.reduce(absorb);
+    if (merged.areaKm2 >= MIN_DRAWN_STORM_KM2) out.push(merged);
+  }
+  return out;
+}
+
 function objectPolygon(
   cells: number[],
   grid: Grid,
-  geo: Geo
+  geo: Geo,
+  style: RingStyle = MAP_STYLE
 ): ContourRing[][] {
   const { nx, ny } = grid;
   let i0 = nx;
@@ -270,7 +396,8 @@ function objectPolygon(
   return polygons(
     { nx: ox, ny: oy, values: mask },
     { nx: ox, ny: oy, lats, lons },
-    1
+    1,
+    style
   );
 }
 
@@ -419,8 +546,9 @@ function nearestKm(
 }
 
 /**
- * The object that contains `lat`/`lon`, or the nearest one. Null if the
- * cropped grid has no echo.
+ * The object whose drawn outline contains `lat`/`lon`, or the nearest
+ * drawn object. Null if nothing in the crop has a ring the map would
+ * paint. Inside is the averaged 20 dBZ polygon, not the 1 km cell list.
  */
 export function near(
   lat: number,
@@ -431,14 +559,11 @@ export function near(
   threshold: number,
   validTime: string
 ): StormNear | null {
-  if (storms.length === 0) return null;
-  const cell = nearestCell(geo, lat, lon);
+  const drawn = storms.filter((storm) => storm.geometry.length > 0);
+  if (drawn.length === 0) return null;
   let inside: StormObject | null = null;
-  for (const storm of storms) {
-    if (
-      storm.cells.includes(cell) ||
-      pointInStorm(lon, lat, storm.geometry)
-    ) {
+  for (const storm of drawn) {
+    if (pointInStorm(lon, lat, storm.geometry)) {
       inside = storm;
       break;
     }
@@ -446,7 +571,7 @@ export function near(
   let chosen = inside;
   if (!chosen) {
     let best = Infinity;
-    for (const storm of storms) {
+    for (const storm of drawn) {
       const d = km(lat, lon, storm.centroidLat, storm.centroidLon);
       if (d < best) {
         best = d;
@@ -657,6 +782,38 @@ export function motionLengthKm(motionKmh: number): number {
   return Math.min(12, Math.max(3, motionKmh / 10));
 }
 
+/** Head length as a fraction of the tick, so the dart scales with the line. */
+const MOTION_HEAD = 0.3;
+const MOTION_HEAD_HALF = 0.16;
+const MOTION_SHAFT_HALF = 0.045;
+
+/**
+ * A filled dart from the core along the heading, in lon/lat. The head is
+ * a fraction of the tick, so zooming out shrinks the arrow with the line
+ * instead of leaving a screen-pixel triangle behind.
+ */
+export function motionArrow(
+  lat: number,
+  lon: number,
+  towardDeg: number,
+  km: number
+): [number, number][] {
+  const shaftKm = km * (1 - MOTION_HEAD);
+  const left = towardDeg - 90;
+  const right = towardDeg + 90;
+  const neck = destPoint(lat, lon, towardDeg, shaftKm);
+  const tip = destPoint(lat, lon, towardDeg, km);
+  const neckLat = neck[1];
+  const neckLon = neck[0];
+  const startL = destPoint(lat, lon, left, km * MOTION_SHAFT_HALF);
+  const startR = destPoint(lat, lon, right, km * MOTION_SHAFT_HALF);
+  const neckL = destPoint(neckLat, neckLon, left, km * MOTION_SHAFT_HALF);
+  const neckR = destPoint(neckLat, neckLon, right, km * MOTION_SHAFT_HALF);
+  const wingL = destPoint(neckLat, neckLon, left, km * MOTION_HEAD_HALF);
+  const wingR = destPoint(neckLat, neckLon, right, km * MOTION_HEAD_HALF);
+  return [startL, neckL, wingL, tip, wingR, neckR, startR, startL];
+}
+
 /**
  * Match storms forward through a chain of mosaics, oldest first, so
  * `firstSeen` is the earliest scan the centroid still matches.
@@ -700,7 +857,7 @@ export function motionFrame(
       motionTowardDeg: number;
       motionKmh: number;
     };
-    geometry: { type: "LineString"; coordinates: [number, number][] };
+    geometry: { type: "Polygon"; coordinates: [number, number][][] };
   }[];
 } {
   return {
@@ -721,10 +878,9 @@ export function motionFrame(
             motionKmh: storm.motionKmh,
           },
           geometry: {
-            type: "LineString" as const,
+            type: "Polygon" as const,
             coordinates: [
-              [storm.coreLon, storm.coreLat],
-              destPoint(
+              motionArrow(
                 storm.coreLat,
                 storm.coreLon,
                 storm.motionTowardDeg,

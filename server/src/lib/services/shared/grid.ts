@@ -3,10 +3,10 @@
  *
  * Shared infrastructure with no source of its own, like `contour.ts` and
  * `grib.ts`: it knows HRRR's grid dimensions and nothing else about HRRR.
- * Contoured HRRR layers use this grid as published. Averaging onto a coarser
- * cell is honest — it removes structure, it never invents any
- * (`MEASUREMENTS.md` §3) — and `blockAverage` / `blockAverageSparse` stay for
- * that, but they are not on the contour path.
+ * Contoured HRRR layers use this grid as published. The candidate map
+ * averages each 4×4 of native cells, then contours that coarser field —
+ * averaging removes structure, it does not invent it. Eval asks for the
+ * native grid. Clicks still read the native cell.
  *
  * Everything in this file is pure array or text maths, so it is testable on
  * grids you can read.
@@ -23,7 +23,7 @@ export const POINTS = NX * NY;
 /** Native HRRR spacing, km. */
 export const CELL_KM = 3;
 
-/** 3 km -> 12 km, for callers that still coarsen. */
+/** Native cells on a side of one candidate-map cell. 3 km -> 12 km on HRRR. */
 export const BLOCK = 4;
 
 /** Ground covered by one native cell, km^2. */
@@ -45,9 +45,9 @@ export const NO_VALUE = Number.NaN;
 /**
  * The lat/lon window every layer is traced in.
  *
- * Native CONUS at 1–3 km is too much geometry for the map to fetch or paint.
- * Texas plus a little padding covers the five licensed programmes and the
- * state line; averaging is not how the grid got smaller.
+ * The default is Texas plus a little padding — eval and a first paint
+ * without a map extent use that. The map may ask for the whole model
+ * domain; the candidate path averages rather than refusing the box.
  */
 export type LonLatBox = {
   west: number;
@@ -63,9 +63,13 @@ export const DRAWN: LonLatBox = {
   north: 37,
 };
 
-/** Widest window the map may ask to contour, about one zoom-5 view. */
-const MAX_SPAN_LON = 16;
-const MAX_SPAN_LAT = 14;
+/** HRRR CONUS, a little padded. A globe-sized query clips to this. */
+const DOMAIN: LonLatBox = {
+  west: -134,
+  east: -60,
+  south: 20,
+  north: 55,
+};
 
 export function inBox(
   lat: number,
@@ -81,8 +85,8 @@ export function inBox(
 }
 
 /**
- * Clamp a requested window so a country-scale view cannot ask for native
- * CONUS polygons. Too-wide boxes shrink around their centre.
+ * Order the corners and clip to the model domain. A country-scale box
+ * stays country-scale; it is not shrunk to Texas.
  */
 export function clampBox(box: LonLatBox): LonLatBox {
   let { west, east, south, north } = box;
@@ -96,15 +100,19 @@ export function clampBox(box: LonLatBox): LonLatBox {
     south = north;
     north = t;
   }
-  if (east - west > MAX_SPAN_LON) {
-    const mid = (west + east) / 2;
-    west = mid - MAX_SPAN_LON / 2;
-    east = mid + MAX_SPAN_LON / 2;
+  west = Math.max(DOMAIN.west, Math.min(west, DOMAIN.east));
+  east = Math.max(DOMAIN.west, Math.min(east, DOMAIN.east));
+  south = Math.max(DOMAIN.south, Math.min(south, DOMAIN.north));
+  north = Math.max(DOMAIN.south, Math.min(north, DOMAIN.north));
+  if (east < west) {
+    const t = west;
+    west = east;
+    east = t;
   }
-  if (north - south > MAX_SPAN_LAT) {
-    const mid = (south + north) / 2;
-    south = mid - MAX_SPAN_LAT / 2;
-    north = mid + MAX_SPAN_LAT / 2;
+  if (north < south) {
+    const t = south;
+    south = north;
+    north = t;
   }
   return { west, east, south, north };
 }
@@ -131,6 +139,85 @@ export function parseBox(query: {
   const north = num(query.north);
   if (![west, east, south, north].every(Number.isFinite)) return DRAWN;
   return clampBox({ west, east, south, north });
+}
+
+/** Whether the caller asked for the evaluation's fine rings. */
+export function parseFine(query: { fine?: unknown }): boolean {
+  const v = query.fine;
+  return v === "1" || v === "true" || v === true || v === 1;
+}
+
+/**
+ * Mean each `factor`×`factor` block onto a coarser grid, with matching
+ * lat/lon. Missing cells do not enter the mean; a block of only missing
+ * cells stays missing. This is averaging, not interpolation.
+ *
+ * `majority` is for a field whose absence is nodata rather than zero: a
+ * block needs more sampled cells than missing ones to have a value at
+ * all, so a lone cloudy pixel does not paint the whole coarse cell.
+ */
+export function downsample(
+  grid: Grid,
+  geo: Geo,
+  factor: number,
+  missing: (v: number) => boolean = (v) => !Number.isFinite(v),
+  majority = false
+): { grid: Grid; geo: Geo } {
+  if (factor <= 1) return { grid, geo };
+  const ox = Math.floor(grid.nx / factor);
+  const oy = Math.floor(grid.ny / factor);
+  if (ox < 1 || oy < 1) return { grid, geo };
+  const values = new Float32Array(ox * oy);
+  const lats = new Float32Array(ox * oy);
+  const lons = new Float32Array(ox * oy);
+  const block = factor * factor;
+  for (let bj = 0; bj < oy; bj++) {
+    for (let bi = 0; bi < ox; bi++) {
+      let sum = 0;
+      let n = 0;
+      let lat = 0;
+      let lon = 0;
+      for (let dj = 0; dj < factor; dj++) {
+        const row = (bj * factor + dj) * grid.nx + bi * factor;
+        for (let di = 0; di < factor; di++) {
+          const k = row + di;
+          lat += geo.lats[k];
+          lon += geo.lons[k];
+          const v = grid.values[k];
+          if (missing(v)) continue;
+          sum += v;
+          n++;
+        }
+      }
+      const o = bj * ox + bi;
+      values[o] =
+        n === 0 || (majority && n * 2 <= block) ? Number.NaN : sum / n;
+      lats[o] = lat / block;
+      lons[o] = lon / block;
+    }
+  }
+  return {
+    grid: { nx: ox, ny: oy, values },
+    geo: { nx: ox, ny: oy, lats, lons },
+  };
+}
+
+/**
+ * The sub-grid the map contours: a crop, then — unless evaluation asked
+ * for native rings — a 4×4 average. The factor does not change with the
+ * window, so zooming does not restyle the rings.
+ */
+export function prepareDraw(
+  grid: Grid,
+  geo: Geo,
+  box: LonLatBox,
+  fine = false,
+  missing?: (v: number) => boolean,
+  majority = false
+): { grid: Grid; geo: Geo } {
+  const cropped = crop(grid, geo, box);
+  if (fine) return cropped;
+  return downsample(cropped.grid, cropped.geo, BLOCK, missing, majority);
 }
 
 /**

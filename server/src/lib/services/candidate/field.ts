@@ -25,7 +25,7 @@
  */
 
 // Services
-import { features } from "../shared/contour";
+import { features, styleFor } from "../shared/contour";
 import { Hrrr } from "../hrrr/forecast";
 import { SEEDING } from "../hrrr/slw";
 import { Goes } from "../goes/cloudtop";
@@ -36,8 +36,8 @@ import {
   inGrid,
   cellAt,
   OutsideDomain,
-  crop,
   DRAWN,
+  prepareDraw,
 } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
 import { nearestHour } from "../shared/replay";
@@ -171,14 +171,19 @@ export class CandidateService {
   private archive = new Map<string, Scene>();
   private archiveInflight = new Map<string, Promise<Scene>>();
 
-  async field(at?: Date, box: LonLatBox = DRAWN): Promise<CandidateFrame> {
+  async field(
+    at?: Date,
+    box: LonLatBox = DRAWN,
+    fine = false
+  ): Promise<CandidateFrame> {
     const scene = await this.scene(at);
     if (!scene.values) return scene.frame;
     const geo = scene.cells.geo;
-    const drawn = crop(
+    const drawn = prepareDraw(
       { nx: geo.nx, ny: geo.ny, values: scene.values },
       geo,
-      box
+      box,
+      fine
     );
     return {
       ...scene.frame,
@@ -186,7 +191,8 @@ export class CandidateService {
         drawn.grid,
         drawn.geo,
         CANDIDATE.property,
-        CANDIDATE.levels
+        CANDIDATE.levels,
+        styleFor(fine)
       ),
     };
   }
@@ -228,15 +234,17 @@ export class CandidateService {
    */
   async confirmedField(
     at?: Date,
-    box: LonLatBox = DRAWN
+    box: LonLatBox = DRAWN,
+    fine = false
   ): Promise<CandidateFrame> {
     const scene = await this.scene(at);
     if (!scene.confirmedValues) return scene.confirmed;
     const geo = scene.cells.geo;
-    const drawn = crop(
+    const drawn = prepareDraw(
       { nx: geo.nx, ny: geo.ny, values: scene.confirmedValues },
       geo,
-      box
+      box,
+      fine
     );
     return {
       ...scene.confirmed,
@@ -244,7 +252,8 @@ export class CandidateService {
         drawn.grid,
         drawn.geo,
         CONFIRMED.property,
-        CONFIRMED.levels
+        CONFIRMED.levels,
+        styleFor(fine)
       ),
     };
   }

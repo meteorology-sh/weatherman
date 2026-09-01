@@ -4,7 +4,7 @@ import express, { Request, Response } from "express";
 // Services
 import { Seedability } from "../lib/services/candidate/field";
 import { Storms } from "../lib/services/candidate/storm";
-import { OutsideDomain, parseBox } from "../lib/services/shared/grid";
+import { OutsideDomain, parseBox, parseFine } from "../lib/services/shared/grid";
 import { parseAt } from "../lib/services/shared/replay";
 
 export const candidate = express.Router();
@@ -18,7 +18,8 @@ candidate.get("/field", async (req: Request, res: Response) => {
   try {
     const frame = await Seedability.field(
       parseAt(req.query.at),
-      parseBox(req.query)
+      parseBox(req.query),
+      parseFine(req.query)
     );
     res.send(frame);
   } catch (error) {
@@ -35,7 +36,8 @@ candidate.get("/field/confirmed", async (req: Request, res: Response) => {
   try {
     const frame = await Seedability.confirmedField(
       parseAt(req.query.at),
-      parseBox(req.query)
+      parseBox(req.query),
+      parseFine(req.query)
     );
     res.send(frame);
   } catch (error) {
@@ -109,7 +111,14 @@ candidate.get("/storm", async (req: Request, res: Response) => {
       res.status(400).json({ error: "lat and lon are required numbers" });
       return;
     }
-    res.json(await Storms.reading(lat, lon, parseAt(req.query.at)));
+    res.json(
+      await Storms.reading(
+        lat,
+        lon,
+        parseAt(req.query.at),
+        parseFine(req.query)
+      )
+    );
   } catch (error) {
     res
       .status(500)

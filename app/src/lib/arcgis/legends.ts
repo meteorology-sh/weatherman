@@ -144,21 +144,27 @@ export const LiquidLegend: LayerLegend = {
 
 export const RadarLegend: LayerLegend = {
   name: "RADAR REFLECTIVITY",
-  source: "NOAA MRMS / GOES-East GLM",
-  summary:
-    "How hard it is raining, in dBZ. The dot is the heaviest rain in that " +
-    "storm. The white arrow is which way the storm is moving. Yellow " +
-    "markers are lightning in the last five minutes.",
+  source: "NOAA MRMS",
+  summary: "How hard it is raining, in dBZ.",
   detail: [
     "MRMS merges every NEXRAD radar into one national mosaic at 1 km, " +
       "replaced every 2 minutes; the server contours that mosaic on the NWS " +
-      "intensity classes. Contiguous cells at 20 dBZ or more are one storm: " +
-      "the fills are the rain, the dot is the 1 km cell with the strongest " +
-      "echo, and a white arrow at that dot is the heading from the previous " +
-      "mosaic. The arrow is not a forecast of where the storm will be. A " +
-      "storm with no motion has no arrow.",
-    "Yellow markers are GOES-East GLM flashes in the last five minutes, " +
-      "drawn where they were. Lightning is too sparse to contour. A click " +
+      "intensity classes. The candidate map averages four 1 km cells " +
+      "and rounds the remaining corners so a storm is a blob, not a " +
+      "thousand steps or a triangle; the evaluation maps keep the " +
+      "native stairs. Contiguous cells at 20 dBZ or more are one storm: " +
+      "the fills are the rain. Nearby specks within 10 km of a larger echo " +
+      "belong to that shower rather than getting a core of their own.",
+    "A dot and a heading are a switch under this layer, not a second " +
+      "fill. They are drawn only for a raining area of at least 16 km² — " +
+      "one cell of the 4 km grid this map used to paint the country with. " +
+      "Smaller echoes stay in the fill. The dot is the cell with the " +
+      "strongest echo, and a white arrow at that dot is the heading from " +
+      "the previous mosaic. The arrow is not a forecast of where the storm " +
+      "will be. A storm with no motion has no arrow.",
+    "Lightning is a switch under this layer, not a second fill. GOES-East " +
+      "GLM flashes in the last five minutes are drawn where they were when " +
+      "that switch is on. Lightning is too sparse to contour. A click " +
       "counts flashes over that storm, reports how long the rain has been " +
       "seen (from earlier mosaics), whether the raining area grew, whether " +
       "the GOES cloud top over the storm is colder than five minutes ago, " +
@@ -172,6 +178,35 @@ export const RadarLegend: LayerLegend = {
       "map has no radar over it at all, and no coverage is not a report of " +
       "clear air. The arrow is heading, not inflow: pilots measure climb " +
       "rate with the aircraft.",
+  ],
+};
+
+export const HeadingLegend: LayerLegend = {
+  name: "CORE AND HEADING",
+  source: "NOAA MRMS",
+  summary:
+    "The dot is the heaviest rain in that storm. The white arrow is which " +
+    "way the storm is moving, from the previous mosaic — not a forecast.",
+  detail: [
+    "The dot sits on the cell with the strongest echo. The white arrow " +
+      "is the heading from the previous mosaic, a filled dart whose head " +
+      "is a fraction of the tick so it shrinks when the view zooms out. " +
+      "Neither is drawn for an echo smaller than 16 km². The switch lives " +
+      "under radar reflectivity and does nothing while that layer is off.",
+  ],
+};
+
+export const LightningLegend: LayerLegend = {
+  name: "LIGHTNING",
+  source: "NOAA GOES-East GLM",
+  summary:
+    "GOES-East GLM flashes in the last five minutes, drawn where they were. " +
+    "Lightning is too sparse to contour.",
+  detail: [
+    "Each marker is one GLM flash in the five minutes around the scene, at " +
+      "the place it was reported. The points are not interpolated into a " +
+      "surface. The switch lives under radar reflectivity and does nothing " +
+      "while that layer is off.",
   ],
 };
 

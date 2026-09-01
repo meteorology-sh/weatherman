@@ -74,9 +74,15 @@ sample spacing:
 So the _same_ grid is legitimate for isotherm height and illegitimate for cloud
 shape. Averaging a finer field onto a coarser cell **removes** structure and
 is fine; interpolating a coarser field onto a finer grid **invents** it and
-is not. Layers here are drawn at native sampling. The join samples GOES and
-MRMS onto HRRR's 3 km cells rather than averaging everything to a shared
-12 km grid.
+is not. Layers here are traced at native sampling. The candidate map then
+averages each 4×4 of those cells — 12 km on HRRR, 8 km on GOES, 4 km
+on MRMS — and contours that coarser field; remaining corners are
+rounded. Evaluation maps skip the average and keep the native stairs.
+The map does not change that factor when the window grows, and it does
+not refetch while the view sits inside the window it already asked for.
+Clicks still read the native grid. The join samples GOES and MRMS onto
+HRRR's 3 km cells rather than averaging everything to a shared 12 km
+grid.
 
 **Ask "what is the correlation length" before drawing any new surface.** A
 source too sparse or irregular to pass this test may still be drawn — as

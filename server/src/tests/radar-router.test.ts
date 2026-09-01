@@ -12,6 +12,7 @@ import { radar } from "../routers/radar";
 
 // Services
 import { Mrms, RadarFrame, RadarStats } from "../lib/services/mrms/radar";
+import { EchoTops } from "../lib/services/mrms/echotop";
 
 const frame: RadarFrame = {
   type: "FeatureCollection",
@@ -68,6 +69,15 @@ describe("radar router", () => {
     });
   });
 
+  it("starts the echo-top decode when the mosaic summary is asked for", async (t) => {
+    t.mock.method(Mrms, "reflectivityStats", async () => stats);
+    const warm = t.mock.method(EchoTops, "warm", () => undefined);
+
+    await fetch(`${origin}/radar/reflectivity/stats`);
+
+    assert.equal(warm.mock.callCount(), 1);
+  });
+
   it("responds with the contours as GeoJSON", async (t) => {
     t.mock.method(Mrms, "reflectivity", async () => frame);
 
@@ -105,6 +115,7 @@ describe("radar router", () => {
 
   it("responds with the summary as JSON", async (t) => {
     t.mock.method(Mrms, "reflectivityStats", async () => stats);
+    t.mock.method(EchoTops, "warm", () => undefined);
 
     const res = await fetch(`${origin}/radar/reflectivity/stats`);
 
@@ -117,6 +128,7 @@ describe("radar router", () => {
   it("keeps the stats route distinct from the frame route", async (t) => {
     t.mock.method(Mrms, "reflectivity", async () => frame);
     t.mock.method(Mrms, "reflectivityStats", async () => stats);
+    t.mock.method(EchoTops, "warm", () => undefined);
 
     const [geo, summary] = await Promise.all([
       fetch(`${origin}/radar/reflectivity`).then((r) => r.json()),
@@ -240,10 +252,14 @@ describe("radar router", () => {
           type: "Feature",
           properties: { stormId: 1, motionTowardDeg: 90, motionKmh: 40 },
           geometry: {
-            type: "LineString",
+            type: "Polygon",
             coordinates: [
-              [-101.4, 32.1],
-              [-101.0, 32.1],
+              [
+                [-101.4, 32.1],
+                [-101.0, 32.1],
+                [-101.05, 32.12],
+                [-101.4, 32.1],
+              ],
             ],
           },
         },
@@ -253,7 +269,7 @@ describe("radar router", () => {
     const body = await fetch(`${origin}/radar/objects/motion`).then((r) =>
       r.json()
     );
-    assert.equal(body.features[0].geometry.type, "LineString");
+    assert.equal(body.features[0].geometry.type, "Polygon");
     assert.equal(body.features[0].properties.motionKmh, 40);
   });
 

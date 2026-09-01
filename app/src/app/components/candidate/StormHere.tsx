@@ -34,9 +34,9 @@ const compass = (deg: number) => POINTS[Math.round(deg / 45) % 8];
  * The radar storm at the clicked point.
  *
  * The map draws the same facts: the 20 dBZ fill, a dot at the heaviest
- * rain, a white heading tick when motion is known. Liquid, the cloud-top
- * change, age, lightning, and the 18 dBZ echo-top are readings on this
- * storm.
+ * rain, a white heading tick when motion is known. Inside is inside that
+ * fill's smoothed outline. Liquid, the cloud-top change, age, lightning,
+ * and the 18 dBZ echo-top are readings on this storm.
  */
 export const StormHere = () => {
   const here = useAppSelector((state) => state.storms.here);

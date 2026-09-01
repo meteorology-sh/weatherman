@@ -117,7 +117,7 @@ export const ReplayStormMotionLayer = new GeoJSONLayer({
   title: "MRMS radar storm motion (replay)",
   copyright: "NOAA / National Weather Service MRMS",
   renderer: stormMotionRenderer,
-  geometryType: "polyline",
+  geometryType: "polygon",
   objectIdField: "OBJECTID",
   fields: [
     { name: "OBJECTID", type: "oid" },
@@ -365,8 +365,8 @@ export const CandidateRadarLayer = new GeoJSONLayer({
 });
 
 /**
- * The strongest 1 km cell in each contiguous ≥20 dBZ storm. One radar
- * switch drives this, the heading tick, the lightning, and the fills.
+ * The strongest cell in each contiguous ≥20 dBZ storm. The heading
+ * switch under radar drives this with the heading tick.
  */
 export const CandidateStormCoreLayer = new GeoJSONLayer({
   title: "MRMS radar storm cores",
@@ -393,7 +393,7 @@ export const CandidateStormMotionLayer = new GeoJSONLayer({
   url: RadarStormMotionUrl(),
   copyright: "NOAA / National Weather Service MRMS",
   renderer: stormMotionRenderer,
-  geometryType: "polyline",
+  geometryType: "polygon",
   objectIdField: "OBJECTID",
   fields: [
     { name: "OBJECTID", type: "oid" },
@@ -405,8 +405,8 @@ export const CandidateStormMotionLayer = new GeoJSONLayer({
 });
 
 /**
- * GLM flashes in the last five minutes. Points only. One radar switch
- * drives this with the mosaic.
+ * GLM flashes in the last five minutes. Points only. The lightning
+ * switch under radar drives this with the mosaic.
  */
 export const CandidateLightningLayer = new GeoJSONLayer({
   title: "GOES-East GLM flashes",

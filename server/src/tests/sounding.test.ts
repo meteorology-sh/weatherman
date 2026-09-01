@@ -15,6 +15,7 @@ import {
   inGrid,
   nearestCell,
   parseBox,
+  parseFine,
   perimeter,
 } from "../lib/services/shared/grid";
 
@@ -283,15 +284,24 @@ describe("parseBox", () => {
     assert.deepEqual(box, { west: -105, east: -95, south: 28, north: 35 });
   });
 
-  it("shrinks a country-scale box around its centre", () => {
+  it("keeps a country-scale box", () => {
     const box = clampBox({
       west: -125,
       east: -70,
       south: 25,
       north: 50,
     });
-    assert.ok(box.east - box.west <= 16);
-    assert.ok(box.north - box.south <= 14);
+    assert.ok(box.east - box.west > 16);
+    assert.ok(box.north - box.south > 14);
+  });
+});
+
+describe("parseFine", () => {
+  it("is off unless the evaluation asked for the fine rings", () => {
+    assert.equal(parseFine({}), false);
+    assert.equal(parseFine({ fine: "0" }), false);
+    assert.equal(parseFine({ fine: "1" }), true);
+    assert.equal(parseFine({ fine: "true" }), true);
   });
 });
 

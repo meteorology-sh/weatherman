@@ -11,6 +11,8 @@ import {
   CloudBaseLegend,
   CloudTopLegend,
   LiquidLegend,
+  HeadingLegend,
+  LightningLegend,
   RadarLegend,
 } from "@/lib/arcgis/legends";
 
@@ -68,6 +70,21 @@ describe("ReplayLayers", () => {
     });
 
     expect(radar.checked).toBe(false);
+  });
+
+  it("offers lightning and heading only while reflectivity is on", () => {
+    const store = createTestStore();
+    renderWithStore(<ReplayLayers />, store);
+
+    expect(screen.getByLabelText(LightningLegend.name)).toBeTruthy();
+    expect(screen.getByLabelText(HeadingLegend.name)).toBeTruthy();
+
+    act(() => {
+      store.dispatch(replayActions.setRadar(false));
+    });
+
+    expect(screen.queryByLabelText(LightningLegend.name)).toBeNull();
+    expect(screen.queryByLabelText(HeadingLegend.name)).toBeNull();
   });
 
   // Both maps read one set of legends, so the same layer cannot end up

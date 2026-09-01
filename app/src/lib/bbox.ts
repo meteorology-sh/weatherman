@@ -1,9 +1,10 @@
 /**
  * The map window a GeoJSON layer asks the server to contour.
  *
- * Native CONUS polygons at 1–3 km overload the browser. The server still
- * builds the national grid; each request names the window to trace. This is
- * that window, as the view sees it.
+ * The server still builds the national grid; each request names the
+ * window to trace. The field stays native. The map holds a padded
+ * covering window and does not replace it while the view sits inside,
+ * so zooming does not refetch or restyle the rings.
  */
 
 export type MapBox = {
@@ -21,13 +22,6 @@ export const INITIAL_BOX: MapBox = {
   north: 37,
 };
 
-/**
- * Layers draw at this zoom and closer. Further out the country is still on
- * the basemap; the weather is not painted, so a CONUS view cannot fetch a
- * native national frame.
- */
-export const LAYER_MIN_ZOOM = 5;
-
 const MAX_M = 20037508.342789244;
 
 function mercatorToLonLat(x: number, y: number): [number, number] {
@@ -37,13 +31,7 @@ function mercatorToLonLat(x: number, y: number): [number, number] {
   return [lon, lat];
 }
 
-const round = (n: number) => Math.round(n * 10) / 10;
-
-/**
- * The view's visible window, padded and rounded so a small pan does not
- * refetch. Null when the view has no extent yet.
- */
-export function boxFromExtent(extent: {
+function lonLatExtent(extent: {
   xmin: number;
   ymin: number;
   xmax: number;
@@ -57,14 +45,73 @@ export function boxFromExtent(extent: {
     [west, south] = mercatorToLonLat(extent.xmin, extent.ymin);
     [east, north] = mercatorToLonLat(extent.xmax, extent.ymax);
   }
-  const padX = (east - west) * 0.15;
-  const padY = (north - south) * 0.15;
+  return { west, east, south, north };
+}
+
+/**
+ * The visible window, rounded out to 0.1°. Used only to test whether
+ * the held request still covers what is on screen.
+ */
+export function viewFromExtent(extent: {
+  xmin: number;
+  ymin: number;
+  xmax: number;
+  ymax: number;
+}): MapBox {
+  const { west, east, south, north } = lonLatExtent(extent);
   return {
-    west: round(west - padX),
-    east: round(east + padX),
-    south: round(south - padY),
-    north: round(north + padY),
+    west: Math.floor(west * 10) / 10,
+    east: Math.ceil(east * 10) / 10,
+    south: Math.floor(south * 10) / 10,
+    north: Math.ceil(north * 10) / 10,
   };
+}
+
+/**
+ * The window to ask the server for: 80% pad each side, rounded to 1°,
+ * so two zoom steps in still sit inside it.
+ */
+export function requestFromExtent(extent: {
+  xmin: number;
+  ymin: number;
+  xmax: number;
+  ymax: number;
+}): MapBox {
+  const { west, east, south, north } = lonLatExtent(extent);
+  const padX = (east - west) * 0.8;
+  const padY = (north - south) * 0.8;
+  return {
+    west: Math.floor(west - padX),
+    east: Math.ceil(east + padX),
+    south: Math.floor(south - padY),
+    north: Math.ceil(north + padY),
+  };
+}
+
+export function covers(held: MapBox, view: MapBox): boolean {
+  return (
+    view.west >= held.west &&
+    view.east <= held.east &&
+    view.south >= held.south &&
+    view.north <= held.north
+  );
+}
+
+/**
+ * Keep `held` while it covers the view. Otherwise ask for a new padded
+ * window. Same object identity when nothing changes, so React can skip.
+ */
+export function heldBox(
+  held: MapBox,
+  extent: {
+    xmin: number;
+    ymin: number;
+    xmax: number;
+    ymax: number;
+  }
+): MapBox {
+  if (covers(held, viewFromExtent(extent))) return held;
+  return requestFromExtent(extent);
 }
 
 export function boxParams(box: MapBox): Record<string, string> {

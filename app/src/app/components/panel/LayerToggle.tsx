@@ -12,6 +12,13 @@ type PropsT = {
   children?: React.ReactNode;
 };
 
+type SubPropsT = {
+  name: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  children?: React.ReactNode;
+};
+
 /**
  * One layer's switch, its legend, and what it measures.
  *
@@ -42,5 +49,26 @@ export const LayerToggle = ({
         <LayerDefinitions legend={legend} />
       </>
     )}
+  </div>
+);
+
+/**
+ * A control that only exists while its parent layer is on. Same switch
+ * chrome as {@link LayerToggle}, without its own legend: the parent
+ * already said what the layer is.
+ */
+export const SubToggle = ({ name, checked, onChange, children }: SubPropsT) => (
+  <div className="flex flex-col gap-1 pl-2">
+    <label className="flex items-center gap-2 cursor-pointer">
+      <input
+        type="checkbox"
+        className="toggle toggle-sm"
+        checked={checked}
+        aria-label={name}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <span className="text-sm font-semibold">{name}</span>
+    </label>
+    {children}
   </div>
 );

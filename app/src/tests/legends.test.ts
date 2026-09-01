@@ -13,6 +13,8 @@ import {
   CandidateLegend,
   CloudBaseLegend,
   CloudTopLegend,
+  HeadingLegend,
+  LightningLegend,
   LiquidLegend,
   RadarLegend,
   CLOUD_TOP_WARMEST_C,
@@ -148,14 +150,24 @@ describe("RadarLegend", () => {
     expect(detailOf(RadarLegend)).toContain("never confirm one");
   });
 
-  it("names the dot, the heading, and the lightning on the same layer", () => {
-    expect(RadarLegend.summary).toContain("heaviest rain");
-    expect(RadarLegend.summary).toContain("moving");
-    expect(RadarLegend.summary).toContain("lightning");
+  it("names the heading as a switch, not as part of the fill", () => {
+    expect(detailOf(RadarLegend)).toContain("A dot and a heading are a switch");
     expect(detailOf(RadarLegend)).toContain("not a forecast");
     expect(detailOf(RadarLegend)).toContain("not inflow");
     expect(detailOf(RadarLegend)).toContain("18 dBZ echo top");
     expect(detailOf(RadarLegend)).toContain("not of the cloud");
+    expect(detailOf(RadarLegend)).toContain("averages four 1 km cells");
+    expect(detailOf(RadarLegend)).toContain("rounds");
+    expect(detailOf(RadarLegend)).toContain("evaluation maps keep");
+    expect(HeadingLegend.name).toBe("CORE AND HEADING");
+    expect(HeadingLegend.summary).toContain("heaviest rain");
+    expect(HeadingLegend.summary).toContain("moving");
+  });
+
+  it("keeps lightning as a switch under the radar, not a second fill", () => {
+    expect(detailOf(RadarLegend)).toContain("Lightning is a switch");
+    expect(LightningLegend.name).toBe("LIGHTNING");
+    expect(LightningLegend.summary).toContain("flashes");
   });
 });
 

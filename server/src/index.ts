@@ -3,6 +3,7 @@ import express, { Request, Response } from "express";
 
 // Middleware
 import cors from "cors";
+import { gzipJson } from "./lib/compress";
 
 // Routers
 import { candidate } from "./routers/candidate";
@@ -19,6 +20,7 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+app.use(gzipJson);
 app.use("/candidate", candidate);
 app.use("/cloudtop", cloudtop);
 app.use("/forecast", forecast);

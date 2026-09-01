@@ -13,7 +13,7 @@ import {
 import { summarize } from "../lib/services/goes/cloudtop";
 import { sceneTime, dayOfYear } from "../lib/services/goes/scene";
 import { temperatureAtMb } from "../lib/services/hrrr/profile";
-import { bandFeatures } from "../lib/services/shared/contour";
+import { bandFeatures, FINE_STYLE } from "../lib/services/shared/contour";
 
 // Types
 import type { Grid, Geo } from "../lib/services/shared/contour";
@@ -185,7 +185,8 @@ describe("cloud-top bands", () => {
       gridOf([8, 8, 8, 8]),
       geo,
       "topColdnessC",
-      [5, 12, 18, 25]
+      [5, 12, 18, 25],
+      FINE_STYLE
     );
 
     assert.equal(features.length, 1);
@@ -197,7 +198,8 @@ describe("cloud-top bands", () => {
       gridOf([20, 20, 20, 20]),
       geo,
       "topColdnessC",
-      [5, 12, 18, 25]
+      [5, 12, 18, 25],
+      FINE_STYLE
     );
 
     assert.deepEqual(
@@ -212,7 +214,8 @@ describe("cloud-top bands", () => {
       gridOf([70, 70, 70, 70]),
       geo,
       "topColdnessC",
-      [5, 12, 18, 25]
+      [5, 12, 18, 25],
+      FINE_STYLE
     );
 
     assert.deepEqual(

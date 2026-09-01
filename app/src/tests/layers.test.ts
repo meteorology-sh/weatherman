@@ -176,8 +176,8 @@ describe("CandidateStormCoreLayer", () => {
     expect(CandidateStormCoreLayer.url).toBe("/radar/objects/cores");
   });
 
-  it("draws heading as a line from that point", () => {
-    expect(CandidateStormMotionLayer.geometryType).toBe("polyline");
+  it("draws heading as a filled dart from that point", () => {
+    expect(CandidateStormMotionLayer.geometryType).toBe("polygon");
     expect(CandidateStormMotionLayer.url).toBe("/radar/objects/motion");
   });
 

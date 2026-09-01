@@ -54,9 +54,10 @@ export type StormReading = ReturnType<typeof nearJson> & {
 export async function reading(
   lat: number,
   lon: number,
-  at?: Date
+  at?: Date,
+  fine = false
 ): Promise<StormReading | null> {
-  const hit = await Mrms.atPoint(lat, lon, at);
+  const hit = await Mrms.atPoint(lat, lon, at, fine);
   if (!hit) return null;
   const extras = await overStorm(hit.reading.object, hit.geo, at);
   return { ...nearJson(hit.reading), ...extras };

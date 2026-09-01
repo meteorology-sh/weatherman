@@ -17,7 +17,13 @@ import { tmpdir } from "os";
 import { join } from "path";
 
 // Services
-import { bandFeatures, features, frame, polygons } from "../shared/contour";
+import {
+  bandFeatures,
+  features,
+  frame,
+  polygons,
+  styleFor,
+} from "../shared/contour";
 import { eachMessage } from "../shared/grib";
 import {
   RunDiscovery,
@@ -40,8 +46,8 @@ import {
   OutsideDomain,
   perimeter,
   scaleField,
-  crop,
   DRAWN,
+  prepareDraw,
 } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
 import {
@@ -338,31 +344,41 @@ export class ForecastService {
   async clouds(
     hour: number,
     at?: Date,
-    box: LonLatBox = DRAWN
+    box: LonLatBox = DRAWN,
+    fine = false
   ): Promise<ContourFrame> {
-    return this.contours("clouds", hour, at, box);
+    return this.contours("clouds", hour, at, box, fine);
   }
 
   async precip(
     hour: number,
     at?: Date,
-    box: LonLatBox = DRAWN
+    box: LonLatBox = DRAWN,
+    fine = false
   ): Promise<ContourFrame> {
-    return this.contours("precip", hour, at, box);
+    return this.contours("precip", hour, at, box, fine);
   }
 
   /** Supercooled liquid water contours for the seeding band. */
   async liquid(
     hour: number,
     at?: Date,
-    box: LonLatBox = DRAWN
+    box: LonLatBox = DRAWN,
+    fine = false
   ): Promise<ContourFrame> {
     const built = await this.seeding(hour, at);
     if (!built.grid || !this.geo) return built.frame;
     return frame(
       new Date(built.frame.run),
       hour,
-      this.features(built.grid, SEEDING.property, SEEDING.levels, box)
+      this.features(
+        built.grid,
+        SEEDING.property,
+        SEEDING.levels,
+        box,
+        false,
+        fine
+      )
     );
   }
 
@@ -377,7 +393,8 @@ export class ForecastService {
   async cloudBase(
     hour: number,
     at?: Date,
-    box: LonLatBox = DRAWN
+    box: LonLatBox = DRAWN,
+    fine = false
   ): Promise<ContourFrame> {
     const built = await this.surface(hour, at);
     return frame(
@@ -388,7 +405,8 @@ export class ForecastService {
         CLOUD_BASE.property,
         CLOUD_BASE.edges,
         box,
-        true
+        true,
+        fine
       )
     );
   }
@@ -788,7 +806,8 @@ export class ForecastService {
     field: FieldId,
     hour: number,
     at?: Date,
-    box: LonLatBox = DRAWN
+    box: LonLatBox = DRAWN,
+    fine = false
   ): Promise<ContourFrame> {
     this.assertHour(hour);
 
@@ -807,7 +826,7 @@ export class ForecastService {
     return frame(
       built.run,
       hour,
-      this.features(built.grid, built.property, built.levels, box)
+      this.features(built.grid, built.property, built.levels, box, false, fine)
     );
   }
 
@@ -929,12 +948,14 @@ export class ForecastService {
     property: string,
     levels: readonly number[],
     box: LonLatBox = DRAWN,
-    disjoint = false
+    disjoint = false,
+    fine = false
   ): ContourFeature[] {
-    const drawn = crop(grid, this.geo!, box);
+    const drawn = prepareDraw(grid, this.geo!, box, fine);
+    const style = styleFor(fine);
     return disjoint
-      ? bandFeatures(drawn.grid, drawn.geo, property, levels)
-      : features(drawn.grid, drawn.geo, property, levels);
+      ? bandFeatures(drawn.grid, drawn.geo, property, levels, style)
+      : features(drawn.grid, drawn.geo, property, levels, style);
   }
 
   /**

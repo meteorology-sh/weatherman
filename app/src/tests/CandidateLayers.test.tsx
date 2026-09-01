@@ -30,6 +30,8 @@ import {
   CloudBaseLegend,
   CloudTopLegend,
   LiquidLegend,
+  HeadingLegend,
+  LightningLegend,
   RadarLegend,
 } from "@/lib/arcgis/legends";
 
@@ -394,5 +396,53 @@ describe("CandidateLayers radar", () => {
     });
 
     expect(swatches(container, LIQUID)).toHaveLength(SLW_BANDS.length);
+  });
+
+  it("offers lightning and heading only while reflectivity is on", () => {
+    const store = createTestStore();
+    renderWithStore(<CandidateLayers />, store);
+
+    expect(screen.getByLabelText(LightningLegend.name)).toBeTruthy();
+    expect(screen.getByLabelText(HeadingLegend.name)).toBeTruthy();
+
+    act(() => {
+      (screen.getByLabelText(RadarLegend.name) as HTMLElement).click();
+    });
+
+    expect(screen.queryByLabelText(LightningLegend.name)).toBeNull();
+    expect(screen.queryByLabelText(HeadingLegend.name)).toBeNull();
+  });
+
+  it("starts with lightning and heading off", () => {
+    renderWithStore(<CandidateLayers />, createTestStore());
+    const lightning = screen.getByLabelText(
+      LightningLegend.name
+    ) as HTMLInputElement;
+    const heading = screen.getByLabelText(
+      HeadingLegend.name
+    ) as HTMLInputElement;
+
+    expect(lightning.checked).toBe(false);
+    expect(heading.checked).toBe(false);
+  });
+
+  it("turns lightning on when its switch is clicked", () => {
+    const store = createTestStore();
+    renderWithStore(<CandidateLayers />, store);
+    act(() => {
+      (screen.getByLabelText(LightningLegend.name) as HTMLElement).click();
+    });
+
+    expect(store.getState().radar.lightning).toBe(true);
+  });
+
+  it("turns the core and heading on when its switch is clicked", () => {
+    const store = createTestStore();
+    renderWithStore(<CandidateLayers />, store);
+    act(() => {
+      (screen.getByLabelText(HeadingLegend.name) as HTMLElement).click();
+    });
+
+    expect(store.getState().radar.heading).toBe(true);
   });
 });

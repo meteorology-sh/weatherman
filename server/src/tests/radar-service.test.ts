@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import {
   blockAverage,
   blockGeo,
+  coarsenReflectivity,
   nativeGeo,
   nativeGrid,
   sceneTime,
@@ -86,6 +87,51 @@ describe("blockAverage (reflectivity)", () => {
   it("puts both sentinels below every contour level", () => {
     assert.ok(NO_ECHO < 20);
     assert.ok(NO_COVERAGE < 20);
+  });
+});
+
+describe("coarsenReflectivity", () => {
+  it("averages a crop in Z, without flipping rows", () => {
+    const grid = {
+      nx: 4,
+      ny: 4,
+      values: Float32Array.from([
+        20, 20, 20, 20, 20, 20, 20, 20, 50, 50, 50, 50, 50, 50, 50, 50,
+      ]),
+    };
+    const geo = {
+      nx: 4,
+      ny: 4,
+      lats: Float32Array.from([
+        30, 30, 30, 30, 31, 31, 31, 31, 32, 32, 32, 32, 33, 33, 33, 33,
+      ]),
+      lons: Float32Array.from([
+        -100, -99, -98, -97, -100, -99, -98, -97, -100, -99, -98, -97, -100,
+        -99, -98, -97,
+      ]),
+    };
+    const out = coarsenReflectivity(grid, geo, 2);
+    assert.equal(out.grid.nx, 2);
+    assert.equal(out.grid.ny, 2);
+    assert.equal(Math.round(out.grid.values[0]), 20);
+    assert.equal(Math.round(out.grid.values[2]), 50);
+    assert.ok(out.geo.lats[2] > out.geo.lats[0]);
+  });
+
+  it("means in reflectivity factor, not in dBZ", () => {
+    const grid = {
+      nx: 2,
+      ny: 2,
+      values: Float32Array.from([20, 50, 20, 50]),
+    };
+    const geo = {
+      nx: 2,
+      ny: 2,
+      lats: Float32Array.from([30, 30, 31, 31]),
+      lons: Float32Array.from([-100, -99, -100, -99]),
+    };
+    const got = coarsenReflectivity(grid, geo, 2).grid.values[0];
+    assert.ok(got > 46 && got < 48, `${got}`);
   });
 });
 

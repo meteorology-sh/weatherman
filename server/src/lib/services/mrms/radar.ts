@@ -3,12 +3,14 @@ import { gunzip } from "zlib";
 import { promisify } from "util";
 
 // Services
-import { features } from "../shared/contour";
+import { features, styleFor } from "../shared/contour";
+import type { RingStyle } from "../shared/contour";
 import { eachMessage } from "../shared/grib";
-import { crop, DRAWN } from "../shared/grid";
+import { BLOCK as DRAW_BLOCK, crop, DRAWN } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
 import {
   coresFrame,
+  drawnStorms,
   flankFrame,
   foldTracks,
   frame as stormFrame,
@@ -17,6 +19,7 @@ import {
   motionFrame,
   near,
   nearJson,
+  stormStyle,
 } from "./objects";
 import type { StormFrame, StormNear, StormObject } from "./objects";
 
@@ -72,8 +75,8 @@ const LON0 = -129.995;
 const STEP = 0.01;
 
 /**
- * 1 km -> 12 km, kept for the averaging helper the tests drive. Contours and
- * the join use the native mosaic; averaging is not on that path.
+ * 1 km -> 12 km, kept for the averaging helper the tests drive. The
+ * candidate map averages four 1 km cells instead ({@link DRAW_BLOCK}).
  */
 const BLOCK = 12;
 
@@ -177,18 +180,20 @@ export class RadarService {
 
   async reflectivity(
     at?: Date,
-    box: LonLatBox = DRAWN
+    box: LonLatBox = DRAWN,
+    fine = false
   ): Promise<RadarFrame> {
     const scene = await this.scene(at);
     if (!this.geo) return scene.frame;
-    const drawn = crop(scene.grid, this.geo, box);
+    const drawn = prepareRadarDraw(scene.grid, this.geo, box, fine);
     return {
       ...scene.frame,
       features: features(
         drawn.grid,
         drawn.geo,
         REFLECTIVITY.property,
-        REFLECTIVITY.levels
+        REFLECTIVITY.levels,
+        styleFor(fine)
       ),
     };
   }
@@ -230,7 +235,7 @@ export class RadarService {
    */
   async cores(at?: Date, box: LonLatBox = DRAWN) {
     const { storms, validTime } = await this.storms(at, box, !at, true);
-    return coresFrame(validTime, storms);
+    return coresFrame(validTime, drawnStorms(storms));
   }
 
   /**
@@ -239,7 +244,7 @@ export class RadarService {
    */
   async motion(at?: Date, box: LonLatBox = DRAWN) {
     const { storms, validTime } = await this.storms(at, box, false, true);
-    return motionFrame(validTime, storms);
+    return motionFrame(validTime, drawnStorms(storms));
   }
 
   /**
@@ -265,7 +270,8 @@ export class RadarService {
   async atPoint(
     lat: number,
     lon: number,
-    at?: Date
+    at?: Date,
+    fine = false
   ): Promise<{ reading: StormNear; geo: Geo } | null> {
     const pad = 0.4;
     const { storms, grid, geo, validTime } = await this.storms(
@@ -278,7 +284,8 @@ export class RadarService {
       },
       false,
       true,
-      true
+      true,
+      fine
     );
     const reading = near(lat, lon, storms, grid, geo, RAIN_DBZ, validTime);
     return reading ? { reading, geo } : null;
@@ -287,9 +294,10 @@ export class RadarService {
   async objectNear(
     lat: number,
     lon: number,
-    at?: Date
+    at?: Date,
+    fine = false
   ): Promise<ReturnType<typeof nearJson> | null> {
-    const hit = await this.atPoint(lat, lon, at);
+    const hit = await this.atPoint(lat, lon, at, fine);
     return hit ? nearJson(hit.reading) : null;
   }
 
@@ -302,9 +310,8 @@ export class RadarService {
 
   /**
    * How many previous mosaics a click may walk to age a storm. Six is
-   * about 18 minutes — long enough to tell a new cell from one already
-   * raining, short enough that a click does not decode a half hour of
-   * national mosaics.
+   * about 18 minutes. The walk only uses mosaics already decoded — a
+   * click does not fetch the rest.
    */
   private static readonly AGE_LOOKBACK = 6;
 
@@ -333,13 +340,41 @@ export class RadarService {
   }
 
   /**
-   * Walk older mosaics, oldest first, so `firstSeen` is the earliest
-   * centroid match in the window rather than the scan before this one.
+   * A decoded mosaic already in memory whose time is within one scan of
+   * `at`. Null if we would have to download to answer — a click does not
+   * decode six national GRIBs to age a storm.
+   */
+  private cachedNear(at: Date): Scene | null {
+    const want = at.getTime();
+    const scenes: Scene[] = [];
+    if (this.cache) scenes.push(this.cache.scene);
+    for (const scene of this.archive.values()) scenes.push(scene);
+    let nearest: Scene | null = null;
+    let nearestDelta = Infinity;
+    for (const scene of scenes) {
+      const t = Date.parse(scene.frame.validTime);
+      if (Number.isNaN(t)) continue;
+      const delta = Math.abs(t - want);
+      if (delta < nearestDelta) {
+        nearest = scene;
+        nearestDelta = delta;
+      }
+    }
+    if (!nearest || nearestDelta > RadarService.PREV_MS) return null;
+    return nearest;
+  }
+
+  /**
+   * Walk older mosaics already in the archive, oldest first, so `firstSeen`
+   * is the earliest centroid match we have rather than the scan before this
+   * one. Missing scans stop the walk; they are not fetched.
    */
   private async agedStorms(
     scene: Scene,
     box: LonLatBox,
-    current: StormObject[]
+    current: StormObject[],
+    style: RingStyle,
+    fine: boolean
   ): Promise<StormObject[]> {
     const t = Date.parse(scene.frame.validTime);
     if (Number.isNaN(t) || !this.geo) return current;
@@ -348,25 +383,23 @@ export class RadarService {
     ];
     let lastTime = scene.frame.validTime;
     for (let back = 1; back <= RadarService.AGE_LOOKBACK; back++) {
-      try {
-        const prev = await this.replay(
-          new Date(t - back * RadarService.PREV_MS)
-        );
-        if (prev.frame.validTime === lastTime) continue;
-        const drawn = crop(prev.grid, this.geo, box);
-        scans.push({
-          time: prev.frame.validTime,
-          storms: identify(
-            drawn.grid,
-            drawn.geo,
-            RAIN_DBZ,
-            prev.frame.validTime
-          ),
-        });
-        lastTime = prev.frame.validTime;
-      } catch {
-        break;
-      }
+      const prev = this.cachedNear(
+        new Date(t - back * RadarService.PREV_MS)
+      );
+      if (!prev) break;
+      if (prev.frame.validTime === lastTime) continue;
+      const drawn = prepareRadarDraw(prev.grid, this.geo, box, fine);
+      scans.push({
+        time: prev.frame.validTime,
+        storms: identify(
+          drawn.grid,
+          drawn.geo,
+          RAIN_DBZ,
+          prev.frame.validTime,
+          style
+        ),
+      });
+      lastTime = prev.frame.validTime;
     }
     scans.reverse();
     return foldTracks(scans);
@@ -377,7 +410,8 @@ export class RadarService {
     box: LonLatBox,
     track: boolean,
     wantMotion: boolean,
-    wantAge = false
+    wantAge = false,
+    fine = false
   ): Promise<{
     storms: StormObject[];
     grid: Grid;
@@ -393,20 +427,30 @@ export class RadarService {
         validTime: scene.frame.validTime,
       };
     }
-    const drawn = crop(scene.grid, this.geo, box);
+    const drawn = prepareRadarDraw(scene.grid, this.geo, box, fine);
+    const style = stormStyle(fine);
     let storms = identify(
       drawn.grid,
       drawn.geo,
       RAIN_DBZ,
-      scene.frame.validTime
+      scene.frame.validTime,
+      style
     );
 
+    if (storms.length === 0) {
+      return {
+        storms,
+        grid: drawn.grid,
+        geo: drawn.geo,
+        validTime: scene.frame.validTime,
+      };
+    }
+
     if (wantAge) {
-      storms = await this.agedStorms(scene, box, storms);
+      storms = await this.agedStorms(scene, box, storms, style, fine);
     }
 
     const livePrev =
-      !wantAge &&
       track &&
       this.tracks !== null &&
       this.tracks.validTime !== scene.frame.validTime
@@ -416,15 +460,19 @@ export class RadarService {
     let prevObjects: StormObject[] | null = livePrev?.objects ?? null;
     let prevTime: string | null = livePrev?.validTime ?? null;
 
-    if (!wantAge && wantMotion && prevObjects === null) {
+    const missingMotion =
+      wantMotion && storms.every((s) => s.motionTowardDeg == null);
+
+    if (missingMotion && prevObjects === null) {
       const prev = await this.previousScene(scene);
       if (prev && this.geo) {
-        const prevDrawn = crop(prev.grid, this.geo, box);
+        const prevDrawn = prepareRadarDraw(prev.grid, this.geo, box, fine);
         prevObjects = identify(
           prevDrawn.grid,
           prevDrawn.geo,
           RAIN_DBZ,
-          prev.frame.validTime
+          prev.frame.validTime,
+          style
         );
         prevTime = prev.frame.validTime;
       }
@@ -620,6 +668,76 @@ export class RadarService {
       `MRMS mosaic unreachable: ${last instanceof Error ? last.message : String(last)}`
     );
   }
+}
+
+/**
+ * Crop, then — unless evaluation asked for native rings — average four
+ * 1 km cells in reflectivity factor. Same window as the fill, so a click
+ * is inside the ring the map draws.
+ */
+function prepareRadarDraw(
+  grid: Grid,
+  geo: Geo,
+  box: LonLatBox,
+  fine: boolean
+): { grid: Grid; geo: Geo } {
+  const cropped = crop(grid, geo, box);
+  if (fine) return cropped;
+  return coarsenReflectivity(cropped.grid, cropped.geo, DRAW_BLOCK);
+}
+
+/**
+ * Mean each `factor`×`factor` block in Z = 10^(dBZ/10). A plain mean of
+ * dBZ is not the mean of anything. No-coverage points stay out of the
+ * denominator; no-echo is a real zero. The crop is already south-up, so
+ * this does not flip rows the way {@link blockAverage} does.
+ */
+export function coarsenReflectivity(
+  grid: Grid,
+  geo: Geo,
+  factor: number
+): { grid: Grid; geo: Geo } {
+  if (factor <= 1) return { grid, geo };
+  const ox = Math.floor(grid.nx / factor);
+  const oy = Math.floor(grid.ny / factor);
+  if (ox < 1 || oy < 1) return { grid, geo };
+  const values = new Float32Array(ox * oy);
+  const lats = new Float32Array(ox * oy);
+  const lons = new Float32Array(ox * oy);
+  const block = factor * factor;
+  for (let bj = 0; bj < oy; bj++) {
+    for (let bi = 0; bi < ox; bi++) {
+      let z = 0;
+      let covered = 0;
+      let lat = 0;
+      let lon = 0;
+      for (let dj = 0; dj < factor; dj++) {
+        const row = (bj * factor + dj) * grid.nx + bi * factor;
+        for (let di = 0; di < factor; di++) {
+          const k = row + di;
+          lat += geo.lats[k];
+          lon += geo.lons[k];
+          const v = grid.values[k];
+          if (v <= NO_COVERAGE) continue;
+          covered++;
+          if (v > NO_ECHO) z += Math.pow(10, v / 10);
+        }
+      }
+      const o = bj * ox + bi;
+      values[o] =
+        covered === 0
+          ? BLOCK_NO_COVERAGE
+          : z === 0
+            ? BLOCK_NO_ECHO
+            : 10 * Math.log10(z / covered);
+      lats[o] = lat / block;
+      lons[o] = lon / block;
+    }
+  }
+  return {
+    grid: { nx: ox, ny: oy, values },
+    geo: { nx: ox, ny: oy, lats, lons },
+  };
 }
 
 /**

@@ -8,6 +8,8 @@ import {
   CloudBaseLegend,
   CloudTopLegend,
   LiquidLegend,
+  HeadingLegend,
+  LightningLegend,
   RadarLegend,
 } from "@/lib/arcgis/legends";
 import {
@@ -24,7 +26,7 @@ import {
 } from "@/lib/arcgis/bands";
 
 // Components
-import { LayerToggle } from "@/app/components/panel/LayerToggle";
+import { LayerToggle, SubToggle } from "@/app/components/panel/LayerToggle";
 import { Ramp } from "@/app/components/panel/Ramp";
 import { CloudBaseRamp } from "@/app/components/panel/CloudBaseRamp";
 import { CloudTopRamp } from "@/app/components/panel/CloudTopRamp";
@@ -39,6 +41,8 @@ export const ReplayLayers = () => {
   const cloudTop = useAppSelector((state) => state.replay.cloudTop);
   const liquid = useAppSelector((state) => state.replay.liquid);
   const radar = useAppSelector((state) => state.replay.radar);
+  const lightning = useAppSelector((state) => state.replay.lightning);
+  const heading = useAppSelector((state) => state.replay.heading);
   const field = useAppSelector((state) => state.replay.field);
 
   return (
@@ -110,10 +114,23 @@ export const ReplayLayers = () => {
           titles={RADAR_LABELS}
         />
         <div className="text-xs">
-          dBZ, from the mosaic nearest that hour. The dot is the heaviest
-          rain. The white arrow is heading. Yellow markers are lightning
-          in the five minutes around that hour.
+          dBZ, from the mosaic nearest that hour. The 20 dBZ fill is the
+          edge of the rain.
         </div>
+        <SubToggle
+          name={HeadingLegend.name}
+          checked={heading}
+          onChange={(on) => dispatch(replayActions.setHeading(on))}
+        >
+          <div className="text-xs">{HeadingLegend.summary}</div>
+        </SubToggle>
+        <SubToggle
+          name={LightningLegend.name}
+          checked={lightning}
+          onChange={(on) => dispatch(replayActions.setLightning(on))}
+        >
+          <div className="text-xs">{LightningLegend.summary}</div>
+        </SubToggle>
       </LayerToggle>
     </div>
   );

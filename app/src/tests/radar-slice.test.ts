@@ -18,6 +18,21 @@ const initial = reducer(undefined, { type: "@@INIT" });
 describe("radar slice", () => {
   it("starts with the mosaic on, like the layer the map opens on", () => {
     expect(initial.visible).toBe(true);
+    expect(initial.lightning).toBe(false);
+    expect(initial.heading).toBe(false);
+  });
+
+  it("toggles lightning without touching the mosaic", () => {
+    const on = reducer(initial, radarActions.setLightning(true));
+    expect(on.lightning).toBe(true);
+    expect(on.visible).toBe(true);
+  });
+
+  it("toggles the core and heading without touching the mosaic", () => {
+    const on = reducer(initial, radarActions.setHeading(true));
+    expect(on.heading).toBe(true);
+    expect(on.visible).toBe(true);
+    expect(on.lightning).toBe(false);
   });
 
   it("starts with no stats and no error", () => {

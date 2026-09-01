@@ -53,6 +53,8 @@ type ReplayState = {
   cloudTop: boolean;
   liquid: boolean;
   radar: boolean;
+  lightning: boolean;
+  heading: boolean;
   field: boolean;
 };
 
@@ -68,6 +70,8 @@ const initialState: ReplayState = {
   cloudTop: false,
   liquid: false,
   radar: true,
+  lightning: false,
+  heading: false,
   field: true,
 };
 
@@ -108,6 +112,12 @@ const replaySlice = createSlice({
     },
     setRadar(state, action: PayloadAction<boolean>) {
       state.radar = action.payload;
+    },
+    setLightning(state, action: PayloadAction<boolean>) {
+      state.lightning = action.payload;
+    },
+    setHeading(state, action: PayloadAction<boolean>) {
+      state.heading = action.payload;
     },
     setField(state, action: PayloadAction<boolean>) {
       state.field = action.payload;

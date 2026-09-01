@@ -5,7 +5,7 @@ import express, { Request, Response } from "express";
 import { Goes } from "../lib/services/goes/cloudtop";
 import { Glm } from "../lib/services/goes/lightning";
 import { parseAt } from "../lib/services/shared/replay";
-import { parseBox } from "../lib/services/shared/grid";
+import { parseBox, parseFine } from "../lib/services/shared/grid";
 
 export const cloudtop = express.Router();
 
@@ -16,7 +16,8 @@ cloudtop.get("/temperature", async (req: Request, res: Response) => {
   try {
     const frame = await Goes.temperature(
       parseAt(req.query.at),
-      parseBox(req.query)
+      parseBox(req.query),
+      parseFine(req.query)
     );
     res.send(frame);
   } catch (error) {
