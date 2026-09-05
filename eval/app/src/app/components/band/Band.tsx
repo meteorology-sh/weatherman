@@ -4,6 +4,7 @@ import { useAppSelector } from "~/lib/store/hooks";
 // Components
 import { Status } from "../Status";
 import { BandColumns } from "./BandColumns";
+import { BandOverlap } from "./BandOverlap";
 
 const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
 
@@ -93,6 +94,17 @@ export const Band = () => {
             <BandColumns ascents={band.ascents} />
           </div>
         </div>
+
+        {band.ascents.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <h2 className="text-xs tracking-widest">EVERY ASCENT</h2>
+            <p className="text-sm max-w-2xl">
+              Overlap is the share of the combined layer both sides agree on.
+              100% is the same band. The columns above are this table drawn.
+            </p>
+            <BandOverlap band={band} />
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className="table table-sm">

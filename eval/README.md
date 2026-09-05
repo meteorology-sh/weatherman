@@ -4,73 +4,98 @@ Parses Texas rain-enhancement reports, scores each flare against Weatherman's
 layers at that minute, and serves the comparison. The findings are
 `docs/EVALUATION.md`.
 
-The 2025 snapshot — reports, parsed records, and scored days — is the GitHub
-release `eval-2025-v1`. The harness code stays in git. From the repository
-root:
+| Directory | What it is |
+| --------- | ---------- |
+| `cache/`  | Source reports (PDFs) |
+| `data/`   | Parsed records and region config |
+| `out/`    | Scored days the eval app reads |
+
+None of those three is committed. A later season is a new snapshot of the
+same three directories, not a change to this code.
+
+## What the eval app reads
+
+The app does not re-score against a live Weatherman API. `server.mjs` reads
+`out/` on every request.
+
+| Result | File | Field |
+| ------ | ---- | ----- |
+| Band overlap | `out/balloons-*.json` (`regions.json` → `runs.balloons`) | radiosonde vs model column; **the page calculates overlap from those rows** |
+| Original Weatherman layers | `out/painted-*.json` (`runs.painted`) | `near.cloudBase`, `near.radar`, `near.liquid`, `near.candidate` (and `near.cloudTop`) |
+| Texas turret features | the same painted files | `storm` on each flare: in 20 dBZ, nearer the edge, upwind, echo top past freezing |
+
+The Panhandle has no balloon file. It briefs on a NAM column, not a sonde.
+
+## Season job
+
+A season is every seeded day in `data/` that has a located flare. **Done**
+is a painted file for each of those days, every located flare present, with
+`near` and `storm` on each (`storm: null` means we looked and there was no
+20 dBZ object). A partial `out/` is an incomplete run, not the season.
+
+The live scoring command is `paint.mjs`. It talks to a running Weatherman
+API, draws the product's own layers at native sampling, measures distance
+from each flare after storm-motion drift, and stores the radar-storm
+reading on the flare.
 
 ```bash
-gh release download eval-2025-v1 -p eval-2025-v1.tar.gz
-tar -xzf eval-2025-v1.tar.gz
+node eval/paint.mjs 2025-08-04 --region=wtwma
 ```
 
-| Directory | What it is                                       |
-| --------- | ------------------------------------------------ |
-| `cache/`  | Source reports (PDFs)                            |
-| `data/`   | Parsed records and region config for that season |
-| `out/`    | Comparison to Weatherman's layers                |
+**Parallelism.** One Weatherman API plus one `paint.mjs` per day. Size the
+worker count from the box: about 4.5 GiB and 1.5–2 cores each. On 32 vCPU /
+123 GiB that is about sixteen days at once, not six. The queue is every
+seeded day, not a leftover list.
 
-A later season can change formats, counties, or programmes. That is a new
-snapshot, not a change to this code.
+Copy `out/` back; the evaluation map stays local.
 
-## Scoring the Texas-target join
+Do not add a scoring script this file does not name. Do not run a second
+pipeline for the band after paint: overlap is calculated from the balloon
+JSON.
 
-`target.mjs` asks the 2025 flares the Texas question, at both hours around
-each release, and writes how much of each programme window the join selected.
-The Weatherman server has to be running; the script talks to
-`/candidate/point` and `/candidate/target/stats`. It does not paint geometry.
+## Scripts
+
+| Script | What it does |
+| ------ | ------------ |
+| `paint.mjs` | Score one flying day. Writes the painted file `regions.json` names. |
+| `balloons.mjs` | Compare the report sounding table to HRRR at 12Z. Writes `runs.balloons`. The app then calculates band overlap from that file. |
+| `server.mjs` | HTTP for the eval app (port 3100). Re-reads `out/` per request. |
+| `releases.mjs` | Download and parse daily reports into a flight record. |
+| `panhandle.mjs` | Same, for the Panhandle's monthly files. |
+| `records.mjs` | Download a programme's PDFs into `cache/` without parsing. |
+| `counties.mjs` | Pull county polygons from TIGERweb into `data/counties-tx.geojson`. |
+| `positions.mjs` | Share of releases that land in the county their own row names. |
+| `score-season.mjs` | Print the EVALUATION.md tables from `out/`. No network. |
+| `verify.mjs` | Is this tree a complete season? No network. Exit 1 if not. |
+| `pack.mjs` | After `verify.mjs` passes, pack `data/`, `cache/`, `out/` to `eval/eval-snapshot.tar.gz`. |
+
+### Helpers in `lib/`
+
+Not run on their own, except the tests.
+
+| File | What it does |
+| ---- | ------------ |
+| `geo.mjs` | Project a bearing and a range onto the globe, and the distance from a point to a contour. |
+| `reports.mjs` | Parse a daily operations report. |
+| `panhandle.mjs` | Parse a Panhandle monthly report. |
+| `pdf.mjs` | Pull text out of the source PDFs. |
+| `weatherman.mjs` | Address of the Weatherman API. Ask it for the storm at a point. |
+| `storm-score.mjs` | Yes or no for each Texas turret feature from a storm reading. |
+| `band-score.mjs` | Band overlap from one balloon row. The eval app and `score-season.mjs` both call this. |
+| `storm-score.test.mjs` | Tests for the turret-feature rules. |
+| `band-score.test.mjs` | Tests for the overlap arithmetic. |
+
+## Parsing a new programme
 
 ```bash
-node eval/target.mjs --day=2025-08-04 --region=wtwma
-node eval/target.mjs --resume
+node eval/records.mjs --region=wtwma
+node eval/releases.mjs --region=wtwma
+node eval/panhandle.mjs
+node eval/counties.mjs
+node eval/positions.mjs
 ```
 
-`--day` is one flying day. The whole season is hours of archive builds; do
-not start that until the join's tests have settled. `--resume` keeps days
-already in `eval/out/target-2025.json` so a wedged hour does not cost the
-run. Incomplete days are retried. Do not commit `eval/out/`.
+## Where to run the season
 
-## Scoring flares against radar storms
-
-`storms.mjs` reads the days already in `eval/out/target-2025.json` and asks
-each flare whether it sat inside a contiguous ≥20 dBZ object, how far the
-core was, how far the edge was, how long that rain has been seen, whether
-the GOES top over the storm is colder than five minutes ago, how many GLM
-flashes sat over it, and whether the measured 18 dBZ echo top sits above
-the freezing level.
-
-```bash
-node eval/storms.mjs
-node eval/storms.mjs --day=2025-08-04 --region=wtwma --out=storms-sample.json
-```
-
-`--day` and `--region` score a subset. `--out` writes a different file so a sample does not overwrite the season. Re-run without `--resume` after the storm extras change: an old file has no echo-top field and would otherwise be kept.
-
-`paint.mjs` stores cores, heading ticks, lightning, and the storm at each release beside the five fills. The eval app draws those under RADAR REFLECTIVITY, off until asked, the same way the candidate map does.
-
-The programme page (`/wtwma`, `/plains`, …) holds the season bars. The flares page holds one flying day. Each release on that day is a row against the layers it sat in, the join tests stored on the flare, and the radar-storm tests at the analysis it is charged to.
-
-A day painted before storm readings were stored has no `storm` key on its flares. The eval server copies the hour-pair score from `storms-2025.json` onto those flares when it serves the day, using the same hour the map already charged the release to. Lightning, cloud-top change, and modelled liquid are missing from that older run; `fill-storms.mjs` writes the full reading at the release minute onto the painted file without rebuilding the fills.
-
-```bash
-node eval/fill-storms.mjs eval/out/painted-2025-04-19.json
-```
-
-## Where to run the evaluation
-
-The season build belongs on a machine with good CPU.
-
-One flying day is one Node API plus `grib_filter`: about 4.5 GiB and 1.5–2 cores. Each API keeps 8 archive scenes per source and then drops the oldest, so RSS does not climb with the season.
-
-Run the queue on **m7i.4xlarge in us-east-1** (16 vCPU, 64 GiB): eight days at once, same memory, twice the cores, and the HRRR, MRMS and GOES-19 archives are in that region.
-
-Copy `eval/out/` back; the evaluation map stays local.
+The season build belongs on a machine with good CPU, close to the NOAA
+archives (**us-east-1**). Copy `eval/out/` back.

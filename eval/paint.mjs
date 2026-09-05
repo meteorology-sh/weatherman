@@ -39,6 +39,7 @@ import { fileURLToPath } from "node:url";
 // Local
 import { SERVER, stormNear } from "./lib/weatherman.mjs";
 import { distanceToPolygonsKm } from "./lib/geo.mjs";
+import { stormFromReading } from "./lib/storm-score.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, "out");
@@ -284,39 +285,6 @@ async function marksAt(at) {
   return { cores, heading, lightning };
 }
 
-function stormOf(reading) {
-  if (!reading) return null;
-  if (reading.error) return null;
-  return {
-    inside: reading.inside ?? false,
-    inWorking: reading.inWorking ?? false,
-    coreKm: reading.coreKm ?? null,
-    edgeKm: reading.edgeKm ?? null,
-    upwindEdgeKm: reading.upwindEdgeKm ?? null,
-    object: reading.object
-      ? {
-          id: reading.object.id,
-          maxDbz: reading.object.maxDbz,
-          areaKm2: reading.object.areaKm2,
-          ageMin: reading.object.ageMin ?? null,
-          ageFloor: reading.object.ageFloor ?? false,
-          motionTowardDeg: reading.object.motionTowardDeg ?? null,
-          motionKmh: reading.object.motionKmh ?? null,
-          areaDeltaKm2: reading.object.areaDeltaKm2 ?? null,
-          coreLat: reading.object.coreLat,
-          coreLon: reading.object.coreLon,
-        }
-      : null,
-    slwGM2: reading.slwGM2 ?? null,
-    goesTopC: reading.goesTopC ?? null,
-    goesTopDeltaC: reading.goesTopDeltaC ?? null,
-    glmFlashes: reading.glmFlashes ?? null,
-    echoTopFt: reading.echoTopFt ?? null,
-    modelEchoTopFt: reading.modelEchoTopFt ?? null,
-    freezingFt: reading.freezingFt ?? null,
-  };
-}
-
 /* ---------- the clock ---------- */
 
 /**
@@ -462,29 +430,6 @@ if (!day) {
 
 const releases = day.releases.filter((release) => release.located);
 
-/**
- * Which of the two analysis hours each flare sat between had the condition,
- * read back off `between.mjs` rather than recomputed.
- *
- * Carried through so a reader can line one release up against that table, but
- * it is not what the map draws. `between.mjs` answers a stricter question — was
- * the condition present at both analyses the release sits between — and this
- * page is about distance at one.
- */
-const verdicts = new Map();
-if (region.runs?.between) {
-  try {
-    const between = JSON.parse(
-      await readFile(join(OUT, region.runs.between), "utf8")
-    );
-    const scored = between.days.find((entry) => entry.date === DATE);
-    for (const row of scored?.rows ?? [])
-      verdicts.set(row.release.at, row.present);
-  } catch {
-    console.log("no hour comparison on disk — that column will be empty\n");
-  }
-}
-
 // One analysis per release, and only the distinct ones are fetched.
 const byHour = new Map();
 for (const release of releases) {
@@ -587,7 +532,9 @@ for (const hour of hours) {
 
     let storm = null;
     try {
-      storm = stormOf(await stormNear(release.lat, release.lon, release.at));
+      storm = stormFromReading(
+        await stormNear(release.lat, release.lon, release.at)
+      );
     } catch (failure) {
       console.log(`    ${release.timeZ}Z storm failed: ${failure.message}`);
     }
@@ -616,7 +563,6 @@ for (const hour of hours) {
       /** Where the release point is at the analysis time, if it could drift. */
       compared: at,
       near,
-      present: verdicts.get(release.at) ?? null,
       storm,
     });
 

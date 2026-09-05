@@ -228,7 +228,7 @@ export const Overlap = () => {
 
                   <Section
                     heading="How close each release was"
-                    subtitle="Inside means the flare sat in that layer. A number is kilometres to the nearest edge, after drifting the remaining minutes to the analysis. Extra columns are the join tests at both bounding hours, when that run has been stored on the flare."
+                    subtitle="Inside means the flare sat in that layer. A number is kilometres to the nearest edge, after drifting the remaining minutes to the analysis."
                   >
                     <FlareDistances
                       flares={flares}

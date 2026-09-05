@@ -21,7 +21,6 @@ import type {
   Day,
   DaySummary,
   NearFinding,
-  OverlapFinding,
   Painted,
   Region,
   StormFinding,
@@ -50,11 +49,6 @@ export async function GetRegions(): Promise<Region[]> {
 /** Finding 1 — the band against the balloons. */
 export async function GetBand(region: string): Promise<BandFinding> {
   return get<BandFinding>(`/region/${region}/band`);
-}
-
-/** Finding 2 — the flares against what we painted. */
-export async function GetOverlap(region: string): Promise<OverlapFinding> {
-  return get<OverlapFinding>(`/region/${region}/overlap`);
 }
 
 export async function GetDays(region: string): Promise<DaySummary[]> {

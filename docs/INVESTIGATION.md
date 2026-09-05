@@ -228,9 +228,9 @@ Two products, not one verdict:
 | **Target** | Which cell, which flank, is it still growing, can we reach the base? | Not asked | The map an operator flies |
 | **Liquid check** | Does the model put SLW in the band over that cell? | The mask | A reading on the selected cell |
 
-The evaluation already computes the liquid check with rain ignored
-(`eval/between.mjs`). That number stays. It stops being the thing that
-empties the candidate layer.
+The evaluation already computes the liquid check with rain ignored.
+That number stays. It stops being the thing that empties the candidate
+layer.
 
 What we will not do:
 
@@ -270,8 +270,7 @@ somewhere in it fails. Lifting the veto is the first step; **drawing the
 flank as its own geometry** is Option 6.
 
 Test: recompute Finding 2 with rain ignored as the primary opportunity
-number, and keep the raining number next to it. `eval/between.mjs` already
-does this.
+number, and keep the raining number next to it.
 
 This is the change `EVALUATION.md` already argues for. It is not the pivot
 by itself.
@@ -541,10 +540,9 @@ top temperature and phase stay readings.
 The neighbourhood does not wrap. A cell on the domain edge has fewer
 neighbours; it does not see the opposite side of the country.
 
-`eval/target.mjs` scores this against every located 2025 flare, at both
-hours around the release, and writes boxed target area against each
-programme window. Paint waits on that score. A high flare-inside rate
-with target area covering most of the box has not worked.
+`paint.mjs` scores each located flare against the radar storm at the
+analysis it is charged to. A high flare-inside rate with target area
+covering most of the box has not worked.
 
 What this still cannot ask — remaining hypotheses if 2025 still misses,
 not a looser window: growth and first half-lifetime, inflow in ft/min,

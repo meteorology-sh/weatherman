@@ -8,6 +8,7 @@ import { useAppSelector } from "~/lib/store/hooks";
 import { Status } from "./Status";
 import { Section } from "./Section";
 import { LayerCoverage } from "./overlap/LayerCoverage";
+import { LayerTable, TexasTable } from "./overlap/JoinTables";
 import { StormCoverage } from "./overlap/StormCoverage";
 
 const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
@@ -161,11 +162,11 @@ export const Findings = () => {
               <>
                 <p className="text-sm">
                   {near.flares} releases over {near.days} of {near.flying}{" "}
-                  flying days. Each bar is this programme's season against one
-                  layer — inside is inside the contour after storm-motion drift
-                  to that layer's own scan. The number on the right is how far
-                  a typical release sat from that layer.
+                  flying days. Each row is this programme against one original
+                  Weatherman layer. Inside is inside the contour after
+                  storm-motion drift to that layer's own scan.
                 </p>
+                <LayerTable layers={near.layers} />
                 <LayerCoverage layers={near.layers} />
                 <Link
                   to={`/${region}/flares`}
@@ -182,6 +183,15 @@ export const Findings = () => {
             )}
           </div>
         </div>
+
+        {storms && (
+          <Section
+            heading="The Texas selection features"
+            subtitle="Upwind of the heaviest rain, inside 20 dBZ, nearer the edge than the core, and an 18 dBZ echo top at or above freezing. Counted from the storm reading already stored on each painted flare."
+          >
+            <TexasTable storms={storms} />
+          </Section>
+        )}
 
         {storms && (
           <Section

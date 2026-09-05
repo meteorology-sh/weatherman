@@ -1,10 +1,10 @@
 /**
- * Pack the 2025 snapshot — `data/`, `cache/`, `out/` — into one archive that
- * extracts at the repository root.
+ * Pack the current snapshot — `data/`, `cache/`, `out/` — into one archive
+ * that extracts at the repository root.
  *
  * `node eval/pack.mjs`
  *
- * Writes `eval/eval-2025-v1.tar.gz`. Refuses to pack if `verify.mjs` would
+ * Writes `eval/eval-snapshot.tar.gz`. Refuses to pack if `verify.mjs` would
  * fail. Does not delete anything.
  */
 
@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
-const ARCHIVE = "eval-2025-v1.tar.gz";
+const ARCHIVE = "eval-snapshot.tar.gz";
 const DEST = join(HERE, ARCHIVE);
 
 const verified = spawnSync(process.execPath, [join(HERE, "verify.mjs")], {

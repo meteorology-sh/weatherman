@@ -1,13 +1,10 @@
-# The 2025 snapshot — source reports, parsed records, scored days. Not code.
-# Lives in the GitHub release `eval-2025-v1`.
+# Reports, parsed records, and scored days. Not code.
 cache/
 data/
 out/
 
-# Packed archive — GitHub release asset, not committed. Extract from the
-# repository root.
-eval-2025-v1.tar.gz
-v1.sha256
+# Packed snapshot — not committed.
+eval-snapshot.tar.gz
 
 # The evaluation app's install and build output.
 app/node_modules/

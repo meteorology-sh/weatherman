@@ -143,9 +143,9 @@ export const StormReadings = ({ flares }: PropsT) => {
       {scored < rows.length && (
         <p className="text-sm">
           {scored} of {rows.length} releases have a storm reading. A dash is
-          a flare painted before those readings were stored —{" "}
-          <span className="font-mono">node eval/fill-storms.mjs</span> on
-          this day's file fills it.
+          a flare whose painted file has no{" "}
+          <span className="font-mono">storm</span> field —{" "}
+          <span className="font-mono">node eval/paint.mjs</span> writes it.
         </p>
       )}
 

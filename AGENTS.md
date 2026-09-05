@@ -79,6 +79,10 @@ weatherman/
   AGENTS.md                  # This file — how the code is written
 ```
 
+**eval/out/ is the working score, not git.** Never quote a subset of painted
+days as the season. Never add a scoring script that `eval/README.md` does
+not name. How the harness is run lives in that README.
+
 ## Running it
 
 ```bash

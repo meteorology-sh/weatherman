@@ -4,9 +4,7 @@ import assert from "node:assert/strict";
 
 // Local
 import {
-  attachStorms,
   flagsOf,
-  readingAt,
   stormFromReading,
   tallyFlags,
   upwindOf,
@@ -125,127 +123,10 @@ describe("upwindOf", () => {
   });
 });
 
-describe("readingAt", () => {
-  it("returns the hour the flare is charged to", () => {
-    const row = {
-      h0: "2025-04-19T18:00:00.000Z",
-      h1: "2025-04-19T19:00:00.000Z",
-      lo: { inside: false },
-      hi: { inside: true },
-    };
-    assert.equal(readingAt(row, row.h1).inside, true);
-    assert.equal(readingAt(row, row.h0).inside, false);
-  });
-});
-
-describe("attachStorms", () => {
-  it("fills a flare painted before storm readings were stored", () => {
-    const painted = {
-      date: "2025-04-19",
-      analyses: [
-        {
-          at: "2025-04-19T19:00:00.000Z",
-          flares: [{ at: "2025-04-19T18:43:00.000Z", lat: 32, lon: -100 }],
-        },
-      ],
-    };
-    attachStorms(
-      painted,
-      {
-        regions: [
-          {
-            id: "wtwma",
-            days: [
-              {
-                date: "2025-04-19",
-                rows: [
-                  {
-                    at: "2025-04-19T18:43:00.000Z",
-                    h0: "2025-04-19T18:00:00.000Z",
-                    h1: "2025-04-19T19:00:00.000Z",
-                    lo: { inside: false, object: null },
-                    hi: {
-                      inside: true,
-                      inWorking: false,
-                      coreKm: 8,
-                      edgeKm: 1,
-                      echoTopFt: 18000,
-                      freezingFt: 14000,
-                      glmFlashes: 4,
-                      goesTopDeltaC: -1.2,
-                      slwGM2: 40,
-                      object: {
-                        id: 1,
-                        maxDbz: 40,
-                        areaKm2: 80,
-                        motionTowardDeg: 90,
-                        areaDeltaKm2: 3,
-                        coreLat: 32.1,
-                        coreLon: -100.2,
-                      },
-                    },
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      "wtwma"
-    );
-    const storm = painted.analyses[0].flares[0].storm;
-    assert.equal(storm.inside, true);
-    assert.equal(storm.object.maxDbz, 40);
-    assert.equal(storm.object.coreLat, 32.1);
-    assert.equal(storm.echoTopFt, 18000);
-    assert.equal(storm.freezingFt, 14000);
-    assert.equal(storm.glmFlashes, 4);
-    assert.equal(storm.goesTopDeltaC, -1.2);
-    assert.equal(storm.slwGM2, 40);
+describe("stormFromReading", () => {
+  it("returns null when the look failed", () => {
+    assert.equal(stormFromReading(null), null);
     assert.equal(stormFromReading({ error: "wedged" }), null);
-  });
-
-  it("does not overwrite a storm already on the flare", () => {
-    const painted = {
-      date: "2025-04-19",
-      analyses: [
-        {
-          at: "2025-04-19T19:00:00.000Z",
-          flares: [
-            {
-              at: "2025-04-19T18:43:00.000Z",
-              storm: null,
-            },
-          ],
-        },
-      ],
-    };
-    attachStorms(
-      painted,
-      {
-        regions: [
-          {
-            id: "wtwma",
-            days: [
-              {
-                date: "2025-04-19",
-                rows: [
-                  {
-                    at: "2025-04-19T18:43:00.000Z",
-                    h0: "2025-04-19T18:00:00.000Z",
-                    h1: "2025-04-19T19:00:00.000Z",
-                    lo: { inside: true, object: { id: 1 } },
-                    hi: { inside: true, object: { id: 1 } },
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      "wtwma"
-    );
-    assert.equal(painted.analyses[0].flares[0].storm, null);
   });
 });
 

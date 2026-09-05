@@ -1,16 +1,11 @@
 /**
  * How a release scored against the radar storm at that minute.
  *
- * One function, two readers: the eval server publishes the season counts,
- * and the tests pin the yes/no rule so a column cannot drift from a bar.
- * The evaluation map still prints the raw reading on each flare; this file
- * is only the arithmetic.
- *
- * A flare whose painted record has no `storm` key was built before those
- * readings were stored. `attachStorms` copies the hour-pair score onto it
- * when that run exists, so the day's table is not empty. `storm: null` is
- * scored either way: we looked and there was no 20 dBZ echo within about
- * 40 km.
+ * `paint.mjs` stores the reading on the flare. This file is the yes/no
+ * arithmetic the eval server and `score-season.mjs` both use, so a column
+ * cannot drift from a bar. `storm: null` is scored either way: we looked
+ * and there was no 20 dBZ echo within about 40 km. A flare whose painted
+ * record has no `storm` key was never asked.
  */
 
 /** Same 10 g/m² contour the liquid layer draws. */
@@ -146,22 +141,6 @@ export function summariseDay(date, flares) {
   };
 }
 
-/**
- * The storm reading at the analysis this flare is charged to.
- *
- * `storms.mjs` stores the hour below and the hour above. Paint charges a
- * release to the nearer hour, which is always one of those two.
- */
-export function readingAt(row, hour) {
-  if (!row) return null;
-  if (row.h0 === hour) return row.lo ?? null;
-  if (row.h1 === hour) return row.hi ?? null;
-  const t = Date.parse(hour);
-  const d0 = Math.abs(Date.parse(row.h0) - t);
-  const d1 = Math.abs(Date.parse(row.h1) - t);
-  return (d0 <= d1 ? row.lo : row.hi) ?? null;
-}
-
 /** The shape the map table reads, from one `/candidate/storm` answer. */
 export function stormFromReading(reading) {
   if (!reading || reading.error) return null;
@@ -193,29 +172,4 @@ export function stormFromReading(reading) {
     modelEchoTopFt: reading.modelEchoTopFt ?? null,
     freezingFt: reading.freezingFt ?? null,
   };
-}
-
-/**
- * Copy the hour-pair storm onto flares painted before that field existed.
- *
- * Does not overwrite a storm already on the flare, including an explicit
- * null — that is a look that saw no echo, not a missing look.
- */
-export function attachStorms(painted, catalog, regionId) {
-  if (!painted) return painted;
-  const region = catalog?.regions?.find((entry) => entry.id === regionId);
-  const day = region?.days?.find((entry) => entry.date === painted.date);
-  if (!day?.rows?.length) return painted;
-  const byAt = new Map(day.rows.map((row) => [row.at, row]));
-  for (const analysis of painted.analyses ?? []) {
-    for (const flare of analysis.flares ?? []) {
-      if (Object.prototype.hasOwnProperty.call(flare, "storm")) continue;
-      const row = byAt.get(flare.at);
-      if (!row) continue;
-      const reading = readingAt(row, analysis.at);
-      if (!reading || reading.error) continue;
-      flare.storm = stormFromReading(reading);
-    }
-  }
-  return painted;
 }

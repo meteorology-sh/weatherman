@@ -1,11 +1,12 @@
 /**
- * Is the 2025 snapshot complete — every report in cache, every native scored
- * day in out, the balloon and between-hours runs EVALUATION.md quotes.
+ * Is this tree a complete season — every report in cache, every seeded day
+ * with a located flare painted at native sampling with storm motion, and
+ * a balloon file for each programme that briefs on a sonde.
  *
  * `node eval/verify.mjs`
  *
  * Reads only `data/`, `cache/` and `out/`. Does not touch the network.
- * Exit 0 if the tree matches v1; exit 1 and print what is missing otherwise.
+ * Exit 0 if complete; exit 1 and print what is missing otherwise.
  */
 
 // Node
@@ -18,7 +19,9 @@ const DATA = join(HERE, "data");
 const CACHE = join(HERE, "cache");
 const OUT = join(HERE, "out");
 
-const { regions } = JSON.parse(await readFile(join(DATA, "regions.json"), "utf8"));
+const { regions } = JSON.parse(
+  await readFile(join(DATA, "regions.json"), "utf8")
+);
 
 const missing = [];
 const extra = [];
@@ -26,6 +29,7 @@ let reports = 0;
 let painted = 0;
 let flares = 0;
 let drifted = 0;
+let withStorm = 0;
 let balloons = 0;
 
 function native(cellKm) {
@@ -50,6 +54,8 @@ async function listed(dir) {
 }
 
 for (const region of regions) {
+  if (!region.releases) continue;
+
   const manifest = JSON.parse(
     await readFile(join(DATA, region.reports), "utf8")
   );
@@ -94,6 +100,11 @@ for (const region of regions) {
         flares += 1;
         if (flare.drift) drifted += 1;
         else missing.push(`out/${name} ${flare.timeZ} (no storm motion)`);
+        if (Object.prototype.hasOwnProperty.call(flare, "storm")) {
+          withStorm += 1;
+        } else {
+          missing.push(`out/${name} ${flare.timeZ} (no storm reading)`);
+        }
       }
     }
   }
@@ -108,16 +119,6 @@ for (const region of regions) {
       else throw error;
     }
   }
-
-  if (region.runs.between) {
-    const name = region.runs.between;
-    try {
-      await stat(join(OUT, name));
-    } catch (error) {
-      if (error.code === "ENOENT") missing.push(`out/${name}`);
-      else throw error;
-    }
-  }
 }
 
 if (missing.length || extra.length) {
@@ -126,10 +127,10 @@ if (missing.length || extra.length) {
   process.exit(1);
 }
 
-console.log("v1 ok");
+console.log("season complete");
 console.log(`  reports   ${reports}`);
 console.log(
-  `  painted   ${painted} native days, ${flares} located flares, storm motion on ${drifted}`
+  `  painted   ${painted} native days, ${flares} located flares, ` +
+    `storm motion on ${drifted}, storm reading on ${withStorm}`
 );
 console.log(`  balloons  ${balloons}`);
-console.log("  between   1");

@@ -15,10 +15,10 @@
  * product makes, so no product route reads `out/`. `out/` is a working
  * directory that is not committed; this server re-reads it on every request.
  *
- * **The arithmetic behind a published number lives here, not in the app.** The
- * band overlap and the hour-by-hour tallies are computed once, on this side, so the
- * page and `EVALUATION.md` cannot drift apart by recomputing the same figure
- * two ways.
+ * **The arithmetic behind a published number lives here, not in the app.**
+ * Band overlap is calculated from the balloon JSON. Layer and Texas-feature
+ * counts are calculated from the painted files. The page and
+ * `EVALUATION.md` cannot drift apart by recomputing the same figure two ways.
  */
 
 // Node
@@ -28,7 +28,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Local
-import { attachStorms, summariseDay, tallyFlags } from "./lib/storm-score.mjs";
+import {
+  bandOverlap,
+  spread,
+  summariseOverlaps,
+  unusableKey,
+} from "./lib/band-score.mjs";
+import { summariseDay, tallyFlags } from "./lib/storm-score.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, "out");
@@ -101,52 +107,6 @@ async function run(name) {
 
 /* ---------- finding 1: the band against the balloons ---------- */
 
-/** Bias, typical miss and worst case over the readings a pair accepts. */
-function spread(values) {
-  if (!values.length) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  const absolute = sorted.map(Math.abs).sort((a, b) => a - b);
-  const mean = sorted.reduce((sum, v) => sum + v, 0) / sorted.length;
-  return {
-    n: sorted.length,
-    bias: Math.round(mean * 10) / 10,
-    typical: absolute[Math.floor(absolute.length / 2)],
-    worst: absolute[absolute.length - 1],
-    low: sorted[0],
-    high: sorted[sorted.length - 1],
-  };
-}
-
-/**
- * How much of the band we drew is the band that was measured.
- *
- * Overlap over union, so drawing a band far too deep is penalised rather than
- * rewarded for covering everything. A crew does not fly an edge, it flies the
- * layer between them, which is why this and not the two edge errors is the
- * figure the finding is stated in.
- */
-function bandOverlap(row) {
-  const base = row.compared?.freezingLevel;
-  const top = row.compared?.minus15Height;
-  if (!base || !top || base.error === null || top.error === null) return null;
-  // A freezing level at or below sea level is a bad lift out of the report PDF,
-  // not a reading. Dropped here for the same reason balloons.mjs drops it.
-  if (!(base.reported > 0)) return null;
-
-  const shared =
-    Math.min(top.reported, top.ours) - Math.max(base.reported, base.ours);
-  const union =
-    Math.max(top.reported, top.ours) - Math.min(base.reported, base.ours);
-  return {
-    date: row.date,
-    site: row.site,
-    measured: [base.reported, top.reported],
-    ours: [base.ours, top.ours],
-    depth: top.reported - base.reported,
-    fraction: Math.max(0, shared) / union,
-  };
-}
-
 const READINGS = [
   { key: "freezingLevel", label: "Freezing level", unit: "m" },
   { key: "minus15Height", label: "−15 °C height", unit: "m" },
@@ -159,8 +119,9 @@ async function band({ region }) {
   if (!data) return null;
 
   const rows = data.rows;
+  const usable = rows.filter((row) => !unusableKey(row));
   const readings = READINGS.map((reading) => {
-    const values = rows
+    const values = usable
       .map((row) => row.compared?.[reading.key])
       .filter((cell) => cell && cell.error !== null && cell.error !== undefined)
       .filter((cell) => reading.key !== "freezingLevel" || cell.reported > 0)
@@ -168,86 +129,16 @@ async function band({ region }) {
     return { ...reading, ...spread(values) };
   });
 
-  const overlaps = rows.map(bandOverlap).filter(Boolean);
-  const fractions = overlaps.map((o) => o.fraction).sort((a, b) => a - b);
-  const depths = overlaps.map((o) => o.depth).sort((a, b) => a - b);
+  const overlaps = usable.map(bandOverlap).filter(Boolean);
 
   return {
     sites: data.sites,
     attempted: rows.length,
     failed: rows.filter((row) => row.error).length,
     readings,
-    overlap: fractions.length
-      ? {
-          n: fractions.length,
-          median: fractions[Math.floor(fractions.length / 2)],
-          mean: fractions.reduce((s, v) => s + v, 0) / fractions.length,
-          worst: fractions[0],
-          over90: fractions.filter((v) => v >= 0.9).length,
-          over80: fractions.filter((v) => v >= 0.8).length,
-          medianDepth: depths[Math.floor(depths.length / 2)],
-        }
-      : null,
+    overlap: summariseOverlaps(overlaps),
     ascents: overlaps.sort((a, b) => a.date.localeCompare(b.date)),
     rows,
-  };
-}
-
-/* ---------- finding 2: the flares against what we painted ---------- */
-
-const PRESENCE = ["both", "one", "neither"];
-
-function tally(rows, key) {
-  const counts = { both: 0, one: 0, neither: 0, unusable: 0 };
-  for (const row of rows) {
-    const value = row.present?.[key];
-    counts[PRESENCE.includes(value) ? value : "unusable"] += 1;
-  }
-  return counts;
-}
-
-async function overlap({ region }) {
-  const data = await run(region.runs.between);
-  if (!data) return null;
-
-  const rows = data.days.flatMap((day) => day.rows);
-  const usable = rows.filter((row) => PRESENCE.includes(row.present?.liquid));
-
-  // Where liquid survived both readings, what actually rejected it. The
-  // rejection order puts rain last, so a cell charged to `raining` passed every
-  // test before it and this is exact rather than an inference.
-  const surviving = usable.filter((row) => row.present.liquid === "both");
-  const reflectivity = surviving
-    .flatMap((row) => [row.lo?.dbz, row.hi?.dbz])
-    .filter((v) => v !== null && v !== undefined)
-    .sort((a, b) => a - b);
-
-  return {
-    tests: data.tests,
-    releases: rows.length,
-    usable: usable.length,
-    tallies: Object.fromEntries(
-      data.tests.map((test) => [test.key, tally(usable, test.key)])
-    ),
-    rain: {
-      surviving: surviving.length,
-      raining: surviving.filter(
-        (row) => row.lo?.verdict === "raining" || row.hi?.verdict === "raining"
-      ).length,
-      readings: reflectivity.length,
-      low: reflectivity[0] ?? null,
-      median: reflectivity[Math.floor(reflectivity.length / 2)] ?? null,
-      high: reflectivity[reflectivity.length - 1] ?? null,
-      atOrOver: reflectivity.filter((v) => v >= 20).length,
-    },
-    days: data.days.map((day) => ({
-      date: day.date,
-      flares: day.rows.length,
-      hours: day.hours,
-      tallies: Object.fromEntries(
-        data.tests.map((test) => [test.key, tally(day.rows, test.key)])
-      ),
-    })),
   };
 }
 
@@ -398,14 +289,10 @@ async function near({ region, seeded }) {
  * says how much of the painted season actually carries a reading.
  */
 async function storms({ region, seeded }) {
-  const catalog = await run("storms-2025.json");
   const built = [];
   for (const record of seeded) {
     const painted = await run(forDate(region.runs.painted, record.date));
-    if (painted) {
-      attachStorms(painted, catalog, region.id);
-      built.push({ date: record.date, painted });
-    }
+    if (painted) built.push({ date: record.date, painted });
   }
   if (!built.length) return null;
 
@@ -428,12 +315,6 @@ async function day({ region, seeded }, date) {
   const record = seeded.find((entry) => entry.date === date);
   if (!record) return null;
 
-  const between = await run(region.runs.between);
-  const scored = between?.days.find((entry) => entry.date === date);
-  const byTime = new Map(
-    (scored?.rows ?? []).map((row) => [row.release.at, row])
-  );
-
   return {
     date,
     dayTotal: record.dayTotal ?? null,
@@ -445,28 +326,19 @@ async function day({ region, seeded }, date) {
     painted: Boolean(await run(forDate(region.runs.painted, date))),
     releases: record.releases
       .filter((release) => release.located)
-      .map((release) => {
-        const row = byTime.get(release.at);
-        return {
-          ...release,
-          // A Panhandle row says a flare was released and never how many, so
-          // its payload is unknown rather than glaciogenic by default.
-          payload:
-            release.glaciogenic === null && release.hygroscopic === null
-              ? null
-              : release.glaciogenic && release.hygroscopic
-                ? "both"
-                : release.hygroscopic
-                  ? "hygroscopic"
-                  : "glaciogenic",
-          hours: row
-            ? { from: row.h0, to: row.h1, into: row.intoGapMinutes }
-            : null,
-          present: row?.present ?? null,
-          lo: row?.lo ?? null,
-          hi: row?.hi ?? null,
-        };
-      }),
+      .map((release) => ({
+        ...release,
+        // A Panhandle row says a flare was released and never how many, so
+        // its payload is unknown rather than glaciogenic by default.
+        payload:
+          release.glaciogenic === null && release.hygroscopic === null
+            ? null
+            : release.glaciogenic && release.hygroscopic
+              ? "both"
+              : release.hygroscopic
+                ? "hygroscopic"
+                : "glaciogenic",
+      })),
   };
 }
 
@@ -570,15 +442,6 @@ const server = createServer(async (req, res) => {
             });
       }
 
-      if (rest === "/overlap") {
-        const found = await overlap(entry);
-        return found
-          ? send(200, found)
-          : send(404, {
-              error: "no hour comparison yet — node eval/between.mjs",
-            });
-      }
-
       if (rest === "/near") {
         const found = await near(entry);
         return found
@@ -598,27 +461,19 @@ const server = createServer(async (req, res) => {
       }
 
       if (rest === "/days") {
-        const between = await run(region.runs.between);
         return send(
           200,
           await Promise.all(
-            seeded.map(async (record) => {
-              const scored = between?.days.find(
-                (item) => item.date === record.date
-              );
-              return {
-                date: record.date,
-                flares: record.releases.filter((r) => r.located).length,
-                unlocated: record.releases.filter((r) => !r.located).length,
-                observations: record.observations?.length ?? 0,
-                scored: Boolean(scored),
-                painted: Boolean(
-                  await run(forDate(region.runs.painted, record.date))
-                ),
-                present: scored ? tally(scored.rows, "liquid").both : null,
-                briefing: briefing(record),
-              };
-            })
+            seeded.map(async (record) => ({
+              date: record.date,
+              flares: record.releases.filter((r) => r.located).length,
+              unlocated: record.releases.filter((r) => !r.located).length,
+              observations: record.observations?.length ?? 0,
+              painted: Boolean(
+                await run(forDate(region.runs.painted, record.date))
+              ),
+              briefing: briefing(record),
+            }))
           )
         );
       }
@@ -633,7 +488,6 @@ const server = createServer(async (req, res) => {
               `--region=${region.id}`,
           });
         }
-        attachStorms(found, await run("storms-2025.json"), region.id);
         return send(200, { ...found, proximity: proximity(found) });
       }
 

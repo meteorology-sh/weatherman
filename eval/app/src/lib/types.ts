@@ -9,19 +9,13 @@
  * layers through `@/lib/client`, so those types come from `@/lib/types`.
  */
 
-/** Which of the two analysis hours a flare sits between had the condition. */
-export type Presence = "both" | "one" | "neither" | "unusable";
-
-export type Tally = Record<Presence, number>;
-
 /* ---------- regions ---------- */
 
 /**
  * One weather modification programme.
  *
  * `evaluable` is false until its reports have been parsed into a flight record.
- * Texas licenses several programmes and only one has been read so far, so a
- * region that cannot be evaluated is still listed — the list is the honest
+ * A region that cannot be evaluated is still listed — the list is the honest
  * picture of coverage, and hiding the gaps would make one operator's season
  * look like the whole state.
  */
@@ -83,32 +77,6 @@ export type BandFinding = {
   ascents: Ascent[];
 };
 
-/* ---------- finding 2 ---------- */
-
-export type Test = { key: string; label: string };
-
-export type OverlapFinding = {
-  tests: Test[];
-  releases: number;
-  usable: number;
-  tallies: Record<string, Tally>;
-  rain: {
-    surviving: number;
-    raining: number;
-    readings: number;
-    low: number | null;
-    median: number | null;
-    high: number | null;
-    atOrOver: number;
-  };
-  days: {
-    date: string;
-    flares: number;
-    hours: number;
-    tallies: Record<string, Tally>;
-  }[];
-};
-
 /* ---------- days and releases ---------- */
 
 export type Briefing = {
@@ -124,33 +92,9 @@ export type DaySummary = {
   flares: number;
   unlocated: number;
   observations: number;
-  scored: boolean;
   /** Whether the painted frames exist yet — `node eval/paint.mjs <date>`. */
   painted: boolean;
-  present: number | null;
   briefing: Briefing | null;
-};
-
-export type Verdict =
-  | "noLiquid"
-  | "noCloudBase"
-  | "baseAboveBand"
-  | "noCloudSeen"
-  | "topTooWarm"
-  | "raining"
-  | "candidate";
-
-/** What the join read over one cell at one hour. */
-export type Answer = {
-  verdict: Verdict;
-  slwGM2: number | null;
-  cloudBaseFt: number | null;
-  cloudTopC: number | null;
-  topPhase: string | null;
-  dbz: number | null;
-  validTime: string | null;
-  sceneTime: string | null;
-  radarTime: string | null;
 };
 
 export type Release = {
@@ -162,10 +106,6 @@ export type Release = {
   plane: string;
   /** Null where the report says a flare was released and not how many. */
   payload: "glaciogenic" | "hygroscopic" | "both" | null;
-  hours: { from: string; to: string; into: number } | null;
-  present: Record<string, Presence> | null;
-  lo: Answer | null;
-  hi: Answer | null;
 };
 
 export type Observation = {
@@ -298,8 +238,6 @@ export type Flare = {
   /** Where the release point sits at the analysis time, after drifting. */
   compared: [number, number];
   near: Record<string, Nearness | null>;
-  /** Which hours had the condition, for lining one release up against the table. */
-  present: Record<string, Presence> | null;
   storm?: StormAtFlare | null;
 };
 
@@ -323,7 +261,7 @@ export type Proximity = {
 };
 
 /**
- * Finding 2 over every painted day — `GET /region/:id/near`.
+ * Layer distances over every painted day — `GET /region/:id/near`.
  *
  * The same per-layer counts the day chart uses, pooled across the season.
  * `rows` is one summary per painted day; the page does not re-derive either.
@@ -340,11 +278,10 @@ export type NearFinding = {
 };
 
 /**
- * Finding 4 over every painted day — `GET /region/:id/storms`.
+ * Texas turret features over every painted day — `GET /region/:id/storms`.
  *
  * Each test is scored at the release minute from the storm stored on the
- * painted flare. `scored` is how many of those flares actually carry a
- * reading; a day painted before storms were stored has scored 0.
+ * painted flare. `scored` is how many of those flares carry a `storm` key.
  */
 export type StormTestScore = {
   key: string;
