@@ -12,14 +12,14 @@ import { findingsActions } from "~/lib/store/features/findings";
 import { regionsActions } from "~/lib/store/features/regions";
 
 // Client
-import { GetBand, GetNear, NotRunYet } from "~/lib/client";
+import { GetBand, GetNear, GetStorms, NotRunYet } from "~/lib/client";
 
 /**
- * Loads both findings for the region in the url, and syncs them into the store.
+ * Loads the region's findings and syncs them into the store.
  *
- * The band comparison and the season-wide distances are independent runs, so a
- * missing one is recorded and the other still loads. Only a real failure sets
- * `error`.
+ * The band comparison, the season-wide distances, and the radar-storm
+ * scores are independent runs, so a missing one is recorded and the others
+ * still load. Only a real failure sets `error`.
  *
  * It wraps the region's routes, so navigating to another programme unmounts it
  * and the next one loads from scratch. The region comes from the url rather than
@@ -38,13 +38,14 @@ export function FindingsProvider({ children }: { children: React.ReactNode }) {
       try {
         dispatch(findingsActions.setLoading(on));
 
-        const [bandResult, nearResult] = await Promise.allSettled([
+        const [bandResult, nearResult, stormResult] = await Promise.allSettled([
           GetBand(on),
           GetNear(on),
+          GetStorms(on),
         ]);
 
         const missing: string[] = [];
-        for (const result of [bandResult, nearResult]) {
+        for (const result of [bandResult, nearResult, stormResult]) {
           if (result.status === "fulfilled") continue;
           if (result.reason instanceof NotRunYet) {
             missing.push(result.reason.message);
@@ -58,6 +59,9 @@ export function FindingsProvider({ children }: { children: React.ReactNode }) {
         }
         if (nearResult.status === "fulfilled") {
           dispatch(findingsActions.setNear(nearResult.value));
+        }
+        if (stormResult.status === "fulfilled") {
+          dispatch(findingsActions.setStorms(stormResult.value));
         }
         if (missing.length) {
           dispatch(findingsActions.setMissing(missing.join(" · ")));

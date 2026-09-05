@@ -77,9 +77,6 @@ export const Overlap = () => {
   );
   const dispatch = useAppDispatch();
   const selectedHour = useAppSelector((state) => state.map.selectedHour);
-  const { near, loading: findingsLoading } = useAppSelector(
-    (state) => state.findings
-  );
   const [counties, setCounties] = useState<CountyShape[] | null>(null);
   const [available, setAvailable] = useState(0);
 
@@ -153,6 +150,12 @@ export const Overlap = () => {
     return all.filter((entry) => entry.at === selectedHour);
   }, [painted, selectedHour]);
 
+  /** The flares on the maps below, so the tables and the picture stay in step. */
+  const flares = useMemo(
+    () => analyses.flatMap((analysis) => analysis.flares),
+    [analyses]
+  );
+
   const extent = useMemo(() => {
     if (!painted) return null;
     const flares = painted.analyses.flatMap((entry) => entry.flares);
@@ -190,11 +193,11 @@ export const Overlap = () => {
             </h1>
             <p className="text-sm max-w-2xl">
               Every layer below is the one Weatherman itself draws. Each release
-              is scored against all of them: whether it sat inside the paint,
-              and how far it was if it did not. A flare can sit in cloud, echo
-              and liquid and still miss the join — rain rules that out, and they
-              fly into rain on purpose. The bars count how often; the table says
-              how close; the maps show where.
+              on this day is scored against all of them: whether it sat inside
+              the paint, and how far it was if it did not. A flare can sit in
+              cloud, echo and liquid and still miss the join — rain rules that
+              out, and they fly into rain on purpose. Season counts live on the
+              programme page.
             </p>
           </div>
 
@@ -204,24 +207,6 @@ export const Overlap = () => {
           >
             <DayPicker />
           </Section>
-
-          {findingsLoading && !near ? (
-            <Status
-              loading
-              missing={null}
-              error={null}
-              what="Reading the season"
-            />
-          ) : (
-            near && (
-              <Section
-                heading="The season"
-                subtitle={`${near.flares} releases over ${near.days} of ${near.flying} flying days. Inside is inside the contour after storm-motion drift to that layer's own scan. Median is how far a typical release sat from that layer.`}
-              >
-                <LayerCoverage layers={near.layers} />
-              </Section>
-            )
-          )}
 
           {date && (
             <>
@@ -243,25 +228,19 @@ export const Overlap = () => {
 
                   <Section
                     heading="How close each release was"
-                    subtitle="Inside means the flare sat in that layer. A number is kilometres to the nearest edge, after drifting the remaining minutes to the analysis. A flare can sit in painted liquid and still be cells away from the join."
+                    subtitle="Inside means the flare sat in that layer. A number is kilometres to the nearest edge, after drifting the remaining minutes to the analysis. Extra columns are the join tests at both bounding hours, when that run has been stored on the flare."
                   >
                     <FlareDistances
-                      flares={painted.analyses.flatMap(
-                        (analysis) => analysis.flares
-                      )}
+                      flares={flares}
                       cellKm={painted.proximity.cellKm}
                     />
                   </Section>
 
                   <Section
                     heading="The radar storm at each release"
-                    subtitle="Each column is one Texas test we can score from radar at the release minute. Green is yes. Upwind uses the storm's heading from the previous mosaic, not the white flare arrows."
+                    subtitle="Each column is one test we can score from radar at the analysis this release is charged to, including the lightning, cloud-top, and liquid readings hanging on that storm. Green is yes. Upwind uses the storm's heading from the previous mosaic, not the white flare arrows."
                   >
-                    <StormReadings
-                      flares={painted.analyses.flatMap(
-                        (analysis) => analysis.flares
-                      )}
-                    />
+                    <StormReadings flares={flares} />
                   </Section>
 
                   <Section

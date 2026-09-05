@@ -2,10 +2,10 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 // Types
-import type { BandFinding, NearFinding } from "~/lib/types";
+import type { BandFinding, NearFinding, StormFinding } from "~/lib/types";
 
 /**
- * The two findings, and whether their runs have produced them yet.
+ * The findings, and whether their runs have produced them yet.
  *
  * `missing` is not `error`. A run that has not happened is an ordinary state
  * with a command that fixes it, and the page says which command; a server that
@@ -20,6 +20,7 @@ type FindingsState = {
   region: string | null;
   band: BandFinding | null;
   near: NearFinding | null;
+  storms: StormFinding | null;
   loading: boolean;
   missing: string | null;
   error: string | null;
@@ -29,6 +30,7 @@ const initialState: FindingsState = {
   region: null,
   band: null,
   near: null,
+  storms: null,
   loading: false,
   missing: null,
   error: null,
@@ -44,6 +46,7 @@ const findingsSlice = createSlice({
       state.loading = true;
       state.band = null;
       state.near = null;
+      state.storms = null;
       state.error = null;
       state.missing = null;
     },
@@ -55,6 +58,9 @@ const findingsSlice = createSlice({
     },
     setNear(state, action: PayloadAction<NearFinding>) {
       state.near = action.payload;
+    },
+    setStorms(state, action: PayloadAction<StormFinding>) {
+      state.storms = action.payload;
     },
     setMissing(state, action: PayloadAction<string>) {
       state.missing = action.payload;

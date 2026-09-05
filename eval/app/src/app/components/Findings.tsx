@@ -6,7 +6,9 @@ import { useAppSelector } from "~/lib/store/hooks";
 
 // Components
 import { Status } from "./Status";
+import { Section } from "./Section";
 import { LayerCoverage } from "./overlap/LayerCoverage";
+import { StormCoverage } from "./overlap/StormCoverage";
 
 const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
 
@@ -18,7 +20,7 @@ const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
  */
 export const Findings = () => {
   const { region } = useParams();
-  const { band, near, loading, missing, error } = useAppSelector(
+  const { band, near, storms, loading, missing, error } = useAppSelector(
     (state) => state.findings
   );
   const open = useAppSelector((state) =>
@@ -180,6 +182,15 @@ export const Findings = () => {
             )}
           </div>
         </div>
+
+        {storms && (
+          <Section
+            heading="The radar storm this season"
+            subtitle={`${storms.scored} of ${storms.flares} painted releases carry a storm reading, over ${storms.days} of ${storms.flying} flying days. Each bar is one test at the analysis the flare is charged to. The table is every painted day of this programme.`}
+          >
+            <StormCoverage storms={storms} />
+          </Section>
+        )}
       </div>
     </div>
   );

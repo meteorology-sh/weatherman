@@ -339,6 +339,36 @@ export type NearFinding = {
   rows: Array<{ date: string } & Proximity>;
 };
 
+/**
+ * Finding 4 over every painted day — `GET /region/:id/storms`.
+ *
+ * Each test is scored at the release minute from the storm stored on the
+ * painted flare. `scored` is how many of those flares actually carry a
+ * reading; a day painted before storms were stored has scored 0.
+ */
+export type StormTestScore = {
+  key: string;
+  label: string;
+  n: number;
+  yes: number;
+};
+
+export type StormDay = {
+  date: string;
+  flares: number;
+  scored: number;
+  tests: Record<string, StormTestScore>;
+};
+
+export type StormFinding = {
+  days: number;
+  flying: number;
+  flares: number;
+  scored: number;
+  tests: StormTestScore[];
+  rows: StormDay[];
+};
+
 export type Painted = {
   date: string;
   region: string;

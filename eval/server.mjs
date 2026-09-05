@@ -27,6 +27,9 @@ import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// Local
+import { attachStorms, summariseDay, tallyFlags } from "./lib/storm-score.mjs";
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, "out");
 const PORT = Number(process.env.EVAL_PORT ?? 3100);
@@ -386,6 +389,41 @@ async function near({ region, seeded }) {
   };
 }
 
+/**
+ * The radar-storm tests over every day that has been painted.
+ *
+ * Same pooling rule as `near`: a day with one flare and a day with forty-six
+ * each answer once, so the bars count releases. A flare whose painted record
+ * has no `storm` key is missing rather than no, and `scored` against `flares`
+ * says how much of the painted season actually carries a reading.
+ */
+async function storms({ region, seeded }) {
+  const catalog = await run("storms-2025.json");
+  const built = [];
+  for (const record of seeded) {
+    const painted = await run(forDate(region.runs.painted, record.date));
+    if (painted) {
+      attachStorms(painted, catalog, region.id);
+      built.push({ date: record.date, painted });
+    }
+  }
+  if (!built.length) return null;
+
+  const all = built.flatMap((entry) => flaresOf(entry.painted));
+  return {
+    days: built.length,
+    flying: seeded.length,
+    flares: all.length,
+    scored: all.filter((flare) =>
+      Object.prototype.hasOwnProperty.call(flare, "storm")
+    ).length,
+    tests: tallyFlags(all),
+    rows: built.map((entry) =>
+      summariseDay(entry.date, flaresOf(entry.painted))
+    ),
+  };
+}
+
 async function day({ region, seeded }, date) {
   const record = seeded.find((entry) => entry.date === date);
   if (!record) return null;
@@ -550,6 +588,15 @@ const server = createServer(async (req, res) => {
             });
       }
 
+      if (rest === "/storms") {
+        const found = await storms(entry);
+        return found
+          ? send(200, found)
+          : send(404, {
+              error: "no day painted yet — node eval/paint.mjs <date>",
+            });
+      }
+
       if (rest === "/days") {
         const between = await run(region.runs.between);
         return send(
@@ -579,13 +626,15 @@ const server = createServer(async (req, res) => {
       const painted = rest.match(/^\/day\/(\d{4}-\d{2}-\d{2})\/painted$/);
       if (painted) {
         const found = await run(forDate(region.runs.painted, painted[1]));
-        return found
-          ? send(200, { ...found, proximity: proximity(found) })
-          : send(404, {
-              error:
-                `not painted yet — node eval/paint.mjs ${painted[1]} ` +
-                `--region=${region.id}`,
-            });
+        if (!found) {
+          return send(404, {
+            error:
+              `not painted yet — node eval/paint.mjs ${painted[1]} ` +
+              `--region=${region.id}`,
+          });
+        }
+        attachStorms(found, await run("storms-2025.json"), region.id);
+        return send(200, { ...found, proximity: proximity(found) });
       }
 
       const one = rest.match(/^\/day\/(\d{4}-\d{2}-\d{2})$/);

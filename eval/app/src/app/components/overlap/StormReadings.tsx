@@ -5,29 +5,11 @@ import type { Flare, StormAtFlare } from "~/lib/types";
 
 // Components
 import { type Tone } from "./distance";
+import { STORM_COLUMNS, stormCells, toneOf } from "./storm";
 
 const num = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
 const feet = (value: number) =>
   `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value)} ft`;
-
-const MATCH: Tone = {
-  fill: "fill-success",
-  stroke: "stroke-success",
-  text: "text-success",
-  label: "Inside — same place",
-};
-const MISS: Tone = {
-  fill: "fill-error",
-  stroke: "stroke-error",
-  text: "text-error",
-  label: "No",
-};
-const NEUTRAL: Tone = {
-  fill: "fill-base-content",
-  stroke: "stroke-base-content",
-  text: "text-base-content",
-  label: "No reading",
-};
 
 function echoVersusFreezing(storm: StormAtFlare): string {
   const top = storm.echoTopFt;
@@ -137,98 +119,12 @@ function Cell({ tone, children }: { tone: Tone; children: string }) {
   );
 }
 
-type Verdict = { ok: boolean | null; label: string };
-
-function toneOf(ok: boolean | null): Tone {
-  if (ok === null) return NEUTRAL;
-  return ok ? MATCH : MISS;
-}
-
-/** Same test as the server: within 90° of the opposite of the heading. */
-function upwindOf(
-  coreLat: number,
-  coreLon: number,
-  lat: number,
-  lon: number,
-  towardDeg: number
-): boolean {
-  const upwind = (towardDeg + 180) % 360;
-  const mid = ((coreLat + lat) / 2) * (Math.PI / 180);
-  const dlat = lat - coreLat;
-  const dlon = (lon - coreLon) * Math.cos(mid);
-  let deg = (Math.atan2(dlon, dlat) * 180) / Math.PI;
-  if (deg < 0) deg += 360;
-  let delta = Math.abs(deg - upwind);
-  if (delta > 180) delta = 360 - delta;
-  return delta <= 90;
-}
-
-function rainVerdict(storm: StormAtFlare): Verdict {
-  if (!storm.object) return { ok: false, label: "no storm" };
-  if (storm.inside) return { ok: true, label: "yes" };
-  return {
-    ok: false,
-    label:
-      storm.edgeKm != null ? `${num.format(storm.edgeKm)} km` : "no",
-  };
-}
-
-function upwindVerdict(flare: Flare, storm: StormAtFlare): Verdict {
-  const toward = storm.object?.motionTowardDeg;
-  if (
-    toward == null ||
-    storm.object == null ||
-    storm.object.coreLat == null ||
-    storm.object.coreLon == null
-  ) {
-    return { ok: false, label: "no heading" };
-  }
-  const ok = upwindOf(
-    storm.object.coreLat,
-    storm.object.coreLon,
-    flare.lat,
-    flare.lon,
-    toward
-  );
-  return { ok, label: ok ? "yes" : "no" };
-}
-
-function edgeVerdict(storm: StormAtFlare): Verdict {
-  if (storm.edgeKm == null || storm.coreKm == null) {
-    return { ok: false, label: "—" };
-  }
-  const ok = storm.edgeKm < storm.coreKm;
-  return { ok, label: ok ? "yes" : "no" };
-}
-
-function echoVerdict(storm: StormAtFlare): Verdict {
-  if (storm.echoTopFt == null || storm.freezingFt == null) {
-    return { ok: false, label: "—" };
-  }
-  const ok = storm.echoTopFt >= storm.freezingFt;
-  return { ok, label: ok ? "yes" : "no" };
-}
-
-function grewVerdict(storm: StormAtFlare): Verdict {
-  const d = storm.object?.areaDeltaKm2;
-  if (d == null) return { ok: null, label: "—" };
-  if (d > 0.5) return { ok: true, label: "yes" };
-  if (d < -0.5) return { ok: false, label: "no" };
-  return { ok: null, label: "unchanged" };
-}
-
 export const StormReadings = ({ flares }: PropsT) => {
-  const rows = [...flares]
-    .filter((flare) => flare.storm)
-    .sort((a, b) => a.at.localeCompare(b.at));
+  const rows = [...flares].sort((a, b) => a.at.localeCompare(b.at));
+  const scored = rows.filter((flare) => "storm" in flare).length;
 
   if (!rows.length) {
-    return (
-      <p className="text-sm">
-        This day was painted before storm readings were stored. Re-run{" "}
-        <span className="font-mono">paint.mjs</span> for this date.
-      </p>
-    );
+    return <p className="text-sm">No located releases this day.</p>;
   }
 
   return (
@@ -244,29 +140,34 @@ export const StormReadings = ({ flares }: PropsT) => {
         </span>
       </div>
 
+      {scored < rows.length && (
+        <p className="text-sm">
+          {scored} of {rows.length} releases have a storm reading. A dash is
+          a flare painted before those readings were stored —{" "}
+          <span className="font-mono">node eval/fill-storms.mjs</span> on
+          this day's file fills it.
+        </p>
+      )}
+
       <div className="overflow-x-auto">
         <table className="table table-sm">
           <thead>
             <tr>
               <th>Time</th>
               <th>County</th>
-              <th className="text-right">In the rain</th>
-              <th className="text-right">Upwind of the heaviest rain</th>
-              <th className="text-right">Nearer the edge than the core</th>
-              <th className="text-right">Echo top past freezing</th>
-              <th className="text-right">Raining area grew</th>
+              {STORM_COLUMNS.map((column) => (
+                <th
+                  key={column.key}
+                  className="text-right whitespace-normal"
+                >
+                  {column.heading}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((flare) => {
-              const storm = flare.storm!;
-              const cols = [
-                rainVerdict(storm),
-                upwindVerdict(flare, storm),
-                edgeVerdict(storm),
-                echoVerdict(storm),
-                grewVerdict(storm),
-              ];
+              const cols = stormCells(flare);
               return (
                 <tr key={flare.at}>
                   <td className="font-mono whitespace-nowrap">
@@ -274,7 +175,7 @@ export const StormReadings = ({ flares }: PropsT) => {
                   </td>
                   <td>{flare.county}</td>
                   {cols.map((col, i) => (
-                    <Cell key={i} tone={toneOf(col.ok)}>
+                    <Cell key={STORM_COLUMNS[i].key} tone={toneOf(col.ok)}>
                       {col.label}
                     </Cell>
                   ))}

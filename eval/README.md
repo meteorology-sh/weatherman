@@ -57,6 +57,14 @@ node eval/storms.mjs --day=2025-08-04 --region=wtwma --out=storms-sample.json
 
 `paint.mjs` stores cores, heading ticks, lightning, and the storm at each release beside the five fills. The eval app draws those under RADAR REFLECTIVITY, off until asked, the same way the candidate map does.
 
+The programme page (`/wtwma`, `/plains`, …) holds the season bars. The flares page holds one flying day. Each release on that day is a row against the layers it sat in, the join tests stored on the flare, and the radar-storm tests at the analysis it is charged to.
+
+A day painted before storm readings were stored has no `storm` key on its flares. The eval server copies the hour-pair score from `storms-2025.json` onto those flares when it serves the day, using the same hour the map already charged the release to. Lightning, cloud-top change, and modelled liquid are missing from that older run; `fill-storms.mjs` writes the full reading at the release minute onto the painted file without rebuilding the fills.
+
+```bash
+node eval/fill-storms.mjs eval/out/painted-2025-04-19.json
+```
+
 ## Where to run the evaluation
 
 The season build belongs on a machine with good CPU.

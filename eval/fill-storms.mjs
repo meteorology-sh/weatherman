@@ -282,7 +282,8 @@ for (const analysis of painted.analyses ?? []) {
       console.log(flare.storm ? "ok" : "none");
       filled += 1;
     } catch (error) {
-      flare.storm = null;
+      // Absent, not null: null means we looked and saw no echo.
+      delete flare.storm;
       console.log(`fail: ${error.message}`);
       failed += 1;
     }
