@@ -2,13 +2,16 @@
 import { useAppDispatch, useAppSelector } from "~/lib/store/hooks";
 
 // Store
-import { mapActions, type Ends } from "~/lib/store/features/map";
+import { mapActions } from "~/lib/store/features/map";
 
 // Layers
 import { LAYERS } from "~/lib/layers";
 
+// ArcGIS
+import { HeadingLegend, LightningLegend } from "@/lib/arcgis/legends";
+
 // Components
-import { LayerToggle } from "@/app/components/panel/LayerToggle";
+import { LayerToggle, SubToggle } from "@/app/components/panel/LayerToggle";
 import { Ramp } from "@/app/components/panel/Ramp";
 import { CloudTopRamp } from "@/app/components/panel/CloudTopRamp";
 import { CloudBaseRamp } from "@/app/components/panel/CloudBaseRamp";
@@ -22,69 +25,73 @@ import { CloudBaseRamp } from "@/app/components/panel/CloudBaseRamp";
  * a second opinion about the map instead of a window onto it.
  */
 
-const ENDS: { value: Ends; label: string; hint: string }[] = [
-  {
-    value: "both",
-    label: "Both",
-    hint: "Earlier hour dashed, later hour solid. Where they overlap the fills double.",
-  },
-  { value: "from", label: "Earlier", hint: "The analysis before the release." },
-  { value: "to", label: "Later", hint: "The analysis after the release." },
-];
+const hhmm = (iso: string) => `${iso.slice(11, 13)}${iso.slice(14, 16)}Z`;
 
 export const LayerPanel = () => {
-  const { visible, ends, drift, counties } = useAppSelector(
-    (state) => state.map
+  const { visible, selectedHour, drift, heading, lightning, counties } =
+    useAppSelector((state) => state.map);
+  const hours = useAppSelector(
+    (state) => state.day.painted?.analyses.map((entry) => entry.at) ?? []
   );
   const dispatch = useAppDispatch();
+  const hourlyOn = Boolean(visible.liquid || visible.candidate);
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <div className="flex flex-col gap-2">
-        <div className="text-xs tracking-widest">ANALYSES</div>
-        <p className="text-xs">
-          A release falls between two model hours. Painting both is what shows
-          whether the answer depends on which one it is charged to.
-        </p>
-        <div className="join">
-          {ENDS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              title={option.hint}
-              className={`join-item btn btn-xs flex-1 ${
-                ends === option.value ? "btn-active" : ""
-              }`}
-              onClick={() => dispatch(mapActions.setEnds(option.value))}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2 border-t border-base-300 pt-4">
-        <div className="text-xs tracking-widest">ANNOTATIONS</div>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            className="toggle toggle-sm"
-            checked={drift}
-            aria-label="Storm motion"
-            onChange={(e) => dispatch(mapActions.setDrift(e.target.checked))}
-          />
-          <span className="text-sm font-semibold">STORM MOTION</span>
-        </label>
-        {drift && (
+      {hours.length > 1 && (
+        <div className="flex flex-col gap-2">
+          <div className="text-xs tracking-widest">HOURS</div>
           <p className="text-xs">
-            Sampled at each release separately, so every arrow is that cell's
-            own vector rather than one wind for the map. It is HRRR's 0–6 km
-            storm motion — where a cloud is being carried, which is not the same
-            as the wind at any single level. Its length is how far that air
-            travels in the minutes between the release and the analysis under
-            it, so a short arrow means a slow day or a close analysis, not a
-            small effect.
+            Each button is one model hour and the flares charged to it — not
+            the same flares at two times.
           </p>
+          <div className="join">
+            <button
+              type="button"
+              className={`join-item btn btn-xs ${
+                selectedHour === null ? "btn-active" : ""
+              }`}
+              onClick={() => dispatch(mapActions.setSelectedHour(null))}
+            >
+              All
+            </button>
+            {hours.map((hour) => (
+              <button
+                key={hour}
+                type="button"
+                className={`join-item btn btn-xs ${
+                  selectedHour === hour ? "btn-active" : ""
+                }`}
+                onClick={() => dispatch(mapActions.setSelectedHour(hour))}
+              >
+                {hhmm(hour)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div
+        className={`flex flex-col gap-2 ${
+          hours.length > 1 ? "border-t border-base-300 pt-4" : ""
+        }`}
+      >
+        <div className="text-xs tracking-widest">ANNOTATIONS</div>
+        {hourlyOn && (
+          <>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="toggle toggle-sm"
+                checked={drift}
+                aria-label="Flare at this hour"
+                onChange={(e) =>
+                  dispatch(mapActions.setDrift(e.target.checked))
+                }
+              />
+              <span className="text-sm font-semibold">FLARE AT THIS HOUR</span>
+            </label>
+          </>
         )}
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -122,6 +129,24 @@ export const LayerPanel = () => {
               />
             )}
             <div className="text-xs">{layer.unit}</div>
+            {layer.key === "radar" && (
+              <>
+                <SubToggle
+                  name={HeadingLegend.name}
+                  checked={heading}
+                  onChange={(on) => dispatch(mapActions.setHeading(on))}
+                >
+                  <div className="text-xs">{HeadingLegend.summary}</div>
+                </SubToggle>
+                <SubToggle
+                  name={LightningLegend.name}
+                  checked={lightning}
+                  onChange={(on) => dispatch(mapActions.setLightning(on))}
+                >
+                  <div className="text-xs">{LightningLegend.summary}</div>
+                </SubToggle>
+              </>
+            )}
           </LayerToggle>
         ))}
       </div>

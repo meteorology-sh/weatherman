@@ -50,4 +50,9 @@ the freezing level.
 
 ```bash
 node eval/storms.mjs
+node eval/storms.mjs --day=2025-08-04 --region=wtwma --out=storms-sample.json
 ```
+
+`--day` and `--region` score a subset. `--out` writes a different file so a sample does not overwrite the season. Re-run without `--resume` after the storm extras change: an old file has no echo-top field and would otherwise be kept.
+
+`paint.mjs` stores cores, heading ticks, lightning, and the storm at each release beside the five fills. The eval app draws those under RADAR REFLECTIVITY, off until asked, the same way the candidate map does.

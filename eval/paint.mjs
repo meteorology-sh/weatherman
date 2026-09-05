@@ -8,7 +8,8 @@
  * **It paints the product's own layers, not a layer invented for the page.**
  * Every one of the five is the same route the replay map fetches, at the same
  * hour parameter, carrying the same property — so a band drawn here is the band
- * Weatherman draws.
+ * Weatherman draws. Cores, heading ticks, and lightning are the same marks
+ * the candidate map draws under radar, stored beside the fills.
  *
  * **The question is how near, not whether inside.** Asking whether a flare
  * landed in the paint gives one bit and throws away how badly it missed, and a
@@ -36,7 +37,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Local
-import { SERVER } from "./lib/weatherman.mjs";
+import { SERVER, stormNear } from "./lib/weatherman.mjs";
 import { distanceToPolygonsKm } from "./lib/geo.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -242,6 +243,80 @@ async function frameAt(layer, at) {
   return work;
 }
 
+function pointsOf(frame) {
+  const points = [];
+  for (const feature of frame.features ?? []) {
+    const pair = feature.geometry?.coordinates;
+    if (!Array.isArray(pair) || pair.length < 2) continue;
+    const lon = round(pair[0]);
+    const lat = round(pair[1]);
+    if (inWindow([lon, lat])) points.push([lon, lat]);
+  }
+  return { validTime: frame.validTime ?? null, points };
+}
+
+function ringsOf(frame) {
+  const rings = [];
+  for (const feature of frame.features ?? []) {
+    for (const ring of feature.geometry?.coordinates ?? []) {
+      const simplified = simplify(ring);
+      if (simplified) rings.push(simplified);
+    }
+  }
+  return { validTime: frame.validTime ?? null, rings };
+}
+
+async function marksAt(at) {
+  const q = (path) => withBox(`${path}?at=${encodeURIComponent(at)}&fine=1`);
+  const emptyPoints = { validTime: at, points: [] };
+  const emptyRings = { validTime: at, rings: [] };
+  const cores = await ask(q("/radar/objects/cores")).then(pointsOf, (failure) => ({
+    ...emptyPoints,
+    error: failure.message,
+  }));
+  const heading = await ask(q("/radar/objects/motion")).then(
+    ringsOf,
+    (failure) => ({ ...emptyRings, error: failure.message })
+  );
+  const lightning = await ask(
+    withBox(`/cloudtop/lightning?at=${encodeURIComponent(at)}`)
+  ).then(pointsOf, (failure) => ({ ...emptyPoints, error: failure.message }));
+  return { cores, heading, lightning };
+}
+
+function stormOf(reading) {
+  if (!reading) return null;
+  if (reading.error) return null;
+  return {
+    inside: reading.inside ?? false,
+    inWorking: reading.inWorking ?? false,
+    coreKm: reading.coreKm ?? null,
+    edgeKm: reading.edgeKm ?? null,
+    upwindEdgeKm: reading.upwindEdgeKm ?? null,
+    object: reading.object
+      ? {
+          id: reading.object.id,
+          maxDbz: reading.object.maxDbz,
+          areaKm2: reading.object.areaKm2,
+          ageMin: reading.object.ageMin ?? null,
+          ageFloor: reading.object.ageFloor ?? false,
+          motionTowardDeg: reading.object.motionTowardDeg ?? null,
+          motionKmh: reading.object.motionKmh ?? null,
+          areaDeltaKm2: reading.object.areaDeltaKm2 ?? null,
+          coreLat: reading.object.coreLat,
+          coreLon: reading.object.coreLon,
+        }
+      : null,
+    slwGM2: reading.slwGM2 ?? null,
+    goesTopC: reading.goesTopC ?? null,
+    goesTopDeltaC: reading.goesTopDeltaC ?? null,
+    glmFlashes: reading.glmFlashes ?? null,
+    echoTopFt: reading.echoTopFt ?? null,
+    modelEchoTopFt: reading.modelEchoTopFt ?? null,
+    freezingFt: reading.freezingFt ?? null,
+  };
+}
+
 /* ---------- the clock ---------- */
 
 /**
@@ -425,6 +500,7 @@ console.log(
 );
 
 const frames = {};
+const marks = {};
 for (const hour of hours) {
   frames[hour] = {};
   console.log(`  ${hour}  (${byHour.get(hour).length} flares)`);
@@ -451,6 +527,21 @@ for (const hour of hours) {
       };
       console.log(`    ${key.padEnd(10)} failed: ${failure.message}`);
     }
+  }
+  const started = Date.now();
+  marks[hour] = await marksAt(hour);
+  const failed = ["cores", "heading", "lightning"]
+    .filter((key) => marks[hour][key].error)
+    .map((key) => `${key}: ${marks[hour][key].error}`);
+  if (failed.length) {
+    console.log(`    marks      failed: ${failed.join("; ")}`);
+  } else {
+    console.log(
+      `    cores      ${String(marks[hour].cores.points.length).padStart(2)} dots   ` +
+        `heading ${marks[hour].heading.rings.length}  ` +
+        `lightning ${marks[hour].lightning.points.length}  ` +
+        `${((Date.now() - started) / 1000).toFixed(0)}s`
+    );
   }
 }
 
@@ -494,6 +585,13 @@ for (const hour of hours) {
       }
     }
 
+    let storm = null;
+    try {
+      storm = stormOf(await stormNear(release.lat, release.lon, release.at));
+    } catch (failure) {
+      console.log(`    ${release.timeZ}Z storm failed: ${failure.message}`);
+    }
+
     flares.push({
       at: release.at,
       timeZ: release.timeZ,
@@ -519,6 +617,7 @@ for (const hour of hours) {
       compared: at,
       near,
       present: verdicts.get(release.at) ?? null,
+      storm,
     });
 
     const liquid = near.liquid;
@@ -571,6 +670,7 @@ await writeFile(
     soundings: day.soundings ?? null,
     observations: day.observations ?? [],
     frames,
+    marks,
     analyses,
   })}\n`
 );

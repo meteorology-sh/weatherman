@@ -45,7 +45,11 @@ radar.get("/reflectivity/stats", async (req: Request, res: Response) => {
 radar.get("/objects", async (req: Request, res: Response) => {
   try {
     res.send(
-      await Mrms.objects(parseAt(req.query.at), parseBox(req.query))
+      await Mrms.objects(
+        parseAt(req.query.at),
+        parseBox(req.query),
+        parseFine(req.query)
+      )
     );
   } catch (error) {
     res
@@ -56,7 +60,13 @@ radar.get("/objects", async (req: Request, res: Response) => {
 
 radar.get("/objects/cores", async (req: Request, res: Response) => {
   try {
-    res.send(await Mrms.cores(parseAt(req.query.at), parseBox(req.query)));
+    res.send(
+      await Mrms.cores(
+        parseAt(req.query.at),
+        parseBox(req.query),
+        parseFine(req.query)
+      )
+    );
   } catch (error) {
     res
       .status(500)
@@ -66,7 +76,13 @@ radar.get("/objects/cores", async (req: Request, res: Response) => {
 
 radar.get("/objects/motion", async (req: Request, res: Response) => {
   try {
-    res.send(await Mrms.motion(parseAt(req.query.at), parseBox(req.query)));
+    res.send(
+      await Mrms.motion(
+        parseAt(req.query.at),
+        parseBox(req.query),
+        parseFine(req.query)
+      )
+    );
   } catch (error) {
     res
       .status(500)
@@ -76,7 +92,13 @@ radar.get("/objects/motion", async (req: Request, res: Response) => {
 
 radar.get("/objects/flanks", async (req: Request, res: Response) => {
   try {
-    res.send(await Mrms.flanks(parseAt(req.query.at), parseBox(req.query)));
+    res.send(
+      await Mrms.flanks(
+        parseAt(req.query.at),
+        parseBox(req.query),
+        parseFine(req.query)
+      )
+    );
   } catch (error) {
     res
       .status(500)

@@ -205,6 +205,18 @@ describe("radar router", () => {
     assert.equal(seen.box?.west, -102);
   });
 
+  it("asks for the native grid when evaluation sends fine=1", async (t) => {
+    const stub = t.mock.method(Mrms, "cores", async () => ({
+      type: "FeatureCollection",
+      validTime: "",
+      features: [],
+    }));
+
+    await fetch(`${origin}/radar/objects/cores?fine=1`);
+
+    assert.equal(stub.mock.calls[0].arguments[2], true);
+  });
+
   it("responds with the storm nearest a click", async (t) => {
     t.mock.method(Mrms, "objectNear", async () => ({
       validTime: "2026-08-12T04:10:00.000Z",

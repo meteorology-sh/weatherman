@@ -222,10 +222,21 @@ export class RadarService {
    * on a previous mosaic; age and motion ride the working-area request and
    * the click, which is where they are read.
    */
-  async objects(at?: Date, box: LonLatBox = DRAWN): Promise<StormFrame> {
+  async objects(
+    at?: Date,
+    box: LonLatBox = DRAWN,
+    fine = false
+  ): Promise<StormFrame> {
     const scene = await this.scene(at);
     this.ensurePrevious(scene);
-    const { storms, validTime } = await this.storms(at, box, false, false);
+    const { storms, validTime } = await this.storms(
+      at,
+      box,
+      false,
+      false,
+      false,
+      fine
+    );
     return stormFrame(validTime, storms);
   }
 
@@ -233,8 +244,15 @@ export class RadarService {
    * One point per storm, at the 1 km cell with the strongest echo.
    * Waits on the previous mosaic so motion on the cores matches the arrows.
    */
-  async cores(at?: Date, box: LonLatBox = DRAWN) {
-    const { storms, validTime } = await this.storms(at, box, !at, true);
+  async cores(at?: Date, box: LonLatBox = DRAWN, fine = false) {
+    const { storms, validTime } = await this.storms(
+      at,
+      box,
+      !at,
+      true,
+      false,
+      fine
+    );
     return coresFrame(validTime, drawnStorms(storms));
   }
 
@@ -242,8 +260,15 @@ export class RadarService {
    * Heading ticks from each core. Empty when the storm has no motion:
    * we do not guess a direction.
    */
-  async motion(at?: Date, box: LonLatBox = DRAWN) {
-    const { storms, validTime } = await this.storms(at, box, false, true);
+  async motion(at?: Date, box: LonLatBox = DRAWN, fine = false) {
+    const { storms, validTime } = await this.storms(
+      at,
+      box,
+      false,
+      true,
+      false,
+      fine
+    );
     return motionFrame(validTime, drawnStorms(storms));
   }
 
@@ -251,12 +276,18 @@ export class RadarService {
    * Raining cells on the upwind edge of each storm. Empty when the storm
    * has no motion from a previous mosaic: we do not guess inflow.
    */
-  async flanks(at?: Date, box: LonLatBox = DRAWN): Promise<StormFrame> {
+  async flanks(
+    at?: Date,
+    box: LonLatBox = DRAWN,
+    fine = false
+  ): Promise<StormFrame> {
     const { storms, grid, geo, validTime } = await this.storms(
       at,
       box,
       !at,
-      true
+      true,
+      false,
+      fine
     );
     return flankFrame(validTime, storms, grid, geo, RAIN_DBZ);
   }

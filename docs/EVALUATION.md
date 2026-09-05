@@ -406,9 +406,32 @@ the heading as one radar layer. The click names the upwind inside-edge.
 
 This is still not overlap with the quiet-liquid join. It is overlap with the
 object Texas already flies. Age of the rain, GOES top change, GLM flashes,
-and measured 18 dBZ echo-top versus freezing are now on that same click
-and in `eval/storms.mjs`; they have not yet been scored for the 216
-flares.
+and measured 18 dBZ echo-top versus freezing are on that same click, in
+`eval/storms.mjs`, and on the evaluation map under RADAR REFLECTIVITY.
+
+A first check on those readings, not the 216: 4 August 2025, West Texas,
+five silver-iodide flares, scored at the release minute.
+
+| | Count of 5 |
+| --- | ---: |
+| Inside 20 dBZ | 5 |
+| Nearer the edge than the heaviest rain | 5 |
+| On the upwind inside-edge (within 0.5 km of that edge) | 0 |
+| 18 dBZ echo top at or above freezing | 5 |
+| Lightning over the storm in five minutes | 5 |
+| Raining area larger than the previous scan | 3 |
+| Cloud top colder than five minutes ago | 0 |
+| Modelled supercooled liquid over the storm | 3 |
+
+The 18 dBZ tops sat about 40,000 ft above the freezing level. The rain had
+been on the mosaic for 4 to 12 minutes; four of the five were already there
+on the oldest scan we looked at, so that age is a lower bound. Typical
+distance: 0.9 km to the nearest 20 dBZ edge, 8 km to the heaviest rain.
+None sat on the thin upwind strip the click currently names as the flank.
+
+The 216-flare score of these same readings has not been run.
+
+---
 
 ---
 

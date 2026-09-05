@@ -2,10 +2,24 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 // Hooks
-import { useAppSelector } from "~/lib/store/hooks";
+import { useAppDispatch, useAppSelector } from "~/lib/store/hooks";
+
+// Store
+import { mapActions } from "~/lib/store/features/map";
 
 // Client
 import { CountiesUrl } from "~/lib/client";
+
+// ArcGIS
+import {
+  HeadingLegend,
+  LightningLegend,
+} from "@/lib/arcgis/legends";
+import {
+  LIGHTNING_RGB,
+  RADAR_RGB,
+  soloColor,
+} from "@/lib/arcgis/bands";
 
 // Components
 import { Status } from "../Status";
@@ -15,6 +29,7 @@ import { FlareDistances } from "./FlareDistances";
 import { LayerCoverage } from "./LayerCoverage";
 import { LayerPanel } from "./LayerPanel";
 import { PaintedMap } from "./PaintedMap";
+import { StormReadings } from "./StormReadings";
 
 // Layout
 import { fitExtent } from "./fit";
@@ -60,6 +75,8 @@ export const Overlap = () => {
   const { date, day, painted, loading, missing, error } = useAppSelector(
     (state) => state.day
   );
+  const dispatch = useAppDispatch();
+  const selectedHour = useAppSelector((state) => state.map.selectedHour);
   const { near, loading: findingsLoading } = useAppSelector(
     (state) => state.findings
   );
@@ -123,6 +140,19 @@ export const Overlap = () => {
    * compared — a frame that refit itself each hour would move the ground under
    * the reader.
    */
+  useEffect(() => {
+    if (!painted || !selectedHour) return;
+    if (!painted.hours.includes(selectedHour)) {
+      dispatch(mapActions.setSelectedHour(null));
+    }
+  }, [painted, selectedHour, dispatch]);
+
+  const analyses = useMemo(() => {
+    const all = painted?.analyses ?? [];
+    if (!selectedHour) return all;
+    return all.filter((entry) => entry.at === selectedHour);
+  }, [painted, selectedHour]);
+
   const extent = useMemo(() => {
     if (!painted) return null;
     const flares = painted.analyses.flatMap((entry) => entry.flares);
@@ -208,10 +238,7 @@ export const Overlap = () => {
                     heading="This day"
                     subtitle={`${painted.proximity.flares} releases on the maps below. The same count, and the typical miss, for this day alone.`}
                   >
-                    <LayerCoverage
-                      cellKm={painted.proximity.cellKm}
-                      layers={painted.proximity.layers}
-                    />
+                    <LayerCoverage layers={painted.proximity.layers} />
                   </Section>
 
                   <Section
@@ -227,8 +254,19 @@ export const Overlap = () => {
                   </Section>
 
                   <Section
+                    heading="The radar storm at each release"
+                    subtitle="Each column is one Texas test we can score from radar at the release minute. Green is yes. Upwind uses the storm's heading from the previous mosaic, not the white flare arrows."
+                  >
+                    <StormReadings
+                      flares={painted.analyses.flatMap(
+                        (analysis) => analysis.flares
+                      )}
+                    />
+                  </Section>
+
+                  <Section
                     heading="Where they were"
-                    subtitle="One map per analysis, on the same extent. The dot is where a flare was released; the arrow carries it the remaining minutes along the storm motion to the moment of the frame under it, which is where every distance is measured."
+                    subtitle="One map per model hour. The white dot is the plane. When gold or green is on, the arrow points at where that air is on this hour's model field — the point we compare to that fill."
                   >
                     <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs items-center pb-1">
                       <span className="flex items-center gap-2">
@@ -256,16 +294,39 @@ export const Overlap = () => {
                           />
                           <path d="M19 1 L29 6 L19 11 z" fill="white" />
                         </svg>
-                        Storm motion at that release, over the minutes to the
-                        analysis — distances measured at the head
+                        Where that air is on this hour's model field (gold or
+                        green on)
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <svg width="14" height="14" aria-hidden="true">
+                          <circle
+                            cx="7"
+                            cy="7"
+                            r="3.5"
+                            fill={soloColor(RADAR_RGB, 0.95)}
+                          />
+                        </svg>
+                        Heaviest rain in the storm ({HeadingLegend.name})
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <svg width="14" height="14" aria-hidden="true">
+                          <circle
+                            cx="7"
+                            cy="7"
+                            r="2.5"
+                            fill={soloColor(LIGHTNING_RGB, 0.95)}
+                          />
+                        </svg>
+                        {LightningLegend.name} in the last five minutes
                       </span>
                       <span className="opacity-80">
-                        Hover a release for its distance to every layer.
+                        Hover a release for its distance to every layer and the
+                        storm it sat in.
                       </span>
                     </div>
 
                     <div className="flex flex-col gap-6" ref={measure}>
-                      {painted.analyses.map((analysis) => (
+                      {analyses.map((analysis) => (
                         <div key={analysis.at} className="flex flex-col gap-2">
                           <div className="flex items-baseline gap-3">
                             <h3 className="font-mono text-sm font-semibold">

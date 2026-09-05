@@ -229,6 +229,59 @@ export type Nearness = {
   kmAtRelease: number | null;
 };
 
+/**
+ * The radar storm at a release, from `/candidate/storm`.
+ *
+ * Older painted files have no `storm` field. Null means that hour had no
+ * 20 dBZ echo within about 40 km.
+ */
+export type StormAtFlare = {
+  inside: boolean;
+  /** Inside the rain, on the upwind side, nearer the edge than the heaviest rain. */
+  inWorking: boolean;
+  coreKm: number | null;
+  edgeKm: number | null;
+  upwindEdgeKm: number | null;
+  object: {
+    id: number;
+    maxDbz: number;
+    areaKm2: number;
+    ageMin: number | null;
+    ageFloor: boolean;
+    motionTowardDeg: number | null;
+    motionKmh: number | null;
+    areaDeltaKm2: number | null;
+    coreLat?: number;
+    coreLon?: number;
+  } | null;
+  slwGM2: number | null;
+  goesTopC: number | null;
+  goesTopDeltaC: number | null;
+  glmFlashes: number | null;
+  echoTopFt: number | null;
+  modelEchoTopFt: number | null;
+  freezingFt: number | null;
+};
+
+export type PointMarks = {
+  validTime: string;
+  points: [number, number][];
+  error?: string;
+};
+
+export type RingMarks = {
+  validTime: string;
+  rings: [number, number][][];
+  error?: string;
+};
+
+/** Cores, heading darts, and lightning at one analysis. */
+export type HourMarks = {
+  cores: PointMarks;
+  heading: RingMarks;
+  lightning: PointMarks;
+};
+
 export type Flare = {
   at: string;
   timeZ: string;
@@ -247,6 +300,7 @@ export type Flare = {
   near: Record<string, Nearness | null>;
   /** Which hours had the condition, for lining one release up against the table. */
   present: Record<string, Presence> | null;
+  storm?: StormAtFlare | null;
 };
 
 /** One analysis hour, and the releases charged to it. */
@@ -301,6 +355,8 @@ export type Painted = {
   hours: string[];
   /** By hour, then by layer key. */
   frames: Record<string, Record<string, Frame>>;
+  /** Cores, heading, and lightning at each analysis. Absent on older files. */
+  marks?: Record<string, HourMarks>;
   analyses: Analysis[];
   /** Computed by the eval server from the file above, never by the page. */
   proximity: Proximity;

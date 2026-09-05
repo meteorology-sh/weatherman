@@ -8,13 +8,21 @@ import { useAppSelector } from "~/lib/store/hooks";
 import { LAYERS } from "~/lib/layers";
 
 // ArcGIS
-import { soloColor } from "@/lib/arcgis/bands";
+import {
+  LIGHTNING_RGB,
+  MOTION_RGB,
+  RADAR_RGB,
+  soloColor,
+} from "@/lib/arcgis/bands";
 
 // Layout
 import type { Fitted } from "./fit";
 
 // Types
 import type { Analysis, Flare, Painted } from "~/lib/types";
+
+// Components
+import { stormLines } from "./StormReadings";
 
 /**
  * One analysis hour: the layers we painted, and the flares charged to it.
@@ -62,8 +70,12 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
   const {
     visible,
     drift,
+    heading,
+    lightning,
     counties: showCounties,
   } = useAppSelector((state) => state.map);
+  const showDrift =
+    drift && (Boolean(visible.liquid) || Boolean(visible.candidate));
   const [hover, setHover] = useState<string | null>(null);
 
   // Nothing to draw until the page has been measured. One render, at mount.
@@ -201,12 +213,52 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
             });
           })}
 
+          {visible.radar &&
+            heading &&
+            (painted.marks?.[analysis.at]?.heading.rings ?? [])
+              .filter(inView)
+              .map((ring, index) => (
+                <path
+                  key={`heading-${index}`}
+                  d={draw(ring)}
+                  fill={soloColor(MOTION_RGB, 0.95)}
+                />
+              ))}
+
+          {visible.radar &&
+            heading &&
+            (painted.marks?.[analysis.at]?.cores.points ?? []).map(
+              ([lon, lat], index) => (
+                <circle
+                  key={`core-${index}`}
+                  cx={px(lon)}
+                  cy={py(lat)}
+                  r={3.5}
+                  fill={soloColor(RADAR_RGB, 0.95)}
+                />
+              )
+            )}
+
+          {visible.radar &&
+            lightning &&
+            (painted.marks?.[analysis.at]?.lightning.points ?? []).map(
+              ([lon, lat], index) => (
+                <circle
+                  key={`flash-${index}`}
+                  cx={px(lon)}
+                  cy={py(lat)}
+                  r={2.5}
+                  fill={soloColor(LIGHTNING_RGB, 0.95)}
+                />
+              )
+            )}
+
           {/*
            * From where the flare was dropped to where that air is at the moment
            * of the frame under it. Drawn beneath the markers so a short line is
            * not swallowed by the dot it starts from.
            */}
-          {drift &&
+          {showDrift &&
             analysis.flares.map((flare) =>
               flare.drift?.to ? (
                 <line
@@ -308,6 +360,13 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
                 );
               })}
             </div>
+            {hovered.storm && (
+              <div className="flex flex-col gap-0.5 pt-1">
+                {stormLines(hovered.storm).map((line) => (
+                  <div key={line}>{line}</div>
+                ))}
+              </div>
+            )}
           </>
         ) : (
           <span className="opacity-70">
