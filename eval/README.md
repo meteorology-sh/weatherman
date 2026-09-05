@@ -13,11 +13,11 @@ gh release download eval-2025-v1 -p eval-2025-v1.tar.gz
 tar -xzf eval-2025-v1.tar.gz
 ```
 
-| Directory | What it is |
-| --------- | ---------- |
-| `cache/`  | Source reports (PDFs) |
+| Directory | What it is                                       |
+| --------- | ------------------------------------------------ |
+| `cache/`  | Source reports (PDFs)                            |
 | `data/`   | Parsed records and region config for that season |
-| `out/`    | Comparison to Weatherman's layers |
+| `out/`    | Comparison to Weatherman's layers                |
 
 A later season can change formats, counties, or programmes. That is a new
 snapshot, not a change to this code.
@@ -56,3 +56,13 @@ node eval/storms.mjs --day=2025-08-04 --region=wtwma --out=storms-sample.json
 `--day` and `--region` score a subset. `--out` writes a different file so a sample does not overwrite the season. Re-run without `--resume` after the storm extras change: an old file has no echo-top field and would otherwise be kept.
 
 `paint.mjs` stores cores, heading ticks, lightning, and the storm at each release beside the five fills. The eval app draws those under RADAR REFLECTIVITY, off until asked, the same way the candidate map does.
+
+## Where to run the evaluation
+
+The season build belongs on a machine with good CPU.
+
+One flying day is one Node API plus `grib_filter`: about 4.5 GiB and 1.5–2 cores. Each API keeps 8 archive scenes per source and then drops the oldest, so RSS does not climb with the season.
+
+Run the queue on **m7i.4xlarge in us-east-1** (16 vCPU, 64 GiB): eight days at once, same memory, twice the cores, and the HRRR, MRMS and GOES-19 archives are in that region.
+
+Copy `eval/out/` back; the evaluation map stays local.
