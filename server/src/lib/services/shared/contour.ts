@@ -71,6 +71,17 @@ export type RingStyle = {
   minArea: number;
   /** Chaikin passes after RDP. Omit or 0 to leave the ring faceted. */
   round?: number;
+  /**
+   * Put each vertex where the field actually reaches the level, rather than
+   * at the middle of the cell edge it crosses.
+   *
+   * **Continuous fields only.** On a 0/1 mask every crossing lands exactly on
+   * the inside corner, which collapses a one-cell feature to a point — so the
+   * storm-object rings and the two gate fills leave this off and keep the
+   * midpoints. A corner sitting exactly on the level falls back to the
+   * midpoint for the same reason.
+   */
+  interpolate?: boolean;
 };
 
 /** RDP tolerance that keeps a one-cell protrusion and flattens stairs. */
@@ -93,8 +104,24 @@ export const MAP_STYLE: RingStyle = {
   round: MAP_ROUND,
 };
 
+/**
+ * The drawn style for a field whose values vary smoothly.
+ *
+ * The map traces a field that has been averaged into blocks, so a ring pinned
+ * to cell-edge midpoints is a staircase four times coarser than the model —
+ * and rounding a staircase gives blobs. Interpolating puts the vertex where
+ * the values say the level is, inside the cell, which is detail the block
+ * average already carries rather than detail invented by the smoother.
+ */
+export const SMOOTH_STYLE: RingStyle = { ...MAP_STYLE, interpolate: true };
+
 export function styleFor(fine: boolean): RingStyle {
   return fine ? FINE_STYLE : MAP_STYLE;
+}
+
+/** {@link styleFor} for a continuous field. Evaluation is unchanged. */
+export function smoothFor(fine: boolean): RingStyle {
+  return fine ? FINE_STYLE : SMOOTH_STYLE;
 }
 
 const DRAWN_STYLE: RingStyle = MAP_STYLE;
@@ -149,36 +176,76 @@ export function bandFeatures(
   edges: readonly number[],
   style: RingStyle = DRAWN_STYLE
 ): ContourFeature[] {
+  // A ring that is neither rounded nor interpolated sits on the cell-edge
+  // midpoints whichever way it was traced, so two neighbouring bands cannot
+  // disagree about the boundary they share and there is nothing to fix: the
+  // evaluation harness keeps the mask trace it has always been checked on.
+  const rings =
+    style.interpolate || (style.round ?? 0) > 0
+      ? edges.map((level) => levelRings(grid, geo, level, style))
+      : null;
+
   return edges
-    .map((lo, i) => {
-      const hi = edges[i + 1] ?? Infinity;
-      // polygons() thresholds internally, so a 0/1 mask contoured at 1 is
-      // exactly a marching-squares pass over {lo <= value < hi}.
-      const mask = new Float32Array(grid.values.length);
-      for (let k = 0; k < grid.values.length; k++) {
-        const v = grid.values[k];
-        mask[k] = v >= lo && v < hi ? 1 : 0;
-      }
-      return {
-        type: "Feature" as const,
-        properties: { [property]: lo },
-        geometry: {
-          type: "MultiPolygon" as const,
-          coordinates: polygons({ ...grid, values: mask }, geo, 1, style),
-        },
-      };
-    })
+    .map((lo, i) => ({
+      type: "Feature" as const,
+      properties: { [property]: lo },
+      geometry: {
+        type: "MultiPolygon" as const,
+        coordinates: rings
+          ? // {value >= lo} minus {value >= edges[i + 1]}, which is exactly
+            // the half-open band.
+            assemble(band(rings[i], rings[i + 1] ?? []))
+          : maskPolygons(grid, geo, lo, edges[i + 1] ?? Infinity, style),
+      },
+    }))
     .filter((f) => f.geometry.coordinates.length > 0);
 }
 
+/** One band traced from its own 0/1 mask, each band on its own. */
+function maskPolygons(
+  grid: Grid,
+  geo: Geo,
+  lo: number,
+  hi: number,
+  style: RingStyle
+): ContourRing[][] {
+  // polygons() thresholds internally, so a 0/1 mask contoured at 1 is
+  // exactly a marching-squares pass over {lo <= value < hi}.
+  const mask = new Float32Array(grid.values.length);
+  for (let k = 0; k < grid.values.length; k++) {
+    const v = grid.values[k];
+    mask[k] = v >= lo && v < hi ? 1 : 0;
+  }
+  return polygons({ ...grid, values: mask }, geo, 1, style);
+}
+
 /**
- * Marching squares over {value >= level}, stitched into closed rings, with
- * holes nested inside the exterior that contains them (GeoJSON needs
- * [exterior, ...holes] or a clear patch inside a cloud mass renders as cloud).
+ * The rings of one half-open band: everything bounding {value >= lo} that the
+ * next edge does not also bound, plus the next edge's own rings turned inside
+ * out to cut it away.
  *
- * Rings are thinned in grid space, then projected. Storm object polygons
- * pass `minArea: 0` so a one-cell echo still has a ring; drawn layers drop
- * specks. Eval passes `round: 0` so the stairs stay.
+ * A ring the two edges have in common is a plateau — ground the band's floor
+ * and its ceiling both sit under — and there the band has no area at all, so
+ * the pair cancels rather than drawing an outline around nothing. Both come
+ * out of the same tracer over the same grid, so an identical shape is an
+ * identical array of coordinates and the comparison is exact.
+ */
+function band(outer: SignedRing[], inner: SignedRing[]): SignedRing[] {
+  const key = (r: SignedRing) => r.ring.map((p) => `${p[0]} ${p[1]}`).join(",");
+  const outerKeys = new Set(outer.map(key));
+  const innerKeys = new Set(inner.map(key));
+  return outer
+    .filter((r) => !innerKeys.has(key(r)))
+    .concat(
+      inner
+        .filter((r) => !outerKeys.has(key(r)))
+        .map((r) => ({ ...r, exterior: !r.exterior }))
+    );
+}
+
+/**
+ * Marching squares over {value >= level}, stitched into closed rings and
+ * nested so each hole sits inside the exterior that contains it.
  */
 export function polygons(
   grid: Grid,
@@ -186,21 +253,59 @@ export function polygons(
   level: number,
   style: RingStyle = { epsilon: SIMPLIFY_CELL, minArea: 0 }
 ): ContourRing[][] {
-  const exteriors: { ring: ContourRing; area: number; holes: ContourRing[] }[] =
-    [];
-  const holes: ContourRing[] = [];
+  return assemble(levelRings(grid, geo, level, style));
+}
 
-  for (const traced of trace(grid, level)) {
+/** One traced, thinned, projected ring, and which way round it came out. */
+type SignedRing = {
+  ring: ContourRing;
+  /** Unsigned, so a flipped ring still nests by size. */
+  area: number;
+  exterior: boolean;
+};
+
+/**
+ * Every ring of {value >= level}, thinned in grid space and then projected.
+ *
+ * Thinning before projecting is deliberate: projecting first would curve the
+ * Lambert rows and hide the collinear runs. Storm object polygons pass
+ * `minArea: 0` so a one-cell echo still has a ring; drawn layers drop specks.
+ * Eval passes no `round`, so the stairs stay.
+ */
+function levelRings(
+  grid: Grid,
+  geo: Geo,
+  level: number,
+  style: RingStyle
+): SignedRing[] {
+  const out: SignedRing[] = [];
+  for (const traced of trace(grid, level, style.interpolate === true)) {
     const simple = simplifyRing(traced, style);
     if (simple.length < 4) continue;
     if (Math.abs(signedArea(simple as ContourRing)) < style.minArea) continue;
     const ring = simple.map(([fi, fj]) => project(fi, fj, geo));
     const a = signedArea(ring);
-    if (a > 0) exteriors.push({ ring, area: a, holes: [] });
-    else if (a < 0) holes.push(ring);
+    if (a === 0) continue;
+    out.push({ ring, area: Math.abs(a), exterior: a > 0 });
+  }
+  return out;
+}
+
+/**
+ * Rings into GeoJSON polygons, each hole inside the smallest exterior that
+ * contains it — GeoJSON needs [exterior, ...holes] or a clear patch inside a
+ * cloud mass renders as cloud, and the smallest container is what lands a hole
+ * right inside nested shapes.
+ */
+function assemble(rings: readonly SignedRing[]): ContourRing[][] {
+  const exteriors: { ring: ContourRing; area: number; holes: ContourRing[] }[] =
+    [];
+  const holes: ContourRing[] = [];
+  for (const r of rings) {
+    if (r.exterior) exteriors.push({ ring: r.ring, area: r.area, holes: [] });
+    else holes.push(r.ring);
   }
 
-  // Smallest containing exterior wins, so holes inside nested shapes land right.
   for (const hole of holes) {
     let best: (typeof exteriors)[number] | null = null;
     for (const ext of exteriors) {
@@ -235,15 +340,8 @@ function project(fi: number, fj: number, geo: Geo): [number, number] {
 
 const round = (n: number) => Math.round(n * 1000) / 1000;
 
-const SIDES = {
-  T: (i: number, j: number) => [i + 0.5, j] as Pt,
-  R: (i: number, j: number) => [i + 1, j + 0.5] as Pt,
-  B: (i: number, j: number) => [i + 0.5, j + 1] as Pt,
-  L: (i: number, j: number) => [i, j + 0.5] as Pt,
-};
-
 /** Marching-squares cases, directed so the region is on the left of each segment. */
-const CASES: Record<number, [keyof typeof SIDES, keyof typeof SIDES][]> = {
+const CASES: Record<number, [Side, Side][]> = {
   1: [["B", "L"]],
   2: [["R", "B"]],
   3: [["R", "L"]],
@@ -266,18 +364,65 @@ const CASES: Record<number, [keyof typeof SIDES, keyof typeof SIDES][]> = {
   14: [["L", "B"]],
 };
 
+type Side = "T" | "R" | "B" | "L";
+
 /** Closed rings in padded grid coordinates. */
-function trace(grid: Grid, level: number): Pt[][] {
+function trace(grid: Grid, level: number, interpolate: boolean): Pt[][] {
   const { nx, ny, values } = grid;
   // Pad by one cell so regions touching the domain edge still close.
   const w = nx + 2;
   const h = ny + 2;
   const mask = new Uint8Array(w * h);
+  // The same values, padded to match, so a crossing can be placed by where the
+  // field reaches the level. The pad ring stays NaN and falls back to the
+  // midpoint, which is what the whole grid used to do.
+  const vals = new Float32Array(w * h).fill(Number.NaN);
   for (let j = 0; j < ny; j++) {
     for (let i = 0; i < nx; i++) {
-      if (values[j * nx + i] >= level) mask[(j + 1) * w + (i + 1)] = 1;
+      const v = values[j * nx + i];
+      vals[(j + 1) * w + (i + 1)] = v;
+      if (v >= level) mask[(j + 1) * w + (i + 1)] = 1;
     }
   }
+
+  /**
+   * How far along an edge the field reaches `level`, as a fraction from the
+   * first corner to the second.
+   *
+   * The two cells either side of an edge read the same pair of corners in the
+   * same order, so both land on the same coordinate and the segments still
+   * stitch on an exact key match.
+   */
+  const at = (va: number, vb: number): number => {
+    if (!interpolate) return 0.5;
+    if (!Number.isFinite(va) || !Number.isFinite(vb)) return 0.5;
+    const span = vb - va;
+    if (span === 0) return 0.5;
+    const t = (level - va) / span;
+    // Exactly on the level means a 0/1 mask rather than a gradient: putting
+    // the vertex on the corner would collapse a one-cell feature to a point.
+    return t > 0 && t < 1 ? t : 0.5;
+  };
+
+  /** Crossing on the horizontal edge from (i, j) to (i + 1, j). */
+  const hx = (i: number, j: number) =>
+    i + at(vals[j * w + i], vals[j * w + i + 1]);
+  /** Crossing on the vertical edge from (i, j) to (i, j + 1). */
+  const vy = (i: number, j: number) =>
+    j + at(vals[j * w + i], vals[(j + 1) * w + i]);
+
+  const side = (s: Side, i: number, j: number): Pt => {
+    switch (s) {
+      case "T":
+        return [hx(i, j), j];
+      case "R":
+        return [i + 1, vy(i + 1, j)];
+      case "B":
+        return [hx(i, j + 1), j + 1];
+      default:
+        return [i, vy(i, j)];
+    }
+  };
 
   const next = new Map<string, Pt[]>();
   const key = (p: Pt) => `${p[0]},${p[1]}`;
@@ -292,8 +437,8 @@ function trace(grid: Grid, level: number): Pt[][] {
       const segs = CASES[c];
       if (!segs) continue;
       for (const [from, to] of segs) {
-        const a = SIDES[from](i, j);
-        const b = SIDES[to](i, j);
+        const a = side(from, i, j);
+        const b = side(to, i, j);
         const k = key(a);
         const list = next.get(k);
         if (list) list.push(b);

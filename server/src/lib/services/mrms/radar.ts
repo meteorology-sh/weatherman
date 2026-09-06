@@ -3,7 +3,7 @@ import { gunzip } from "zlib";
 import { promisify } from "util";
 
 // Services
-import { features, styleFor } from "../shared/contour";
+import { features, smoothFor } from "../shared/contour";
 import type { RingStyle } from "../shared/contour";
 import { eachMessage } from "../shared/grib";
 import { BLOCK as DRAW_BLOCK, crop, DRAWN } from "../shared/grid";
@@ -193,7 +193,7 @@ export class RadarService {
         drawn.geo,
         REFLECTIVITY.property,
         REFLECTIVITY.levels,
-        styleFor(fine)
+        smoothFor(fine)
       ),
     };
   }
@@ -275,6 +275,10 @@ export class RadarService {
   /**
    * Raining cells on the upwind edge of each storm. Empty when the storm
    * has no motion from a previous mosaic: we do not guess inflow.
+   *
+   * The same {@link drawnStorms} floor the cores and the headings use. A
+   * speck under it has no core and no arrow, so drawing it a flank left an
+   * orange outline around nothing the rest of the layer admits to.
    */
   async flanks(
     at?: Date,
@@ -289,7 +293,7 @@ export class RadarService {
       false,
       fine
     );
-    return flankFrame(validTime, storms, grid, geo, RAIN_DBZ);
+    return flankFrame(validTime, drawnStorms(storms), grid, geo, RAIN_DBZ);
   }
 
   /**

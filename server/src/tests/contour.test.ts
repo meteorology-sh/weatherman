@@ -4,10 +4,12 @@ import assert from "node:assert/strict";
 
 // Services
 import {
+  bandFeatures,
   features,
   polygons,
   FINE_STYLE,
   MAP_STYLE,
+  SMOOTH_STYLE,
   SIMPLIFY_CELL,
 } from "../lib/services/shared/contour";
 import { downsample, prepareDraw } from "../lib/services/shared/grid";
@@ -265,5 +267,134 @@ describe("downsample", () => {
       true
     );
     assert.ok(Number.isNaN(majority.grid.values[0]));
+  });
+});
+
+/** Whether a point falls inside a ring. Ray casting; the ring is closed. */
+const inRing = (ring: number[][], x: number, y: number): boolean => {
+  let inside = false;
+  for (let i = 0, j = ring.length - 2; i < ring.length - 1; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if (yi > y !== yj > y) {
+      const cut = ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+      if (x < cut) inside = !inside;
+    }
+  }
+  return inside;
+};
+
+/** Whether a band's MultiPolygon covers a point: in an exterior, in no hole. */
+const covers = (
+  feature: { geometry: { coordinates: number[][][][] } },
+  x: number,
+  y: number
+): boolean =>
+  feature.geometry.coordinates.some(
+    ([exterior, ...holes]) =>
+      inRing(exterior, x, y) && !holes.some((hole) => inRing(hole, x, y))
+  );
+
+describe("SMOOTH_STYLE", () => {
+  // The whole reason the drawn ring is interpolated: a block average is the
+  // only thing left of the model at 12 km, so a ring pinned to the cell edge
+  // throws away the one number in the cell that says where the level is.
+  it("sizes a blob by how far its cells clear the level", () => {
+    const blob = (peak: number) => {
+      const { values } = fixture();
+      fill(values, 9, 10, 9, 10, peak);
+      const { grid, geo } = asGrid(values);
+      return polygons(grid, geo, 50, SMOOTH_STYLE);
+    };
+    const area = (rings: number[][][][]) =>
+      rings.reduce((total, [ring]) => {
+        let s = 0;
+        for (let i = 0; i < ring.length - 1; i++) {
+          s += (ring[i + 1][0] - ring[i][0]) * (ring[i + 1][1] + ring[i][1]);
+        }
+        return total + Math.abs(s / 2);
+      }, 0);
+
+    assert.ok(area(blob(100)) > area(blob(60)));
+  });
+
+  // A gate has no gradient, so every crossing would land on a corner and a
+  // small feature would collapse. Those layers keep the midpoints, and this
+  // is the guard that holds even if one of them is handed this style.
+  it("keeps the cell-edge midpoints on a 0/1 mask", () => {
+    const { values } = fixture();
+    fill(values, 5, 14, 5, 14, 1);
+    const { grid, geo } = asGrid(values);
+    assert.deepEqual(
+      polygons(grid, geo, 1, SMOOTH_STYLE),
+      polygons(grid, geo, 1, MAP_STYLE)
+    );
+  });
+});
+
+describe("bandFeatures", () => {
+  const EDGES = [0, 40, 80];
+
+  /** A ramp across the grid, so all three bands exist and share boundaries. */
+  const ramp = () => {
+    const { values } = fixture();
+    for (let j = 0; j < NY; j++) {
+      for (let i = 0; i < NX; i++) values[j * NX + i] = i * 6 + j;
+    }
+    return asGrid(values);
+  };
+
+  // Bands used to be traced from a mask each, so neighbours thinned and
+  // rounded the boundary they share separately and drifted apart on it: a
+  // sliver of double fill on one side, bare basemap on the other. Sharing the
+  // ring makes both impossible rather than rare.
+  it("never paints one place with two bands", () => {
+    const { grid, geo } = ramp();
+    const bands = bandFeatures(grid, geo, "v", EDGES, SMOOTH_STYLE);
+    assert.equal(bands.length, 3);
+
+    for (let x = 0.5; x < NX - 1; x += 0.25) {
+      for (let y = 0.5; y < NY - 1; y += 0.25) {
+        const hits = bands.filter((band) => covers(band, x, y)).length;
+        assert.ok(hits <= 1, `${hits} bands cover ${x},${y}`);
+      }
+    }
+  });
+
+  // The evaluation harness reads these frames and is checked against them, so
+  // the ring it gets must not move. Nothing rounds or interpolates it, so
+  // there is no drift for a shared trace to fix there either: it keeps tracing
+  // each band's own mask, exactly as it always has.
+  it("traces the unrounded band from its own mask", () => {
+    const { grid, geo } = ramp();
+    const mask = (lo: number, hi: number) => {
+      const values = new Float32Array(grid.values.length);
+      for (let k = 0; k < values.length; k++) {
+        const v = grid.values[k];
+        values[k] = v >= lo && v < hi ? 1 : 0;
+      }
+      return polygons({ ...grid, values }, geo, 1, FINE_STYLE);
+    };
+
+    assert.deepEqual(
+      bandFeatures(grid, geo, "v", EDGES, FINE_STYLE).map(
+        (f) => f.geometry.coordinates
+      ),
+      EDGES.map((lo, i) => mask(lo, EDGES[i + 1] ?? Infinity)).filter(
+        (rings) => rings.length > 0
+      )
+    );
+  });
+
+  it("still puts a cell in exactly one band", () => {
+    const { values } = fixture();
+    fill(values, 0, NX - 1, 0, NY - 1, 50);
+    const { grid, geo } = asGrid(values);
+    assert.deepEqual(
+      bandFeatures(grid, geo, "v", EDGES, SMOOTH_STYLE).map(
+        (f) => f.properties.v
+      ),
+      [40]
+    );
   });
 });

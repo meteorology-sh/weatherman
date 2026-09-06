@@ -25,7 +25,7 @@
  */
 
 // Services
-import { features, styleFor } from "../shared/contour";
+import { features, smoothFor, styleFor } from "../shared/contour";
 import { Hrrr } from "../hrrr/forecast";
 import { SEEDING } from "../hrrr/slw";
 import { Goes } from "../goes/cloudtop";
@@ -198,7 +198,7 @@ export class CandidateService {
         drawn.geo,
         CANDIDATE.property,
         CANDIDATE.levels,
-        styleFor(fine)
+        smoothFor(fine)
       ),
     };
   }
@@ -231,6 +231,8 @@ export class CandidateService {
         drawn.geo,
         "fly",
         [1],
+        // A gate, so the values are 1 or nothing. There is no gradient to
+        // interpolate a ring along, hence `styleFor` and not `smoothFor`.
         styleFor(fine)
       ),
     };
@@ -292,7 +294,7 @@ export class CandidateService {
         drawn.geo,
         CONFIRMED.property,
         CONFIRMED.levels,
-        styleFor(fine)
+        smoothFor(fine)
       ),
     };
   }

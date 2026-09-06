@@ -17,7 +17,7 @@ import { promisify } from "util";
 import { eachMessage } from "../shared/grib";
 import { cellAt, DRAWN, prepareDraw } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
-import { features, styleFor } from "../shared/contour";
+import { features, smoothFor } from "../shared/contour";
 import type { ContourFrame, Geo, Grid } from "../shared/contour";
 import { METRES_TO_FEET } from "../hrrr/profile";
 import { Hrrr } from "../hrrr/forecast";
@@ -239,7 +239,7 @@ export class EchoTopService {
         drawn.geo,
         "pastFreezing",
         [1],
-        styleFor(fine)
+        smoothFor(fine)
       ),
     };
   }

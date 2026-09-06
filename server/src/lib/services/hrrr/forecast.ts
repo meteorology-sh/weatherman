@@ -22,6 +22,7 @@ import {
   features,
   frame,
   polygons,
+  smoothFor,
   styleFor,
 } from "../shared/contour";
 import { eachMessage } from "../shared/grib";
@@ -453,7 +454,8 @@ export class ForecastService {
         [1],
         box,
         false,
-        fine
+        fine,
+        false
       )
     );
   }
@@ -1078,17 +1080,24 @@ export class ForecastService {
     };
   }
 
-  /** Contour a window of the grid the decode already holds. */
+  /**
+   * Contour a window of the grid the decode already holds.
+   *
+   * `smooth` is whether the values vary continuously, which every HRRR field
+   * here does except the base window — that one is a gate with no gradient for
+   * a ring to follow, so it keeps the cell-edge midpoints.
+   */
   private features(
     grid: Grid,
     property: string,
     levels: readonly number[],
     box: LonLatBox = DRAWN,
     disjoint = false,
-    fine = false
+    fine = false,
+    smooth = true
   ): ContourFeature[] {
     const drawn = prepareDraw(grid, this.geo!, box, fine);
-    const style = styleFor(fine);
+    const style = smooth ? smoothFor(fine) : styleFor(fine);
     return disjoint
       ? bandFeatures(drawn.grid, drawn.geo, property, levels, style)
       : features(drawn.grid, drawn.geo, property, levels, style);

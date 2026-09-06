@@ -15,7 +15,7 @@
  */
 
 // Services
-import { bandFeatures, styleFor } from "../shared/contour";
+import { bandFeatures, smoothFor } from "../shared/contour";
 import { Hrrr } from "../hrrr/forecast";
 import { cellAt, crop, DRAWN, inBox, prepareDraw } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
@@ -210,7 +210,7 @@ export class CloudTopService {
         drawn.geo,
         CLOUD_TOP.property,
         CLOUD_TOP.levels,
-        styleFor(fine)
+        smoothFor(fine)
       ),
     };
   }
