@@ -42,8 +42,9 @@ type SeedabilityState = {
 };
 
 /**
- * On by default, with radar storms. This is the quiet-liquid answer; storms
- * are the object Texas programmes fly. The other inputs start off.
+ * On arrival. This is the Texas fly fill — where to click. Radar, cores,
+ * heading, and the upwind flank start on with it. The other switches
+ * examine the inputs.
  */
 const initialState: SeedabilityState = {
   visible: true,

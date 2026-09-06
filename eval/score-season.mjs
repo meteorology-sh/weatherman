@@ -1,10 +1,10 @@
 /**
  * Print the EVALUATION.md tables from files already in eval/out.
  *
- * `node eval/score-season.mjs` — no server. Layer overlap and Texas
- * features come from the painted days. Band overlap is calculated from
- * the balloon JSON. Shared Midland and Del Rio mornings are counted
- * once in the season band table.
+ * `node eval/score-season.mjs` — no server. Layer overlap, Texas fills,
+ * and Texas storm features come from the painted days. Band overlap is
+ * calculated from the balloon JSON. Shared Midland and Del Rio mornings
+ * are counted once in the season band table.
  */
 
 // Node
@@ -29,7 +29,13 @@ const LAYERS = [
   ["cloudTop", "Cloud tops"],
   ["radar", "Radar reflectivity"],
   ["liquid", "Supercooled liquid water"],
-  ["candidate", "Seeding opportunity"],
+  ["candidate", "Quiet-liquid join"],
+];
+
+const TEXAS_FILLS = [
+  ["target", "Texas fly fill"],
+  ["baseWindow", "Base window"],
+  ["echoFreeze", "Echo past freezing"],
 ];
 
 const TEXAS_KEYS = [
@@ -69,7 +75,9 @@ function regionOfPainted(name) {
 const evaluable = regions.filter((region) => region.releases);
 
 const emptyLayers = () =>
-  Object.fromEntries(LAYERS.map(([key]) => [key, { n: 0, inside: 0 }]));
+  Object.fromEntries(
+    [...LAYERS, ...TEXAS_FILLS].map(([key]) => [key, { n: 0, inside: 0 }])
+  );
 
 const stats = {};
 for (const region of evaluable) {
@@ -87,7 +95,7 @@ for (const name of files) {
   stats[id].days += 1;
   stats[id].flares.push(...flares);
   for (const flare of flares) {
-    for (const [key] of LAYERS) {
+    for (const [key] of [...LAYERS, ...TEXAS_FILLS]) {
       const near = flare.near?.[key];
       if (!near || near.km == null) continue;
       stats[id].layers[key].n += 1;
@@ -109,7 +117,7 @@ const seasonFlares = [];
 for (const region of evaluable) {
   const row = stats[region.id];
   seasonFlares.push(...row.flares);
-  for (const [key] of LAYERS) {
+  for (const [key] of [...LAYERS, ...TEXAS_FILLS]) {
     seasonLayers[key].n += row.layers[key].n;
     seasonLayers[key].inside += row.layers[key].inside;
   }
@@ -124,6 +132,33 @@ for (const region of evaluable) {
 console.log(
   `| Season | ${seasonFlares.length} | ` +
     LAYERS.map(([key]) =>
+      cell(seasonLayers[key].inside, seasonLayers[key].n)
+    ).join(" | ") +
+    " |"
+);
+
+console.log("\n## Flare overlap with each Texas fill\n");
+console.log(
+  "| Programme | Releases | " +
+    TEXAS_FILLS.map(([, label]) => label).join(" | ") +
+    " |"
+);
+console.log(
+  "| --- | ---: | " + TEXAS_FILLS.map(() => "---:").join(" | ") + " |"
+);
+for (const region of evaluable) {
+  const row = stats[region.id];
+  console.log(
+    `| ${region.short} | ${row.flares.length} | ` +
+      TEXAS_FILLS.map(([key]) =>
+        cell(row.layers[key].inside, row.layers[key].n)
+      ).join(" | ") +
+      " |"
+  );
+}
+console.log(
+  `| Season | ${seasonFlares.length} | ` +
+    TEXAS_FILLS.map(([key]) =>
       cell(seasonLayers[key].inside, seasonLayers[key].n)
     ).join(" | ") +
     " |"

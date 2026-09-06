@@ -15,14 +15,22 @@ describe("replay slice", () => {
     expect(initial.at).toBe(null);
   });
 
-  it("starts with the candidate field and radar, like the candidate map", () => {
+  it("starts with radar and the storm object, like the candidate map", () => {
     expect(initial.field).toBe(true);
     expect(initial.radar).toBe(true);
     expect(initial.lightning).toBe(false);
-    expect(initial.heading).toBe(false);
+    expect(initial.heading).toBe(true);
+    expect(initial.echoFreeze).toBe(false);
     expect(initial.cloudTop).toBe(false);
     expect(initial.liquid).toBe(false);
     expect(initial.cloudBase).toBe(false);
+    expect(initial.baseWindow).toBe(false);
+    expect(initial.cape).toBe(false);
+    expect(initial.cin).toBe(false);
+    expect(initial.lcl).toBe(false);
+    expect(initial.freezing).toBe(false);
+    expect(initial.minus15).toBe(false);
+    expect(initial.warmDepth).toBe(false);
   });
 
   it("stores the chosen hour as an ISO string", () => {

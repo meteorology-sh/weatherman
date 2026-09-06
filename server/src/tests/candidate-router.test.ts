@@ -229,6 +229,25 @@ describe("candidate router", () => {
     assert.equal(summary.coveragePct, 0.31);
   });
 
+  it("responds with the Texas fly fill as GeoJSON", async (t) => {
+    t.mock.method(Seedability, "targetField", async () => ({
+      ...frame,
+      features: [
+        {
+          type: "Feature" as const,
+          properties: { fly: 1 },
+          geometry: frame.features[0].geometry,
+        },
+      ],
+    }));
+
+    const body = await fetch(`${origin}/candidate/target`).then((r) =>
+      r.json()
+    );
+
+    assert.equal(body.features[0].properties.fly, 1);
+  });
+
   it("responds with the Texas-target summary as JSON", async (t) => {
     t.mock.method(Seedability, "targetStats", async () => targetStats);
 

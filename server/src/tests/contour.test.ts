@@ -244,4 +244,26 @@ describe("downsample", () => {
     assert.equal(out.grid.values[2], 0);
     assert.ok(Number.isNaN(out.grid.values[3]));
   });
+
+  it("does not let a lone sampled cell paint the whole coarse block", () => {
+    const values = new Float32Array(16).fill(Number.NaN);
+    values[0] = 1;
+    const grid: Grid = { nx: 4, ny: 4, values };
+    const geo: Geo = {
+      nx: 4,
+      ny: 4,
+      lats: new Float32Array(16),
+      lons: new Float32Array(16),
+    };
+    const painted = downsample(grid, geo, 4);
+    assert.equal(painted.grid.values[0], 1);
+    const majority = downsample(
+      grid,
+      geo,
+      4,
+      (v) => !Number.isFinite(v),
+      true
+    );
+    assert.ok(Number.isNaN(majority.grid.values[0]));
+  });
 });

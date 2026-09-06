@@ -9,10 +9,7 @@ export const Forecast = () => {
       <div className="col-span-1 p-4 h-[calc(90vh)] overflow-y-auto">
         <div className="prose">
           <h2>Cloud Forecast</h2>
-          <p>
-            Modelled cloud cover and precipitation from NOAA HRRR, out to 18
-            hours.
-          </p>
+          <p>HRRR cloud cover and precipitation, 0–18 h.</p>
         </div>
 
         <div className="py-2">
@@ -22,23 +19,8 @@ export const Forecast = () => {
             <div className="collapse-content text-sm">
               <div className="prose">
                 <ol>
-                  <li>
-                    Drag the slider to step through the run, from the analysis
-                    hour out to +18 h. The frame redraws at each step.
-                  </li>
-                  <li>
-                    Switch PRECIPITATION off to read the cloud on its own. It
-                    has nothing to draw at the analysis hour, so step forward an
-                    hour to see it.
-                  </li>
-                  <li>
-                    Open “What this measures” under either layer for what it is
-                    and how it is made.
-                  </li>
-                  <li>
-                    For observed cloud rather than modelled, use the candidate
-                    map.
-                  </li>
+                  <li>Slider: analysis hour to +18 h.</li>
+                  <li>PRECIPITATION starts at +1 h.</li>
                 </ol>
               </div>
             </div>

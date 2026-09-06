@@ -55,51 +55,24 @@ describe("StormHere", () => {
     act(() => {
       store.dispatch(stormsActions.setHere(null));
     });
-    expect(
-      screen.getByText(/No rain at 20 dBZ within about 40 km/)
-    ).toBeTruthy();
+    expect(screen.getByText("none within 40 km")).toBeTruthy();
   });
 
-  it("says how far the click is from the heaviest rain and from the edge", () => {
+  it("reports place, motion, and echo top as numbers", () => {
     const store = createTestStore();
     renderWithStore(<StormHere />, store);
     act(() => {
       store.dispatch(stormsActions.setHere(reading));
     });
-    expect(screen.getByText("48 dBZ")).toBeTruthy();
-    expect(screen.getByText(/0.6 km from the edge/)).toBeTruthy();
-    expect(screen.getByText(/outside the rain/)).toBeTruthy();
-    expect(screen.getByText(/Moving toward NE at 28 km\/h/)).toBeTruthy();
-    expect(screen.getByText(/4.2 km² more than the previous scan/)).toBeTruthy();
-    expect(screen.getByText(/been on the mosaic for 12 minutes/)).toBeTruthy();
-    expect(screen.getByText(/3 lightning flashes/)).toBeTruthy();
-    expect(screen.getByText(/2 °C colder than five minutes ago/)).toBeTruthy();
-    expect(screen.getByText(/22 g\/m² of supercooled liquid/)).toBeTruthy();
-    expect(
-      screen.getByText(/18 dBZ echo top is 14,000 ft above the freezing level/)
-    ).toBeTruthy();
+    expect(screen.getByText("outside rain")).toBeTruthy();
+    expect(screen.getByText("0.6 km")).toBeTruthy();
+    expect(screen.getByText("4.2 km")).toBeTruthy();
+    expect(screen.getByText("NE 28 km/h")).toBeTruthy();
+    expect(screen.getByText("14,000 ft above freezing")).toBeTruthy();
+    expect(screen.getByText(/-14 °C · -2 °C/)).toBeTruthy();
   });
 
-  it("falls back to modelled echo top when the measurement is missing", () => {
-    const store = createTestStore();
-    renderWithStore(<StormHere />, store);
-    act(() => {
-      store.dispatch(
-        stormsActions.setHere({
-          ...reading,
-          echoTopFt: null,
-          modelEchoTopFt: 22000,
-          freezingFt: 14000,
-        })
-      );
-    });
-    expect(screen.getByText(/No measured 18 dBZ echo top/)).toBeTruthy();
-    expect(
-      screen.getByText(/Modelled echo top is 8,000 ft above the freezing level/)
-    ).toBeTruthy();
-  });
-
-  it("names the upwind flank when the click is inside the rain on that side", () => {
+  it("names the upwind flank", () => {
     const store = createTestStore();
     renderWithStore(<StormHere />, store);
     act(() => {
@@ -113,27 +86,10 @@ describe("StormHere", () => {
         })
       );
     });
-    expect(screen.getByText(/on the upwind side/)).toBeTruthy();
-    expect(screen.getByText(/flank crews fly/)).toBeTruthy();
+    expect(screen.getByText("upwind flank")).toBeTruthy();
   });
 
-  it("says age is a lower bound when the oldest scan still matched", () => {
-    const store = createTestStore();
-    renderWithStore(<StormHere />, store);
-    act(() => {
-      store.dispatch(
-        stormsActions.setHere({
-          ...reading,
-          object: { ...reading.object, ageMin: 18, ageFloor: true },
-        })
-      );
-    });
-    expect(
-      screen.getByText(/been on the mosaic for at least 18 minutes/)
-    ).toBeTruthy();
-  });
-
-  it("says you clicked the heaviest rain when the click is on the dot", () => {
+  it("names the heaviest rain when the click is on the dot", () => {
     const store = createTestStore();
     renderWithStore(<StormHere />, store);
     act(() => {
@@ -146,8 +102,21 @@ describe("StormHere", () => {
         })
       );
     });
-    expect(
-      screen.getByText(/You clicked the heaviest rain in this storm/)
-    ).toBeTruthy();
+    expect(screen.getByText("heaviest rain")).toBeTruthy();
+  });
+
+  it("flags a cloud top that warmed", () => {
+    const store = createTestStore();
+    renderWithStore(<StormHere />, store);
+    act(() => {
+      store.dispatch(
+        stormsActions.setHere({
+          ...reading,
+          goesTopC: -12,
+          goesTopDeltaC: 1.5,
+        })
+      );
+    });
+    expect(screen.getByText(/-12 °C · \+1.5 °C/)).toBeTruthy();
   });
 });

@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import briefingReducer from "./features/briefing";
 import candidateReducer from "./features/candidate";
 import cloudBaseReducer from "./features/cloudbase";
 import cloudTopReducer from "./features/cloudtop";
@@ -16,6 +17,7 @@ import soundingReducer from "./features/sounding";
 // only plain data, so the check stays on.
 export const store = configureStore({
   reducer: {
+    briefing: briefingReducer,
     candidate: candidateReducer,
     cloudbase: cloudBaseReducer,
     cloudtop: cloudTopReducer,

@@ -5,12 +5,21 @@ import {
   candidateFieldRenderer,
   forecastCloudRenderer,
   forecastPrecipRenderer,
+  baseWindowRenderer,
   candidateCloudBaseRenderer,
   candidateCloudTopRenderer,
   candidateLiquidRenderer,
   candidateRadarRenderer,
+  capeRenderer,
+  cinRenderer,
+  echoFreezeRenderer,
+  freezingRenderer,
+  lclRenderer,
   lightningRenderer,
+  minus15Renderer,
+  warmDepthRenderer,
   stormCoreRenderer,
+  stormFlankRenderer,
   stormMotionRenderer,
 } from "./renderers";
 
@@ -20,12 +29,16 @@ import {
   CandidateFieldUrl,
   CloudTopUrl,
   ForecastCloudsUrl,
+  ForecastBriefingUrl,
   ForecastCloudBaseUrl,
+  ForecastCloudBaseWindowUrl,
   ForecastPrecipUrl,
   ForecastLiquidUrl,
   RadarReflectivityUrl,
   RadarStormCoresUrl,
+  RadarStormFlanksUrl,
   RadarStormMotionUrl,
+  RadarEchoFreezeUrl,
   LightningUrl,
 } from "@/lib/client";
 
@@ -69,6 +82,19 @@ export const ReplayCloudBaseLayer = new GeoJSONLayer({
   fields: [
     { name: "OBJECTID", type: "oid" },
     { name: "cloudBaseFt", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayCloudBaseWindowLayer = new GeoJSONLayer({
+  title: "HRRR cloud base window (replay)",
+  copyright: "NOAA HRRR",
+  renderer: baseWindowRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "inWindow", type: "double" },
   ],
   visible: false,
 });
@@ -128,6 +154,20 @@ export const ReplayStormMotionLayer = new GeoJSONLayer({
   visible: false,
 });
 
+export const ReplayStormFlankLayer = new GeoJSONLayer({
+  title: "MRMS radar storm flanks (replay)",
+  copyright: "NOAA / National Weather Service MRMS",
+  renderer: stormFlankRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "stormId", type: "integer" },
+    { name: "maxDbz", type: "double" },
+  ],
+  visible: false,
+});
+
 export const ReplayLightningLayer = new GeoJSONLayer({
   title: "GOES-East GLM flashes (replay)",
   copyright: "NOAA GOES-East GLM",
@@ -138,27 +178,112 @@ export const ReplayLightningLayer = new GeoJSONLayer({
   visible: false,
 });
 
+export const ReplayCapeLayer = new GeoJSONLayer({
+  title: "HRRR mixed-layer CAPE (replay)",
+  copyright: "NOAA HRRR",
+  renderer: capeRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "mixedCapeJKg", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayCinLayer = new GeoJSONLayer({
+  title: "HRRR mixed-layer CIN (replay)",
+  copyright: "NOAA HRRR",
+  renderer: cinRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "cinJKg", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayLclLayer = new GeoJSONLayer({
+  title: "HRRR lifting condensation level (replay)",
+  copyright: "NOAA HRRR",
+  renderer: lclRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "lclFt", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayFreezingLayer = new GeoJSONLayer({
+  title: "HRRR freezing level (replay)",
+  copyright: "NOAA HRRR",
+  renderer: freezingRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "freezingFt", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayMinus15Layer = new GeoJSONLayer({
+  title: "HRRR −15 °C height (replay)",
+  copyright: "NOAA HRRR",
+  renderer: minus15Renderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "minus15Ft", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayWarmDepthLayer = new GeoJSONLayer({
+  title: "HRRR warm-cloud depth (replay)",
+  copyright: "NOAA HRRR",
+  renderer: warmDepthRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "warmCloudDepthFt", type: "double" },
+  ],
+  visible: false,
+});
+
+export const ReplayEchoFreezeLayer = new GeoJSONLayer({
+  title: "MRMS echo top past freezing (replay)",
+  copyright: "NOAA MRMS / NOAA HRRR",
+  renderer: echoFreezeRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "pastFreezing", type: "double" },
+  ],
+  visible: false,
+});
+
 /**
- * The candidate field: every layer joined, drawn only where all of them agree.
- *
- * Nested contours on the same levels as the liquid-water layer, because it
- * carries the same quantity — the join filters cells, it does not rescore them.
- * Drawn above the liquid layer so amber showing through with no green over it
- * is liquid the join rejected, which is the comparison the map is for.
- *
- * Pinned to the analysis hour with no url parameter at all: the join reads an
- * observed cloud top, and a satellite cannot forecast. Nothing repoints this.
+ * Texas fly: base in the Comptroller window, 18 dBZ echo top past
+ * freezing nearby, rain nearby. One fill. The same cells a click
+ * names FLY.
  */
 export const CandidateFieldLayer = new GeoJSONLayer({
   title: "Seeding opportunity",
   url: CandidateFieldUrl(),
-  copyright: "NOAA HRRR / NOAA GOES-East / NOAA MRMS",
+  copyright: "NOAA HRRR / NOAA MRMS",
   renderer: candidateFieldRenderer,
   geometryType: "polygon",
   objectIdField: "OBJECTID",
   fields: [
     { name: "OBJECTID", type: "oid" },
-    { name: "seedableSlwPath", type: "double" },
+    { name: "fly", type: "double" },
   ],
   visible: false,
 });
@@ -195,13 +320,13 @@ export const CandidateConfirmedLayer = new GeoJSONLayer({
 /** The same field at a replayed hour. See ReplayCloudTopLayer for why separate. */
 export const ReplayFieldLayer = new GeoJSONLayer({
   title: "Seeding opportunity (replay)",
-  copyright: "NOAA HRRR / NOAA GOES-East / NOAA MRMS",
+  copyright: "NOAA HRRR / NOAA MRMS",
   renderer: candidateFieldRenderer,
   geometryType: "polygon",
   objectIdField: "OBJECTID",
   fields: [
     { name: "OBJECTID", type: "oid" },
-    { name: "seedableSlwPath", type: "double" },
+    { name: "fly", type: "double" },
   ],
   visible: false,
 });
@@ -278,6 +403,25 @@ export const CandidateCloudBaseLayer = new GeoJSONLayer({
   fields: [
     { name: "OBJECTID", type: "oid" },
     { name: "cloudBaseFt", type: "double" },
+  ],
+  visible: false,
+});
+
+/**
+ * Comptroller window, AGL. A picture of the gate, not a mask.
+ * Drawn over the rain, like echo past freezing, so the switch
+ * is visible on the storm. Pinned to hour 0 like the height ramp.
+ */
+export const CandidateCloudBaseWindowLayer = new GeoJSONLayer({
+  title: "HRRR cloud base window",
+  url: ForecastCloudBaseWindowUrl(0),
+  copyright: "NOAA HRRR",
+  renderer: baseWindowRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "inWindow", type: "double" },
   ],
   visible: false,
 });
@@ -405,6 +549,25 @@ export const CandidateStormMotionLayer = new GeoJSONLayer({
 });
 
 /**
+ * Raining cells on the upwind edge of each storm. Empty when the
+ * previous mosaic gave no direction. Not inflow.
+ */
+export const CandidateStormFlankLayer = new GeoJSONLayer({
+  title: "MRMS radar storm flanks",
+  url: RadarStormFlanksUrl(),
+  copyright: "NOAA / National Weather Service MRMS",
+  renderer: stormFlankRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "stormId", type: "integer" },
+    { name: "maxDbz", type: "double" },
+  ],
+  visible: false,
+});
+
+/**
  * GLM flashes in the last five minutes. Points only. The lightning
  * switch under radar drives this with the mosaic.
  */
@@ -416,6 +579,111 @@ export const CandidateLightningLayer = new GeoJSONLayer({
   geometryType: "point",
   objectIdField: "OBJECTID",
   fields: [{ name: "OBJECTID", type: "oid" }],
+  visible: false,
+});
+
+/**
+ * Mixed-layer CAPE. The 12Z table's energy row, as a fill.
+ */
+export const CandidateCapeLayer = new GeoJSONLayer({
+  title: "HRRR mixed-layer CAPE",
+  url: ForecastBriefingUrl("cape", 0),
+  copyright: "NOAA HRRR",
+  renderer: capeRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "mixedCapeJKg", type: "double" },
+  ],
+  visible: false,
+});
+
+export const CandidateCinLayer = new GeoJSONLayer({
+  title: "HRRR mixed-layer CIN",
+  url: ForecastBriefingUrl("cin", 0),
+  copyright: "NOAA HRRR",
+  renderer: cinRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "cinJKg", type: "double" },
+  ],
+  visible: false,
+});
+
+export const CandidateLclLayer = new GeoJSONLayer({
+  title: "HRRR lifting condensation level",
+  url: ForecastBriefingUrl("lcl", 0),
+  copyright: "NOAA HRRR",
+  renderer: lclRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "lclFt", type: "double" },
+  ],
+  visible: false,
+});
+
+export const CandidateFreezingLayer = new GeoJSONLayer({
+  title: "HRRR freezing level",
+  url: ForecastBriefingUrl("freezing", 0),
+  copyright: "NOAA HRRR",
+  renderer: freezingRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "freezingFt", type: "double" },
+  ],
+  visible: false,
+});
+
+export const CandidateMinus15Layer = new GeoJSONLayer({
+  title: "HRRR −15 °C height",
+  url: ForecastBriefingUrl("minus15", 0),
+  copyright: "NOAA HRRR",
+  renderer: minus15Renderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "minus15Ft", type: "double" },
+  ],
+  visible: false,
+});
+
+export const CandidateWarmDepthLayer = new GeoJSONLayer({
+  title: "HRRR warm-cloud depth",
+  url: ForecastBriefingUrl("warm-depth", 0),
+  copyright: "NOAA HRRR",
+  renderer: warmDepthRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "warmCloudDepthFt", type: "double" },
+  ],
+  visible: false,
+});
+
+/**
+ * 18 dBZ top at or above freezing. The switch under radar drives this
+ * with the mosaic.
+ */
+export const CandidateEchoFreezeLayer = new GeoJSONLayer({
+  title: "MRMS echo top past freezing",
+  url: RadarEchoFreezeUrl(),
+  copyright: "NOAA MRMS / NOAA HRRR",
+  renderer: echoFreezeRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "pastFreezing", type: "double" },
+  ],
   visible: false,
 });
 

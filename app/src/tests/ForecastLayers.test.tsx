@@ -118,7 +118,7 @@ describe("ForecastLayers", () => {
   it("explains why the analysis hour has no precipitation", () => {
     renderWithStore(<ForecastLayers />, createTestStore());
 
-    expect(screen.getByText(/f00 has none to show/)).toBeTruthy();
+    expect(screen.getByText(/Analysis hour: 0 mm\/hr/)).toBeTruthy();
   });
 
   it("drops the explanation once the model has precipitation", () => {
@@ -129,7 +129,7 @@ describe("ForecastLayers", () => {
       store.dispatch(forecastActions.setHour(1));
     });
 
-    expect(screen.queryByText(/f00 has none to show/)).toBeNull();
+    expect(screen.queryByText(/Analysis hour: 0 mm\/hr/)).toBeNull();
   });
 
   it("does not explain a layer that is switched off", () => {
@@ -140,7 +140,7 @@ describe("ForecastLayers", () => {
       store.dispatch(forecastActions.setPrecip(false));
     });
 
-    expect(screen.queryByText(/f00 has none to show/)).toBeNull();
+    expect(screen.queryByText(/Analysis hour: 0 mm\/hr/)).toBeNull();
   });
 
   // A ramp at full strength while the layer cannot paint is the legend
@@ -172,7 +172,7 @@ describe("ForecastLayers", () => {
 
     renderWithStore(<ForecastLayers />, store);
     act(() => {
-      screen.getByText(/Step to \+1 h/).click();
+      screen.getByText("+1 h").click();
     });
 
     expect(store.getState().forecast.hour).toBe(1);

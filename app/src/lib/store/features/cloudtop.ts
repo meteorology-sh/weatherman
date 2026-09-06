@@ -7,9 +7,8 @@ type CloudTopState = {
   /**
    * Observed cloud tops on the candidate map.
    *
-   * Off on arrival, like every layer but the candidate field. It is the widest
-   * fill on the map — it says where there is cloud at all — so switched on by
-   * default it is the one most likely to bury the answer drawn over it.
+   * Off on arrival. It is the widest fill on the map — it says where there
+   * is cloud at all — so switched on by default it buries the storm.
    */
   visible: boolean;
   /** Summary of the scene. The bands themselves never enter the store. */

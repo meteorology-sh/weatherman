@@ -7,8 +7,7 @@ type RadarState = {
   /**
    * Observed reflectivity on the candidate map.
    *
-   * On by default: this is the object an operator flies, and the map should
-   * open on rain plus the liquid join, so the two answers can disagree in view.
+   * On by default: this is the object an operator flies.
    */
   visible: boolean;
   /**
@@ -17,10 +16,16 @@ type RadarState = {
    */
   lightning: boolean;
   /**
-   * The core dot and the heading arrow. Off until asked for, and only
-   * drawn while reflectivity is on.
+   * The core, the heading arrow, and the upwind raining flank. On with
+   * the mosaic: that is the storm as an object. Only drawn while
+   * reflectivity is on.
    */
   heading: boolean;
+  /**
+   * 18 dBZ top at or above freezing. Off until asked for, and only
+   * drawn while reflectivity is on.
+   */
+  echoFreeze: boolean;
   /** Summary of the scene. The contours themselves never enter the store. */
   stats: RadarStats | undefined;
   loading: boolean;
@@ -30,7 +35,8 @@ type RadarState = {
 const initialState: RadarState = {
   visible: true,
   lightning: false,
-  heading: false,
+  heading: true,
+  echoFreeze: false,
   stats: undefined,
   loading: false,
   error: null,
@@ -48,6 +54,9 @@ const radarSlice = createSlice({
     },
     setHeading(state, action: PayloadAction<boolean>) {
       state.heading = action.payload;
+    },
+    setEchoFreeze(state, action: PayloadAction<boolean>) {
+      state.echoFreeze = action.payload;
     },
     setStats(state, action: PayloadAction<RadarStats>) {
       state.stats = action.payload;

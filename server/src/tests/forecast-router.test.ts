@@ -316,6 +316,63 @@ describe("forecast router", () => {
     assert.equal(summary.reachablePct, 17.14);
   });
 
+  it("responds with a briefing field as GeoJSON", async (t) => {
+    const cape = frameOf("mixedCapeJKg", 1000);
+    t.mock.method(Hrrr, "briefing", async () => cape);
+
+    const res = await fetch(`${origin}/forecast/briefing/cape?hour=0`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), cape);
+  });
+
+  it("rejects a briefing field the table does not print", async () => {
+    const res = await fetch(`${origin}/forecast/briefing/cloudbase?hour=0`);
+
+    assert.equal(res.status, 404);
+  });
+
+  it("passes the briefing field name through to the service", async (t) => {
+    const seen: string[] = [];
+    t.mock.method(
+      Hrrr,
+      "briefing",
+      async (field: string) => {
+        seen.push(field);
+        return frameOf("warmCloudDepthFt", 0);
+      }
+    );
+
+    const res = await fetch(`${origin}/forecast/briefing/warm-depth?hour=0`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(seen, ["warm-depth"]);
+  });
+
+  it("responds with the AGL window as GeoJSON", async (t) => {
+    const window = frameOf("inWindow", 1);
+    t.mock.method(Hrrr, "cloudBaseWindow", async () => window);
+
+    const res = await fetch(`${origin}/forecast/cloudbase/window?hour=0`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), window);
+  });
+
+  it("keeps the window route distinct from the height ramp", async (t) => {
+    const window = frameOf("inWindow", 1);
+    t.mock.method(Hrrr, "cloudBase", async () => base);
+    t.mock.method(Hrrr, "cloudBaseWindow", async () => window);
+
+    const [ramp, filter] = await Promise.all([
+      fetch(`${origin}/forecast/cloudbase?hour=0`).then((r) => r.json()),
+      fetch(`${origin}/forecast/cloudbase/window?hour=0`).then((r) => r.json()),
+    ]);
+
+    assert.equal(ramp.features[0].properties.cloudBaseFt, 4000);
+    assert.equal(filter.features[0].properties.inWindow, 1);
+  });
+
   it("passes the requested hour through to the cloud base service", async (t) => {
     const seen: number[] = [];
     t.mock.method(Hrrr, "cloudBase", async (hour: number) => {
@@ -378,6 +435,8 @@ const sounding: Sounding = {
     bandInCloud: true,
     capeJKg: 2499,
     mixedCapeJKg: 2339,
+    cinJKg: 45,
+    lclFt: 4200,
     stormMotionKt: 35,
     stormMotionTowardDeg: 13,
     lightning: 2,

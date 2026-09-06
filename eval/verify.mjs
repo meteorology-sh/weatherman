@@ -40,7 +40,10 @@ function native(cellKm) {
     cellKm.cloudTop === 2 &&
     cellKm.liquid === 3 &&
     cellKm.radar === 1 &&
-    cellKm.candidate === 3
+    cellKm.candidate === 3 &&
+    cellKm.target === 3 &&
+    cellKm.baseWindow === 3 &&
+    cellKm.echoFreeze === 3
   );
 }
 

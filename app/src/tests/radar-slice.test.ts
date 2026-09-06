@@ -19,7 +19,8 @@ describe("radar slice", () => {
   it("starts with the mosaic on, like the layer the map opens on", () => {
     expect(initial.visible).toBe(true);
     expect(initial.lightning).toBe(false);
-    expect(initial.heading).toBe(false);
+    expect(initial.heading).toBe(true);
+    expect(initial.echoFreeze).toBe(false);
   });
 
   it("toggles lightning without touching the mosaic", () => {

@@ -26,7 +26,6 @@ export const Replay = () => {
       <div className="col-span-1 p-4 h-[calc(90vh)] overflow-y-auto">
         <div className="prose">
           <h2>Replay</h2>
-          <p>What the sky was doing at an hour you choose.</p>
         </div>
 
         <div className="py-4">
@@ -34,10 +33,7 @@ export const Replay = () => {
         </div>
 
         {at === null ? (
-          <div className="text-sm">
-            Pick a date and hour to load. Times are UTC, matching the model
-            cycles and scan times the layers are keyed on.
-          </div>
+          <div className="text-sm">Date and hour, UTC.</div>
         ) : (
           <>
             <ReplayStatus />

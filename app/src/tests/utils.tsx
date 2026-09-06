@@ -4,6 +4,7 @@ import type { ReactElement, ReactNode } from "react";
 // Store
 import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
+import briefingReducer from "@/lib/store/features/briefing";
 import candidateReducer from "@/lib/store/features/candidate";
 import cloudBaseReducer from "@/lib/store/features/cloudbase";
 import cloudTopReducer from "@/lib/store/features/cloudtop";
@@ -37,6 +38,8 @@ export const noDiagnostics: Diagnostics = {
   bandInCloud: null,
   capeJKg: 0,
   mixedCapeJKg: 0,
+  cinJKg: 0,
+  lclFt: null,
   stormMotionKt: 0,
   stormMotionTowardDeg: null,
   lightning: null,
@@ -52,6 +55,7 @@ export const noDiagnostics: Diagnostics = {
 export function createTestStore() {
   return configureStore({
     reducer: {
+      briefing: briefingReducer,
       candidate: candidateReducer,
       cloudbase: cloudBaseReducer,
       cloudtop: cloudTopReducer,

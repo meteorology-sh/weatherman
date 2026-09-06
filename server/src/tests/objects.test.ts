@@ -423,12 +423,15 @@ describe("motionFrame", () => {
     assert.equal(frame.features[0].properties.motionKmh, 40);
   });
 
-  it("sizes the head as a fraction of the tick, so it shrinks with the line", () => {
+  it("varies length with speed and keeps width the same", () => {
     const short = motionArrow(30, -100, 90, 4);
     const long = motionArrow(30, -100, 90, 12);
     const width = (ring: [number, number][]) =>
       Math.max(...ring.map((p) => p[1])) - Math.min(...ring.map((p) => p[1]));
-    assert.ok(width(long) > width(short) * 2);
+    const length = (ring: [number, number][]) =>
+      Math.max(...ring.map((p) => p[0])) - Math.min(...ring.map((p) => p[0]));
+    assert.ok(length(long) > length(short) * 2);
+    assert.ok(Math.abs(width(long) - width(short)) < width(short) * 0.05);
   });
 
   it("draws nothing when the storm has no motion", () => {

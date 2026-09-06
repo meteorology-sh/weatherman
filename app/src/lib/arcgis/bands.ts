@@ -113,6 +113,14 @@ export const CANDIDATE_BANDS: readonly Band[] = [
 export const CANDIDATE_RGB = [52, 211, 153] as const;
 
 /**
+ * Texas fly fill. Same hue as the old quiet-liquid field — green is
+ * still the only colour on this map that means go — drawn as one gate
+ * over the rain, not as a liquid ramp.
+ */
+export const FLY_RGB = CANDIDATE_RGB;
+export const FLY_ALPHA = 0.45;
+
+/**
  * The outline around candidate ground the satellite still sees liquid at the
  * top of.
  *
@@ -130,8 +138,22 @@ export const CONFIRMED_WIDTH = 1.5;
 /** Heading dart at the heaviest-rain cell. White on the dark basemap. */
 export const MOTION_RGB = [255, 255, 255] as const;
 
+/**
+ * Upwind raining edge of a mosaic storm. Orange so it is not the cyan
+ * rain, not the white arrow, and not the yellow lightning.
+ */
+export const FLANK_RGB = [255, 140, 64] as const;
+export const FLANK_WIDTH = 2;
+
 /** GLM flash. Yellow so it is not the cyan rain and not the white arrow. */
 export const LIGHTNING_RGB = [250, 204, 21] as const;
+
+/**
+ * 18 dBZ top at or above freezing. Ice-blue so it is not the cyan rain
+ * fill and not the orange flank.
+ */
+export const ECHO_FREEZE_RGB = [56, 189, 248] as const;
+export const ECHO_FREEZE_ALPHA = 0.28;
 
 /**
  * Observed reflectivity, dBZ, mirroring REFLECTIVITY.levels in
@@ -280,13 +302,13 @@ export const soloColor = (rgb: readonly number[], alpha: number) =>
   `rgba(${rgb.join(",")},${alpha.toFixed(3)})`;
 
 /**
- * The window Texas operations select cloud bases in, ft MSL. Mirrors
+ * The window Texas operations select cloud bases in. Mirrors
  * BASE_WINDOW_FT in server/src/lib/services/hrrr/diagnostics.ts.
  *
- * A cited figure the candidate summary reports and nothing draws. Read as MSL a
- * fixed window means a different thing over every cell — it is 3,997–11,997 ft
- * above ground at Galveston and underground to 1,827 ft above ground at
- * Leadville — so it describes Texas cloud rather than bounding this map.
+ * Drawn as height above the ground, not above the sea. Read as MSL a
+ * fixed window means a different thing over every cell — it is
+ * 3,997–11,997 ft above ground at Galveston and underground to 1,827 ft
+ * above ground at Leadville — so the fill is AGL.
  */
 export const BASE_WINDOW_FT = [4000, 12000] as const;
 
@@ -319,6 +341,14 @@ export type CloudBaseBand = {
  * and cannot borrow any of the three without reading as one of them.
  */
 export const CLOUD_BASE_RGB = [167, 139, 250] as const;
+
+/**
+ * Comptroller window fill. Same hue as the height ramp — the two are
+ * never drawn together: the window switch shows this fill instead of
+ * the climb.
+ */
+export const BASE_WINDOW_RGB = CLOUD_BASE_RGB;
+export const BASE_WINDOW_ALPHA = 0.55;
 
 /**
  * Mirrors CLOUD_BASE.edges in server/src/lib/services/hrrr/diagnostics.ts —
@@ -362,6 +392,42 @@ export const CLOUD_BASE_BANDS: readonly CloudBaseBand[] = [
     alpha: 0.12,
   },
 ];
+
+/**
+ * Mixed-layer CAPE, J/kg. Mirrors CAPE.edges on the server — NWS
+ * instability classes. Disjoint, like the height ramps.
+ */
+export const CAPE_RGB = [225, 90, 70] as const;
+export const CAPE_BANDS: readonly CloudBaseBand[] = [
+  { value: 1000, label: "1–2.5k", alpha: 0.55 },
+  { value: 2500, label: "2.5–4k", alpha: 0.38 },
+  { value: 4000, label: "over 4k", alpha: 0.22 },
+];
+
+/**
+ * Mixed-layer CIN magnitude, J/kg. Mirrors CIN.edges on the server.
+ * Indigo so it is not CAPE and not the violet cloud-base ramp.
+ */
+export const CIN_RGB = [79, 70, 229] as const;
+export const CIN_BANDS: readonly CloudBaseBand[] = [
+  { value: 50, label: "50–100", alpha: 0.5 },
+  { value: 100, label: "100–200", alpha: 0.34 },
+  { value: 200, label: "over 200", alpha: 0.2 },
+];
+
+/** LCL. Same edges as cloud base; a cooler violet so the two ramps differ. */
+export const LCL_RGB = [196, 181, 253] as const;
+
+/** 0 °C height. Ice-blue, not the cyan rain. */
+export const FREEZING_RGB = [125, 211, 252] as const;
+
+/** −15 °C height. A colder blue than freezing. */
+export const MINUS15_RGB = [14, 165, 233] as const;
+
+/**
+ * Warm-cloud depth. Teal, so it is not freezing, not liquid, and not rain.
+ */
+export const WARM_DEPTH_RGB = [45, 212, 191] as const;
 
 /** The words an operator reads, not the raw number. Parallel to PRECIP_BANDS. */
 export const PRECIP_LABELS = ["trace", "light", "moderate", "heavy"] as const;

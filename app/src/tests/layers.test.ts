@@ -3,14 +3,23 @@ import {
   CandidateFieldLayer,
   ReplayFieldLayer,
   CandidateCloudBaseLayer,
+  CandidateCloudBaseWindowLayer,
   CandidateCloudTopLayer,
   ForecastCloudsLayer,
   ForecastPrecipLayer,
   CandidateLiquidLayer,
   CandidateRadarLayer,
   CandidateStormCoreLayer,
+  CandidateStormFlankLayer,
   CandidateStormMotionLayer,
   CandidateLightningLayer,
+  CandidateEchoFreezeLayer,
+  CandidateCapeLayer,
+  CandidateCinLayer,
+  CandidateLclLayer,
+  CandidateFreezingLayer,
+  CandidateMinus15Layer,
+  CandidateWarmDepthLayer,
 } from "@/lib/arcgis/layers";
 
 const BOX = {
@@ -82,6 +91,45 @@ describe("HRRR cloud-base layer", () => {
 
   it("leaves visibility to the map, which drives it from the store", () => {
     expect(CandidateCloudBaseLayer.visible).toBe(false);
+  });
+});
+
+describe("HRRR cloud-base window", () => {
+  it("reads the AGL window from our own server", () => {
+    expect(CandidateCloudBaseWindowLayer.url).toBe(
+      "/forecast/cloudbase/window"
+    );
+    expect(CandidateCloudBaseWindowLayer.customParameters).toEqual({
+      hour: "0",
+      ...BOX,
+    });
+  });
+
+  it("declares the schema the frame carries", () => {
+    expect(CandidateCloudBaseWindowLayer.geometryType).toBe("polygon");
+    expect(CandidateCloudBaseWindowLayer.fields.map((f) => f.name)).toContain(
+      "inWindow"
+    );
+  });
+});
+
+describe("12Z briefing layers", () => {
+  it("reads each field from our server", () => {
+    expect(CandidateCapeLayer.url).toBe("/forecast/briefing/cape");
+    expect(CandidateCinLayer.url).toBe("/forecast/briefing/cin");
+    expect(CandidateLclLayer.url).toBe("/forecast/briefing/lcl");
+    expect(CandidateFreezingLayer.url).toBe("/forecast/briefing/freezing");
+    expect(CandidateMinus15Layer.url).toBe("/forecast/briefing/minus15");
+    expect(CandidateWarmDepthLayer.url).toBe("/forecast/briefing/warm-depth");
+  });
+
+  it("declares the property each frame carries", () => {
+    expect(CandidateCapeLayer.fields.map((f) => f.name)).toContain(
+      "mixedCapeJKg"
+    );
+    expect(CandidateWarmDepthLayer.fields.map((f) => f.name)).toContain(
+      "warmCloudDepthFt"
+    );
   });
 });
 
@@ -181,32 +229,37 @@ describe("CandidateStormCoreLayer", () => {
     expect(CandidateStormMotionLayer.url).toBe("/radar/objects/motion");
   });
 
+  it("draws the upwind raining edge as a polygon", () => {
+    expect(CandidateStormFlankLayer.geometryType).toBe("polygon");
+    expect(CandidateStormFlankLayer.url).toBe("/radar/objects/flanks");
+  });
+
   it("draws lightning as points, not a surface", () => {
     expect(CandidateLightningLayer.geometryType).toBe("point");
     expect(CandidateLightningLayer.url).toBe("/cloudtop/lightning");
   });
+
+  it("draws echo past freezing as a fill", () => {
+    expect(CandidateEchoFreezeLayer.geometryType).toBe("polygon");
+    expect(CandidateEchoFreezeLayer.url).toBe("/radar/echotop/past-freezing");
+  });
 });
 
 describe("CandidateFieldLayer", () => {
-  it("points at the joined field", () => {
-    expect(CandidateFieldLayer.url).toBe("/candidate/field");
+  it("points at the Texas fly fill", () => {
+    expect(CandidateFieldLayer.url).toBe("/candidate/target");
     expect(CandidateFieldLayer.customParameters).toEqual(BOX);
   });
 
-  // The renderer matches on this field, and the layer starts empty on a day
-  // with no candidates — an empty FeatureCollection gives ArcGIS nothing to
-  // infer a schema from, so it has to be declared.
   it("declares the schema its renderer matches on", () => {
     expect(CandidateFieldLayer.geometryType).toBe("polygon");
-    expect(CandidateFieldLayer.fields.map((f) => f.name)).toContain(
-      "seedableSlwPath"
-    );
+    expect(CandidateFieldLayer.fields.map((f) => f.name)).toContain("fly");
   });
 
-  it("credits all three sources it joins", () => {
+  it("credits the sources the Texas tests join", () => {
     expect(CandidateFieldLayer.copyright).toMatch(/HRRR/);
-    expect(CandidateFieldLayer.copyright).toMatch(/GOES/);
     expect(CandidateFieldLayer.copyright).toMatch(/MRMS/);
+    expect(CandidateFieldLayer.copyright).not.toMatch(/GOES/);
   });
 });
 

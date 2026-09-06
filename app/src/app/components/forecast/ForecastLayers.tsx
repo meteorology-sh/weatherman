@@ -56,23 +56,19 @@ export const ForecastLayers = () => {
         {blank ? (
           <div className="alert alert-info alert-soft p-2 text-xs">
             <span>
-              No rain at the analysis hour — HRRR works precipitation out by
-              stepping the model forward, so f00 has none to show.{" "}
+              Analysis hour: 0 mm/hr.{" "}
               <button
                 className="link font-semibold"
                 onClick={() =>
                   dispatch(forecastActions.setHour(PRECIP_FIRST_HOUR))
                 }
               >
-                Step to +{PRECIP_FIRST_HOUR} h
+                +{PRECIP_FIRST_HOUR} h
               </button>
             </span>
           </div>
         ) : (
-          <div className="text-xs">
-            mm/hr &middot; {PRECIP_LABELS[0]} to{" "}
-            {PRECIP_LABELS[PRECIP_LABELS.length - 1]}
-          </div>
+          <div className="text-xs">mm/hr</div>
         )}
       </LayerToggle>
     </div>

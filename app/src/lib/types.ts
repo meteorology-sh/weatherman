@@ -154,7 +154,7 @@ export interface CandidatePoint {
   cloudBaseAglFt: number | null;
   /** Freezing level, ft MSL. Null where the column never crosses 0 °C. */
   freezingFt: number | null;
-  /** Modelled echo top, ft MSL. Null where the model diagnoses no echo. */
+  /** Measured 18 dBZ echo top, ft MSL. Null where there is no 18 dBZ. */
   echoTopFt: number | null;
   /** Supercooled liquid water path in the seeding band over this cell, g/m². */
   slwGM2: number;
@@ -221,6 +221,10 @@ export interface Diagnostics {
   capeJKg: number;
   /** Mixed-layer (180–0 mb) CAPE, J/kg. */
   mixedCapeJKg: number;
+  /** Mixed-layer convective inhibition, J/kg, as a magnitude. */
+  cinJKg: number;
+  /** Lifting condensation level, ft MSL. Null where the field is missing. */
+  lclFt: number | null;
   /** 0–6 km storm motion, knots. */
   stormMotionKt: number;
   /** Compass bearing the storm is moving toward, degrees. Null when still. */

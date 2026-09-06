@@ -327,6 +327,30 @@ describe("diagnostics", () => {
 
     assert.equal(d.echoTopFt, null);
   });
+
+  it("reports mixed-layer CIN as a magnitude", () => {
+    const d = diagnostics(fields({ cin: -150 }), 0, surfaceFt, null);
+
+    assert.equal(d.cinJKg, 150);
+  });
+
+  it("reports no inhibition when CIN is zero", () => {
+    const d = diagnostics(fields({ cin: 0 }), 0, surfaceFt, null);
+
+    assert.equal(d.cinJKg, 0);
+  });
+
+  it("reports LCL in feet", () => {
+    const d = diagnostics(fields({ lcl: 4500 }), 0, surfaceFt, null);
+
+    assert.equal(d.lclFt, 4500);
+  });
+
+  it("has no LCL where the field is missing", () => {
+    const d = diagnostics(fields({ lcl: NaN }), 0, surfaceFt, null);
+
+    assert.equal(d.lclFt, null);
+  });
 });
 
 describe("bearing", () => {

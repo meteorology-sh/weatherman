@@ -285,6 +285,60 @@ describe("radar router", () => {
     assert.equal(body.features[0].properties.motionKmh, 40);
   });
 
+  it("responds with the upwind raining edge of each storm", async (t) => {
+    t.mock.method(Mrms, "flanks", async () => ({
+      type: "FeatureCollection",
+      validTime: "2026-08-12T04:10:00.000Z",
+      features: [
+        {
+          type: "Feature",
+          properties: { stormId: 1, maxDbz: 48 },
+          geometry: {
+            type: "Polygon",
+            coordinates: [
+              [
+                [-101.4, 32.1],
+                [-101.3, 32.1],
+                [-101.3, 32.2],
+                [-101.4, 32.1],
+              ],
+            ],
+          },
+        },
+      ],
+    }));
+
+    const body = await fetch(`${origin}/radar/objects/flanks`).then((r) =>
+      r.json()
+    );
+    assert.equal(body.features[0].geometry.type, "Polygon");
+    assert.equal(body.features[0].properties.stormId, 1);
+  });
+
+  it("responds with echo top at or above freezing as GeoJSON", async (t) => {
+    t.mock.method(EchoTops, "pastFreezing", async () => ({
+      type: "FeatureCollection",
+      run: "2026-08-12T04:00:00.000Z",
+      validTime: "2026-08-12T04:10:00.000Z",
+      hour: 0,
+      features: [
+        {
+          type: "Feature",
+          properties: { pastFreezing: 1 },
+          geometry: {
+            type: "MultiPolygon",
+            coordinates: [[[[-101.4, 32.1], [-101.3, 32.1], [-101.3, 32.2], [-101.4, 32.1]]]],
+          },
+        },
+      ],
+    }));
+
+    const body = await fetch(`${origin}/radar/echotop/past-freezing`).then(
+      (r) => r.json()
+    );
+    assert.equal(body.features[0].properties.pastFreezing, 1);
+  });
+
   it("responds 400 when a click has no coordinates", async () => {
     const res = await fetch(`${origin}/radar/objects/near`);
     assert.equal(res.status, 400);

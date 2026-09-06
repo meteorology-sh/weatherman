@@ -4,8 +4,9 @@
  *
  * That is the top of precipitating hydrometeors, not of the cloud. GOES
  * still owns cloud-top temperature. Heights are kilometres MSL in the
- * GRIB; the click reports feet. Not drawn — the mosaic already shows
- * where it is raining, and a second fill on the same cells would not.
+ * GRIB; the click reports feet. The glaciogenic cue — 18 dBZ top at or
+ * above the freezing level — is drawn as its own fill, labelled as
+ * measured height at a modelled isotherm, not a volume scan.
  */
 
 // Node
@@ -14,18 +15,20 @@ import { promisify } from "util";
 
 // Services
 import { eachMessage } from "../shared/grib";
-import { cellAt } from "../shared/grid";
+import { cellAt, DRAWN, prepareDraw } from "../shared/grid";
+import type { LonLatBox } from "../shared/grid";
+import { features, styleFor } from "../shared/contour";
+import type { ContourFrame, Geo, Grid } from "../shared/contour";
 import { METRES_TO_FEET } from "../hrrr/profile";
+import { Hrrr } from "../hrrr/forecast";
 import {
   archiveKeyTime,
+  mosaicIndex,
   nativeGeo,
   nativeGrid,
   sceneTime,
 } from "./radar";
 import type { StormObject } from "./objects";
-
-// Types
-import type { Geo, Grid } from "../shared/contour";
 
 const gunzipAsync = promisify(gunzip);
 
@@ -75,6 +78,57 @@ export type EchoTopHit = {
 export function heightFt(km: number): number | null {
   if (!(km > 0)) return null;
   return Math.round(km * KM_TO_FT);
+}
+
+/**
+ * 18 dBZ echo top, ft MSL, on the same cells as `echoTopKm`.
+ * NaN where there is no 18 dBZ (or no radar).
+ */
+export function echoTopFtValues(echoTopKm: Float32Array): Float32Array {
+  const out = new Float32Array(echoTopKm.length);
+  for (let i = 0; i < echoTopKm.length; i++) {
+    const ft = heightFt(echoTopKm[i]);
+    out[i] = ft === null ? Number.NaN : ft;
+  }
+  return out;
+}
+
+/**
+ * Sample the 1 km echo-top mosaic onto an HRRR column. Nearest cell,
+ * nothing interpolated.
+ */
+export function sampleEchoTopKm(mosaic: Grid, geo: Geo): Float32Array {
+  const out = new Float32Array(geo.lats.length).fill(NO_COVERAGE_KM);
+  for (let cell = 0; cell < geo.lats.length; cell++) {
+    const k = mosaicIndex(
+      geo.lats[cell],
+      geo.lons[cell],
+      mosaic.nx,
+      mosaic.ny
+    );
+    if (k >= 0) out[cell] = mosaic.values[k];
+  }
+  return out;
+}
+
+/**
+ * 1 where the measured 18 dBZ top sits at or above the modelled
+ * freezing level. NaN elsewhere.
+ */
+export function pastFreezingValues(
+  echoTopKm: Float32Array,
+  freezingFt: Float32Array
+): Float32Array {
+  const out = new Float32Array(echoTopKm.length);
+  out.fill(Number.NaN);
+  for (let i = 0; i < echoTopKm.length; i++) {
+    const ft = heightFt(echoTopKm[i]);
+    if (ft === null) continue;
+    const freeze = freezingFt[i];
+    if (!Number.isFinite(freeze)) continue;
+    if (ft >= freeze) out[i] = 1;
+  }
+  return out;
 }
 
 /**
@@ -131,6 +185,63 @@ export class EchoTopService {
   /** Start a decode without waiting. A click does not wait on a cold GRIB. */
   warm(at?: Date): void {
     void this.scene(at).catch(() => undefined);
+  }
+
+  /**
+   * The 1 km mosaic. Sample onto HRRR with {@link sampleEchoTopKm}.
+   */
+  async mosaic(at?: Date): Promise<Scene> {
+    return this.scene(at);
+  }
+
+  /**
+   * 18 dBZ echo top, ft MSL, sampled onto `geo`. NaN where there is no
+   * 18 dBZ. Nearest mosaic cell, nothing interpolated — the same sample
+   * the past-freezing fill is drawn from.
+   */
+  async sampledFt(geo: Geo, at?: Date): Promise<Float32Array> {
+    const scene = await this.mosaic(at);
+    return echoTopFtValues(sampleEchoTopKm(scene.grid, geo));
+  }
+
+  /**
+   * Where the 18 dBZ top is at or above the freezing level. Measured
+   * height, modelled isotherm, on HRRR's 3 km cells.
+   */
+  async pastFreezing(
+    at?: Date,
+    box: LonLatBox = DRAWN,
+    fine = false
+  ): Promise<ContourFrame> {
+    const [scene, band] = await Promise.all([
+      this.scene(at),
+      Hrrr.bandField(0, at),
+    ]);
+    const echoKm = sampleEchoTopKm(scene.grid, band.geo);
+    const values = pastFreezingValues(echoKm, band.freezingFt);
+    // Absence is nodata, not zero: a lone 3 km column must not paint
+    // the whole 12 km block the map contours.
+    const drawn = prepareDraw(
+      { nx: band.geo.nx, ny: band.geo.ny, values },
+      band.geo,
+      box,
+      fine,
+      undefined,
+      true
+    );
+    return {
+      type: "FeatureCollection",
+      run: band.run.toISOString(),
+      validTime: scene.validTime,
+      hour: band.hour,
+      features: features(
+        drawn.grid,
+        drawn.geo,
+        "pastFreezing",
+        [1],
+        styleFor(fine)
+      ),
+    };
   }
 
   private async scene(at?: Date): Promise<Scene> {

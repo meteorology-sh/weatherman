@@ -5,6 +5,7 @@ import { createTestStore, noDiagnostics, renderWithStore } from "./utils";
 // Store
 import { seedabilityActions } from "@/lib/store/features/seedability";
 import { soundingActions } from "@/lib/store/features/sounding";
+import { stormsActions } from "@/lib/store/features/storms";
 
 // Components
 import { ClickedPoint } from "@/app/components/candidate/ClickedPoint";
@@ -67,17 +68,19 @@ describe("ClickedPoint", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  it("draws the column and the diagnostics once a cell is picked", () => {
+  it("draws fly or don't fly once a cell is picked", () => {
     const store = createTestStore();
     renderWithStore(<ClickedPoint />, store);
 
     act(() => {
       store.dispatch(soundingActions.setPoint([-101.42, 32.05]));
       store.dispatch(soundingActions.setData(sounding));
+      store.dispatch(seedabilityActions.setHere(here));
     });
 
-    expect(screen.getByText("Seeding band altitude")).toBeTruthy();
-    expect(screen.getByText("Cloud and convection here")).toBeTruthy();
+    expect(screen.getByText("FLY")).toBeTruthy();
+    expect(screen.getByText("Column")).toBeTruthy();
+    expect(screen.getByText("Environment")).toBeTruthy();
   });
 
   // The panel rules its sections off with a border on each of them, so the
@@ -91,8 +94,9 @@ describe("ClickedPoint", () => {
       store.dispatch(soundingActions.setPoint([-101.42, 32.05]));
       store.dispatch(soundingActions.setData(sounding));
       store.dispatch(seedabilityActions.setHere(here));
+      store.dispatch(stormsActions.setHere(null));
     });
 
-    expect(container.children.length).toBe(3);
+    expect(container.children.length).toBe(4);
   });
 });

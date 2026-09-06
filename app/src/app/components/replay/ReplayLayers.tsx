@@ -4,32 +4,23 @@ import { replayActions } from "@/lib/store/features/replay";
 
 // ArcGIS
 import {
+  BaseWindowLegend,
   CandidateLegend,
   CloudBaseLegend,
-  CloudTopLegend,
-  LiquidLegend,
+  EchoFreezeLegend,
   HeadingLegend,
   LightningLegend,
   RadarLegend,
 } from "@/lib/arcgis/legends";
-import {
-  CANDIDATE_BANDS,
-  CANDIDATE_LABELS,
-  CANDIDATE_RGB,
-  SLW_BANDS,
-  SLW_LABELS,
-  SLW_RGB,
-  RADAR_BANDS,
-  RADAR_LABELS,
-  RADAR_RGB,
-  BAND_LABEL,
-} from "@/lib/arcgis/bands";
+import { RADAR_BANDS, RADAR_RGB } from "@/lib/arcgis/bands";
 
 // Components
 import { LayerToggle, SubToggle } from "@/app/components/panel/LayerToggle";
 import { Ramp } from "@/app/components/panel/Ramp";
-import { CloudBaseRamp } from "@/app/components/panel/CloudBaseRamp";
-import { CloudTopRamp } from "@/app/components/panel/CloudTopRamp";
+import {
+  CloudBaseRamp,
+  WindowRamp,
+} from "@/app/components/panel/CloudBaseRamp";
 
 /**
  * The replay map's switches. The same layers as the candidate map and the same
@@ -38,70 +29,15 @@ import { CloudTopRamp } from "@/app/components/panel/CloudTopRamp";
 export const ReplayLayers = () => {
   const dispatch = useAppDispatch();
   const cloudBase = useAppSelector((state) => state.replay.cloudBase);
-  const cloudTop = useAppSelector((state) => state.replay.cloudTop);
-  const liquid = useAppSelector((state) => state.replay.liquid);
+  const baseWindow = useAppSelector((state) => state.replay.baseWindow);
   const radar = useAppSelector((state) => state.replay.radar);
   const lightning = useAppSelector((state) => state.replay.lightning);
   const heading = useAppSelector((state) => state.replay.heading);
+  const echoFreeze = useAppSelector((state) => state.replay.echoFreeze);
   const field = useAppSelector((state) => state.replay.field);
 
   return (
     <div className="flex flex-col gap-4">
-      <LayerToggle
-        legend={CandidateLegend}
-        checked={field}
-        onChange={(on) => dispatch(replayActions.setField(on))}
-      >
-        <Ramp
-          bands={CANDIDATE_BANDS}
-          rgb={CANDIDATE_RGB}
-          captions={CANDIDATE_BANDS.map((band) => String(band.value))}
-          titles={CANDIDATE_LABELS}
-        />
-        <div className="text-xs">
-          g/m² in the {BAND_LABEL} band, rebuilt from that hour's own model run
-          and scans.
-        </div>
-      </LayerToggle>
-
-      <LayerToggle
-        legend={CloudTopLegend}
-        checked={cloudTop}
-        onChange={(on) => dispatch(replayActions.setCloudTop(on))}
-      >
-        <CloudTopRamp />
-        <div className="text-xs">
-          °C at the cloud top, from the scan nearest that hour.
-        </div>
-      </LayerToggle>
-
-      <LayerToggle
-        legend={CloudBaseLegend}
-        checked={cloudBase}
-        onChange={(on) => dispatch(replayActions.setCloudBase(on))}
-      >
-        <CloudBaseRamp />
-        <div className="text-xs">
-          ft MSL at the cloud base, from that hour's HRRR analysis.
-        </div>
-      </LayerToggle>
-
-      <LayerToggle
-        legend={LiquidLegend}
-        checked={liquid}
-        onChange={(on) => dispatch(replayActions.setLiquid(on))}
-      >
-        <Ramp
-          bands={SLW_BANDS}
-          rgb={SLW_RGB}
-          captions={SLW_BANDS.map((band) => String(band.value))}
-          titles={SLW_LABELS}
-        />
-        <div className="text-xs">
-          g/m² in the {BAND_LABEL} band, from that hour's HRRR analysis.
-        </div>
-      </LayerToggle>
-
       <LayerToggle
         legend={RadarLegend}
         checked={radar}
@@ -111,27 +47,44 @@ export const ReplayLayers = () => {
           bands={RADAR_BANDS}
           rgb={RADAR_RGB}
           captions={RADAR_BANDS.map((band) => String(band.value))}
-          titles={RADAR_LABELS}
         />
-        <div className="text-xs">
-          dBZ, from the mosaic nearest that hour. The 20 dBZ fill is the
-          edge of the rain.
-        </div>
+        <div className="text-xs">dBZ</div>
         <SubToggle
           name={HeadingLegend.name}
           checked={heading}
           onChange={(on) => dispatch(replayActions.setHeading(on))}
-        >
-          <div className="text-xs">{HeadingLegend.summary}</div>
-        </SubToggle>
+        />
         <SubToggle
           name={LightningLegend.name}
           checked={lightning}
           onChange={(on) => dispatch(replayActions.setLightning(on))}
-        >
-          <div className="text-xs">{LightningLegend.summary}</div>
-        </SubToggle>
+        />
+        <SubToggle
+          name={EchoFreezeLegend.name}
+          checked={echoFreeze}
+          onChange={(on) => dispatch(replayActions.setEchoFreeze(on))}
+        />
       </LayerToggle>
+
+      <LayerToggle
+        legend={CloudBaseLegend}
+        checked={cloudBase}
+        onChange={(on) => dispatch(replayActions.setCloudBase(on))}
+      >
+        {baseWindow ? <WindowRamp /> : <CloudBaseRamp />}
+        <div className="text-xs">{baseWindow ? "ft AGL" : "ft MSL"}</div>
+        <SubToggle
+          name={BaseWindowLegend.name}
+          checked={baseWindow}
+          onChange={(on) => dispatch(replayActions.setBaseWindow(on))}
+        />
+      </LayerToggle>
+
+      <LayerToggle
+        legend={CandidateLegend}
+        checked={field}
+        onChange={(on) => dispatch(replayActions.setField(on))}
+      />
     </div>
   );
 };

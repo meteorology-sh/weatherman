@@ -14,14 +14,28 @@ import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol";
 import {
   CLOUD_BANDS,
   CLOUD_RGB,
+  BASE_WINDOW_ALPHA,
+  BASE_WINDOW_RGB,
+  CAPE_BANDS,
+  CAPE_RGB,
+  CIN_BANDS,
+  CIN_RGB,
   CLOUD_BASE_BANDS,
   CLOUD_BASE_RGB,
+  FREEZING_RGB,
+  LCL_RGB,
+  MINUS15_RGB,
+  WARM_DEPTH_RGB,
   CLOUD_TOP_BANDS,
   CLOUD_TOP_RGB,
-  CANDIDATE_BANDS,
-  CANDIDATE_RGB,
+  FLY_ALPHA,
+  FLY_RGB,
   CONFIRMED_RGB,
   CONFIRMED_WIDTH,
+  ECHO_FREEZE_ALPHA,
+  ECHO_FREEZE_RGB,
+  FLANK_RGB,
+  FLANK_WIDTH,
   LIGHTNING_RGB,
   MOTION_RGB,
   PRECIP_BANDS,
@@ -64,9 +78,14 @@ export const candidateRadarRenderer = new UniqueValueRenderer({
   uniqueValueInfos: fills(RADAR_BANDS, RADAR_RGB),
 });
 
-export const candidateFieldRenderer = new UniqueValueRenderer({
-  field: "seedableSlwPath",
-  uniqueValueInfos: fills(CANDIDATE_BANDS, CANDIDATE_RGB),
+/**
+ * Texas fly: one fill. The same cells FLY names on a click.
+ */
+export const candidateFieldRenderer = new SimpleRenderer({
+  symbol: new SimpleFillSymbol({
+    color: [...FLY_RGB, FLY_ALPHA],
+    outline: { width: 0 },
+  }),
 });
 
 /**
@@ -111,6 +130,28 @@ export const stormMotionRenderer = new SimpleRenderer({
   }),
 });
 
+/**
+ * Raining cells on the upwind edge of the storm. Hollow, so the rain
+ * fill underneath is still the rain. Empty when the storm has no heading:
+ * we do not guess an inflow side.
+ */
+export const stormFlankRenderer = new SimpleRenderer({
+  symbol: new SimpleFillSymbol({
+    color: [0, 0, 0, 0],
+    outline: { color: [...FLANK_RGB, 0.95], width: FLANK_WIDTH },
+  }),
+});
+
+/**
+ * 18 dBZ top at or above freezing. One fill, no ramp.
+ */
+export const echoFreezeRenderer = new SimpleRenderer({
+  symbol: new SimpleFillSymbol({
+    color: [...ECHO_FREEZE_RGB, ECHO_FREEZE_ALPHA],
+    outline: { width: 0 },
+  }),
+});
+
 /** One GLM flash. Points only — lightning is not a surface. */
 export const lightningRenderer = new SimpleRenderer({
   symbol: new SimpleMarkerSymbol({
@@ -141,4 +182,66 @@ export const candidateCloudBaseRenderer = new UniqueValueRenderer({
       outline: { width: 0 },
     }),
   })),
+});
+
+const heightInfos = (rgb: readonly number[]) =>
+  CLOUD_BASE_BANDS.map(({ value, alpha }) => ({
+    value,
+    symbol: new SimpleFillSymbol({
+      color: [...rgb, alpha],
+      outline: { width: 0 },
+    }),
+  }));
+
+export const capeRenderer = new UniqueValueRenderer({
+  field: "mixedCapeJKg",
+  uniqueValueInfos: CAPE_BANDS.map(({ value, alpha }) => ({
+    value,
+    symbol: new SimpleFillSymbol({
+      color: [...CAPE_RGB, alpha],
+      outline: { width: 0 },
+    }),
+  })),
+});
+
+export const cinRenderer = new UniqueValueRenderer({
+  field: "cinJKg",
+  uniqueValueInfos: CIN_BANDS.map(({ value, alpha }) => ({
+    value,
+    symbol: new SimpleFillSymbol({
+      color: [...CIN_RGB, alpha],
+      outline: { width: 0 },
+    }),
+  })),
+});
+
+export const lclRenderer = new UniqueValueRenderer({
+  field: "lclFt",
+  uniqueValueInfos: heightInfos(LCL_RGB),
+});
+
+export const freezingRenderer = new UniqueValueRenderer({
+  field: "freezingFt",
+  uniqueValueInfos: heightInfos(FREEZING_RGB),
+});
+
+export const minus15Renderer = new UniqueValueRenderer({
+  field: "minus15Ft",
+  uniqueValueInfos: heightInfos(MINUS15_RGB),
+});
+
+export const warmDepthRenderer = new UniqueValueRenderer({
+  field: "warmCloudDepthFt",
+  uniqueValueInfos: heightInfos(WARM_DEPTH_RGB),
+});
+
+/**
+ * Comptroller window: one fill. Drawn instead of the height ramp, not
+ * on top of it.
+ */
+export const baseWindowRenderer = new SimpleRenderer({
+  symbol: new SimpleFillSymbol({
+    color: [...BASE_WINDOW_RGB, BASE_WINDOW_ALPHA],
+    outline: { width: 0 },
+  }),
 });

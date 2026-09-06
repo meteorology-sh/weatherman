@@ -2,6 +2,7 @@
 import type {
   CandidatePoint,
   CandidateStats,
+  TargetStats,
   CloudBaseStats,
   CloudTopStats,
   DomainFrame,
@@ -59,6 +60,37 @@ export function ForecastCloudBaseUrl(
   box: MapBox = INITIAL_BOX
 ): string {
   return `/forecast/cloudbase?${new URLSearchParams({
+    hour: String(hour),
+    ...boxParams(box),
+  })}`;
+}
+
+/** Comptroller window, AGL. */
+export function ForecastCloudBaseWindowUrl(
+  hour: number,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/forecast/cloudbase/window?${new URLSearchParams({
+    hour: String(hour),
+    ...boxParams(box),
+  })}`;
+}
+
+export type BriefingField =
+  | "cape"
+  | "cin"
+  | "lcl"
+  | "freezing"
+  | "minus15"
+  | "warm-depth";
+
+/** One 12Z briefing field, banded. */
+export function ForecastBriefingUrl(
+  field: BriefingField,
+  hour: number,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/forecast/briefing/${field}?${new URLSearchParams({
     hour: String(hour),
     ...boxParams(box),
   })}`;
@@ -126,21 +158,20 @@ export async function GetSounding(
 }
 
 /**
- * The candidate field — every layer joined into one.
- *
- * No `hour`, unlike the other HRRR routes: the join leans on an observed cloud
- * top and a satellite cannot forecast, so it exists at the analysis hour only.
+ * The Texas fly fill — base in the window, echo top past freezing,
+ * rain nearby. Quiet-liquid geometry stays on `/candidate/field` for
+ * eval.
  */
 export function CandidateFieldUrl(box: MapBox = INITIAL_BOX): string {
-  return `/candidate/field?${new URLSearchParams(boxParams(box))}`;
+  return `/candidate/target?${new URLSearchParams(boxParams(box))}`;
 }
 
-/** The same field at a past hour. `at` names the HRRR cycle to replay. */
+/** The same fill at a past hour. `at` names the HRRR cycle to replay. */
 export function ReplayCandidateUrl(
   at: string,
   box: MapBox = INITIAL_BOX
 ): string {
-  return `/candidate/field?${new URLSearchParams({
+  return `/candidate/target?${new URLSearchParams({
     at,
     ...boxParams(box),
   })}`;
@@ -163,6 +194,19 @@ export function ReplayConfirmedUrl(
     at,
     ...boxParams(box),
   })}`;
+}
+
+/** How much ground passed the Texas tests. Same cached build as the fill. */
+export async function GetTargetStats(at?: string): Promise<TargetStats> {
+  const res = await fetch(
+    at
+      ? `/candidate/target/stats?${new URLSearchParams({ at })}`
+      : "/candidate/target/stats"
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to fetch the Texas join: ${res.status}`);
+  }
+  return res.json();
 }
 
 /** The same build's summary. Asking for it also warms the server's build. */
@@ -297,6 +341,31 @@ export function ReplayCloudBaseUrl(
   })}`;
 }
 
+export function ReplayCloudBaseWindowUrl(
+  at: string,
+  hour = 0,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/forecast/cloudbase/window?${new URLSearchParams({
+    hour: String(hour),
+    at,
+    ...boxParams(box),
+  })}`;
+}
+
+export function ReplayBriefingUrl(
+  at: string,
+  field: BriefingField,
+  hour = 0,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/forecast/briefing/${field}?${new URLSearchParams({
+    hour: String(hour),
+    at,
+    ...boxParams(box),
+  })}`;
+}
+
 export function ReplayRadarUrl(
   at: string,
   box: MapBox = INITIAL_BOX
@@ -339,6 +408,16 @@ export function RadarStormMotionUrl(box: MapBox = INITIAL_BOX): string {
   return `/radar/objects/motion?${new URLSearchParams(boxParams(box))}`;
 }
 
+/** Upwind raining edge of each storm. Empty when the storm has no heading. */
+export function RadarStormFlanksUrl(box: MapBox = INITIAL_BOX): string {
+  return `/radar/objects/flanks?${new URLSearchParams(boxParams(box))}`;
+}
+
+/** 18 dBZ top at or above the freezing level. */
+export function RadarEchoFreezeUrl(box: MapBox = INITIAL_BOX): string {
+  return `/radar/echotop/past-freezing?${new URLSearchParams(boxParams(box))}`;
+}
+
 /** GLM flashes in the last five minutes, as points. */
 export function LightningUrl(box: MapBox = INITIAL_BOX): string {
   return `/cloudtop/lightning?${new URLSearchParams(boxParams(box))}`;
@@ -356,6 +435,23 @@ export function ReplayRadarStormMotionUrl(
   box: MapBox = INITIAL_BOX
 ): string {
   return `/radar/objects/motion?${new URLSearchParams({ at, ...boxParams(box) })}`;
+}
+
+export function ReplayRadarStormFlanksUrl(
+  at: string,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/radar/objects/flanks?${new URLSearchParams({ at, ...boxParams(box) })}`;
+}
+
+export function ReplayRadarEchoFreezeUrl(
+  at: string,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/radar/echotop/past-freezing?${new URLSearchParams({
+    at,
+    ...boxParams(box),
+  })}`;
 }
 
 export function ReplayLightningUrl(

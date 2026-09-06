@@ -3,6 +3,7 @@ import express, { Request, Response } from "express";
 
 // Services
 import { Hrrr } from "../lib/services/hrrr/forecast";
+import { isBriefingField } from "../lib/services/hrrr/briefing";
 import { OutsideDomain, parseBox, parseFine } from "../lib/services/shared/grid";
 import { parseAt } from "../lib/services/shared/replay";
 
@@ -95,6 +96,46 @@ forecast.get("/cloudbase", async (req: Request, res: Response) => {
   try {
     const hour = Number(req.query.hour ?? 0);
     const frame = await Hrrr.cloudBase(
+      hour,
+      parseAt(req.query.at),
+      parseBox(req.query),
+      parseFine(req.query)
+    );
+    res.send(frame);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+forecast.get("/briefing/:field", async (req: Request, res: Response) => {
+  try {
+    const field = String(req.params.field ?? "");
+    if (!isBriefingField(field)) {
+      res.status(404).json({ error: `No briefing field ${field}` });
+      return;
+    }
+    const hour = Number(req.query.hour ?? 0);
+    const frame = await Hrrr.briefing(
+      field,
+      hour,
+      parseAt(req.query.at),
+      parseBox(req.query),
+      parseFine(req.query)
+    );
+    res.send(frame);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+forecast.get("/cloudbase/window", async (req: Request, res: Response) => {
+  try {
+    const hour = Number(req.query.hour ?? 0);
+    const frame = await Hrrr.cloudBaseWindow(
       hour,
       parseAt(req.query.at),
       parseBox(req.query),

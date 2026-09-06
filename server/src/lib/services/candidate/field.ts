@@ -30,6 +30,11 @@ import { Hrrr } from "../hrrr/forecast";
 import { SEEDING } from "../hrrr/slw";
 import { Goes } from "../goes/cloudtop";
 import { GoesPhase } from "../goes/phase";
+import {
+  EchoTops,
+  echoTopFtValues,
+  sampleEchoTopKm,
+} from "../mrms/echotop";
 import { Mrms } from "../mrms/radar";
 import {
   assertInDomain,
@@ -51,6 +56,7 @@ import {
   topHoldsLiquid,
 } from "./join";
 import {
+  flyValues,
   join as targetJoin,
   readTarget,
   summarize as summarizeTarget,
@@ -192,6 +198,39 @@ export class CandidateService {
         drawn.geo,
         CANDIDATE.property,
         CANDIDATE.levels,
+        styleFor(fine)
+      ),
+    };
+  }
+
+  /**
+   * Cells that pass the Texas tests: base in the Comptroller window,
+   * 18 dBZ echo top past freezing nearby, rain nearby. One fill, the
+   * same answer as FLY on a click.
+   */
+  async targetField(
+    at?: Date,
+    box: LonLatBox = DRAWN,
+    fine = false
+  ): Promise<CandidateFrame> {
+    const scene = await this.scene(at);
+    const geo = scene.cells.geo;
+    const values = flyValues(scene.targetJoined);
+    const drawn = prepareDraw(
+      { nx: geo.nx, ny: geo.ny, values },
+      geo,
+      box,
+      fine,
+      undefined,
+      true
+    );
+    return {
+      ...scene.frame,
+      features: features(
+        drawn.grid,
+        drawn.geo,
+        "fly",
+        [1],
         styleFor(fine)
       ),
     };
@@ -360,17 +399,15 @@ export class CandidateService {
     // the mosaic nearest 18:43, rather than putting all three on 18:00.
     const cycle = at && nearestHour(at);
 
-    const [liquid, base, band, tops, radar, phase, echoTop] = await Promise.all(
-      [
-        Hrrr.liquidField(ANALYSIS_HOUR, cycle),
-        Hrrr.diagnosticField("cloudBase", ANALYSIS_HOUR, cycle),
-        Hrrr.bandField(ANALYSIS_HOUR, cycle),
-        Goes.topField(at),
-        Mrms.reflectivityField(at),
-        observedPhase(at),
-        Hrrr.diagnosticField("echoTop", ANALYSIS_HOUR, cycle),
-      ]
-    );
+    const [liquid, base, band, tops, radar, phase, echo] = await Promise.all([
+      Hrrr.liquidField(ANALYSIS_HOUR, cycle),
+      Hrrr.diagnosticField("cloudBase", ANALYSIS_HOUR, cycle),
+      Hrrr.bandField(ANALYSIS_HOUR, cycle),
+      Goes.topField(at),
+      Mrms.reflectivityField(at),
+      observedPhase(at),
+      EchoTops.mosaic(at).catch(() => null),
+    ]);
 
     const run = liquid.run;
     const validTime = new Date(
@@ -378,6 +415,12 @@ export class CandidateService {
     ).toISOString();
     const geo = band.geo;
     const dbz = sampleRadar(radar.grid, geo);
+    // Measured 18 dBZ top, same sample the echo-past-freezing fill is
+    // drawn from. Modelled echo top is a different height and was why
+    // a click on that fill could read "below freezing".
+    const echoTopFt = echo
+      ? echoTopFtValues(sampleEchoTopKm(echo.grid, geo))
+      : new Float32Array(geo.lats.length).fill(Number.NaN);
 
     // The Texas target does not need the liquid grid. It runs even when the
     // domain holds no seeding band, because that is a different question.
@@ -385,8 +428,7 @@ export class CandidateService {
       cloudBaseFt: base.values!,
       surfaceFt: band.surfaceFt,
       freezingFt: band.freezingFt,
-      echoTopFt:
-        echoTop.values ?? new Float32Array(geo.lats.length).fill(Number.NaN),
+      echoTopFt,
       dbz,
       nx: geo.nx,
       ny: geo.ny,

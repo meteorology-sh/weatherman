@@ -1,111 +1,41 @@
 // Store
 import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
-import { candidateActions } from "@/lib/store/features/candidate";
 import { cloudBaseActions } from "@/lib/store/features/cloudbase";
-import { cloudTopActions } from "@/lib/store/features/cloudtop";
 import { radarActions } from "@/lib/store/features/radar";
 import { seedabilityActions } from "@/lib/store/features/seedability";
 
 // ArcGIS
 import {
+  BaseWindowLegend,
   CandidateLegend,
   CloudBaseLegend,
-  CloudTopLegend,
-  LiquidLegend,
+  EchoFreezeLegend,
   HeadingLegend,
   LightningLegend,
   RadarLegend,
 } from "@/lib/arcgis/legends";
-import {
-  CANDIDATE_BANDS,
-  CANDIDATE_LABELS,
-  CANDIDATE_RGB,
-  SLW_BANDS,
-  SLW_LABELS,
-  SLW_RGB,
-  RADAR_BANDS,
-  RADAR_LABELS,
-  RADAR_RGB,
-  BAND_LABEL,
-} from "@/lib/arcgis/bands";
+import { RADAR_BANDS, RADAR_RGB } from "@/lib/arcgis/bands";
 
 // Components
 import { LayerToggle, SubToggle } from "@/app/components/panel/LayerToggle";
 import { Ramp } from "@/app/components/panel/Ramp";
-import { CloudBaseRamp } from "@/app/components/panel/CloudBaseRamp";
-import { CloudTopRamp } from "@/app/components/panel/CloudTopRamp";
+import {
+  CloudBaseRamp,
+  WindowRamp,
+} from "@/app/components/panel/CloudBaseRamp";
 
 export const CandidateLayers = () => {
   const dispatch = useAppDispatch();
   const cloudBase = useAppSelector((state) => state.cloudbase.visible);
-  const cloudTop = useAppSelector((state) => state.cloudtop.visible);
-  const liquid = useAppSelector((state) => state.candidate.liquid);
+  const baseWindow = useAppSelector((state) => state.cloudbase.window);
   const radar = useAppSelector((state) => state.radar.visible);
   const lightning = useAppSelector((state) => state.radar.lightning);
   const heading = useAppSelector((state) => state.radar.heading);
+  const echoFreeze = useAppSelector((state) => state.radar.echoFreeze);
   const field = useAppSelector((state) => state.seedability.visible);
 
   return (
     <div className="flex flex-col gap-4">
-      <LayerToggle
-        legend={CandidateLegend}
-        checked={field}
-        onChange={(on) => dispatch(seedabilityActions.setVisible(on))}
-      >
-        <Ramp
-          bands={CANDIDATE_BANDS}
-          rgb={CANDIDATE_RGB}
-          captions={CANDIDATE_BANDS.map((band) => String(band.value))}
-          titles={CANDIDATE_LABELS}
-        />
-        <div className="text-xs">
-          g/m² in the {BAND_LABEL} band. The other four layers are it inputs used to compute this layer.
-        </div>
-        {/* The outline has no swatch on the ramp: it carries no level, so a
-            fifth block of colour would imply a fifth amount of liquid. */}
-        <div className="text-xs">
-          The pale outline marks cloud formations where the satellite still sees liquid at the top.
-        </div>
-      </LayerToggle>
-
-      <LayerToggle
-        legend={CloudTopLegend}
-        checked={cloudTop}
-        onChange={(on) => dispatch(cloudTopActions.setVisible(on))}
-      >
-        <CloudTopRamp />
-        <div className="text-xs">
-          °C at the cloud top.
-        </div>
-      </LayerToggle>
-
-      <LayerToggle
-        legend={CloudBaseLegend}
-        checked={cloudBase}
-        onChange={(on) => dispatch(cloudBaseActions.setVisible(on))}
-      >
-        <CloudBaseRamp />
-        <div className="text-xs">
-          ft MSL at the cloud base.
-        </div>
-      </LayerToggle>
-
-      <LayerToggle
-        legend={LiquidLegend}
-        checked={liquid}
-        onChange={(on) => dispatch(candidateActions.setLiquid(on))}
-      >
-        <Ramp
-          bands={SLW_BANDS}
-          rgb={SLW_RGB}
-          captions={SLW_BANDS.map((band) => String(band.value))}
-          titles={SLW_LABELS}
-        />
-        <div className="text-xs">
-          g/m² in the {BAND_LABEL} band.
-        </div>
-      </LayerToggle>
-
       <LayerToggle
         legend={RadarLegend}
         checked={radar}
@@ -115,28 +45,44 @@ export const CandidateLayers = () => {
           bands={RADAR_BANDS}
           rgb={RADAR_RGB}
           captions={RADAR_BANDS.map((band) => String(band.value))}
-          titles={RADAR_LABELS}
         />
-        <div className="text-xs">
-          dBZ &middot; {RADAR_LABELS[0]} to{" "}
-          {RADAR_LABELS[RADAR_LABELS.length - 1]}. The 20 dBZ fill is the
-          edge of the rain.
-        </div>
+        <div className="text-xs">dBZ</div>
         <SubToggle
           name={HeadingLegend.name}
           checked={heading}
           onChange={(on) => dispatch(radarActions.setHeading(on))}
-        >
-          <div className="text-xs">{HeadingLegend.summary}</div>
-        </SubToggle>
+        />
         <SubToggle
           name={LightningLegend.name}
           checked={lightning}
           onChange={(on) => dispatch(radarActions.setLightning(on))}
-        >
-          <div className="text-xs">{LightningLegend.summary}</div>
-        </SubToggle>
+        />
+        <SubToggle
+          name={EchoFreezeLegend.name}
+          checked={echoFreeze}
+          onChange={(on) => dispatch(radarActions.setEchoFreeze(on))}
+        />
       </LayerToggle>
+
+      <LayerToggle
+        legend={CloudBaseLegend}
+        checked={cloudBase}
+        onChange={(on) => dispatch(cloudBaseActions.setVisible(on))}
+      >
+        {baseWindow ? <WindowRamp /> : <CloudBaseRamp />}
+        <div className="text-xs">{baseWindow ? "ft AGL" : "ft MSL"}</div>
+        <SubToggle
+          name={BaseWindowLegend.name}
+          checked={baseWindow}
+          onChange={(on) => dispatch(cloudBaseActions.setWindow(on))}
+        />
+      </LayerToggle>
+
+      <LayerToggle
+        legend={CandidateLegend}
+        checked={field}
+        onChange={(on) => dispatch(seedabilityActions.setVisible(on))}
+      />
     </div>
   );
 };

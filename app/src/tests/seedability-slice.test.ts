@@ -10,7 +10,7 @@ const initial = () => reducer(undefined, { type: "@@INIT" });
 describe("seedability slice", () => {
   // The answer the map exists to give, and it covers a fraction of the ground
   // its inputs do, so it does not bury them the way a fourth fill would.
-  it("starts visible", () => {
+  it("starts on — the Texas fly fill is where to click", () => {
     expect(initial().visible).toBe(true);
   });
 
@@ -67,7 +67,7 @@ describe("seedability slice", () => {
       expect(moved.here).toBeUndefined();
     });
 
-    it("leaves the layer drawn when the click moves", () => {
+    it("leaves the layer's visibility when the click moves", () => {
       const loaded = reducer(initial(), seedabilityActions.setHere(here));
       const moved = reducer(loaded, soundingActions.setPoint([-99.1, 35.2]));
 

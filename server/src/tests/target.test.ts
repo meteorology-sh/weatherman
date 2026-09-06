@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 // Services
 import {
   emptyTarget,
+  flyValues,
   join,
   readTarget,
   summarize,
@@ -27,8 +28,8 @@ const NO_COVERAGE = -999;
  * One cell that passes every Texas test, with any field overridden.
  *
  * Base 8,000 ft MSL over 2,000 ft terrain (6,000 ft AGL), freezing at
- * 16,000 ft, echo top at 18,000 ft, 35 dBZ: a raining convective column
- * with the aircraft in the operational window.
+ * 16,000 ft, 18 dBZ echo top at 18,000 ft, 35 dBZ: a raining convective
+ * column with the aircraft in the operational window.
  */
 function cell(
   over: Partial<Record<keyof Omit<TargetInputs, "nx" | "ny">, number>> = {}
@@ -76,6 +77,15 @@ const geoOf = (inputs: TargetInputs, lats: number[], lons: number[]): Geo => ({
   ny: inputs.ny,
   lats: new Float32Array(lats),
   lons: new Float32Array(lons),
+});
+
+describe("flyValues", () => {
+  it("is 1 on passing cells and missing elsewhere", () => {
+    const out = flyValues(join(cell()));
+    assert.equal(out[0], 1);
+    const empty = flyValues(join(cell({ cloudBaseFt: Number.NaN })));
+    assert.ok(Number.isNaN(empty[0]));
+  });
 });
 
 describe("target join", () => {
@@ -136,7 +146,7 @@ describe("target join", () => {
     );
   });
 
-  it("requires echo top at or above the freezing level in the same column", () => {
+  it("requires a measured 18 dBZ echo top at or above freezing in the same column", () => {
     assert.equal(verdict(cell({ echoTopFt: 15000 }), 0), "topBelowFreezing");
     assert.equal(verdict(cell({ echoTopFt: 16000 }), 0), "target");
   });
@@ -266,7 +276,7 @@ describe("readTarget", () => {
     );
   });
 
-  it("reports no echo top where the model diagnoses none", () => {
+  it("reports no echo top where there is no 18 dBZ", () => {
     assert.equal(
       readTarget(cell({ echoTopFt: Number.NaN }), 0).echoTopFt,
       null

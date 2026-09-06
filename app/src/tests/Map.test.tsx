@@ -25,9 +25,7 @@ beforeEach(resetArcgis);
 // Store
 import { interactionsActions } from "@/lib/store/features/interactions";
 import { forecastActions } from "@/lib/store/features/forecast";
-import { candidateActions } from "@/lib/store/features/candidate";
 import { cloudBaseActions } from "@/lib/store/features/cloudbase";
-import { cloudTopActions } from "@/lib/store/features/cloudtop";
 import { domainActions } from "@/lib/store/features/domain";
 import { radarActions } from "@/lib/store/features/radar";
 import { seedabilityActions } from "@/lib/store/features/seedability";
@@ -36,17 +34,19 @@ import { soundingActions } from "@/lib/store/features/sounding";
 // Fakes
 import {
   cloudBaseLayer,
+  cloudBaseWindowLayer,
   cloudTopLayer,
   confirmedLayer,
   fieldLayer,
   forecastLayer,
-  liquidLayer,
   map,
   precipLayer,
   radarLayer,
   stormCoreLayer,
+  stormFlankLayer,
   stormMotionLayer,
   lightningLayer,
+  echoFreezeLayer,
   view,
 } from "./arcgis-fakes";
 
@@ -84,9 +84,11 @@ describe("ArcGIS", () => {
       cloudTopLayer,
       forecastLayer,
       precipLayer,
-      liquidLayer,
       radarLayer,
+      cloudBaseWindowLayer,
+      echoFreezeLayer,
       lightningLayer,
+      stormFlankLayer,
       stormMotionLayer,
       stormCoreLayer,
       fieldLayer,
@@ -101,9 +103,6 @@ describe("ArcGIS", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     const layers = map().layers ?? [];
-    expect(layers.indexOf(fieldLayer)).toBeGreaterThan(
-      layers.indexOf(liquidLayer)
-    );
     expect(layers.indexOf(fieldLayer)).toBeGreaterThan(
       layers.indexOf(radarLayer)
     );
@@ -162,17 +161,18 @@ describe("ArcGIS", () => {
 describe("ArcGIS in candidate mode", () => {
   // The map opens on the candidate field alone. Every input to it starts off,
   // so a layer on screen is one the operator asked for.
-  it("opens with the liquid join and radar on", () => {
+  it("opens with radar, cores, heading, the flank, and the Texas fly fill", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     expect(fieldLayer.visible).toBe(true);
     expect(radarLayer.visible).toBe(true);
-    expect(stormCoreLayer.visible).toBe(false);
-    expect(stormMotionLayer.visible).toBe(false);
+    expect(stormCoreLayer.visible).toBe(true);
+    expect(stormFlankLayer.visible).toBe(true);
+    expect(stormMotionLayer.visible).toBe(true);
     expect(lightningLayer.visible).toBe(false);
     expect(cloudTopLayer.visible).toBe(false);
-    expect(liquidLayer.visible).toBe(false);
     expect(cloudBaseLayer.visible).toBe(false);
+    expect(cloudBaseWindowLayer.visible).toBe(false);
   });
 
   it("does not refetch when the view zooms in inside the held window", () => {
@@ -190,7 +190,7 @@ describe("ArcGIS in candidate mode", () => {
     expect(radarLayer.url).toBe(url);
   });
 
-  it("keeps cores, heading, and lightning off until asked, even zoomed out", () => {
+  it("keeps lightning off until asked, even zoomed out", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
     const v = view();
     v.zoom = 4;
@@ -203,9 +203,28 @@ describe("ArcGIS in candidate mode", () => {
     });
 
     expect(radarLayer.visible).toBe(true);
-    expect(stormCoreLayer.visible).toBe(false);
-    expect(stormMotionLayer.visible).toBe(false);
+    expect(stormCoreLayer.visible).toBe(true);
+    expect(stormFlankLayer.visible).toBe(true);
+    expect(stormMotionLayer.visible).toBe(true);
     expect(lightningLayer.visible).toBe(false);
+  });
+
+  it("shows echo past freezing only while radar is on and the switch is on", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+
+    expect(echoFreezeLayer.visible).toBe(false);
+
+    act(() => {
+      store.dispatch(radarActions.setEchoFreeze(true));
+    });
+    expect(echoFreezeLayer.visible).toBe(true);
+    expect(echoFreezeLayer.url).toContain("/radar/echotop/past-freezing");
+
+    act(() => {
+      store.dispatch(radarActions.setVisible(false));
+    });
+    expect(echoFreezeLayer.visible).toBe(false);
   });
 
   it("shows lightning only while radar is on and the switch is on", () => {
@@ -226,82 +245,31 @@ describe("ArcGIS in candidate mode", () => {
     expect(lightningLayer.visible).toBe(false);
   });
 
-  it("shows the core and heading only while radar is on and the switch is on", () => {
+  it("shows the core, heading, and flank with the mosaic, and hides them with it", () => {
     const store = createTestStore();
     renderWithStore(<ArcGIS mode="candidate" />, store);
 
-    expect(stormCoreLayer.visible).toBe(false);
-    expect(stormMotionLayer.visible).toBe(false);
-
-    act(() => {
-      store.dispatch(radarActions.setHeading(true));
-    });
     expect(stormCoreLayer.visible).toBe(true);
+    expect(stormFlankLayer.visible).toBe(true);
     expect(stormMotionLayer.visible).toBe(true);
     expect(stormCoreLayer.url).toContain("/radar/objects/cores");
+    expect(stormFlankLayer.url).toContain("/radar/objects/flanks");
     expect(stormMotionLayer.url).toContain("/radar/objects/motion");
 
     act(() => {
       store.dispatch(radarActions.setVisible(false));
     });
     expect(stormCoreLayer.visible).toBe(false);
+    expect(stormFlankLayer.visible).toBe(false);
     expect(stormMotionLayer.visible).toBe(false);
-  });
 
-  it("shows the observed cloud tops and the modelled liquid water together", () => {
-    const store = createTestStore();
-
-    renderWithStore(<ArcGIS mode="candidate" />, store);
     act(() => {
-      store.dispatch(cloudTopActions.setVisible(true));
-      store.dispatch(candidateActions.setLiquid(true));
+      store.dispatch(radarActions.setVisible(true));
+      store.dispatch(radarActions.setHeading(false));
     });
-
-    expect(cloudTopLayer.visible).toBe(true);
-    expect(liquidLayer.visible).toBe(true);
-  });
-
-  // The satellite shows the cloud top; the contours show what is inside it. The
-  // liquid has to sit above or it is buried by the cloud it explains.
-  it("draws the liquid water above the cloud tops it explains", () => {
-    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
-
-    const layers = map().layers ?? [];
-    expect(layers.indexOf(liquidLayer)).toBeGreaterThan(
-      layers.indexOf(cloudTopLayer)
-    );
-  });
-
-  it("hides the cloud tops when the operator turns them off", () => {
-    const store = createTestStore();
-
-    renderWithStore(<ArcGIS mode="candidate" />, store);
-    act(() => {
-      store.dispatch(cloudTopActions.setVisible(true));
-      store.dispatch(candidateActions.setLiquid(true));
-    });
-    act(() => {
-      store.dispatch(cloudTopActions.setVisible(false));
-    });
-
-    expect(cloudTopLayer.visible).toBe(false);
-    expect(liquidLayer.visible).toBe(true);
-  });
-
-  it("hides the liquid water when the operator turns it off", () => {
-    const store = createTestStore();
-
-    renderWithStore(<ArcGIS mode="candidate" />, store);
-    act(() => {
-      store.dispatch(cloudTopActions.setVisible(true));
-      store.dispatch(candidateActions.setLiquid(true));
-    });
-    act(() => {
-      store.dispatch(candidateActions.setLiquid(false));
-    });
-
-    expect(liquidLayer.visible).toBe(false);
-    expect(cloudTopLayer.visible).toBe(true);
+    expect(stormCoreLayer.visible).toBe(false);
+    expect(stormFlankLayer.visible).toBe(false);
+    expect(stormMotionLayer.visible).toBe(false);
   });
 
   it("hides the modelled forecast contours", () => {
@@ -337,6 +305,32 @@ describe("ArcGIS in candidate mode", () => {
 
     expect(cloudBaseLayer.visible).toBe(false);
   });
+
+  it("shows the Comptroller window only while cloud base is on", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      store.dispatch(cloudBaseActions.setWindow(true));
+    });
+    expect(cloudBaseWindowLayer.visible).toBe(false);
+
+    act(() => {
+      store.dispatch(cloudBaseActions.setVisible(true));
+    });
+    expect(cloudBaseWindowLayer.visible).toBe(true);
+    expect(cloudBaseLayer.visible).toBe(false);
+    expect(cloudBaseWindowLayer.url).toContain("/forecast/cloudbase/window");
+  });
+
+  it("draws the Comptroller window above the rain", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    const layers = map().layers ?? [];
+    expect(layers.indexOf(cloudBaseWindowLayer)).toBeGreaterThan(
+      layers.indexOf(radarLayer)
+    );
+  });
 });
 
 describe("ArcGIS radar", () => {
@@ -361,15 +355,6 @@ describe("ArcGIS radar", () => {
 
   // The disqualifier has to be the layer you can see: a candidate is ruled out
   // exactly where cyan covers amber.
-  it("draws it above the liquid water it disqualifies", () => {
-    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
-
-    const layers = map().layers ?? [];
-    expect(layers.indexOf(radarLayer)).toBeGreaterThan(
-      layers.indexOf(liquidLayer)
-    );
-  });
-
   it("hides it when the operator turns it off", () => {
     const store = createTestStore();
 
@@ -380,6 +365,7 @@ describe("ArcGIS radar", () => {
 
     expect(radarLayer.visible).toBe(false);
     expect(stormCoreLayer.visible).toBe(false);
+    expect(stormFlankLayer.visible).toBe(false);
     expect(stormMotionLayer.visible).toBe(false);
     expect(lightningLayer.visible).toBe(false);
   });
@@ -400,12 +386,6 @@ describe("ArcGIS in forecast mode", () => {
 
   // The liquid layer is pinned to the analysis, so it would contradict the
   // slider the moment the operator moved it.
-  it("hides the analysis-hour liquid water on the forecast map", () => {
-    renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
-
-    expect(liquidLayer.visible).toBe(false);
-  });
-
   it("starts on the analysis hour", () => {
     renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
 

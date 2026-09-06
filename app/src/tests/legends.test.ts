@@ -9,11 +9,19 @@ import {
 import {
   ALL_LEGENDS,
   BASE_WINDOW_LABEL,
+  BaseWindowLegend,
   CEILING_LABEL,
   CandidateLegend,
   CloudBaseLegend,
   CloudTopLegend,
+  CapeLegend,
+  CinLegend,
+  EchoFreezeLegend,
+  FreezingLegend,
   HeadingLegend,
+  LclLegend,
+  Minus15Legend,
+  WarmDepthLegend,
   LightningLegend,
   LiquidLegend,
   RadarLegend,
@@ -94,7 +102,7 @@ describe("CloudBaseLegend", () => {
   // hardcoded copy goes stale silently when the airframe changes.
   it("takes the ceiling from the constant the bands are built on", () => {
     expect(CEILING_LABEL).toContain(CEILING_FT.toLocaleString("en-US"));
-    expect(CloudBaseLegend.summary).toContain(CEILING_LABEL);
+    expect(detailOf(CloudBaseLegend)).toContain(CEILING_LABEL);
   });
 
   // The Texas window is reported and never drawn, so the switch's one sentence
@@ -117,8 +125,8 @@ describe("CloudBaseLegend", () => {
 
   // Modelled data on the observed map is an exception to the editorial split,
   // and the About page is where it has to be admitted.
-  it("admits the layer is modelled rather than observed", () => {
-    expect(detailOf(CloudBaseLegend)).toContain("Modelled, not observed");
+  it("admits the layer is modelled", () => {
+    expect(detailOf(CloudBaseLegend)).toContain("Modelled");
   });
 
   // MSL and AGL differ by thousands of feet across Texas, so a height with no
@@ -126,6 +134,18 @@ describe("CloudBaseLegend", () => {
   it("states the datum its heights are in", () => {
     expect(CloudBaseLegend.summary).toContain("MSL");
     expect(detailOf(CloudBaseLegend)).toContain("MSL");
+  });
+});
+
+describe("BaseWindowLegend", () => {
+  it("names the Comptroller window from the same constant the server uses", () => {
+    expect(BaseWindowLegend.summary).toContain(BASE_WINDOW_LABEL);
+    expect(BaseWindowLegend.summary).toContain("above the ground");
+  });
+
+  it("says the window is AGL and national", () => {
+    expect(detailOf(BaseWindowLegend)).toContain("AGL");
+    expect(detailOf(BaseWindowLegend)).toContain("National fill");
   });
 });
 
@@ -145,51 +165,51 @@ describe("LiquidLegend", () => {
 describe("RadarLegend", () => {
   // The only measurement on either map, and the only layer that can cross a
   // candidate off. Both halves of that have to be said.
-  it("says it is measured and that it cannot confirm a candidate", () => {
-    expect(detailOf(RadarLegend)).toContain("Measured, not modelled");
-    expect(detailOf(RadarLegend)).toContain("never confirm one");
+  it("says it is measured", () => {
+    expect(detailOf(RadarLegend)).toContain("Measured");
   });
 
-  it("names the heading as a switch, not as part of the fill", () => {
-    expect(detailOf(RadarLegend)).toContain("A dot and a heading are a switch");
-    expect(detailOf(RadarLegend)).toContain("not a forecast");
-    expect(detailOf(RadarLegend)).toContain("not inflow");
+  it("names the heading, lightning, and echo past freezing", () => {
+    expect(detailOf(RadarLegend)).toContain("upwind raining flank");
     expect(detailOf(RadarLegend)).toContain("18 dBZ echo top");
-    expect(detailOf(RadarLegend)).toContain("not of the cloud");
     expect(detailOf(RadarLegend)).toContain("averages four 1 km cells");
     expect(detailOf(RadarLegend)).toContain("rounds");
     expect(detailOf(RadarLegend)).toContain("evaluation maps keep");
-    expect(HeadingLegend.name).toBe("CORE AND HEADING");
+    expect(detailOf(RadarLegend)).toContain("Lightning");
+    expect(HeadingLegend.name).toBe("CORE, HEADING, AND FLANK");
     expect(HeadingLegend.summary).toContain("heaviest rain");
-    expect(HeadingLegend.summary).toContain("moving");
-  });
-
-  it("keeps lightning as a switch under the radar, not a second fill", () => {
-    expect(detailOf(RadarLegend)).toContain("Lightning is a switch");
+    expect(HeadingLegend.summary).toContain("upwind raining edge");
     expect(LightningLegend.name).toBe("LIGHTNING");
     expect(LightningLegend.summary).toContain("flashes");
+  });
+
+  it("names echo past freezing as a switch under the radar", () => {
+    expect(EchoFreezeLegend.name).toBe("ECHO PAST FREEZING");
+    expect(EchoFreezeLegend.summary).toContain("18 dBZ");
+    expect(EchoFreezeLegend.summary).toContain("freezing");
+    expect(detailOf(EchoFreezeLegend)).toContain("18 dBZ");
+  });
+
+  it("keeps the 12Z table names for the click", () => {
+    expect(CapeLegend.name).toBe("CAPE");
+    expect(CinLegend.name).toBe("CIN");
+    expect(LclLegend.name).toBe("LCL");
+    expect(FreezingLegend.name).toBe("FREEZING LEVEL");
+    expect(Minus15Legend.name).toBe("MINUS FIFTEEN");
+    expect(WarmDepthLegend.name).toBe("WARM CLOUD DEPTH");
   });
 });
 
 describe("CandidateLegend", () => {
-  // The tests it applies are the reason the layer exists, and their thresholds
-  // are read from the bands rather than restated, so the prose follows them.
-  it("states the thresholds it joins on", () => {
+  it("states the Texas tests it joins on", () => {
     expect(detailOf(CandidateLegend)).toContain(String(RADAR_BANDS[0].value));
-    expect(detailOf(CandidateLegend)).toContain(String(CLOUD_TOP_WARMEST_C));
+    expect(detailOf(CandidateLegend)).toContain("18 dBZ");
+    expect(detailOf(CandidateLegend)).toContain(BASE_WINDOW_LABEL);
   });
 
-  it("says it exists at the analysis hour only", () => {
-    expect(detailOf(CandidateLegend)).toContain("analysis hour");
-  });
-
-  // The switch names all four tests without a number on any of them. That is
-  // the layer in one line, and it is what a reader who never opens the About
-  // page takes away.
   it("names every test it joins on, in the sentence under the switch", () => {
-    expect(CandidateLegend.summary).toContain("liquid");
-    expect(CandidateLegend.summary).toContain("cloud top");
-    expect(CandidateLegend.summary).toContain("cloud base");
+    expect(CandidateLegend.summary).toContain("window");
+    expect(CandidateLegend.summary).toContain("echo");
     expect(CandidateLegend.summary).toContain("rain");
   });
 });

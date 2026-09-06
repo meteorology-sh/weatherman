@@ -782,15 +782,19 @@ export function motionLengthKm(motionKmh: number): number {
   return Math.min(12, Math.max(3, motionKmh / 10));
 }
 
-/** Head length as a fraction of the tick, so the dart scales with the line. */
-const MOTION_HEAD = 0.3;
-const MOTION_HEAD_HALF = 0.16;
-const MOTION_SHAFT_HALF = 0.045;
+/**
+ * Shaft and head widths, km. Constant, so only the tick's length follows
+ * speed. Scaling the width with the length made fast storms look fatter,
+ * not just longer.
+ */
+export const MOTION_SHAFT_HALF_KM = 0.35;
+export const MOTION_HEAD_HALF_KM = 1.1;
+/** Head length along the tick, km. Capped so a short tick is still a dart. */
+export const MOTION_HEAD_KM = 2;
 
 /**
- * A filled dart from the core along the heading, in lon/lat. The head is
- * a fraction of the tick, so zooming out shrinks the arrow with the line
- * instead of leaving a screen-pixel triangle behind.
+ * A filled dart from the core along the heading, in lon/lat. Length
+ * follows speed. Width does not.
  */
 export function motionArrow(
   lat: number,
@@ -798,19 +802,20 @@ export function motionArrow(
   towardDeg: number,
   km: number
 ): [number, number][] {
-  const shaftKm = km * (1 - MOTION_HEAD);
+  const headKm = Math.min(MOTION_HEAD_KM, km * 0.4);
+  const shaftKm = km - headKm;
   const left = towardDeg - 90;
   const right = towardDeg + 90;
   const neck = destPoint(lat, lon, towardDeg, shaftKm);
   const tip = destPoint(lat, lon, towardDeg, km);
   const neckLat = neck[1];
   const neckLon = neck[0];
-  const startL = destPoint(lat, lon, left, km * MOTION_SHAFT_HALF);
-  const startR = destPoint(lat, lon, right, km * MOTION_SHAFT_HALF);
-  const neckL = destPoint(neckLat, neckLon, left, km * MOTION_SHAFT_HALF);
-  const neckR = destPoint(neckLat, neckLon, right, km * MOTION_SHAFT_HALF);
-  const wingL = destPoint(neckLat, neckLon, left, km * MOTION_HEAD_HALF);
-  const wingR = destPoint(neckLat, neckLon, right, km * MOTION_HEAD_HALF);
+  const startL = destPoint(lat, lon, left, MOTION_SHAFT_HALF_KM);
+  const startR = destPoint(lat, lon, right, MOTION_SHAFT_HALF_KM);
+  const neckL = destPoint(neckLat, neckLon, left, MOTION_SHAFT_HALF_KM);
+  const neckR = destPoint(neckLat, neckLon, right, MOTION_SHAFT_HALF_KM);
+  const wingL = destPoint(neckLat, neckLon, left, MOTION_HEAD_HALF_KM);
+  const wingR = destPoint(neckLat, neckLon, right, MOTION_HEAD_HALF_KM);
   return [startL, neckL, wingL, tip, wingR, neckR, startR, startL];
 }
 

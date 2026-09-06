@@ -58,6 +58,24 @@ candidate.get("/field/stats", async (req: Request, res: Response) => {
   }
 });
 
+// The Texas join as a fill: base in the window, 18 dBZ echo top past
+// freezing nearby, rain nearby. Same cached build as /point, so a click
+// on this fill and FLY cannot disagree.
+candidate.get("/target", async (req: Request, res: Response) => {
+  try {
+    const frame = await Seedability.targetField(
+      parseAt(req.query.at),
+      parseBox(req.query),
+      parseFine(req.query)
+    );
+    res.send(frame);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
 // How much of the asked ground looks like a Texas target. A box is optional
 // — absent means the whole domain — and is how eval measures selectivity
 // without painting geometry.

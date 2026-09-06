@@ -11,7 +11,6 @@ import { Convective } from "@/app/components/candidate/Convective";
 // Types
 import type { Diagnostics, Sounding } from "@/lib/types";
 
-/** A deep convective cell, 2025-05-15 19Z, from the live route. */
 const deep: Diagnostics = {
   cloudBaseFt: 3456,
   cloudBaseAglFt: 2508,
@@ -20,6 +19,8 @@ const deep: Diagnostics = {
   bandInCloud: true,
   capeJKg: 2499,
   mixedCapeJKg: 2339,
+  cinJKg: 45,
+  lclFt: 4200,
   stormMotionKt: 35,
   stormMotionTowardDeg: 13,
   lightning: 2,
@@ -64,101 +65,13 @@ describe("Convective panel", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  it("reports the cloud base with its datum", () => {
+  it("reports CAPE, CIN, LCL, and warm-cloud depth", () => {
     withDiagnostics();
 
-    expect(screen.getByText("3,456 ft")).toBeTruthy();
-    expect(screen.getByText(/MSL · 2,508 ft above the ground/)).toBeTruthy();
-  });
-
-  it("reports the depth from base to top", () => {
-    withDiagnostics();
-
-    expect(screen.getByText("36,106 ft")).toBeTruthy();
-    expect(screen.getByText(/Top at 39,562 ft MSL/)).toBeTruthy();
-  });
-
-  describe("the band against the cloud", () => {
-    it("says the band is inside the cloud when it is", () => {
-      withDiagnostics();
-
-      expect(screen.getByText(/seeding band is inside the cloud/)).toBeTruthy();
-    });
-
-    it("says the band and the cloud do not overlap when they do not", () => {
-      withDiagnostics({ bandInCloud: false });
-
-      expect(screen.getByText(/do not overlap/)).toBeTruthy();
-    });
-
-    // The common case, and the one that must not read as a "no": HRRR reports
-    // a cloud top over far less ground than it reports a base.
-    it("says it cannot be evaluated rather than failing it", () => {
-      withDiagnostics({ bandInCloud: null, cloudTopFt: null, depthFt: null });
-
-      expect(screen.getByText(/No answer for this point/)).toBeTruthy();
-      expect(screen.queryByText(/do not overlap/)).toBeNull();
-    });
-
-    it("explains a missing depth by the missing cloud top", () => {
-      withDiagnostics({ bandInCloud: null, cloudTopFt: null, depthFt: null });
-
-      expect(screen.getByText(/diagnoses no cloud top here/)).toBeTruthy();
-    });
-  });
-
-  it("says plainly when the model has no cloud over the point", () => {
-    withDiagnostics({ ...noDiagnostics });
-
-    expect(screen.getByText(/no cloud over this cell/)).toBeTruthy();
-  });
-
-  it("reports both CAPE parcels", () => {
-    withDiagnostics();
-
-    expect(screen.getByText("2,499 J/kg")).toBeTruthy();
     expect(screen.getByText("2,339 J/kg")).toBeTruthy();
-  });
-
-  // Storm motion is named by where it is going, and the compass point is what
-  // an operator reads rather than the bearing alone.
-  it("reports storm motion as a speed and a direction it moves toward", () => {
-    withDiagnostics();
-
-    expect(screen.getByText("35 kt toward N (13°)")).toBeTruthy();
-  });
-
-  it("gives no direction for still air", () => {
-    withDiagnostics({ stormMotionKt: 0, stormMotionTowardDeg: null });
-
-    expect(screen.getByText("0 kt")).toBeTruthy();
-  });
-
-  // LTNG is a 188-byte constant field at f00, so the hour genuinely does not
-  // carry it. "not at the analysis hour" and "no flashes" are different claims.
-  it("distinguishes an hour with no lightning field from zero flashes", () => {
-    withDiagnostics({ lightning: null });
-
-    expect(screen.getByText("not at the analysis hour")).toBeTruthy();
-  });
-
-  it("reports a diagnosed zero as a zero", () => {
-    withDiagnostics({ lightning: 0 });
-
-    expect(screen.queryByText("not at the analysis hour")).toBeNull();
-  });
-
-  it("reports the echo top, and its absence as absence", () => {
-    withDiagnostics({ echoTopFt: null });
-
-    expect(screen.getByText("—")).toBeTruthy();
-  });
-
-  // Nothing here filters the map, and the panel has to say so — a cutoff on
-  // any of these would need a citation the design does not have.
-  it("says these are attributes rather than gates", () => {
-    withDiagnostics();
-
-    expect(screen.getByText(/Nothing here filters the map/)).toBeTruthy();
+    expect(screen.getByText("2,499 J/kg")).toBeTruthy();
+    expect(screen.getByText("45 J/kg")).toBeTruthy();
+    expect(screen.getByText("4,200 ft")).toBeTruthy();
+    expect(screen.getByText("8,616 ft")).toBeTruthy();
   });
 });

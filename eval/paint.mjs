@@ -6,10 +6,12 @@
  * `eval/out/painted-2025-04-19.json` for West Texas.
  *
  * **It paints the product's own layers, not a layer invented for the page.**
- * Every one of the five is the same route the replay map fetches, at the same
- * hour parameter, carrying the same property — so a band drawn here is the band
- * Weatherman draws. Cores, heading ticks, and lightning are the same marks
- * the candidate map draws under radar, stored beside the fills.
+ * Each fill is the same route the maps fetch, at the same hour parameter,
+ * carrying the same property — so a band drawn here is the band Weatherman
+ * draws. `candidate` is the quiet-liquid join at `/candidate/field`.
+ * `target` is the Texas fly fill at `/candidate/target`. Cores, heading
+ * ticks, and lightning are the same marks the candidate map draws under
+ * radar, stored beside the fills.
  *
  * **The question is how near, not whether inside.** Asking whether a flare
  * landed in the paint gives one bit and throws away how badly it missed, and a
@@ -67,6 +69,9 @@ const CELL_KM = {
   liquid: 3,
   radar: 1,
   candidate: 3,
+  target: 3,
+  baseWindow: 3,
+  echoFreeze: 3,
 };
 
 /* ---------- the region ---------- */
@@ -110,19 +115,18 @@ function withBox(path) {
 /* ---------- the layers, as the replay map draws them ---------- */
 
 /**
- * The five layers, in the order Weatherman stacks them.
+ * The fills, as the maps draw them.
  *
  * Same routes, same properties. Each request carries the flare's own timestamp
- * as `at`. `hour=0` on the two HRRR fields for the reason the candidate map
- * pins them there: a cloud base and a mixing ratio are states the analysis
- * holds, so f00 is a real answer rather than an empty one. The satellite and
- * the radar take no hour at all — they are scenes, and each carries its own
+ * as `at`. `hour=0` on the HRRR fields for the reason the candidate map pins
+ * them there: a cloud base and a mixing ratio are states the analysis holds,
+ * so f00 is a real answer rather than an empty one. The satellite and the
+ * radar take no hour at all — they are scenes, and each carries its own
  * valid time. The join already splits those clocks: HRRR rounds to the hour,
  * GOES and radar keep the minute.
  *
- * `candidate` is fetched first even though it is drawn last. It is the join, so
- * building it warms every source the other four read, and the remaining fetches
- * come back off that build instead of paying for their own.
+ * `candidate` is fetched first. It is the quiet-liquid join, so building it
+ * warms every source the Texas fly fill and the other HRRR fields read.
  */
 const LAYERS = [
   {
@@ -175,10 +179,49 @@ const LAYERS = [
     shape: "nested",
     cellKm: CELL_KM.candidate,
   },
+  {
+    key: "target",
+    name: "TEXAS FLY FILL",
+    path: (at) =>
+      `/candidate/target?at=${encodeURIComponent(at)}&fine=1`,
+    property: "fly",
+    unit: "pass",
+    shape: "disjoint",
+    cellKm: CELL_KM.target,
+  },
+  {
+    key: "baseWindow",
+    name: "BASE WINDOW",
+    path: (at) =>
+      `/forecast/cloudbase/window?hour=0&at=${encodeURIComponent(at)}&fine=1`,
+    property: "inWindow",
+    unit: "pass",
+    shape: "disjoint",
+    cellKm: CELL_KM.baseWindow,
+  },
+  {
+    key: "echoFreeze",
+    name: "ECHO PAST FREEZING",
+    path: (at) =>
+      `/radar/echotop/past-freezing?at=${encodeURIComponent(at)}&fine=1`,
+    property: "pastFreezing",
+    unit: "pass",
+    shape: "disjoint",
+    cellKm: CELL_KM.echoFreeze,
+  },
 ];
 
-/** Warms the most caches first; the file still lists them in draw order. */
-const FETCH_ORDER = ["candidate", "liquid", "cloudBase", "cloudTop", "radar"];
+/** Warms the join first; the Texas fill reads that same cached scene. */
+const FETCH_ORDER = [
+  "candidate",
+  "target",
+  "liquid",
+  "cloudBase",
+  "baseWindow",
+  "echoFreeze",
+  "cloudTop",
+  "radar",
+];
 
 /* ---------- geometry ---------- */
 
@@ -594,9 +637,9 @@ const file = join(
   OUT,
   (region.runs?.painted ?? "painted-{date}.json").replace("{date}", DATE)
 );
-// Written compact rather than indented. Five layers at several analyses is most
-// of a megabyte of coordinates, and pretty-printing them triples the file the
-// page has to pull for no reader — nothing opens this by hand.
+// Written compact rather than indented. Several fills at several analyses
+// is most of a megabyte of coordinates, and pretty-printing them triples
+// the file the page has to pull for no reader — nothing opens this by hand.
 await writeFile(
   file,
   `${JSON.stringify({

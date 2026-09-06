@@ -69,6 +69,20 @@ import {
   diagnostics,
   recordsAt,
 } from "./diagnostics";
+import { windowValues } from "./basewindow";
+import {
+  BRIEFING_COLD_C,
+  CAPE,
+  CIN,
+  FREEZING,
+  LCL,
+  MINUS15,
+  WARM_DEPTH,
+  cinMagnitude,
+  isBriefingField,
+  warmCloudDepthValues,
+} from "./briefing";
+import type { BriefingField } from "./briefing";
 
 // Types
 import type {
@@ -414,6 +428,128 @@ export class ForecastService {
   /** The same build's summary. Asking for either warms both. */
   async cloudBaseStats(hour: number, at?: Date): Promise<CloudBaseStats> {
     return (await this.surface(hour, at)).base.stats;
+  }
+
+  /**
+   * Cloud base in the 4,000–12,000 ft AGL window. A fill, not a gate:
+   * storms stay on the map either way.
+   */
+  async cloudBaseWindow(
+    hour: number,
+    at?: Date,
+    box: LonLatBox = DRAWN,
+    fine = false
+  ): Promise<ContourFrame> {
+    const built = await this.surface(hour, at);
+    const cycle = await this.cycle(at);
+    const surfaceFt = await this.terrain(cycle, hour);
+    const values = windowValues(built.base.grid.values, surfaceFt);
+    return frame(
+      built.run,
+      hour,
+      this.features(
+        { nx: built.base.grid.nx, ny: built.base.grid.ny, values },
+        "inWindow",
+        [1],
+        box,
+        false,
+        fine
+      )
+    );
+  }
+
+  /**
+   * One 12Z briefing field, banded. Mixed-layer CAPE, CIN, LCL, freezing
+   * level, −15 °C, or warm-cloud depth. Cloud base is its own route.
+   */
+  async briefing(
+    field: BriefingField,
+    hour: number,
+    at?: Date,
+    box: LonLatBox = DRAWN,
+    fine = false
+  ): Promise<ContourFrame> {
+    this.assertHour(hour);
+    if (!isBriefingField(field)) {
+      throw new Error(`No briefing field ${field}`);
+    }
+
+    if (field === "cape" || field === "cin" || field === "lcl") {
+      const built = await this.surface(hour, at);
+      const spec =
+        field === "cape" ? CAPE : field === "cin" ? CIN : LCL;
+      const raw =
+        field === "cape"
+          ? built.fields.get("mixedCape")
+          : field === "cin"
+            ? built.fields.get("cin")
+            : built.fields.get("lcl");
+      if (!raw) throw new Error(`HRRR carried no ${spec.property}`);
+      const values = field === "cin" ? cinMagnitude(raw) : raw;
+      return frame(
+        built.run,
+        hour,
+        this.features(
+          { nx: built.base.grid.nx, ny: built.base.grid.ny, values },
+          spec.property,
+          spec.edges,
+          box,
+          true,
+          fine
+        )
+      );
+    }
+
+    const band = await this.bandField(hour, at);
+    if (field === "freezing") {
+      return frame(
+        band.run,
+        hour,
+        this.features(
+          { nx: this.geo!.nx, ny: this.geo!.ny, values: band.freezingFt },
+          FREEZING.property,
+          FREEZING.edges,
+          box,
+          true,
+          fine
+        )
+      );
+    }
+
+    if (field === "minus15") {
+      const profile = await this.profile(hour, at);
+      const values = isothermFieldFt(profile, BRIEFING_COLD_C);
+      return frame(
+        profile.run,
+        hour,
+        this.features(
+          { nx: this.geo!.nx, ny: this.geo!.ny, values },
+          MINUS15.property,
+          MINUS15.edges,
+          box,
+          true,
+          fine
+        )
+      );
+    }
+
+    const built = await this.surface(hour, at);
+    const values = warmCloudDepthValues(
+      band.freezingFt,
+      built.base.grid.values
+    );
+    return frame(
+      built.run,
+      hour,
+      this.features(
+        { nx: built.base.grid.nx, ny: built.base.grid.ny, values },
+        WARM_DEPTH.property,
+        WARM_DEPTH.edges,
+        box,
+        true,
+        fine
+      )
+    );
   }
 
   /**

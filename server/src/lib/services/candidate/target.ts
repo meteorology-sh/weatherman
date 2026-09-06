@@ -7,7 +7,7 @@
  * of. They do not gate on modelled liquid in the seeding band, and they do not
  * cross a cell off for rain. That arithmetic lives here, on the same grids the
  * seeding-opportunity join already reads, plus terrain, the freezing level and
- * modelled echo top.
+ * the measured 18 dBZ echo top the map draws.
  *
  * Pure, and tested on hand-built grids, for the same reason `join.ts` is:
  * reaching this through the service is five network builds and eccodes.
@@ -59,7 +59,7 @@ export type TargetInputs = {
   surfaceFt: Float32Array;
   /** 0 °C height, ft MSL. NaN where the column never crosses freezing. */
   freezingFt: Float32Array;
-  /** Modelled echo top, ft MSL. NaN where the model diagnoses no echo. */
+  /** Measured 18 dBZ echo top, ft MSL. NaN where there is no 18 dBZ. */
   echoTopFt: Float32Array;
   /** Reflectivity already sampled onto this grid, dBZ. */
   dbz: Float32Array;
@@ -76,6 +76,20 @@ export type TargetJoin = {
 };
 
 /**
+ * 1 where the Texas tests pass. NaN everywhere else, so the contourer
+ * draws nothing there — the same shape as the Comptroller window and
+ * echo past freezing.
+ */
+export function flyValues(joined: TargetJoin): Float32Array {
+  const out = new Float32Array(joined.values.length);
+  out.fill(Number.NaN);
+  for (let i = 0; i < joined.values.length; i++) {
+    if (joined.values[i] > 0) out[i] = 1;
+  }
+  return out;
+}
+
+/**
  * The target join read over one cell.
  *
  * The seeding-opportunity readout stays on `CandidatePoint.verdict`. These
@@ -87,7 +101,7 @@ export type TargetPoint = {
   cloudBaseAglFt: number | null;
   /** Freezing level, ft MSL. Null where the column never crosses 0 °C. */
   freezingFt: number | null;
-  /** Modelled echo top, ft MSL. Null where the model diagnoses no echo. */
+  /** Measured 18 dBZ echo top, ft MSL. Null where there is no 18 dBZ. */
   echoTopFt: number | null;
 };
 

@@ -31,14 +31,16 @@ import {
   map,
   radarLayer,
   replayCloudBaseLayer,
+  replayCloudBaseWindowLayer,
   replayCloudTopLayer,
   replayConfirmedLayer,
   replayFieldLayer,
-  replayLiquidLayer,
   replayRadarLayer,
   replayStormCoreLayer,
+  replayStormFlankLayer,
   replayStormMotionLayer,
   replayLightningLayer,
+  replayEchoFreezeLayer,
 } from "./arcgis-fakes";
 
 // Components
@@ -65,7 +67,6 @@ describe("ArcGIS in replay mode", () => {
    */
   const askFor = (store: ReturnType<typeof createTestStore>) => {
     store.dispatch(replayActions.setCloudTop(true));
-    store.dispatch(replayActions.setLiquid(true));
     store.dispatch(replayActions.setRadar(true));
   };
 
@@ -73,7 +74,6 @@ describe("ArcGIS in replay mode", () => {
     renderWithStore(<ArcGIS mode="replay" />, createTestStore());
 
     expect(replayCloudTopLayer.visible).toBe(false);
-    expect(replayLiquidLayer.visible).toBe(false);
     expect(replayRadarLayer.visible).toBe(false);
   });
 
@@ -87,7 +87,6 @@ describe("ArcGIS in replay mode", () => {
     });
 
     expect(replayCloudTopLayer.visible).toBe(false);
-    expect(replayLiquidLayer.visible).toBe(false);
     expect(replayRadarLayer.visible).toBe(false);
   });
 
@@ -99,14 +98,13 @@ describe("ArcGIS in replay mode", () => {
       store.dispatch(replayActions.setAt(AT));
       store.dispatch(ready(AT));
     });
-    expect(replayLiquidLayer.visible).toBe(true);
+    expect(replayRadarLayer.visible).toBe(true);
 
     act(() => {
       store.dispatch(replayActions.setAt("2025-05-16T18:00:00.000Z"));
     });
 
     expect(replayCloudTopLayer.visible).toBe(false);
-    expect(replayLiquidLayer.visible).toBe(false);
     expect(replayRadarLayer.visible).toBe(false);
   });
 
@@ -120,7 +118,6 @@ describe("ArcGIS in replay mode", () => {
     });
 
     expect(replayCloudTopLayer.visible).toBe(true);
-    expect(replayLiquidLayer.visible).toBe(true);
     expect(replayRadarLayer.visible).toBe(true);
   });
 
@@ -151,13 +148,18 @@ describe("ArcGIS in replay mode", () => {
     expect(replayCloudTopLayer.url).toBe(
       `/cloudtop/temperature?at=${at}&${box}`
     );
-    expect(replayLiquidLayer.url).toBe(
-      `/forecast/liquid?hour=0&at=${at}&${box}`
-    );
     expect(replayRadarLayer.url).toBe(`/radar/reflectivity?at=${at}&${box}`);
-    expect(replayStormCoreLayer.url).toBe("");
-    expect(replayStormMotionLayer.url).toBe("");
+    expect(replayStormCoreLayer.url).toBe(
+      `/radar/objects/cores?at=${at}&${box}`
+    );
+    expect(replayStormFlankLayer.url).toBe(
+      `/radar/objects/flanks?at=${at}&${box}`
+    );
+    expect(replayStormMotionLayer.url).toBe(
+      `/radar/objects/motion?at=${at}&${box}`
+    );
     expect(replayLightningLayer.url).toBe("");
+    expect(replayEchoFreezeLayer.url).toBe("");
     expect(replayCloudBaseLayer.url).toBe(
       `/forecast/cloudbase?hour=0&at=${at}&${box}`
     );
@@ -166,16 +168,15 @@ describe("ArcGIS in replay mode", () => {
     );
   });
 
-  // One switch drives the field and the outline over it: an outline with no
-  // field under it marks ground the map is not drawing.
-  it("shows the observed outline with the field it annotates", () => {
+  it("shows the Texas fly fill when the hour is ready", () => {
     const store = createTestStore();
     renderWithStore(<ArcGIS mode="replay" />, store);
     act(() => {
       store.dispatch(ready(AT));
     });
 
-    expect(replayConfirmedLayer.visible).toBe(replayFieldLayer.visible);
+    expect(replayFieldLayer.visible).toBe(true);
+    expect(replayConfirmedLayer.visible).toBe(false);
 
     act(() => {
       store.dispatch(replayActions.setField(false));
@@ -194,7 +195,7 @@ describe("ArcGIS in replay mode", () => {
       store.dispatch(replayActions.setAt(AT));
     });
 
-    expect(replayLiquidLayer.url).toBe("");
+    expect(replayRadarLayer.url).toBe("");
   });
 
   it("adds the replay layers to the map once an hour is ready", () => {
@@ -211,11 +212,11 @@ describe("ArcGIS in replay mode", () => {
     expect(layers.indexOf(replayCloudTopLayer)).toBeGreaterThan(
       layers.indexOf(replayCloudBaseLayer)
     );
-    expect(layers.indexOf(replayLiquidLayer)).toBeGreaterThan(
+    expect(layers.indexOf(replayRadarLayer)).toBeGreaterThan(
       layers.indexOf(replayCloudTopLayer)
     );
-    expect(layers.indexOf(replayRadarLayer)).toBeGreaterThan(
-      layers.indexOf(replayLiquidLayer)
+    expect(layers.indexOf(replayCloudBaseWindowLayer)).toBeGreaterThan(
+      layers.indexOf(replayRadarLayer)
     );
   });
 
@@ -227,14 +228,14 @@ describe("ArcGIS in replay mode", () => {
     act(() => {
       store.dispatch(ready(AT));
     });
-    replayLiquidLayer.refresh.mockClear();
+    replayRadarLayer.refresh.mockClear();
 
     rerender(<ArcGIS mode="replay" />);
     act(() => {
       store.dispatch(ready(AT));
     });
 
-    expect(replayLiquidLayer.refresh).not.toHaveBeenCalled();
+    expect(replayRadarLayer.refresh).not.toHaveBeenCalled();
   });
 
   it("refreshes onto a newly readied hour", () => {
@@ -247,8 +248,8 @@ describe("ArcGIS in replay mode", () => {
       store.dispatch(ready("2025-05-16T18:00:00.000Z"));
     });
 
-    expect(replayLiquidLayer.refresh).toHaveBeenCalled();
-    expect(replayLiquidLayer.url).toContain("2025-05-16");
+    expect(replayRadarLayer.refresh).toHaveBeenCalled();
+    expect(replayRadarLayer.url).toContain("2025-05-16");
   });
 
   // The cloud base is off on arrival on both maps, so a readied hour must not
@@ -269,18 +270,38 @@ describe("ArcGIS in replay mode", () => {
     expect(replayCloudBaseLayer.visible).toBe(true);
   });
 
-  it("points the core and heading at the hour when the switch is on", () => {
+  it("points the Comptroller window at the hour with cloud base", () => {
     const store = createTestStore();
     renderWithStore(<ArcGIS mode="replay" />, store);
     act(() => {
       store.dispatch(ready(AT));
-      store.dispatch(replayActions.setHeading(true));
+      store.dispatch(replayActions.setCloudBase(true));
+      store.dispatch(replayActions.setBaseWindow(true));
+    });
+
+    const at = encodeURIComponent(AT);
+    const box = "west=-107&east=-93&south=25.5&north=37";
+    expect(replayCloudBaseWindowLayer.visible).toBe(true);
+    expect(replayCloudBaseLayer.visible).toBe(false);
+    expect(replayCloudBaseWindowLayer.url).toBe(
+      `/forecast/cloudbase/window?hour=0&at=${at}&${box}`
+    );
+  });
+
+  it("points the core, heading, and flank at the hour with the mosaic", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(ready(AT));
     });
 
     const at = encodeURIComponent(AT);
     const box = "west=-107&east=-93&south=25.5&north=37";
     expect(replayStormCoreLayer.url).toBe(
       `/radar/objects/cores?at=${at}&${box}`
+    );
+    expect(replayStormFlankLayer.url).toBe(
+      `/radar/objects/flanks?at=${at}&${box}`
     );
     expect(replayStormMotionLayer.url).toBe(
       `/radar/objects/motion?at=${at}&${box}`
@@ -302,6 +323,21 @@ describe("ArcGIS in replay mode", () => {
     );
   });
 
+  it("points echo past freezing at the hour when the switch is on", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(ready(AT));
+      store.dispatch(replayActions.setEchoFreeze(true));
+    });
+
+    const at = encodeURIComponent(AT);
+    const box = "west=-107&east=-93&south=25.5&north=37";
+    expect(replayEchoFreezeLayer.url).toBe(
+      `/radar/echotop/past-freezing?at=${at}&${box}`
+    );
+  });
+
   it("hides a replay layer the operator turns off", () => {
     const store = createTestStore();
     askFor(store);
@@ -312,6 +348,6 @@ describe("ArcGIS in replay mode", () => {
     });
 
     expect(replayRadarLayer.visible).toBe(false);
-    expect(replayLiquidLayer.visible).toBe(true);
+    expect(replayFieldLayer.visible).toBe(true);
   });
 });

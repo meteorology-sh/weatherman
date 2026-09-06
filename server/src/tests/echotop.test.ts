@@ -5,7 +5,9 @@ import assert from "node:assert/strict";
 // Services
 import {
   EchoTopService,
+  echoTopFtValues,
   heightFt,
+  pastFreezingValues,
   tallestOver,
   KM_TO_FT,
   NO_COVERAGE_KM,
@@ -45,6 +47,42 @@ describe("heightFt", () => {
     assert.equal(heightFt(NO_ECHO_KM), null);
     assert.equal(heightFt(NO_COVERAGE_KM), null);
     assert.equal(heightFt(0), null);
+  });
+});
+
+describe("echoTopFtValues", () => {
+  it("converts kilometres to feet on the same cells", () => {
+    const out = echoTopFtValues(new Float32Array([10, NO_ECHO_KM]));
+    assert.equal(out[0], Math.round(10 * KM_TO_FT));
+    assert.ok(Number.isNaN(out[1]));
+  });
+});
+
+describe("pastFreezingValues", () => {
+  it("marks a column whose 18 dBZ top is at or above freezing", () => {
+    const echoKm = new Float32Array([4]); // ~13,123 ft
+    const freeze = new Float32Array([10000]);
+    assert.equal(pastFreezingValues(echoKm, freeze)[0], 1);
+  });
+
+  it("leaves a column whose top sits below freezing blank", () => {
+    const echoKm = new Float32Array([2]);
+    const freeze = new Float32Array([12000]);
+    assert.ok(Number.isNaN(pastFreezingValues(echoKm, freeze)[0]));
+  });
+
+  it("leaves no-echo and no-coverage blank", () => {
+    const echoKm = new Float32Array([NO_ECHO_KM, NO_COVERAGE_KM]);
+    const freeze = new Float32Array([8000, 8000]);
+    const out = pastFreezingValues(echoKm, freeze);
+    assert.ok(Number.isNaN(out[0]));
+    assert.ok(Number.isNaN(out[1]));
+  });
+
+  it("leaves a column with no freezing level blank", () => {
+    const echoKm = new Float32Array([8]);
+    const freeze = new Float32Array([Number.NaN]);
+    assert.ok(Number.isNaN(pastFreezingValues(echoKm, freeze)[0]));
   });
 });
 

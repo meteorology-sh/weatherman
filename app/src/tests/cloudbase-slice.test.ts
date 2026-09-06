@@ -24,6 +24,17 @@ describe("cloudbase reducer", () => {
   // reads without being asked for.
   it("starts hidden", () => {
     expect(initialState.visible).toBe(false);
+    expect(initialState.window).toBe(false);
+  });
+
+  it("toggles the Comptroller window without touching the height ramp", () => {
+    const state = cloudBaseReducer(
+      initialState,
+      cloudBaseActions.setWindow(true)
+    );
+
+    expect(state.window).toBe(true);
+    expect(state.visible).toBe(false);
   });
 
   it("starts with no stats", () => {

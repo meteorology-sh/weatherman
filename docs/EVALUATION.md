@@ -1,7 +1,15 @@
 # Evaluation — does the map agree with what Texas actually flies
 
+**Evaluate against the season** means: score every located 2025 flare
+against Weatherman's own layers at that minute, re-score the 12Z balloons
+against the modelled seeding band, and store JSON the eval app reads as
+regional maps and tables.
+
 Two analyses of every painted 2025 release, then one check of the seeding
-band against the balloons.
+band against the balloons. The tables below are the quiet-liquid season
+already in `eval/out/`. The next complete `out/` adds the Texas fly fill,
+the Comptroller window, and echo past freezing on each flare, and a fresh
+balloon file per sonde programme. How to run that job is `eval/README.md`.
 
 1. **How many flares sat in each original Weatherman layer?** Cloud base,
    cloud tops, radar reflectivity, supercooled liquid water, and the
@@ -206,17 +214,23 @@ flare positions.
 
 ## Reproducing this
 
-The harness in `eval/` compared the layers to the flares. How to run it is
-`eval/README.md`. The flare tables are pooled from the painted files. Band
-overlap is calculated from the balloon JSON; there is no second job after
-paint.
+SSH into the us-east-1 box, start the Weatherman server, and run one
+`paint.mjs` per flying day in parallel, then `balloons.mjs` for each
+sonde programme. How to run that job, what JSON it writes, and how the
+eval app should drive from those files, is `eval/README.md`. The flight
+records are already in `eval/data/`.
+
+The flare tables are pooled from the painted files. Band overlap is
+calculated from the balloon JSON.
 
 ```bash
+node eval/verify.mjs
 node eval/score-season.mjs
 ```
 
-The evaluation app at `/<programme>` lists both flare tables. THE BAND
-lists every scored ascent. This file is the result.
+The evaluation app at `/<programme>` lists the flare tables and THE BAND.
+This file is the result. After a complete Texas `out/`, reprint the
+tables from `score-season.mjs` into this file.
 
 ## Sources
 

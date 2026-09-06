@@ -9,7 +9,9 @@ import {
   ReplayCandidateUrl,
   ReplayConfirmedUrl,
   CloudTopUrl,
+  ForecastBriefingUrl,
   ForecastCloudBaseUrl,
+  ForecastCloudBaseWindowUrl,
   GetCloudBaseStats,
   GetCloudTopStats,
   GetForecastMeta,
@@ -160,6 +162,26 @@ describe("ForecastCloudBaseUrl", () => {
   it("asks a different route than the stats", () => {
     expect(ForecastCloudBaseUrl(0)).not.toBe(
       "/forecast/cloudbase/stats?hour=0"
+    );
+  });
+});
+
+describe("ForecastCloudBaseWindowUrl", () => {
+  it("asks the AGL window, not the height ramp", () => {
+    expect(ForecastCloudBaseWindowUrl(0)).toBe(
+      "/forecast/cloudbase/window?hour=0&west=-107&east=-93&south=25.5&north=37"
+    );
+    expect(ForecastCloudBaseWindowUrl(0)).not.toBe(ForecastCloudBaseUrl(0));
+  });
+});
+
+describe("ForecastBriefingUrl", () => {
+  it("asks a named 12Z field", () => {
+    expect(ForecastBriefingUrl("cape", 0)).toBe(
+      "/forecast/briefing/cape?hour=0&west=-107&east=-93&south=25.5&north=37"
+    );
+    expect(ForecastBriefingUrl("warm-depth", 0)).toContain(
+      "/forecast/briefing/warm-depth"
     );
   });
 });
@@ -384,13 +406,13 @@ describe("GetCandidateStats", () => {
 describe("candidate field urls", () => {
   it("names the live field without a date", () => {
     expect(CandidateFieldUrl()).toBe(
-      "/candidate/field?west=-107&east=-93&south=25.5&north=37"
+      "/candidate/target?west=-107&east=-93&south=25.5&north=37"
     );
   });
 
   it("names a replayed field by its hour", () => {
     expect(ReplayCandidateUrl("2025-05-15T18:00:00.000Z")).toBe(
-      "/candidate/field?at=2025-05-15T18%3A00%3A00.000Z&west=-107&east=-93&south=25.5&north=37"
+      "/candidate/target?at=2025-05-15T18%3A00%3A00.000Z&west=-107&east=-93&south=25.5&north=37"
     );
   });
 

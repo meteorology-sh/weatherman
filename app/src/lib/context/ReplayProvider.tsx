@@ -12,6 +12,7 @@ import {
   GetCloudTopStats,
   GetLiquidStats,
   GetRadarStats,
+  GetTargetStats,
 } from "@/lib/client";
 
 /**
@@ -50,24 +51,26 @@ export function ReplayProvider({ children }: { children: React.ReactNode }) {
         dispatch(replayActions.setLoading(true));
         dispatch(replayActions.setError(null));
 
-        const [cloudBase, cloudTop, liquid, radar, field] = await Promise.all([
-          // Hour 0 throughout — the analysis of the cycle being replayed,
-          // matching the candidate map's reading of "the sky at this moment".
-          GetCloudBaseStats(0, hour),
-          GetCloudTopStats(hour),
-          GetLiquidStats(0, hour),
-          GetRadarStats(hour),
-          // The join reads the layers above, so this warms nothing they do not
-          // — but it is the slowest, and the gate has to include it or the map
-          // would draw its inputs and wait on the answer.
-          GetCandidateStats(hour),
-        ]);
+        const [cloudBase, cloudTop, liquid, radar, field, target] =
+          await Promise.all([
+            // Hour 0 throughout — the analysis of the cycle being replayed,
+            // matching the candidate map's reading of "the sky at this moment".
+            GetCloudBaseStats(0, hour),
+            GetCloudTopStats(hour),
+            GetLiquidStats(0, hour),
+            GetRadarStats(hour),
+            // The join reads the layers above, so this warms nothing they do not
+            // — but it is the slowest, and the gate has to include it or the map
+            // would draw its inputs and wait on the answer.
+            GetCandidateStats(hour),
+            GetTargetStats(hour),
+          ]);
 
         if (!current) return;
         dispatch(
           replayActions.setReady({
             at: hour,
-            stats: { cloudBase, cloudTop, liquid, radar, field },
+            stats: { cloudBase, cloudTop, liquid, radar, field, target },
           })
         );
       } catch (error) {

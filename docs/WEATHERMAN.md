@@ -49,17 +49,16 @@ here. This map is entirely model output.
 
 ### `/map/candidate` — observed
 
-Five layers, and they are not the same kind of claim. Bottom to top:
+The fills on this map, bottom to top:
 
-| Layer                    | Claim        | Source                    |
-| ------------------------ | ------------ | ------------------------- |
-| Cloud base               | modelled     | HRRR `wrfsfc`             |
-| Cloud-top temperature    | observed     | GOES-East geometry + HRRR |
-| Supercooled liquid water | **modelled** | HRRR `wrfprs`             |
-| Radar                    | measured     | MRMS mosaic, GOES GLM     |
+| Layer                 | Claim    | Source                |
+| --------------------- | -------- | --------------------- |
+| Cloud base            | modelled | HRRR `wrfsfc`         |
+| Radar                 | measured | MRMS mosaic, GOES GLM |
+| Seeding opportunity   | join     | HRRR + MRMS           |
 
-The supercooled-liquid contours are the deliberate exception on an observed map,
-and the sidebar says so. The radar mosaic is the only measurement on either map.
+The radar mosaic is the measurement on this map. Supercooled liquid, freezing
+level, −15 °C, CAPE, CIN, LCL, and warm-cloud depth are numbers on a click.
 
 **Radar** is that mosaic, plus what we can honestly hang on a contiguous
 ≥20 dBZ storm. The fills are how hard it is raining. A switch under this
@@ -70,8 +69,10 @@ larger echo belong to that shower. A click uses the same averaged,
 rounded 20 dBZ ring the fill draws; the evaluation harness asks for the
 native ring. The dot is the strongest cell in that storm. A white arrow
 at that dot is the heading from the previous mosaic — not a forecast of
-where the storm will be, and not inflow. A storm with no motion has no
-arrow. Lightning is a switch under this layer: yellow markers are
+where the storm will be, and not inflow. Length follows speed; width does
+not. A storm with no motion has no arrow. A switch under this layer draws
+where the measured 18 dBZ top sits at or above the modelled freezing
+level. Lightning is a switch under this layer: yellow markers are
 GOES-East GLM flashes in the last five minutes, drawn where they were,
 and only while radar is on. Lightning is too sparse to contour.
 
@@ -86,14 +87,17 @@ seeding band over the storm; and how high the measured 18 dBZ echo top
 sits relative to the freezing level. Liquid does not hide the storm. The
 arrow is heading, not inflow: pilots measure climb rate with the aircraft.
 Echo top is the top of precipitating drops, not of the cloud the satellite
-sees, and it is a number on the click rather than a second fill on the
-rain. Freezing level stays modelled.
+sees. A click reports the GOES top over that storm and whether it cooled;
+the storm map does not draw cloud-top temperature as a fill. Freezing
+level stays modelled.
 
-**Clicking is how the panel is read.** A click profiles that point's column,
-reads that cell's convective diagnostics, and asks every layer what it says over
-that one 3 km cell — what the cloud there is made of, which test ruled it out
-if any, and when each source saw it. That readout leads the panel because it is
-the only part of it about the cloud an operator is looking at.
+**Clicking is how the panel is read.** A click answers whether to fly that
+column. The Texas tests already on the cell — base in the 4,000–12,000 ft
+window above the ground, echo top at or above freezing nearby, rain in
+the neighbourhood — become fly or don't fly, with the numbers that made
+the call: base above the ground, 18 dBZ echo top against freezing, rain,
+modelled liquid, freezing level, −15 °C, the seeding band, CAPE, CIN,
+LCL, and warm-cloud depth.
 
 **A click outside the model does nothing.** The grid is a Lambert quadrilateral
 and every readout answers by snapping a click to the nearest cell, so a click on
@@ -121,16 +125,30 @@ the same heading over a cell, so a domain total sitting under a click is read as
 that cell's. Every one of those summaries is still built and the replay panel
 reports them, where the question really is what a whole hour looked like.
 
-**The seeding-opportunity layer is the answer the liquid, top, base and radar
-layers are inputs to**, drawn over all of them. It starts on, and so do radar
-storms: the map opens on the quiet-liquid join and on the storm outlines at
-once, so the two can disagree in view. The other inputs start off. Switching
-the amber back on reads the two together — amber with no green over it is
-liquid the join rejected, and clicking it says which condition ruled it out.
+**The map opens on storms and the Texas fly fill.** Radar starts on,
+with the core, the heading, and the upwind raining flank. SEEDING
+OPPORTUNITY starts on: cells whose base is in the 4,000–12,000 ft AGL
+window, whose measured 18 dBZ echo top is at or above freezing nearby,
+and that have rain nearby. That fill is where to click. Cloud base
+starts off.
 
-**Cloud base sits at the bottom because it is the question asked first** — can an
-aircraft climb into this cloud at all — and the layers above are answers about a
-cloud you can reach.
+**A click on the fly fill is FLY.** The panel names the base above the
+ground, the 18 dBZ echo top against freezing, the rain on that cell,
+modelled liquid, and where on the storm the click landed. The echo top
+is the measured 18 dBZ height, the same sample the echo-past-freezing
+fill is drawn from.
+
+**Cloud base sits at the bottom of the stack because it is the question asked
+first** — can an aircraft climb into this cloud at all — and the layers above
+are answers about a cloud you can reach.
+
+**The 12Z table hangs on the click.** Freezing level, −15 °C, warm-cloud
+depth (freezing minus cloud base), CAPE, CIN, and LCL are labelled
+numbers after a click. Cloud base carries the Comptroller window
+underneath it. GOES cloud-top temperature is a reading on the click.
+
+**The product this map is** lives in `docs/INNOVATION.md`. Mosaic storms are
+not TITAN cells and are not labelled as such.
 
 ### `/map/replay` — the candidate map at an hour you pick
 
@@ -248,11 +266,12 @@ the column first reaches seeding temperature is a different altitude, often
 thousands of feet higher; the candidate summary reports it as
 `medianBandBaseFt`.
 
-The **4,000–12,000 ft window** the state's published description names is cited,
-reported in the candidate summary, and **drawn nowhere**: read against sea level
-it means a different height above ground over every cell, from most of an
-8,000 ft layer at the coast down to a sliver over high terrain where its lower
-edge is underground. Nothing filters on it, or on the ceiling.
+The **4,000–12,000 ft window** the state's published description names is a
+switch under cloud base. It shows that gate instead of the height ramp,
+in height above the ground, and it is drawn over the rain so the switch
+is visible on the storm. MSL would move the window with the terrain;
+AGL is what transfers from the Gulf coast to high ground. It does not
+hide a storm. The height ramp stays feet MSL.
 
 **Depth is not drawn.** `HGT:cloud top` is diagnosed over far less ground than the
 base is, so a depth layer would vanish over most of the cloud the base layer
@@ -263,15 +282,22 @@ vertically integrated liquid, modelled echo top — ride the same build as
 **attributes on that point readout, and nothing gates on them.** The storm
 click's 18 dBZ echo-top is the measured height from MRMS, not this field.
 
-### Seeding opportunity — the join
+### Seeding opportunity — the Texas fly fill
 
-Every layer above, asked at once, per 3 km cell. A cell is a candidate where
-all four hold:
+Three tests on one 3 km cell:
 
-- HRRR has supercooled liquid in the seeding band, at or above 10 g/m²
-- the model gives a cloud base, and it sits **below the band's cold edge**
-- GOES sees a cloud top at or colder than −5 °C
-- MRMS is not already watching the cell rain, at or above 20 dBZ
+- modelled cloud base sits **4,000–12,000 ft above the ground**
+- a measured 18 dBZ echo top sits **at or above the modelled freezing
+  level** in this cell or the ones next to it
+- rain at **20 dBZ** in this cell or next to it
+
+The fill is those cells. A click on it is FLY. Modelled liquid, freezing
+level, −15 °C, CAPE, CIN, LCL, and warm-cloud depth are numbers on that
+click.
+
+The evaluation harness scores quiet-liquid columns at `/candidate/field`:
+supercooled liquid at or above 10 g/m², a base below the band's cold
+edge, a GOES top at or colder than −5 °C, and rain below 20 dBZ.
 
 **The band-inside-cloud test is an interval overlap.** Cloud spans base to top;
 the band spans its warm edge (−5 °C, lower) to its cold edge (−18 °C, higher).
@@ -414,10 +440,15 @@ is, not where the cloud is.
 how long the rain has been on the mosaic (earlier scans, about 18 minutes
 back), whether the raining area grew since the previous scan, whether the
 GOES top over the storm is colder than five minutes ago, and how many GLM
-flashes sat over it in those five minutes. That is not first-half-lifetime
-as TITAN would score it, and it is not inflow. One ABI scene still cannot
-tell a turret that has just frozen from one that froze an hour ago;
-differencing and the lightning count are what break that.
+flashes sat over it in those five minutes. A top that cooled is flagged;
+a top that warmed is flagged. That is not first-half-lifetime as TITAN
+would score it, and it is not inflow. One ABI scene still cannot tell a
+turret that has just frozen from one that froze an hour ago; differencing
+and the lightning count are what break that.
+
+**If the seeding band starts above the aircraft ceiling, the column says
+so.** The altitudes to fly are still printed; the flag is that an
+aircraft cannot climb into them.
 
 ### Rain — MRMS
 

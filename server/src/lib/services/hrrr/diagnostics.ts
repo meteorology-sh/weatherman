@@ -43,26 +43,16 @@ const NO_ECHO = -999;
 const KNOTS = 1.94384;
 
 /**
- * The window Texas operations select cloud bases in, ft MSL.
+ * The window Texas operations select cloud bases in, ft above the ground.
  *
  * **Cited, not derived.** The state's published description of its permitted
  * programmes targets convective clouds with bases between 4,000 and 12,000 ft;
  * this is that number, not a cutoff chosen from a coverage table.
  *
- * **Reported, never drawn and never a gate.** The candidate summary says what
- * share of candidate ground falls inside it, and that is all it does. It is not
- * what the cloud-base layer bands on — see `CLOUD_BASE` below for why a figure
- * about Texas convective cloud cannot carry a map of the whole HRRR domain.
- *
- * **The datum is ours, not theirs**, and that is the heart of it. The published
- * figure does not say MSL or AGL. Read as MSL — which is the datum every other
- * height here is in, and the only one in which "does the band lie between base
- * and top" is a meaningful comparison — a fixed window means something
- * different over every cell: 3,997–11,997 ft above ground at Galveston, and
- * underground to 1,827 ft above ground at Leadville. Read as AGL it would
- * transfer, but then it could not be compared against anything else on the map.
- * Either way it is a description of Texas cloud rather than a limit that holds
- * everywhere, so nothing is banded on it.
+ * **Drawn in AGL wherever the model has a base in the window**, as its own
+ * fill, not as the national MSL ramp. MSL would move the window with the
+ * ground; AGL is what transfers from the Gulf coast to high terrain. The
+ * fill is a picture of that gate. It does not hide a storm.
  */
 export const BASE_WINDOW_FT = [4000, 12000] as const;
 
@@ -151,6 +141,29 @@ export const DIAGNOSTICS = {
     id: "7:6:pressureFromGroundLayer",
     scale: 1,
     missing: null,
+    firstHour: 0,
+  },
+  /**
+   * Mixed-layer convective inhibition, J/kg. HRRR stores it as zero or
+   * negative. The readout and the map report the magnitude.
+   */
+  cin: {
+    grib: { name: "CIN", level: "180-0 mb above ground" },
+    id: "7:7:pressureFromGroundLayer",
+    scale: 1,
+    missing: null,
+    firstHour: 0,
+  },
+  /**
+   * Lifting condensation level, geopotential metres MSL. The height a
+   * surface parcel saturates if lifted dry-adiabatically. Same `HGT`
+   * identity as cloud base; the level name is what distinguishes them.
+   */
+  lcl: {
+    grib: { name: "HGT", level: "level of adiabatic condensation from sfc" },
+    id: "3:5:adiabaticCondensation",
+    scale: METRES_TO_FEET,
+    missing: SFC_MISSING,
     firstHour: 0,
   },
   /**
@@ -262,6 +275,13 @@ export type Diagnostics = {
   capeJKg: number;
   /** Mixed-layer (180–0 mb) CAPE, J/kg. */
   mixedCapeJKg: number;
+  /**
+   * Mixed-layer convective inhibition, J/kg, as a magnitude. Zero is
+   * no inhibition.
+   */
+  cinJKg: number;
+  /** Lifting condensation level, ft MSL. Null where the field is missing. */
+  lclFt: number | null;
   /** 0–6 km storm motion, knots. */
   stormMotionKt: number;
   /** Compass bearing the storm is moving **toward**, degrees. Null when still. */
@@ -335,6 +355,8 @@ export function diagnostics(
         : cloudBaseFt <= bandBaseFt && bandBaseFt <= cloudTopFt,
     capeJKg: Math.round(at(fields, "cape", cell) ?? 0),
     mixedCapeJKg: Math.round(at(fields, "mixedCape", cell) ?? 0),
+    cinJKg: Math.round(Math.max(0, -(at(fields, "cin", cell) ?? 0))),
+    lclFt: round(at(fields, "lcl", cell)),
     stormMotionKt: speed,
     // A bearing off a zero vector is atan2(0, 0), which is 0 rather than
     // "nowhere". Say there is no direction instead of pointing north.

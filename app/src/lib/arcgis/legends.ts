@@ -2,7 +2,6 @@
 import {
   BAND_LABEL,
   BASE_WINDOW_FT,
-  CANDIDATE_BANDS,
   CEILING_FT,
   CLOUD_TOP_BANDS,
   RADAR_BANDS,
@@ -28,9 +27,8 @@ export type LayerLegend = {
    */
   summary: string;
   /**
-   * The longer read, one paragraph per entry, shown only on the About page.
-   * What it measures and how it is made, then what it does not tell you — as
-   * prose, because a reader does not need those labelled to follow them.
+   * Compact facts: what it measures and how it is sampled. The Definitions
+   * dropdown and the About page both print these lines.
    */
   detail: readonly string[];
 };
@@ -46,39 +44,24 @@ export const BASE_WINDOW_LABEL = `${BASE_WINDOW_FT[0].toLocaleString(
 /** The ceiling as an operator reads it, e.g. "18,000 ft". */
 export const CEILING_LABEL = `${CEILING_FT.toLocaleString("en-US")} ft`;
 
+export const BaseWindowLegend: LayerLegend = {
+  name: "BASE WINDOW",
+  source: "NOAA HRRR",
+  summary: `${BASE_WINDOW_LABEL} above the ground`,
+  detail: [
+    `${BASE_WINDOW_LABEL} AGL · NOAA HRRR · 3 km.`,
+    "Same field as cloud base. National fill.",
+  ],
+};
+
 export const CloudBaseLegend: LayerLegend = {
   name: "CLOUD BASE",
   source: "NOAA HRRR",
-  summary:
-    "How high the bottom of the cloud sits, in feet MSL. The brightest band " +
-    "is the shortest climb; the last one is above the " +
-    `${CEILING_LABEL} ceiling.`,
+  summary: "ft MSL",
   detail: [
-    "The height of the bottom of the lowest cloud deck, in feet MSL. HRRR " +
-      "diagnoses it at 3 km and the server contours that grid. The bands " +
-      `are thirds of the aircraft's ${CEILING_LABEL} service ceiling, so ` +
-      "every edge traces back to one cited number rather than to a coverage " +
-      "table. The last band is open above the ceiling and still drawn, " +
-      "because a base too high to reach and no cloud at all are different " +
-      "answers.",
-    "Feet above sea level, because that is the datum a sortie is planned in — " +
-      "a service ceiling, air density and climb performance all refer to it. " +
-      "The cost is that height above sea level says nothing about what kind " +
-      "of cloud this is: 6,000 ft is a low convective base at the Gulf coast " +
-      "and near-surface fog on the Llano Estacado. Click a point to read the " +
-      "same base as a height above the ground.",
-    "This is the bottom of the cloud, not the bottom of the seeding band. " +
-      "Where the column first reaches the seeding temperature is a different " +
-      "altitude, often thousands of feet higher, and the candidate summary " +
-      "reports it separately.",
-    `The ${BASE_WINDOW_LABEL} window Texas operations select convective ` +
-      "bases in is reported in the candidate summary and drawn nowhere. Read " +
-      "against sea level it means a different height above the ground over " +
-      "every cell — most of an 8,000 ft layer at the coast, and a sliver over " +
-      "high terrain where its lower edge is underground.",
-    "Modelled, not observed. It is the base of the lowest deck of any kind, " +
-      "so a base near the top of the ramp is usually cirrus over clear air " +
-      "rather than a high convective base.",
+    `Lowest deck, ft MSL · NOAA HRRR · 3 km. Bands: thirds of ${CEILING_LABEL}.`,
+    `Window switch: ${BASE_WINDOW_LABEL} AGL. Click: height above the ground.`,
+    "Modelled.",
   ],
 };
 
@@ -122,6 +105,9 @@ export const CloudTopLegend: LayerLegend = {
       "it is, but the number in °C is the model's — and where HRRR has the " +
       "temperature profile wrong, a correctly placed cloud is labelled with " +
       "the wrong temperature.",
+    "The storm map does not draw this as a fill. A click reports the " +
+      "coldest GOES top over that storm and whether it cooled. Echo top " +
+      "is the top of precipitating drops, a different height, under radar.",
   ],
 };
 
@@ -145,162 +131,180 @@ export const LiquidLegend: LayerLegend = {
 export const RadarLegend: LayerLegend = {
   name: "RADAR REFLECTIVITY",
   source: "NOAA MRMS",
-  summary: "How hard it is raining, in dBZ.",
+  summary: "dBZ",
   detail: [
-    "MRMS merges every NEXRAD radar into one national mosaic at 1 km, " +
-      "replaced every 2 minutes; the server contours that mosaic on the NWS " +
-      "intensity classes. The candidate map averages four 1 km cells " +
-      "and rounds the remaining corners so a storm is a blob, not a " +
-      "thousand steps or a triangle; the evaluation maps keep the " +
-      "native stairs. Contiguous cells at 20 dBZ or more are one storm: " +
-      "the fills are the rain. Nearby specks within 10 km of a larger echo " +
-      "belong to that shower rather than getting a core of their own.",
-    "A dot and a heading are a switch under this layer, not a second " +
-      "fill. They are drawn only for a raining area of at least 16 km² — " +
-      "one cell of the 4 km grid this map used to paint the country with. " +
-      "Smaller echoes stay in the fill. The dot is the cell with the " +
-      "strongest echo, and a white arrow at that dot is the heading from " +
-      "the previous mosaic. The arrow is not a forecast of where the storm " +
-      "will be. A storm with no motion has no arrow.",
-    "Lightning is a switch under this layer, not a second fill. GOES-East " +
-      "GLM flashes in the last five minutes are drawn where they were when " +
-      "that switch is on. Lightning is too sparse to contour. A click " +
-      "counts flashes over that storm, reports how long the rain has been " +
-      "seen (from earlier mosaics), whether the raining area grew, whether " +
-      "the GOES cloud top over the storm is colder than five minutes ago, " +
-      "and how high the 18 dBZ echo top sits relative to the freezing " +
-      "level. Echo top is the top of precipitating drops, not of the cloud, " +
-      "and it is a reading, not a second fill. None of those is a test " +
-      "that hides the storm.",
-    "Measured, not modelled — the only rain layer here that is. Radar sees " +
-      "the water that is already falling, not the liquid inside a cloud, so " +
-      "it can cross a candidate off but never confirm one. A third of this " +
-      "map has no radar over it at all, and no coverage is not a report of " +
-      "clear air. The arrow is heading, not inflow: pilots measure climb " +
-      "rate with the aircraft.",
+    "MRMS mosaic · 1 km · 2 min. Candidate map averages four 1 km cells " +
+      "and rounds; evaluation maps keep the native stairs.",
+    `Rain ≥ ${RADAR_BANDS[0].value} dBZ. Contiguous cells are one storm.`,
+    "Core: strongest echo. Arrow: heading from the previous mosaic. " +
+      "Orange: upwind raining flank. Storms ≥ 16 km².",
+    "Lightning: GOES-East GLM flashes, last 5 minutes.",
+    "Echo past freezing: measured 18 dBZ echo top ≥ modelled freezing.",
+    "Measured.",
   ],
 };
 
 export const HeadingLegend: LayerLegend = {
-  name: "CORE AND HEADING",
+  name: "CORE, HEADING, AND FLANK",
   source: "NOAA MRMS",
-  summary:
-    "The dot is the heaviest rain in that storm. The white arrow is which " +
-    "way the storm is moving, from the previous mosaic — not a forecast.",
+  summary: "heaviest rain, heading, upwind raining edge",
   detail: [
-    "The dot sits on the cell with the strongest echo. The white arrow " +
-      "is the heading from the previous mosaic, a filled dart whose head " +
-      "is a fraction of the tick so it shrinks when the view zooms out. " +
-      "Neither is drawn for an echo smaller than 16 km². The switch lives " +
-      "under radar reflectivity and does nothing while that layer is off.",
+    "Core: strongest echo. Arrow: heading from the previous mosaic. " +
+      "Orange: upwind raining edge. Storms ≥ 16 km².",
+  ],
+};
+
+export const EchoFreezeLegend: LayerLegend = {
+  name: "ECHO PAST FREEZING",
+  source: "NOAA MRMS + NOAA HRRR",
+  summary: "18 dBZ echo top at or above freezing",
+  detail: [
+    "Measured 18 dBZ echo top ≥ modelled freezing. NOAA MRMS + NOAA HRRR.",
   ],
 };
 
 export const LightningLegend: LayerLegend = {
   name: "LIGHTNING",
   source: "NOAA GOES-East GLM",
-  summary:
-    "GOES-East GLM flashes in the last five minutes, drawn where they were. " +
-    "Lightning is too sparse to contour.",
+  summary: "GLM flashes, last 5 minutes",
   detail: [
-    "Each marker is one GLM flash in the five minutes around the scene, at " +
-      "the place it was reported. The points are not interpolated into a " +
-      "surface. The switch lives under radar reflectivity and does nothing " +
-      "while that layer is off.",
+    "GOES-East GLM flashes, last 5 minutes. Points.",
   ],
 };
 
 export const CandidateLegend: LayerLegend = {
   name: "SEEDING OPPORTUNITY",
-  source: "NOAA HRRR + NOAA GOES-East + NOAA MRMS",
-  summary:
-    "Where every test passes: enough supercooled liquid, a cold " +
-    "enough cloud top, a low enough cloud base, and no rain already falling.",
+  source: "NOAA HRRR + NOAA MRMS",
+  summary: `${BASE_WINDOW_LABEL} AGL window · 18 dBZ echo top past freezing · rain nearby`,
   detail: [
-    "Supercooled liquid water in the cells that pass every test at once: the " +
-      `model has at least ${CANDIDATE_BANDS[0].value} g/m² in the seeding ` +
-      `band, the satellite sees a cloud top at ${CLOUD_TOP_WARMEST_C} °C or ` +
-      "colder, the cloud base sits below the band's cold edge, and the radar " +
-      `is not already watching the cell rain at ${RADAR_BANDS[0].value} dBZ ` +
-      "or more. The value drawn is the liquid water path itself, on the same " +
-      "levels as the liquid layer, so the two read against each other.",
-    "It exists at the analysis hour only, because it reads an observed cloud " +
-      "top and a satellite cannot forecast. It is also only as current as its " +
-      "slowest source. Where the radar cannot see, a cell stays a candidate: " +
-      "it was not cleared of rain, it was simply never checked.",
-    "Everything this layer says about liquid water is the model's. The " +
-      "satellite also classifies each cloud top as liquid, supercooled, " +
-      "freezing over or frozen, and that classification is measured rather " +
-      "than simulated — so the panel reports it beside the answer. It reads " +
-      "both ways: candidate ground whose top has already frozen may be cloud " +
-      "that has spent its liquid, and a supercooled top this layer drew " +
-      "nothing over is cloud that never reached the map to be ruled out. That " +
-      "second reading covers more ground than this layer does and is the " +
-      "weaker of the two — a top is one surface, the liquid is a path through " +
-      "the whole band, and a thin deck can sit under the lowest band honestly.",
-    "That classification is drawn, not just counted: a pale outline encloses " +
-      "the ground whose top is still liquid, at the lowest level only, because " +
-      "the fills already say how much liquid is there and the line says only " +
-      "which of it has an observation behind it. Texas seeds growing turrets " +
-      "with tops between −5 and −10 °C, and this layer's mask has no cold edge " +
-      "at all, so it admits a young turret and an anvil-topped complex alike. " +
-      "The outline is the first thing here that separates them, and it does it " +
-      "with a measurement rather than a cutoff nobody can cite.",
-    "It cannot rule anything out, and the reason is geometry rather than " +
-      "caution. The classification is of the cloud top, and the seeding band " +
-      "is inside the cloud, so it never sees the thing this layer claims. It " +
-      "also describes the highest deck only: cirrus over a growing turret " +
-      "reads as frozen, and the turret underneath is invisible to it. So green " +
-      "outside the outline is still a candidate, and one scene still cannot " +
-      "say whether a cloud is growing. Where no phase scan can be read the " +
-      "panel says so rather than showing zeroes.",
+    `Base ${BASE_WINDOW_LABEL} AGL · 18 dBZ echo top ≥ freezing nearby · rain ≥ ${RADAR_BANDS[0].value} dBZ nearby.`,
+    "3 km cell. Click = FLY.",
+    "NOAA HRRR + NOAA MRMS.",
   ],
 };
 
 export const CloudCoverLegend: LayerLegend = {
   name: "CLOUD COVER",
   source: "NOAA HRRR",
-  summary:
-    "How much of the sky HRRR fills with cloud at the hour on the slider, in " +
-    "percent. Denser white is more cloud.",
-  detail: [
-    "The share of sky HRRR fills with cloud in each cell, in percent, at the " +
-      "forecast hour on the slider. Read at 3 km and contoured into nested " +
-      "bands.",
-    "Modelled out to 18 hours, and satellites cannot forecast, so nothing on " +
-      "this map is observed. For observed cloud shape, use the candidate map.",
-  ],
+  summary: "percent of sky",
+  detail: ["% of sky · NOAA HRRR · 3 km · forecast 0–18 h."],
 };
 
 export const PrecipLegend: LayerLegend = {
   name: "PRECIPITATION",
   source: "NOAA HRRR",
-  summary:
-    "How hard HRRR expects rain to fall at the hour on the slider, in mm/hr.",
+  summary: "mm/hr",
   detail: [
-    "The rate HRRR expects rain to fall, in mm/hr, from the same run and hour " +
-      "as the cloud layer. Contoured the same way and drawn over it, on the " +
-      "NWS intensity classes.",
-    "HRRR works precipitation out by stepping the model forward, so the " +
-      "analysis hour carries none and this layer has nothing to draw there. A " +
-      "cloud that is already raining is not a seeding candidate.",
+    "mm/hr · NOAA HRRR · NWS intensity classes.",
+    "Empty at the analysis hour.",
   ],
 };
 
 /**
  * Every layer the app names, in the order the About page reads them: the
- * seeding layer first, then the four inputs it joins, then the forecast map's
- * two.
+ * storm first, then the readings on it, then the quiet-liquid join, then
+ * the forecast map's two.
  *
  * The About page and the legend tests both walk this, so a new layer cannot be
  * added without a page section and the checks that come with it.
  */
+export const CapeLegend: LayerLegend = {
+  name: "CAPE",
+  source: "NOAA HRRR",
+  summary:
+    "Mixed-layer convective available potential energy — how much a turret has to grow on.",
+  detail: [
+    "Surface-based CAPE is on the click. This layer is the mixed-layer " +
+      "parcel, the one a turret grows out of, in J/kg. The bands are the " +
+      "NWS instability classes at 1,000, 2,500 and 4,000 J/kg.",
+    "Modelled. Not a severity gate. Quiet air is blank rather than a " +
+      "zero fill, so the map shows where there is energy to work with. " +
+      "CIN is a switch under this layer.",
+  ],
+};
+
+export const CinLegend: LayerLegend = {
+  name: "CIN",
+  source: "NOAA HRRR",
+  summary:
+    "Mixed-layer convective inhibition — how much a parcel has to work through before it is free.",
+  detail: [
+    "HRRR stores CIN as zero or negative. The map reports the magnitude, " +
+      "in J/kg, on the NWS classes at 50, 100 and 200. A cell with no " +
+      "inhibition is blank.",
+    "Modelled. Not a gate. The switch lives under CAPE and does nothing " +
+      "while that layer is off.",
+  ],
+};
+
+export const LclLegend: LayerLegend = {
+  name: "LCL",
+  source: "NOAA HRRR",
+  summary:
+    "Lifting condensation level, ft MSL — the height a surface parcel saturates if lifted.",
+  detail: [
+    "Geopotential height of the lifting condensation level, in feet " +
+      "above the sea. The bands are thirds of the service ceiling, the " +
+      "same edges as cloud base, so the two ramps compare.",
+    "LCL is not cloud base. Cloud base is where HRRR diagnoses cloud. " +
+      "This is where a lifted parcel would saturate. They often sit near " +
+      "each other and they are not the same number. The switch lives " +
+      "under cloud base and does nothing while that layer is off.",
+  ],
+};
+
+export const FreezingLegend: LayerLegend = {
+  name: "FREEZING LEVEL",
+  source: "NOAA HRRR",
+  summary:
+    "The 0 °C isotherm, ft MSL — the height the 12Z balloon table prints.",
+  detail: [
+    "Taken from the same temperature profile already matched to the " +
+      "Midland and Del Rio balloons. The bands are thirds of the " +
+      "service ceiling, so the ramp is a height, not a targeting cutoff.",
+    "A column that never crosses freezing is blank. That is a real " +
+      "answer, not a missing download. Minus fifteen and warm-cloud " +
+      "depth are switches under this layer.",
+  ],
+};
+
+export const Minus15Legend: LayerLegend = {
+  name: "MINUS FIFTEEN",
+  source: "NOAA HRRR",
+  summary:
+    "The −15 °C isotherm, ft MSL — the cold edge the 12Z balloon table prints.",
+  detail: [
+    "The height Texas programmes print next to freezing. Distinct from " +
+      "the seeding band's cold edge, which is −18 °C. Same temperature " +
+      "profile as the freezing layer, same ceiling-third bands.",
+    "A column that never reaches −15 °C is blank. The switch lives " +
+      "under freezing level and does nothing while that layer is off.",
+  ],
+};
+
+export const WarmDepthLegend: LayerLegend = {
+  name: "WARM CLOUD DEPTH",
+  source: "NOAA HRRR",
+  summary:
+    "Freezing level minus cloud base, in feet — how deep the warm cloud is.",
+  detail: [
+    "Depth, labelled as depth. Hygroscopic targeting looks at this " +
+      "number; drawing it is not promoting salt to a candidate field. " +
+      "A cell whose base sits at or above freezing has no warm cloud " +
+      "and is blank.",
+    "Cloud base is the model's deck. Freezing is the 0 °C isotherm. " +
+      "The difference is only defined where both exist and the base is " +
+      "the lower of the two. The switch lives under freezing level and " +
+      "does nothing while that layer is off.",
+  ],
+};
+
 export const ALL_LEGENDS: readonly LayerLegend[] = [
-  CandidateLegend,
-  LiquidLegend,
-  CloudTopLegend,
-  CloudBaseLegend,
   RadarLegend,
+  EchoFreezeLegend,
+  CloudBaseLegend,
+  BaseWindowLegend,
+  CandidateLegend,
   CloudCoverLegend,
   PrecipLegend,
 ];

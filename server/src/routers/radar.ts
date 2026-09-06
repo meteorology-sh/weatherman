@@ -27,6 +27,22 @@ radar.get("/reflectivity", async (req: Request, res: Response) => {
   }
 });
 
+radar.get("/echotop/past-freezing", async (req: Request, res: Response) => {
+  try {
+    res.send(
+      await EchoTops.pastFreezing(
+        parseAt(req.query.at),
+        parseBox(req.query),
+        parseFine(req.query)
+      )
+    );
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
 radar.get("/reflectivity/stats", async (req: Request, res: Response) => {
   try {
     const at = parseAt(req.query.at);

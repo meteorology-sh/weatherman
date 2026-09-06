@@ -7,12 +7,16 @@ import { replayActions } from "@/lib/store/features/replay";
 
 // ArcGIS
 import {
+  BaseWindowLegend,
   CandidateLegend,
+  CapeLegend,
   CloudBaseLegend,
   CloudTopLegend,
-  LiquidLegend,
+  FreezingLegend,
   HeadingLegend,
+  EchoFreezeLegend,
   LightningLegend,
+  LiquidLegend,
   RadarLegend,
 } from "@/lib/arcgis/legends";
 
@@ -20,11 +24,9 @@ import {
 import { ReplayLayers } from "@/app/components/replay/ReplayLayers";
 
 const LAYERS = [
-  CandidateLegend,
-  CloudTopLegend,
-  CloudBaseLegend,
-  LiquidLegend,
   RadarLegend,
+  CloudBaseLegend,
+  CandidateLegend,
 ];
 
 describe("ReplayLayers", () => {
@@ -72,12 +74,13 @@ describe("ReplayLayers", () => {
     expect(radar.checked).toBe(false);
   });
 
-  it("offers lightning and heading only while reflectivity is on", () => {
+  it("offers lightning, heading, and echo past freezing only while reflectivity is on", () => {
     const store = createTestStore();
     renderWithStore(<ReplayLayers />, store);
 
     expect(screen.getByLabelText(LightningLegend.name)).toBeTruthy();
     expect(screen.getByLabelText(HeadingLegend.name)).toBeTruthy();
+    expect(screen.getByLabelText(EchoFreezeLegend.name)).toBeTruthy();
 
     act(() => {
       store.dispatch(replayActions.setRadar(false));
@@ -85,6 +88,7 @@ describe("ReplayLayers", () => {
 
     expect(screen.queryByLabelText(LightningLegend.name)).toBeNull();
     expect(screen.queryByLabelText(HeadingLegend.name)).toBeNull();
+    expect(screen.queryByLabelText(EchoFreezeLegend.name)).toBeNull();
   });
 
   // Both maps read one set of legends, so the same layer cannot end up
@@ -94,10 +98,10 @@ describe("ReplayLayers", () => {
 
     renderWithStore(<ReplayLayers />, store);
     act(() => {
-      store.dispatch(replayActions.setCloudTop(true));
+      store.dispatch(replayActions.setField(true));
     });
 
-    expect(screen.getByText(CloudTopLegend.summary)).toBeTruthy();
+    expect(screen.getByText(CandidateLegend.summary)).toBeTruthy();
   });
 
   it("drops a layer's ramp and explanation when it is switched off", () => {
@@ -105,12 +109,60 @@ describe("ReplayLayers", () => {
 
     renderWithStore(<ReplayLayers />, store);
     act(() => {
-      store.dispatch(replayActions.setCloudTop(true));
+      store.dispatch(replayActions.setField(true));
     });
     act(() => {
-      store.dispatch(replayActions.setCloudTop(false));
+      store.dispatch(replayActions.setField(false));
     });
 
-    expect(screen.queryByText(CloudTopLegend.summary)).toBeNull();
+    expect(screen.queryByText(CandidateLegend.summary)).toBeNull();
+  });
+
+  it("does not offer cloud-top temperature as a fill", () => {
+    renderWithStore(<ReplayLayers />, createTestStore());
+
+    expect(screen.queryByLabelText(CloudTopLegend.name)).toBeNull();
+  });
+
+  it("leaves freezing, CAPE, and liquid off the switches", () => {
+    renderWithStore(<ReplayLayers />, createTestStore());
+
+    expect(screen.queryByLabelText(CapeLegend.name)).toBeNull();
+    expect(screen.queryByLabelText(FreezingLegend.name)).toBeNull();
+    expect(screen.queryByLabelText(LiquidLegend.name)).toBeNull();
+  });
+
+  it("offers the Comptroller window only while cloud base is on", () => {
+    const store = createTestStore();
+    renderWithStore(<ReplayLayers />, store);
+
+    expect(screen.queryByLabelText(BaseWindowLegend.name)).toBeNull();
+
+    act(() => {
+      store.dispatch(replayActions.setCloudBase(true));
+    });
+
+    expect(screen.getByLabelText(BaseWindowLegend.name)).toBeTruthy();
+  });
+
+  it("hides the height ramp while the Comptroller window is on", () => {
+    const store = createTestStore();
+    const { container } = renderWithStore(<ReplayLayers />, store);
+    act(() => {
+      store.dispatch(replayActions.setCloudBase(true));
+    });
+
+    const ramp = () =>
+      Array.from(
+        container.querySelectorAll<HTMLElement>("div.h-3.w-full")
+      ).filter((el) => el.title.endsWith("ft MSL"));
+
+    expect(ramp().length).toBeGreaterThan(0);
+
+    act(() => {
+      store.dispatch(replayActions.setBaseWindow(true));
+    });
+
+    expect(ramp()).toHaveLength(0);
   });
 });

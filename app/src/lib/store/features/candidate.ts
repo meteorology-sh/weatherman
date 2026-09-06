@@ -7,8 +7,8 @@ type CandidateState = {
   /**
    * HRRR supercooled liquid water contours, drawn over the observed cloud tops.
    *
-   * Off on arrival, like every layer but the candidate field. The map opens on
-   * its answer and the operator adds the inputs they want to check it against.
+   * Off on arrival, like cloud tops and cloud base. The map opens on storms;
+   * this is a reading on the selected storm, not the mask.
    *
    * Cloud tops have their own slice: this one covers a single data domain, and
    * anything that fetches and summarises a scene of its own gets its own.
