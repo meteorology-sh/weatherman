@@ -14,22 +14,19 @@ export const Candidate = () => {
           <div className="collapse bg-base-200 border-base-300 border">
             <input type="checkbox" />
             <div className="collapse-title font-semibold">Instructions</div>
-            <div className="collapse-content text-sm">
+            <div className="collapse-content text-xs">
               <div className="prose">
                 <p>
-                  Green marks the places worth flying to. Click one for the
-                  numbers behind the call.
+                  A seeding opportunity is worth flying. Click on the map for
+                  more metadata about a point in the atmosphere.
                 </p>
-                <p>Green means all three of these are true at once:</p>
+                <p>A seeding opportunity has all three criteria:</p>
                 <ul>
                   <li>
-                    The bottom of the cloud is 4,000–12,000 ft above the
-                    ground, so an aircraft can reach it.
+                    The cloud base is between 4,000–12,000 ft above ground
+                    level.
                   </li>
-                  <li>
-                    Radar nearby is seeing rain lifted high enough to be
-                    colder than freezing.
-                  </li>
+                  <li>Radar echo-top reaches beyond freezing.</li>
                   <li>Rain is already falling nearby.</li>
                 </ul>
               </div>

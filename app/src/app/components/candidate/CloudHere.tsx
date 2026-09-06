@@ -1,11 +1,9 @@
 // Store
 import { useAppSelector } from "@/lib/store/hooks";
 
-// ArcGIS
-import { LiquidLegend } from "@/lib/arcgis/legends";
-
 // Components
-import { MeasurementGrid, dash } from "@/app/components/panel/Measurements";
+import { MeasurementGrid } from "@/app/components/panel/Measurements";
+import { dash, latLon } from "@/lib/format";
 
 const num = new Intl.NumberFormat("en-US");
 
@@ -14,6 +12,7 @@ const num = new Intl.NumberFormat("en-US");
  */
 export const CloudHere = () => {
   const here = useAppSelector((state) => state.seedability.here);
+  const [lon, lat] = useAppSelector((state) => state.sounding.point);
   const loading = useAppSelector((state) => state.seedability.hereLoading);
   const error = useAppSelector((state) => state.seedability.hereError);
 
@@ -46,21 +45,34 @@ export const CloudHere = () => {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="font-semibold">{fly ? "FLY" : "DON'T FLY"}</h3>
+      <h3 className="flex items-center justify-between gap-2 font-semibold">
+        {fly ? (
+          <span className="badge badge-sm badge-outline badge-success">
+            FLY
+          </span>
+        ) : (
+          <span className="badge badge-sm badge-outline badge-warning">
+            DON'T FLY
+          </span>
+        )}
+        <span className="font-mono text-xs font-normal">
+          {latLon(lon, lat)}
+        </span>
+      </h3>
       <MeasurementGrid
         rows={[
           {
-            label: "Base above ground",
+            label: "Base Above Ground",
             value: dash(
               here.cloudBaseAglFt === null
                 ? null
                 : `${num.format(here.cloudBaseAglFt)} ft`
             ),
           },
-          { label: "18 dBZ echo top", value: echo },
+          { label: "18 dBZ Echo Top", value: echo },
           { label: "Rain", value: rain },
           {
-            label: LiquidLegend.name,
+            label: "Supercooled Liquid Water",
             value: `${num.format(here.slwGM2)} g/m²`,
           },
         ]}

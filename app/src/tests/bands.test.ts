@@ -1,16 +1,13 @@
 // ArcGIS
 import {
   candidateCloudBaseRenderer,
-  candidateCloudTopRenderer,
 } from "@/lib/arcgis/renderers";
 import {
-  BASE_WINDOW_FT,
+  FLIGHT_WINDOW_FT,
   CANDIDATE_BANDS,
   CEILING_FT,
   CLOUD_BASE_BANDS,
   CLOUD_BASE_RGB,
-  CLOUD_TOP_BANDS,
-  CLOUD_TOP_RGB,
   CLOUD_BANDS,
   PRECIP_BANDS,
   PRECIP_LABELS,
@@ -189,15 +186,15 @@ describe("stackedColor", () => {
 });
 
 describe("soloColor", () => {
-  // The cloud-top bands are disjoint — exactly one applies to a cell — so the
+  // The cloud-base bands are disjoint — exactly one applies to a cell — so the
   // legend must read each band straight rather than compositing it.
   it("is the band's own alpha, not a running composite", () => {
-    expect(soloColor(CLOUD_TOP_RGB, 0.3)).toBe("rgba(148,163,184,0.300)");
+    expect(soloColor(CLOUD_BASE_RGB, 0.3)).toBe("rgba(167,139,250,0.300)");
   });
 
   it("gives the legend the colour each band is actually painted", () => {
-    expect(soloColor(CLOUD_TOP_RGB, CLOUD_TOP_BANDS[0].alpha)).toContain(
-      String(CLOUD_TOP_BANDS[0].alpha)
+    expect(soloColor(CLOUD_BASE_RGB, CLOUD_BASE_BANDS[0].alpha)).toContain(
+      String(CLOUD_BASE_BANDS[0].alpha)
     );
   });
 
@@ -207,62 +204,6 @@ describe("soloColor", () => {
     expect(soloColor(CLOUD_RGB, 0.1)).not.toBe(
       stackedColor(CLOUD_BANDS, CLOUD_RGB, 2)
     );
-  });
-});
-
-describe("CLOUD_TOP_BANDS", () => {
-  // Disjoint, not nested: the intervals have to meet end to end with no gap and
-  // no overlap, or a cell falls into two bands or none.
-  it("tiles the temperature range without gaps or overlaps", () => {
-    for (let i = 0; i < CLOUD_TOP_BANDS.length - 1; i++) {
-      expect(CLOUD_TOP_BANDS[i].toC).toBe(CLOUD_TOP_BANDS[i + 1].fromC);
-    }
-  });
-
-  // Nothing is discarded for being cold. See MEASUREMENTS.md §4 — there is no
-  // cold cutoff, and the open end is what says so.
-  it("leaves the coldest band open-ended", () => {
-    expect(CLOUD_TOP_BANDS[CLOUD_TOP_BANDS.length - 1].toC).toBeNull();
-  });
-
-  // The ramp runs loud-to-quiet, backwards from every other layer here: the
-  // warmest band is the target, and the coldest is cirrus over most of the sky.
-  it("fades as the tops get colder", () => {
-    const alphas = CLOUD_TOP_BANDS.map((band) => band.alpha);
-
-    expect(alphas).toEqual([...alphas].sort((a, b) => b - a));
-  });
-
-  // These bands do not composite, so the alphas written here are the only
-  // separation the layer gets — a nested layer's four fills land on the map
-  // ~0.15 apart for free, from stacking, while these land exactly where they
-  // are written. Slate over a dark basemap has almost no hue to help either, so
-  // a narrower step reads as one flat wash rather than four bands.
-  it("separates each band enough to be read as its own", () => {
-    const alphas = CLOUD_TOP_BANDS.map((band) => band.alpha);
-
-    for (let i = 0; i < alphas.length - 1; i++) {
-      expect(alphas[i] - alphas[i + 1]).toBeGreaterThanOrEqual(0.12);
-    }
-  });
-
-  // The band value is what the server writes on the feature; if the two drift,
-  // the renderer matches nothing and the layer paints as invisible.
-  it("keys each band on the coldness the server emits", () => {
-    expect(CLOUD_TOP_BANDS.map((band) => band.value)).toEqual([5, 12, 18, 25]);
-    expect(CLOUD_TOP_BANDS.map((band) => -band.fromC)).toEqual([5, 12, 18, 25]);
-  });
-
-  it("matches on the field the server writes", () => {
-    expect(candidateCloudTopRenderer.field).toBe("topColdnessC");
-  });
-
-  // Colourless on purpose: amber is spent on modelled liquid water and cyan on
-  // observed rain, and cloud shape must not compete with either.
-  it("stays grey so the layers above it keep their hues", () => {
-    const [r, g, b] = CLOUD_TOP_RGB;
-
-    expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeLessThan(50);
   });
 });
 
@@ -302,9 +243,9 @@ describe("CLOUD_BASE_BANDS", () => {
     expect(top.alpha).toBeGreaterThan(0);
   });
 
-  // Three fills on one map, and a fourth that must not read as any of them.
-  it("takes the one hue the candidate map has left", () => {
-    for (const other of [SLW_RGB, RADAR_RGB, CLOUD_TOP_RGB]) {
+  // Two fills on one map, and a third that must not read as either of them.
+  it("takes a hue of its own on the candidate map", () => {
+    for (const other of [SLW_RGB, RADAR_RGB]) {
       expect(CLOUD_BASE_RGB).not.toEqual(other);
     }
   });
@@ -339,9 +280,9 @@ describe("CLOUD_BASE_BANDS", () => {
     expect(CLOUD_BASE_BANDS.map((band) => band.value)).toEqual(
       [0, 1, 2, 3].map((n) => (n * CEILING_FT) / 3)
     );
-    expect(CLOUD_BASE_BANDS[2].value).toBe(BASE_WINDOW_FT[1]); // the coincidence
+    expect(CLOUD_BASE_BANDS[2].value).toBe(FLIGHT_WINDOW_FT[1]); // the coincidence
     expect(CLOUD_BASE_BANDS.map((b) => b.value)).not.toContain(
-      BASE_WINDOW_FT[0]
+      FLIGHT_WINDOW_FT[0]
     );
   });
 });

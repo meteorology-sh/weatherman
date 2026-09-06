@@ -1,31 +1,21 @@
 // ArcGIS
 import {
   BAND_LABEL,
-  BASE_WINDOW_FT,
+  FLIGHT_WINDOW_FT,
   CEILING_FT,
-  CLOUD_TOP_BANDS,
   RADAR_BANDS,
 } from "@/lib/arcgis/bands";
 import {
   ALL_LEGENDS,
-  BASE_WINDOW_LABEL,
-  BaseWindowLegend,
+  FLIGHT_WINDOW_LABEL,
   CEILING_LABEL,
   CandidateLegend,
   CloudBaseLegend,
-  CloudTopLegend,
-  CapeLegend,
-  CinLegend,
   EchoFreezeLegend,
-  FreezingLegend,
   HeadingLegend,
-  LclLegend,
-  Minus15Legend,
-  WarmDepthLegend,
   LightningLegend,
   LiquidLegend,
   RadarLegend,
-  CLOUD_TOP_WARMEST_C,
 } from "@/lib/arcgis/legends";
 
 /** The whole detail block as one string, for the checks that only need a fact. */
@@ -71,31 +61,6 @@ describe("layer legends", () => {
   });
 });
 
-describe("CloudTopLegend", () => {
-  // The layer shows the top; the seeding band is below it. Saying so is the
-  // whole reason this layer does not replace the liquid-water one.
-  it("names the band it cannot see into", () => {
-    expect(detailOf(CloudTopLegend)).toContain(BAND_LABEL);
-  });
-
-  // The warm edge is load-bearing, not decoration: a top warmer than it means
-  // the seeding band is above the cloud entirely. Read from the bands rather
-  // than written twice, so the prose has to follow the mask when it moves.
-  it("takes its warm edge from the bands themselves", () => {
-    expect(CLOUD_TOP_WARMEST_C).toBe(CLOUD_TOP_BANDS[0].fromC);
-  });
-
-  // The cut is the first thing an operator asks about an empty patch of map,
-  // so it is one of the few numbers that earns its place on the switch.
-  it("states the warm edge it is cut at on the switch", () => {
-    expect(CloudTopLegend.summary).toContain(String(CLOUD_TOP_WARMEST_C));
-  });
-
-  it("admits the temperature is modelled even though the shape is observed", () => {
-    expect(detailOf(CloudTopLegend)).toContain("HRRR");
-  });
-});
-
 describe("CloudBaseLegend", () => {
   // The ceiling is the aircraft's design figure, and the prose has to read it
   // from the same constant the server bands on rather than restating it — a
@@ -105,47 +70,24 @@ describe("CloudBaseLegend", () => {
     expect(detailOf(CloudBaseLegend)).toContain(CEILING_LABEL);
   });
 
-  // The Texas window is reported and never drawn, so the switch's one sentence
-  // must not offer it as what the ramp shows.
-  it("keeps the Texas window out of the summary", () => {
-    expect(CloudBaseLegend.summary).not.toContain(BASE_WINDOW_LABEL);
+  // The window is a test the candidate fill runs. This layer draws a height
+  // and offers no switch, so the window must not appear on it at all.
+  it("keeps the Texas window out of the layer entirely", () => {
+    expect(CloudBaseLegend.summary).not.toContain(FLIGHT_WINDOW_LABEL);
+    expect(detailOf(CloudBaseLegend)).not.toContain(FLIGHT_WINDOW_LABEL);
   });
 
-  // It still has to be explained somewhere, and the About page is where the
-  // layer says what it does not tell you.
-  it("explains the window it does not band on, in the detail", () => {
-    expect(BASE_WINDOW_LABEL).toContain(
-      BASE_WINDOW_FT[0].toLocaleString("en-US")
-    );
-    expect(BASE_WINDOW_LABEL).toContain(
-      BASE_WINDOW_FT[1].toLocaleString("en-US")
-    );
-    expect(CloudBaseLegend.detail.join(" ")).toContain(BASE_WINDOW_LABEL);
-  });
-
-  // Modelled data on the observed map is an exception to the editorial split,
-  // and the About page is where it has to be admitted.
-  it("admits the layer is modelled", () => {
-    expect(detailOf(CloudBaseLegend)).toContain("Modelled");
+  // Modelled data on a map of measurements, so the detail has to say which
+  // this is.
+  it("says the layer is modelled", () => {
+    expect(detailOf(CloudBaseLegend)).toMatch(/modelled/i);
   });
 
   // MSL and AGL differ by thousands of feet across Texas, so a height with no
-  // datum on it is a height an operator can read two ways.
+  // datum on it is a height an operator can read two ways. The ramp's own
+  // caption says it too; this is the sentence under the switch.
   it("states the datum its heights are in", () => {
     expect(CloudBaseLegend.summary).toContain("MSL");
-    expect(detailOf(CloudBaseLegend)).toContain("MSL");
-  });
-});
-
-describe("BaseWindowLegend", () => {
-  it("names the Comptroller window from the same constant the server uses", () => {
-    expect(BaseWindowLegend.summary).toContain(BASE_WINDOW_LABEL);
-    expect(BaseWindowLegend.summary).toContain("above the ground");
-  });
-
-  it("says the window is AGL and national", () => {
-    expect(detailOf(BaseWindowLegend)).toContain("AGL");
-    expect(detailOf(BaseWindowLegend)).toContain("National fill");
   });
 });
 
@@ -157,28 +99,33 @@ describe("LiquidLegend", () => {
     expect(detailOf(LiquidLegend)).toContain(BAND_LABEL);
   });
 
-  it("admits the layer is modelled rather than observed", () => {
-    expect(detailOf(LiquidLegend)).toContain("Modelled, not observed");
+  // The one modelled field on a map of measurements. It names the model it
+  // comes from, which is what says it is not a reading.
+  it("names the model it comes from", () => {
+    expect(LiquidLegend.source).toContain("HRRR");
+    expect(detailOf(LiquidLegend)).toContain("HRRR");
   });
 });
 
 describe("RadarLegend", () => {
   // The only measurement on either map, and the only layer that can cross a
-  // candidate off. Both halves of that have to be said.
-  it("says it is measured", () => {
-    expect(detailOf(RadarLegend)).toContain("Measured");
+  // candidate off. It names the instrument, its cadence and its resolution,
+  // which is what an operator weighs a reading by.
+  it("says what measured it, how often, and how finely", () => {
+    expect(detailOf(RadarLegend)).toContain("MRMS");
+    expect(detailOf(RadarLegend)).toContain("two minutes");
+    expect(detailOf(RadarLegend)).toContain("1 km");
   });
 
-  it("names the heading, lightning, and echo past freezing", () => {
-    expect(detailOf(RadarLegend)).toContain("upwind raining flank");
-    expect(detailOf(RadarLegend)).toContain("18 dBZ echo top");
-    expect(detailOf(RadarLegend)).toContain("averages four 1 km cells");
-    expect(detailOf(RadarLegend)).toContain("rounds");
-    expect(detailOf(RadarLegend)).toContain("evaluation maps keep");
-    expect(detailOf(RadarLegend)).toContain("Lightning");
-    expect(HeadingLegend.name).toBe("CORE, HEADING, AND FLANK");
+  // Three switches sit under this layer, and a switch nobody has explained is
+  // a switch an operator will not touch.
+  it("names the three switches that sit under it", () => {
+    expect(detailOf(RadarLegend)).toContain("core and heading");
+    expect(detailOf(RadarLegend)).toContain("lightning");
+    expect(detailOf(RadarLegend)).toContain("echo past freezing");
+    expect(HeadingLegend.name).toBe("CORE AND HEADING");
     expect(HeadingLegend.summary).toContain("heaviest rain");
-    expect(HeadingLegend.summary).toContain("upwind raining edge");
+    expect(HeadingLegend.summary).toContain("direction it is moving");
     expect(LightningLegend.name).toBe("LIGHTNING");
     expect(LightningLegend.summary).toContain("flashes");
   });
@@ -190,21 +137,21 @@ describe("RadarLegend", () => {
     expect(detailOf(EchoFreezeLegend)).toContain("18 dBZ");
   });
 
-  it("keeps the 12Z table names for the click", () => {
-    expect(CapeLegend.name).toBe("CAPE");
-    expect(CinLegend.name).toBe("CIN");
-    expect(LclLegend.name).toBe("LCL");
-    expect(FreezingLegend.name).toBe("FREEZING LEVEL");
-    expect(Minus15Legend.name).toBe("MINUS FIFTEEN");
-    expect(WarmDepthLegend.name).toBe("WARM CLOUD DEPTH");
-  });
 });
 
 describe("CandidateLegend", () => {
+  // The window survives here and only here: it is one of the three tests the
+  // fill is built from, read from the same constant the server gates on.
   it("states the Texas tests it joins on", () => {
+    expect(FLIGHT_WINDOW_LABEL).toContain(
+      FLIGHT_WINDOW_FT[0].toLocaleString("en-US")
+    );
+    expect(FLIGHT_WINDOW_LABEL).toContain(
+      FLIGHT_WINDOW_FT[1].toLocaleString("en-US")
+    );
     expect(detailOf(CandidateLegend)).toContain(String(RADAR_BANDS[0].value));
     expect(detailOf(CandidateLegend)).toContain("18 dBZ");
-    expect(detailOf(CandidateLegend)).toContain(BASE_WINDOW_LABEL);
+    expect(detailOf(CandidateLegend)).toContain(FLIGHT_WINDOW_LABEL);
   });
 
   it("names every test it joins on, in the sentence under the switch", () => {

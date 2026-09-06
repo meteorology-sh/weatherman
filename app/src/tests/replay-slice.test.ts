@@ -21,16 +21,8 @@ describe("replay slice", () => {
     expect(initial.lightning).toBe(false);
     expect(initial.heading).toBe(true);
     expect(initial.echoFreeze).toBe(false);
-    expect(initial.cloudTop).toBe(false);
     expect(initial.liquid).toBe(false);
     expect(initial.cloudBase).toBe(false);
-    expect(initial.baseWindow).toBe(false);
-    expect(initial.cape).toBe(false);
-    expect(initial.cin).toBe(false);
-    expect(initial.lcl).toBe(false);
-    expect(initial.freezing).toBe(false);
-    expect(initial.minus15).toBe(false);
-    expect(initial.warmDepth).toBe(false);
   });
 
   it("stores the chosen hour as an ISO string", () => {
@@ -92,7 +84,6 @@ describe("replay slice", () => {
   it("toggles each layer independently", () => {
     let state = reducer(initial, replayActions.setLiquid(true));
     expect(state.liquid).toBe(true);
-    expect(state.cloudTop).toBe(false);
     expect(state.radar).toBe(true);
 
     state = reducer(state, replayActions.setRadar(false));
@@ -103,8 +94,8 @@ describe("replay slice", () => {
     expect(state.lightning).toBe(true);
     expect(state.radar).toBe(false);
 
-    state = reducer(state, replayActions.setCloudTop(true));
-    expect(state.cloudTop).toBe(true);
+    state = reducer(state, replayActions.setCloudBase(true));
+    expect(state.cloudBase).toBe(true);
     expect(state.liquid).toBe(true);
     expect(state.radar).toBe(false);
   });

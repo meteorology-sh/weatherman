@@ -6,19 +6,11 @@ import {
   forecastCloudRenderer,
   forecastPrecipRenderer,
   candidateCloudBaseRenderer,
-  candidateCloudTopRenderer,
   candidateLiquidRenderer,
   candidateRadarRenderer,
-  capeRenderer,
-  cinRenderer,
   echoFreezeRenderer,
-  freezingRenderer,
-  lclRenderer,
   lightningRenderer,
-  minus15Renderer,
-  warmDepthRenderer,
   stormCoreRenderer,
-  stormFlankRenderer,
   stormMotionRenderer,
 } from "./renderers";
 
@@ -26,67 +18,19 @@ import {
 import {
   CandidateConfirmedUrl,
   CandidateFieldUrl,
-  CloudTopUrl,
   ForecastCloudsUrl,
-  ForecastBriefingUrl,
   ForecastCloudBaseUrl,
-  ForecastCloudBaseWindowUrl,
   ForecastPrecipUrl,
   ForecastLiquidUrl,
   RadarReflectivityUrl,
   RadarStormCoresUrl,
-  RadarStormFlanksUrl,
   RadarStormMotionUrl,
   RadarEchoFreezeUrl,
   LightningUrl,
 } from "@/lib/client";
 
-/**
- * The replay map's layers.
- *
- * Separate instances rather than repointing the live ones, and that is not
- * duplication for its own sake. Every layer here is added to the map once and
- * toggled with `.visible` so switching routes does not refetch — which only
- * holds if a layer's `url` means one thing. Pointing `CandidateRadarLayer` at a
- * date would make the candidate map show 2025 the next time it was opened, and
- * the bug would look like a caching failure rather than a shared object.
- *
- * They start with no `url`: the page opens with no date chosen, and a layer
- * built against "now" would fetch a frame nobody asked for. `Map.tsx` points
- * them once a date is picked.
- *
- * `fields` and `geometryType` are declared for the same reason the precipitation
- * layer declares them — these start empty, and an empty FeatureCollection gives
- * ArcGIS nothing to infer a schema from.
- */
-export const ReplayCloudTopLayer = new GeoJSONLayer({
-  title: "GOES-East cloud-top temperature (replay)",
-  copyright: "NOAA GOES-East / NOAA HRRR",
-  renderer: candidateCloudTopRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "topColdnessC", type: "double" },
-  ],
-  visible: false,
-});
-
 export const ReplayCloudBaseLayer = new GeoJSONLayer({
   title: "HRRR cloud base (replay)",
-  copyright: "NOAA HRRR",
-  renderer: candidateCloudBaseRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "cloudBaseFt", type: "double" },
-  ],
-  visible: false,
-});
-
-export const ReplayCloudBaseWindowLayer = new GeoJSONLayer({
-  title: "HRRR cloud base window (replay)",
   copyright: "NOAA HRRR",
   renderer: candidateCloudBaseRenderer,
   geometryType: "polygon",
@@ -124,6 +68,30 @@ export const ReplayRadarLayer = new GeoJSONLayer({
   visible: false,
 });
 
+/**
+ * Web Mercator's scale at a zoom level — the tile pyramid's own figure,
+ * halving each step in.
+ */
+const scaleAtZoom = (zoom: number) => 591657527.591555 / 2 ** zoom;
+
+/**
+ * The zoom at which the map opens: Texas, whole, in the window.
+ */
+export const TEXAS_ZOOM = 5;
+
+/**
+ * Closest the storm objects may be drawn from. ArcGIS draws a layer while
+ * the view's scale is at or under `minScale`, so this is the scale one step
+ * in from Texas: the cores and headings appear at zoom 6 and are gone at
+ * zoom 5 and anything wider.
+ *
+ * They are per-storm marks, not a field. Over the whole state a core is a
+ * speck on a speck and every heading points at the same weather, so the two
+ * layers read as noise over the rain rather than as a reading of it. The
+ * switch stays where it is and the map turns them off for you.
+ */
+export const STORM_OBJECT_MIN_SCALE = scaleAtZoom(TEXAS_ZOOM + 1);
+
 export const ReplayStormCoreLayer = new GeoJSONLayer({
   title: "MRMS radar storm cores (replay)",
   copyright: "NOAA / National Weather Service MRMS",
@@ -135,6 +103,7 @@ export const ReplayStormCoreLayer = new GeoJSONLayer({
     { name: "stormId", type: "integer" },
     { name: "maxDbz", type: "double" },
   ],
+  minScale: STORM_OBJECT_MIN_SCALE,
   visible: false,
 });
 
@@ -142,7 +111,7 @@ export const ReplayStormMotionLayer = new GeoJSONLayer({
   title: "MRMS radar storm motion (replay)",
   copyright: "NOAA / National Weather Service MRMS",
   renderer: stormMotionRenderer,
-  geometryType: "polygon",
+  geometryType: "polyline",
   objectIdField: "OBJECTID",
   fields: [
     { name: "OBJECTID", type: "oid" },
@@ -150,20 +119,7 @@ export const ReplayStormMotionLayer = new GeoJSONLayer({
     { name: "motionTowardDeg", type: "double" },
     { name: "motionKmh", type: "double" },
   ],
-  visible: false,
-});
-
-export const ReplayStormFlankLayer = new GeoJSONLayer({
-  title: "MRMS radar storm flanks (replay)",
-  copyright: "NOAA / National Weather Service MRMS",
-  renderer: stormFlankRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "stormId", type: "integer" },
-    { name: "maxDbz", type: "double" },
-  ],
+  minScale: STORM_OBJECT_MIN_SCALE,
   visible: false,
 });
 
@@ -174,84 +130,6 @@ export const ReplayLightningLayer = new GeoJSONLayer({
   geometryType: "point",
   objectIdField: "OBJECTID",
   fields: [{ name: "OBJECTID", type: "oid" }],
-  visible: false,
-});
-
-export const ReplayCapeLayer = new GeoJSONLayer({
-  title: "HRRR mixed-layer CAPE (replay)",
-  copyright: "NOAA HRRR",
-  renderer: capeRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "mixedCapeJKg", type: "double" },
-  ],
-  visible: false,
-});
-
-export const ReplayCinLayer = new GeoJSONLayer({
-  title: "HRRR mixed-layer CIN (replay)",
-  copyright: "NOAA HRRR",
-  renderer: cinRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "cinJKg", type: "double" },
-  ],
-  visible: false,
-});
-
-export const ReplayLclLayer = new GeoJSONLayer({
-  title: "HRRR lifting condensation level (replay)",
-  copyright: "NOAA HRRR",
-  renderer: lclRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "lclFt", type: "double" },
-  ],
-  visible: false,
-});
-
-export const ReplayFreezingLayer = new GeoJSONLayer({
-  title: "HRRR freezing level (replay)",
-  copyright: "NOAA HRRR",
-  renderer: freezingRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "freezingFt", type: "double" },
-  ],
-  visible: false,
-});
-
-export const ReplayMinus15Layer = new GeoJSONLayer({
-  title: "HRRR −15 °C height (replay)",
-  copyright: "NOAA HRRR",
-  renderer: minus15Renderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "minus15Ft", type: "double" },
-  ],
-  visible: false,
-});
-
-export const ReplayWarmDepthLayer = new GeoJSONLayer({
-  title: "HRRR warm-cloud depth (replay)",
-  copyright: "NOAA HRRR",
-  renderer: warmDepthRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "warmCloudDepthFt", type: "double" },
-  ],
   visible: false,
 });
 
@@ -316,7 +194,7 @@ export const CandidateConfirmedLayer = new GeoJSONLayer({
   visible: false,
 });
 
-/** The same field at a replayed hour. See ReplayCloudTopLayer for why separate. */
+/** The same field at a replayed hour, as its own instance. */
 export const ReplayFieldLayer = new GeoJSONLayer({
   title: "Seeding opportunity (replay)",
   copyright: "NOAA HRRR / NOAA MRMS",
@@ -345,40 +223,6 @@ export const ReplayConfirmedLayer = new GeoJSONLayer({
 });
 
 /**
- * Observed cloud tops, banded server-side from a GOES-East scene.
- *
- * **Vector, not imagery**, for the reason the rest of these layers are vectors:
- * an infrared image has no nodata. It paints warm clear sky opaquely and buries
- * the basemap, so a map whose whole job is "where is there something worth
- * flying to" spends most of its pixels on sky where there is nothing at all.
- * These bands are simply not drawn where the satellite sees no cloud — roughly
- * half a scene — and the basemap shows through.
- *
- * It is also filtered. Only tops colder than −5 °C appear: a warmer top means
- * the seeding band lies above the cloud entirely, so there is nothing inside it
- * to seed. That removes most cloudy ground.
- *
- * The geometry comes from the satellite and the temperatures from HRRR's
- * profile — see the server's `goes/cloudtop.ts` for why that split runs the way it
- * does. `fields` and `geometryType` are declared rather than inferred for the
- * same reason as the precipitation layer: on a clear scene the collection is
- * empty, and an empty one gives ArcGIS nothing to infer a schema from.
- */
-export const CandidateCloudTopLayer = new GeoJSONLayer({
-  title: "GOES-East cloud-top temperature",
-  url: CloudTopUrl(),
-  copyright: "NOAA GOES-East / NOAA HRRR",
-  renderer: candidateCloudTopRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "topColdnessC", type: "double" },
-  ],
-  visible: false,
-});
-
-/**
  * Modelled cloud base, banded server-side from HRRR — the height an aircraft
  * would climb through, and the variable Texas operations actually select on.
  *
@@ -395,29 +239,6 @@ export const CandidateCloudTopLayer = new GeoJSONLayer({
 export const CandidateCloudBaseLayer = new GeoJSONLayer({
   title: "HRRR cloud base",
   url: ForecastCloudBaseUrl(0),
-  copyright: "NOAA HRRR",
-  renderer: candidateCloudBaseRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "cloudBaseFt", type: "double" },
-  ],
-  visible: false,
-});
-
-/**
- * The height ramp above, trimmed to cloud an aircraft can reach: the same
- * bands in the same violet, drawn only where the base sits 4,000–12,000 ft
- * above the ground.
- *
- * A second layer rather than a second url on the one above, so the switch
- * swaps two loaded layers instead of refetching on every toggle. Pinned to
- * hour 0 like the height ramp.
- */
-export const CandidateCloudBaseWindowLayer = new GeoJSONLayer({
-  title: "HRRR cloud base window",
-  url: ForecastCloudBaseWindowUrl(0),
   copyright: "NOAA HRRR",
   renderer: candidateCloudBaseRenderer,
   geometryType: "polygon",
@@ -527,6 +348,7 @@ export const CandidateStormCoreLayer = new GeoJSONLayer({
     { name: "stormId", type: "integer" },
     { name: "maxDbz", type: "double" },
   ],
+  minScale: STORM_OBJECT_MIN_SCALE,
   visible: false,
 });
 
@@ -540,7 +362,7 @@ export const CandidateStormMotionLayer = new GeoJSONLayer({
   url: RadarStormMotionUrl(),
   copyright: "NOAA / National Weather Service MRMS",
   renderer: stormMotionRenderer,
-  geometryType: "polygon",
+  geometryType: "polyline",
   objectIdField: "OBJECTID",
   fields: [
     { name: "OBJECTID", type: "oid" },
@@ -548,25 +370,7 @@ export const CandidateStormMotionLayer = new GeoJSONLayer({
     { name: "motionTowardDeg", type: "double" },
     { name: "motionKmh", type: "double" },
   ],
-  visible: false,
-});
-
-/**
- * Raining cells on the upwind edge of each storm. Empty when the
- * previous mosaic gave no direction. Not inflow.
- */
-export const CandidateStormFlankLayer = new GeoJSONLayer({
-  title: "MRMS radar storm flanks",
-  url: RadarStormFlanksUrl(),
-  copyright: "NOAA / National Weather Service MRMS",
-  renderer: stormFlankRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "stormId", type: "integer" },
-    { name: "maxDbz", type: "double" },
-  ],
+  minScale: STORM_OBJECT_MIN_SCALE,
   visible: false,
 });
 
@@ -582,93 +386,6 @@ export const CandidateLightningLayer = new GeoJSONLayer({
   geometryType: "point",
   objectIdField: "OBJECTID",
   fields: [{ name: "OBJECTID", type: "oid" }],
-  visible: false,
-});
-
-/**
- * Mixed-layer CAPE. The 12Z table's energy row, as a fill.
- */
-export const CandidateCapeLayer = new GeoJSONLayer({
-  title: "HRRR mixed-layer CAPE",
-  url: ForecastBriefingUrl("cape", 0),
-  copyright: "NOAA HRRR",
-  renderer: capeRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "mixedCapeJKg", type: "double" },
-  ],
-  visible: false,
-});
-
-export const CandidateCinLayer = new GeoJSONLayer({
-  title: "HRRR mixed-layer CIN",
-  url: ForecastBriefingUrl("cin", 0),
-  copyright: "NOAA HRRR",
-  renderer: cinRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "cinJKg", type: "double" },
-  ],
-  visible: false,
-});
-
-export const CandidateLclLayer = new GeoJSONLayer({
-  title: "HRRR lifting condensation level",
-  url: ForecastBriefingUrl("lcl", 0),
-  copyright: "NOAA HRRR",
-  renderer: lclRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "lclFt", type: "double" },
-  ],
-  visible: false,
-});
-
-export const CandidateFreezingLayer = new GeoJSONLayer({
-  title: "HRRR freezing level",
-  url: ForecastBriefingUrl("freezing", 0),
-  copyright: "NOAA HRRR",
-  renderer: freezingRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "freezingFt", type: "double" },
-  ],
-  visible: false,
-});
-
-export const CandidateMinus15Layer = new GeoJSONLayer({
-  title: "HRRR −15 °C height",
-  url: ForecastBriefingUrl("minus15", 0),
-  copyright: "NOAA HRRR",
-  renderer: minus15Renderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "minus15Ft", type: "double" },
-  ],
-  visible: false,
-});
-
-export const CandidateWarmDepthLayer = new GeoJSONLayer({
-  title: "HRRR warm-cloud depth",
-  url: ForecastBriefingUrl("warm-depth", 0),
-  copyright: "NOAA HRRR",
-  renderer: warmDepthRenderer,
-  geometryType: "polygon",
-  objectIdField: "OBJECTID",
-  fields: [
-    { name: "OBJECTID", type: "oid" },
-    { name: "warmCloudDepthFt", type: "double" },
-  ],
   visible: false,
 });
 

@@ -8,9 +8,10 @@ import {
 /**
  * The cloud-base bands, drawn as the map draws them.
  *
- * Not the stacked `Ramp` the contour layers use: these are disjoint, so nothing
- * composites and each swatch is the literal fill. Two swatches, split on the
- * aircraft's ceiling — the lit one is cloud a sortie could enter.
+ * Not the stacked `Ramp` the contour layers use: these are disjoint, so
+ * nothing composites and each swatch is the literal fill. The bands are
+ * thirds of the aircraft's service ceiling, and they run loud to quiet, so
+ * the brightest swatch is the shortest climb.
  */
 export const HeightRamp = ({
   rgb,
@@ -35,6 +36,10 @@ export const HeightRamp = ({
   </div>
 );
 
+/** The height ramp with its unit under it. */
 export const CloudBaseRamp = () => (
-  <HeightRamp rgb={CLOUD_BASE_RGB} />
+  <>
+    <HeightRamp rgb={CLOUD_BASE_RGB} />
+    <div className="text-xs">ft MSL</div>
+  </>
 );

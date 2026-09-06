@@ -1,6 +1,6 @@
 // Testing
 import { act, screen } from "@testing-library/react";
-import { createTestStore, noDiagnostics, renderWithStore } from "./utils";
+import { createTestStore, renderWithStore } from "./utils";
 
 // Store
 import { soundingActions } from "@/lib/store/features/sounding";

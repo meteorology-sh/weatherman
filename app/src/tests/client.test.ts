@@ -8,10 +8,7 @@ import {
   GetCandidateStats,
   ReplayCandidateUrl,
   ReplayConfirmedUrl,
-  CloudTopUrl,
-  ForecastBriefingUrl,
   ForecastCloudBaseUrl,
-  ForecastCloudBaseWindowUrl,
   GetCloudBaseStats,
   GetCloudTopStats,
   GetForecastMeta,
@@ -162,30 +159,6 @@ describe("ForecastCloudBaseUrl", () => {
   it("asks a different route than the stats", () => {
     expect(ForecastCloudBaseUrl(0)).not.toBe(
       "/forecast/cloudbase/stats?hour=0"
-    );
-  });
-});
-
-describe("ForecastCloudBaseWindowUrl", () => {
-  // The same field and the same bands as the height ramp, trimmed to the
-  // window — so it is that route with a flag on it, not a route of its own.
-  // `/forecast/cloudbase/window` still exists and still serves the bare gate
-  // the evaluation harness scores; the map does not ask for it.
-  it("asks the height ramp for its window-trimmed half", () => {
-    expect(ForecastCloudBaseWindowUrl(0)).toBe(
-      "/forecast/cloudbase?hour=0&window=1&west=-107&east=-93&south=25.5&north=37"
-    );
-    expect(ForecastCloudBaseWindowUrl(0)).not.toBe(ForecastCloudBaseUrl(0));
-  });
-});
-
-describe("ForecastBriefingUrl", () => {
-  it("asks a named 12Z field", () => {
-    expect(ForecastBriefingUrl("cape", 0)).toBe(
-      "/forecast/briefing/cape?hour=0&west=-107&east=-93&south=25.5&north=37"
-    );
-    expect(ForecastBriefingUrl("warm-depth", 0)).toContain(
-      "/forecast/briefing/warm-depth"
     );
   });
 });
@@ -344,13 +317,6 @@ describe("GetDomain", () => {
 });
 
 describe("cloud tops", () => {
-  // A scene has no run and no hour to ask for — the frame carries its own scan
-  // time, exactly like the radar mosaic.
-  it("points the layer at the banded scene with no parameters", () => {
-    expect(CloudTopUrl()).toBe(
-      "/cloudtop/temperature?west=-107&east=-93&south=25.5&north=37"
-    );
-  });
 
   it("fetches the summary from its own route", async () => {
     await GetCloudTopStats();

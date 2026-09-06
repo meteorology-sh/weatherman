@@ -290,12 +290,13 @@ export interface StormObjectView {
 
 export interface StormNear {
   validTime: string;
+  /** True when the click is inside the outline the radar layer draws. */
   inside: boolean;
-  coreKm: number;
-  edgeKm: number;
-  upwindEdgeKm: number | null;
-  /** Inside the rain, on the upwind side, nearer the edge than the heaviest rain. */
-  inWorking: boolean;
+  /**
+   * Kilometres from the click to the nearest edge of that outline, measured
+   * the same from either side of it. Null when the storm has no ring.
+   */
+  edgeKm: number | null;
   object: StormObjectView;
   /** Highest modelled in-band liquid over the storm, g/m². */
   slwGM2: number | null;

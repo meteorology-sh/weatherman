@@ -31,16 +31,42 @@ describe("About", () => {
     }
   });
 
+  // The page carries both kinds of layer, and which is which is the one
+  // thing an operator has to be able to tell from reading it.
   it("says the cloud-base layer is modelled", () => {
     render(<About />);
 
-    expect(screen.getAllByText(/Modelled/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/model/i).length).toBeGreaterThan(0);
   });
 
   it("says the radar is measured", () => {
     render(<About />);
 
-    expect(screen.getByText(/Measured, not modelled/)).toBeTruthy();
+    expect(screen.getAllByText(/measured/i).length).toBeGreaterThan(0);
+  });
+
+  // FLY is the one figure on the click panel that is not an approximation,
+  // and the page has to say so plainly or the section below reads as a
+  // caveat on the call itself.
+  it("defines FLY as the cell being green", () => {
+    render(<About />);
+
+    expect(screen.getByText(/the cell you clicked is green/)).toBeTruthy();
+  });
+
+  // The approximations sit last, after every layer, because they are read
+  // once the layers make sense — and each one has to name its cost rather
+  // than only its shortcut.
+  it("lists what a click approximates, under the layers", () => {
+    const { container } = render(<About />);
+
+    const headings = Array.from(container.querySelectorAll("h2")).map(
+      (h) => h.textContent
+    );
+    expect(headings[headings.length - 1]).toBe("What a Click Reports");
+    expect(screen.getByText(/nearest edge of the storm outline/)).toBeTruthy();
+    expect(screen.getByText(/within 40 km/)).toBeTruthy();
+    expect(screen.getByText(/the model is wrong/)).toBeTruthy();
   });
 
   it("needs no store to render", () => {

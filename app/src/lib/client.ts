@@ -65,38 +65,6 @@ export function ForecastCloudBaseUrl(
   })}`;
 }
 
-/** Comptroller window, AGL. */
-export function ForecastCloudBaseWindowUrl(
-  hour: number,
-  box: MapBox = INITIAL_BOX
-): string {
-  return `/forecast/cloudbase?${new URLSearchParams({
-    hour: String(hour),
-    window: "1",
-    ...boxParams(box),
-  })}`;
-}
-
-export type BriefingField =
-  | "cape"
-  | "cin"
-  | "lcl"
-  | "freezing"
-  | "minus15"
-  | "warm-depth";
-
-/** One 12Z briefing field, banded. */
-export function ForecastBriefingUrl(
-  field: BriefingField,
-  hour: number,
-  box: MapBox = INITIAL_BOX
-): string {
-  return `/forecast/briefing/${field}?${new URLSearchParams({
-    hour: String(hour),
-    ...boxParams(box),
-  })}`;
-}
-
 /** The same build's summary. Asking for it also warms the server's build. */
 export async function GetCloudBaseStats(
   hour: number,
@@ -292,32 +260,6 @@ export async function GetDomain(): Promise<DomainRing> {
   return frame.features[0].geometry.coordinates[0];
 }
 
-/**
- * Observed cloud tops, banded server-side from a GOES-East scene. No hour and
- * no run, for the same reason the radar route has neither: this is whatever the
- * satellite scanned a few minutes ago, and the frame carries its own scan time.
- */
-export function CloudTopUrl(box: MapBox = INITIAL_BOX): string {
-  return `/cloudtop/temperature?${new URLSearchParams(boxParams(box))}`;
-}
-
-/**
- * The same layers, at a past hour.
- *
- * `at` names the HRRR cycle and the scene to replay. Every route takes it and
- * every route treats its absence as "live", so these builders exist to keep the
- * parameter spelled one way rather than to reach different endpoints.
- */
-export function ReplayCloudTopUrl(
-  at: string,
-  box: MapBox = INITIAL_BOX
-): string {
-  return `/cloudtop/temperature?${new URLSearchParams({
-    at,
-    ...boxParams(box),
-  })}`;
-}
-
 export function ReplayLiquidUrl(
   at: string,
   hour = 0,
@@ -336,32 +278,6 @@ export function ReplayCloudBaseUrl(
   box: MapBox = INITIAL_BOX
 ): string {
   return `/forecast/cloudbase?${new URLSearchParams({
-    hour: String(hour),
-    at,
-    ...boxParams(box),
-  })}`;
-}
-
-export function ReplayCloudBaseWindowUrl(
-  at: string,
-  hour = 0,
-  box: MapBox = INITIAL_BOX
-): string {
-  return `/forecast/cloudbase?${new URLSearchParams({
-    hour: String(hour),
-    at,
-    window: "1",
-    ...boxParams(box),
-  })}`;
-}
-
-export function ReplayBriefingUrl(
-  at: string,
-  field: BriefingField,
-  hour = 0,
-  box: MapBox = INITIAL_BOX
-): string {
-  return `/forecast/briefing/${field}?${new URLSearchParams({
     hour: String(hour),
     at,
     ...boxParams(box),
@@ -405,14 +321,18 @@ export function RadarStormCoresUrl(box: MapBox = INITIAL_BOX): string {
   return `/radar/objects/cores?${new URLSearchParams(boxParams(box))}`;
 }
 
-/** Heading ticks from each core. Empty when the storm has no motion. */
+/**
+ * Heading ticks from each core. Empty when the storm has no motion.
+ *
+ * `shape=line` asks for the tick as a line rather than the painted dart:
+ * this map draws it a fixed number of pixels wide, so the width must not
+ * be baked into the geometry as kilometres.
+ */
 export function RadarStormMotionUrl(box: MapBox = INITIAL_BOX): string {
-  return `/radar/objects/motion?${new URLSearchParams(boxParams(box))}`;
-}
-
-/** Upwind raining edge of each storm. Empty when the storm has no heading. */
-export function RadarStormFlanksUrl(box: MapBox = INITIAL_BOX): string {
-  return `/radar/objects/flanks?${new URLSearchParams(boxParams(box))}`;
+  return `/radar/objects/motion?${new URLSearchParams({
+    shape: "line",
+    ...boxParams(box),
+  })}`;
 }
 
 /** 18 dBZ top at or above the freezing level. */
@@ -436,14 +356,11 @@ export function ReplayRadarStormMotionUrl(
   at: string,
   box: MapBox = INITIAL_BOX
 ): string {
-  return `/radar/objects/motion?${new URLSearchParams({ at, ...boxParams(box) })}`;
-}
-
-export function ReplayRadarStormFlanksUrl(
-  at: string,
-  box: MapBox = INITIAL_BOX
-): string {
-  return `/radar/objects/flanks?${new URLSearchParams({ at, ...boxParams(box) })}`;
+  return `/radar/objects/motion?${new URLSearchParams({
+    at,
+    shape: "line",
+    ...boxParams(box),
+  })}`;
 }
 
 export function ReplayRadarEchoFreezeUrl(

@@ -34,8 +34,6 @@ import { soundingActions } from "@/lib/store/features/sounding";
 // Fakes
 import {
   cloudBaseLayer,
-  cloudBaseWindowLayer,
-  cloudTopLayer,
   confirmedLayer,
   fieldLayer,
   forecastLayer,
@@ -43,7 +41,6 @@ import {
   precipLayer,
   radarLayer,
   stormCoreLayer,
-  stormFlankLayer,
   stormMotionLayer,
   lightningLayer,
   echoFreezeLayer,
@@ -81,14 +78,11 @@ describe("ArcGIS", () => {
 
     expect(map().layers).toEqual([
       cloudBaseLayer,
-      cloudTopLayer,
-      forecastLayer,
+          forecastLayer,
       precipLayer,
       radarLayer,
-      cloudBaseWindowLayer,
-      echoFreezeLayer,
+          echoFreezeLayer,
       lightningLayer,
-      stormFlankLayer,
       stormMotionLayer,
       stormCoreLayer,
       fieldLayer,
@@ -119,16 +113,6 @@ describe("ArcGIS", () => {
     );
   });
 
-  // Cloud base answers "can I get into this cloud at all", which is the
-  // question before the ones the other layers answer, so it sits under them.
-  it("draws the cloud tops above the cloud base", () => {
-    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
-
-    const layers = map().layers ?? [];
-    expect(layers.indexOf(cloudTopLayer)).toBeGreaterThan(
-      layers.indexOf(cloudBaseLayer)
-    );
-  });
 
   // Draw order is array order, and rain has to sit over the cloud it falls from.
   it("draws precipitation above the cloud it falls from", () => {
@@ -161,18 +145,33 @@ describe("ArcGIS", () => {
 describe("ArcGIS in candidate mode", () => {
   // The map opens on the candidate field alone. Every input to it starts off,
   // so a layer on screen is one the operator asked for.
-  it("opens with radar, cores, heading, the flank, and the Texas fly fill", () => {
+  it("opens with the Texas fly fill and nothing else", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     expect(fieldLayer.visible).toBe(true);
-    expect(radarLayer.visible).toBe(true);
-    expect(stormCoreLayer.visible).toBe(true);
-    expect(stormFlankLayer.visible).toBe(true);
-    expect(stormMotionLayer.visible).toBe(true);
+    expect(radarLayer.visible).toBe(false);
+    expect(stormCoreLayer.visible).toBe(false);
+    expect(stormMotionLayer.visible).toBe(false);
     expect(lightningLayer.visible).toBe(false);
-    expect(cloudTopLayer.visible).toBe(false);
     expect(cloudBaseLayer.visible).toBe(false);
-    expect(cloudBaseWindowLayer.visible).toBe(false);
+  });
+
+  // Every layer is fetched on landing, switched on or not: the panel is a
+  // set of switches over one scene, and a switch that starts a download is
+  // a switch that looks broken. The field goes first — it is the layer the
+  // map opens with.
+  it("fetches every candidate layer on landing, whatever its switch says", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    expect(fieldLayer.url).toContain("/candidate/target");
+    expect(radarLayer.url).toContain("/radar/reflectivity");
+    expect(stormCoreLayer.url).toContain("/radar/objects/cores");
+    expect(stormMotionLayer.url).toContain("/radar/objects/motion");
+    expect(cloudBaseLayer.url).toContain("/forecast/cloudbase");
+    expect(lightningLayer.url).toContain("/cloudtop/lightning");
+    expect(echoFreezeLayer.url).toContain("/radar/echotop/past-freezing");
+    expect(lightningLayer.visible).toBe(false);
+    expect(echoFreezeLayer.visible).toBe(false);
   });
 
   it("does not refetch when the view zooms in inside the held window", () => {
@@ -191,7 +190,12 @@ describe("ArcGIS in candidate mode", () => {
   });
 
   it("keeps lightning off until asked, even zoomed out", () => {
-    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      store.dispatch(radarActions.setVisible(true));
+      store.dispatch(radarActions.setHeading(true));
+    });
     const v = view();
     v.zoom = 4;
     v.extent = { xmin: -125, ymin: 24, xmax: -70, ymax: 50 };
@@ -204,7 +208,6 @@ describe("ArcGIS in candidate mode", () => {
 
     expect(radarLayer.visible).toBe(true);
     expect(stormCoreLayer.visible).toBe(true);
-    expect(stormFlankLayer.visible).toBe(true);
     expect(stormMotionLayer.visible).toBe(true);
     expect(lightningLayer.visible).toBe(false);
   });
@@ -216,6 +219,7 @@ describe("ArcGIS in candidate mode", () => {
     expect(echoFreezeLayer.visible).toBe(false);
 
     act(() => {
+      store.dispatch(radarActions.setVisible(true));
       store.dispatch(radarActions.setEchoFreeze(true));
     });
     expect(echoFreezeLayer.visible).toBe(true);
@@ -234,6 +238,7 @@ describe("ArcGIS in candidate mode", () => {
     expect(lightningLayer.visible).toBe(false);
 
     act(() => {
+      store.dispatch(radarActions.setVisible(true));
       store.dispatch(radarActions.setLightning(true));
     });
     expect(lightningLayer.visible).toBe(true);
@@ -245,22 +250,23 @@ describe("ArcGIS in candidate mode", () => {
     expect(lightningLayer.visible).toBe(false);
   });
 
-  it("shows the core, heading, and flank with the mosaic, and hides them with it", () => {
+  it("shows the core and heading with the mosaic, and hides them with it", () => {
     const store = createTestStore();
     renderWithStore(<ArcGIS mode="candidate" />, store);
 
+    act(() => {
+      store.dispatch(radarActions.setVisible(true));
+      store.dispatch(radarActions.setHeading(true));
+    });
     expect(stormCoreLayer.visible).toBe(true);
-    expect(stormFlankLayer.visible).toBe(true);
     expect(stormMotionLayer.visible).toBe(true);
     expect(stormCoreLayer.url).toContain("/radar/objects/cores");
-    expect(stormFlankLayer.url).toContain("/radar/objects/flanks");
     expect(stormMotionLayer.url).toContain("/radar/objects/motion");
 
     act(() => {
       store.dispatch(radarActions.setVisible(false));
     });
     expect(stormCoreLayer.visible).toBe(false);
-    expect(stormFlankLayer.visible).toBe(false);
     expect(stormMotionLayer.visible).toBe(false);
 
     act(() => {
@@ -268,7 +274,6 @@ describe("ArcGIS in candidate mode", () => {
       store.dispatch(radarActions.setHeading(false));
     });
     expect(stormCoreLayer.visible).toBe(false);
-    expect(stormFlankLayer.visible).toBe(false);
     expect(stormMotionLayer.visible).toBe(false);
   });
 
@@ -306,31 +311,7 @@ describe("ArcGIS in candidate mode", () => {
     expect(cloudBaseLayer.visible).toBe(false);
   });
 
-  it("shows the Comptroller window only while cloud base is on", () => {
-    const store = createTestStore();
 
-    renderWithStore(<ArcGIS mode="candidate" />, store);
-    act(() => {
-      store.dispatch(cloudBaseActions.setWindow(true));
-    });
-    expect(cloudBaseWindowLayer.visible).toBe(false);
-
-    act(() => {
-      store.dispatch(cloudBaseActions.setVisible(true));
-    });
-    expect(cloudBaseWindowLayer.visible).toBe(true);
-    expect(cloudBaseLayer.visible).toBe(false);
-    expect(cloudBaseWindowLayer.url).toContain("/forecast/cloudbase/window");
-  });
-
-  it("draws the Comptroller window above the rain", () => {
-    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
-
-    const layers = map().layers ?? [];
-    expect(layers.indexOf(cloudBaseWindowLayer)).toBeGreaterThan(
-      layers.indexOf(radarLayer)
-    );
-  });
 });
 
 describe("ArcGIS radar", () => {
@@ -365,7 +346,6 @@ describe("ArcGIS radar", () => {
 
     expect(radarLayer.visible).toBe(false);
     expect(stormCoreLayer.visible).toBe(false);
-    expect(stormFlankLayer.visible).toBe(false);
     expect(stormMotionLayer.visible).toBe(false);
     expect(lightningLayer.visible).toBe(false);
   });
@@ -378,11 +358,6 @@ describe("ArcGIS in forecast mode", () => {
     expect(forecastLayer.visible).toBe(true);
   });
 
-  it("hides the observed cloud tops, which cannot forecast", () => {
-    renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
-
-    expect(cloudTopLayer.visible).toBe(false);
-  });
 
   // The liquid layer is pinned to the analysis, so it would contradict the
   // slider the moment the operator moved it.

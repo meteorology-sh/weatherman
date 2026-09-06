@@ -4,7 +4,6 @@ import { replayActions } from "@/lib/store/features/replay";
 
 // ArcGIS
 import {
-  BaseWindowLegend,
   CandidateLegend,
   CloudBaseLegend,
   EchoFreezeLegend,
@@ -17,9 +16,7 @@ import { RADAR_BANDS, RADAR_RGB } from "@/lib/arcgis/bands";
 // Components
 import { LayerToggle, SubToggle } from "@/app/components/panel/LayerToggle";
 import { Ramp } from "@/app/components/panel/Ramp";
-import {
-  CloudBaseRamp,
-} from "@/app/components/panel/CloudBaseRamp";
+import { CloudBaseRamp } from "@/app/components/panel/CloudBaseRamp";
 
 /**
  * The replay map's switches. The same layers as the candidate map and the same
@@ -28,7 +25,6 @@ import {
 export const ReplayLayers = () => {
   const dispatch = useAppDispatch();
   const cloudBase = useAppSelector((state) => state.replay.cloudBase);
-  const baseWindow = useAppSelector((state) => state.replay.baseWindow);
   const radar = useAppSelector((state) => state.replay.radar);
   const lightning = useAppSelector((state) => state.replay.lightning);
   const heading = useAppSelector((state) => state.replay.heading);
@@ -71,12 +67,6 @@ export const ReplayLayers = () => {
         onChange={(on) => dispatch(replayActions.setCloudBase(on))}
       >
         <CloudBaseRamp />
-        <div className="text-xs">ft MSL</div>
-        <SubToggle
-          name={BaseWindowLegend.name}
-          checked={baseWindow}
-          onChange={(on) => dispatch(replayActions.setBaseWindow(on))}
-        />
       </LayerToggle>
 
       <LayerToggle

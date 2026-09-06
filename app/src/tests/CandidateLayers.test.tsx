@@ -1,5 +1,5 @@
 // Testing
-import { act, render, screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import { createTestStore, renderWithStore } from "./utils";
 
 // Store
@@ -14,33 +14,23 @@ import {
   stackedColor,
   soloColor,
 } from "@/lib/arcgis/bands";
-import { CLOUD_TOP_BANDS, CLOUD_TOP_RGB } from "@/lib/arcgis/bands";
 import {
   CEILING_FT,
   CLOUD_BASE_BANDS,
   CLOUD_BASE_RGB,
 } from "@/lib/arcgis/bands";
 import {
-  BaseWindowLegend,
   CandidateLegend,
-  CapeLegend,
-  CinLegend,
   CloudBaseLegend,
-  CloudTopLegend,
   EchoFreezeLegend,
-  FreezingLegend,
   HeadingLegend,
-  LclLegend,
   LightningLegend,
   LiquidLegend,
-  Minus15Legend,
   RadarLegend,
-  WarmDepthLegend,
 } from "@/lib/arcgis/legends";
 
 // Components
 import { CandidateLayers } from "@/app/components/candidate/CandidateLayers";
-import { CloudTopRamp } from "@/app/components/panel/CloudTopRamp";
 
 /**
  * One layer's ramp swatches, scoped to that layer's own switch.
@@ -81,41 +71,14 @@ describe("CandidateLayers", () => {
     );
   });
 
-  it("does not offer cloud-top temperature as a fill", () => {
+
+  it("leaves the modelled liquid off the switches", () => {
     renderWithStore(<CandidateLayers />, createTestStore());
 
-    expect(screen.queryByLabelText(CloudTopLegend.name)).toBeNull();
-  });
-
-  it("leaves freezing, CAPE, LCL, and liquid off the switches", () => {
-    renderWithStore(<CandidateLayers />, createTestStore());
-
-    expect(screen.queryByLabelText(CapeLegend.name)).toBeNull();
-    expect(screen.queryByLabelText(CinLegend.name)).toBeNull();
-    expect(screen.queryByLabelText(LclLegend.name)).toBeNull();
-    expect(screen.queryByLabelText(FreezingLegend.name)).toBeNull();
-    expect(screen.queryByLabelText(Minus15Legend.name)).toBeNull();
-    expect(screen.queryByLabelText(WarmDepthLegend.name)).toBeNull();
     expect(screen.queryByLabelText(LiquidLegend.name)).toBeNull();
   });
 
-  it("paints each cloud-top swatch its own unstacked fill", () => {
-    const { container } = render(<CloudTopRamp />);
 
-    const warmest = container.querySelector<HTMLElement>(
-      `div[title="${CLOUD_TOP_BANDS[0].label} °C"]`
-    );
-    expect(warmest).toBeTruthy();
-    expect(rgba(warmest!.style.backgroundColor)).toBe(
-      rgba(soloColor(CLOUD_TOP_RGB, CLOUD_TOP_BANDS[0].alpha))
-    );
-  });
-
-  it("keeps the warmest cloud-top band the loudest", () => {
-    const alphas = CLOUD_TOP_BANDS.map((b) => b.alpha);
-
-    expect(alphas).toEqual([...alphas].sort((a, b) => b - a));
-  });
 });
 
 describe("CandidateLayers cloud base", () => {
@@ -139,40 +102,15 @@ describe("CandidateLayers cloud base", () => {
     expect(bases(container)).toHaveLength(0);
   });
 
-  it("offers the Comptroller window only while cloud base is on", () => {
-    const store = createTestStore();
-    renderWithStore(<CandidateLayers />, store);
-
-    expect(screen.queryByLabelText(BaseWindowLegend.name)).toBeNull();
-
-    act(() => {
-      (screen.getByLabelText(CloudBaseLegend.name) as HTMLElement).click();
-    });
-
-    expect(screen.getByLabelText(BaseWindowLegend.name)).toBeTruthy();
-    expect(
-      (screen.getByLabelText(BaseWindowLegend.name) as HTMLInputElement)
-        .checked
-    ).toBe(false);
-
-    act(() => {
-      (screen.getByLabelText(BaseWindowLegend.name) as HTMLElement).click();
-    });
-
-    expect(store.getState().cloudbase.window).toBe(true);
-    expect(store.getState().cloudbase.visible).toBe(true);
-  });
-
-  it("hides the height ramp while the Comptroller window is on", () => {
-    const { store, container } = withLayer();
+  // One ramp, one datum, no switch under it. The window that used to trim
+  // this layer is a test the candidate fill runs, not a view of this one.
+  it("shows the ramp in MSL and offers nothing under it", () => {
+    const { container } = withLayer();
 
     expect(bases(container)).toHaveLength(CLOUD_BASE_BANDS.length);
-
-    act(() => {
-      store.dispatch(cloudBaseActions.setWindow(true));
-    });
-
-    expect(bases(container)).toHaveLength(0);
+    expect(container.textContent).toContain("ft MSL");
+    expect(container.textContent).not.toContain("AGL");
+    expect(container.textContent).not.toContain("FLIGHT WINDOW");
   });
 
   it("shows a swatch for every cloud-base band", () => {
@@ -264,7 +202,7 @@ describe("CandidateLayers radar", () => {
     expect(within(section).getAllByText(/dBZ/).length).toBeGreaterThan(0);
   });
 
-  it("turns the mosaic off when its toggle is clicked", () => {
+  it("turns the mosaic on when its toggle is clicked", () => {
     const store = createTestStore();
 
     renderWithStore(<CandidateLayers />, store);
@@ -272,7 +210,7 @@ describe("CandidateLayers radar", () => {
       (screen.getByLabelText(RadarLegend.name) as HTMLElement).click();
     });
 
-    expect(store.getState().radar.visible).toBe(false);
+    expect(store.getState().radar.visible).toBe(true);
   });
 
   it("turns the mosaic off again when its toggle is clicked twice", () => {
@@ -298,7 +236,7 @@ describe("CandidateLayers radar", () => {
   });
 
   it("offers echo past freezing only while reflectivity is on", () => {
-    const store = createTestStore();
+    const store = allOn();
     renderWithStore(<CandidateLayers />, store);
 
     expect(screen.getByLabelText(EchoFreezeLegend.name)).toBeTruthy();
@@ -309,7 +247,7 @@ describe("CandidateLayers radar", () => {
   });
 
   it("offers lightning and heading only while reflectivity is on", () => {
-    const store = createTestStore();
+    const store = allOn();
     renderWithStore(<CandidateLayers />, store);
 
     expect(screen.getByLabelText(LightningLegend.name)).toBeTruthy();
@@ -323,21 +261,20 @@ describe("CandidateLayers radar", () => {
     expect(screen.queryByLabelText(HeadingLegend.name)).toBeNull();
   });
 
-  it("starts with heading on and lightning off", () => {
-    renderWithStore(<CandidateLayers />, createTestStore());
-    const lightning = screen.getByLabelText(
-      LightningLegend.name
-    ) as HTMLInputElement;
-    const heading = screen.getByLabelText(
-      HeadingLegend.name
-    ) as HTMLInputElement;
+  // Turning the rain on does not turn anything on over it: the mosaic is the
+  // reading, and the marks on top of it are each asked for.
+  it("starts every switch under the mosaic off", () => {
+    renderWithStore(<CandidateLayers />, allOn());
 
-    expect(lightning.checked).toBe(false);
-    expect(heading.checked).toBe(true);
+    for (const legend of [LightningLegend, HeadingLegend, EchoFreezeLegend]) {
+      expect(
+        (screen.getByLabelText(legend.name) as HTMLInputElement).checked
+      ).toBe(false);
+    }
   });
 
   it("turns lightning on when its switch is clicked", () => {
-    const store = createTestStore();
+    const store = allOn();
     renderWithStore(<CandidateLayers />, store);
     act(() => {
       (screen.getByLabelText(LightningLegend.name) as HTMLElement).click();
@@ -346,13 +283,13 @@ describe("CandidateLayers radar", () => {
     expect(store.getState().radar.lightning).toBe(true);
   });
 
-  it("turns the core, heading, and flank off when its switch is clicked", () => {
-    const store = createTestStore();
+  it("turns the core and heading on when its switch is clicked", () => {
+    const store = allOn();
     renderWithStore(<CandidateLayers />, store);
     act(() => {
       (screen.getByLabelText(HeadingLegend.name) as HTMLElement).click();
     });
 
-    expect(store.getState().radar.heading).toBe(false);
+    expect(store.getState().radar.heading).toBe(true);
   });
 });

@@ -1,8 +1,8 @@
 // Store
 import { useAppSelector } from "@/lib/store/hooks";
 
-// Types
-import type { SoundingLevel } from "@/lib/types";
+// Format
+import { heightAtC } from "@/lib/format";
 
 // Components
 import { MeasurementGrid } from "@/app/components/panel/Measurements";
@@ -11,23 +11,6 @@ const ft = new Intl.NumberFormat("en-US");
 
 const altitude = (value: number | null) =>
   value === null ? "—" : `${ft.format(value)} ft`;
-
-/** Height of a temperature in the column, ft MSL. */
-export function heightAtC(
-  levels: SoundingLevel[],
-  targetC: number
-): number | null {
-  for (let i = 0; i < levels.length - 1; i++) {
-    const a = levels[i];
-    const b = levels[i + 1];
-    const span = b.tempC - a.tempC;
-    if (span === 0) continue;
-    if ((a.tempC - targetC) * (b.tempC - targetC) > 0) continue;
-    const t = (targetC - a.tempC) / span;
-    return Math.round(a.heightFt + t * (b.heightFt - a.heightFt));
-  }
-  return null;
-}
 
 /**
  * Heights on this column: freezing, −15 °C, seeding-band edges, ground.

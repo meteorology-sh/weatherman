@@ -17,6 +17,7 @@ import {
   identify,
   matchTracks,
   motionFrame,
+  type MotionShape,
   near,
   nearJson,
   stormStyle,
@@ -259,8 +260,17 @@ export class RadarService {
   /**
    * Heading ticks from each core. Empty when the storm has no motion:
    * we do not guess a direction.
+   *
+   * `shape` picks the geometry the caller can draw: the painted maps take
+   * the dart, whose width is kilometres of ground; the live map takes the
+   * line, whose width is pixels of screen.
    */
-  async motion(at?: Date, box: LonLatBox = DRAWN, fine = false) {
+  async motion(
+    at?: Date,
+    box: LonLatBox = DRAWN,
+    fine = false,
+    shape: MotionShape = "dart"
+  ) {
     const { storms, validTime } = await this.storms(
       at,
       box,
@@ -269,7 +279,7 @@ export class RadarService {
       false,
       fine
     );
-    return motionFrame(validTime, drawnStorms(storms));
+    return motionFrame(validTime, drawnStorms(storms), shape);
   }
 
   /**
@@ -297,10 +307,17 @@ export class RadarService {
   }
 
   /**
-   * The object containing this point, or the nearest one in a ~40 km window,
-   * with motion from the previous mosaic. Null when that window has no echo
-   * at 20 dBZ. Does not move the live track list — a click is not a new
-   * mosaic.
+   * The object containing this point, or the nearest one whose rain is
+   * within 40 km of it, with motion from the previous mosaic. Null
+   * when nothing that close reaches 20 dBZ. Does not move the live track
+   * list — a click is not a new mosaic.
+   *
+   * The storms are identified in a window cut around the click rather than
+   * over the whole drawn box, because a click pays for its own scan. The
+   * window is far wider than the answer it is asked for: a storm cut by its
+   * wall has a core that is only the strongest cell in the crop and an
+   * upwind side measured from that wrong centre, so the window has to hold
+   * the whole storm, not just the 40 km the reading covers.
    */
   async atPoint(
     lat: number,
@@ -308,8 +325,8 @@ export class RadarService {
     at?: Date,
     fine = false
   ): Promise<{ reading: StormNear; geo: Geo } | null> {
-    const pad = 0.4;
-    const { storms, grid, geo, validTime } = await this.storms(
+    const pad = 1.2;
+    const { storms, geo, validTime } = await this.storms(
       at,
       {
         west: lon - pad,
@@ -322,7 +339,7 @@ export class RadarService {
       true,
       fine
     );
-    const reading = near(lat, lon, storms, grid, geo, RAIN_DBZ, validTime);
+    const reading = near(lat, lon, storms, geo, validTime);
     return reading ? { reading, geo } : null;
   }
 

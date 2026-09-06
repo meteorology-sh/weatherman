@@ -36,28 +36,3 @@ export function windowValues(
   }
   return out;
 }
-
-/**
- * The cloud base itself, in ft MSL, wherever that base sits in the window —
- * NaN everywhere else, so the contourer draws nothing there.
- *
- * The trimmed half of the drawn layer. {@link windowValues} above answers
- * "is there flyable cloud here", which is what the evaluation harness scores
- * and what the join reads; this answers "how high is the flyable cloud", so
- * the switch narrows the map's height ramp rather than flattening it to one
- * gate colour. Same test, same window, same field — only the value kept
- * differs.
- */
-export function windowBaseValues(
-  cloudBaseFt: Float32Array,
-  surfaceFt: Float32Array
-): Float32Array {
-  const out = new Float32Array(cloudBaseFt.length);
-  out.fill(Number.NaN);
-  for (let i = 0; i < cloudBaseFt.length; i++) {
-    const base = cloudBaseFt[i];
-    if (!Number.isFinite(base) || !Number.isFinite(surfaceFt[i])) continue;
-    if (inBaseWindow(base - surfaceFt[i])) out[i] = base;
-  }
-  return out;
-}

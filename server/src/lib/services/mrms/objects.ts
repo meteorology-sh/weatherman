@@ -79,22 +79,15 @@ export type StormFrame = {
 export type StormNear = {
   validTime: string;
   object: StormObject;
-  /** The point falls in a cell that belongs to the object. */
-  inside: boolean;
-  /** Kilometres from the point to the strongest cell. */
+  /** Kilometres from the point to the storm's strongest cell. */
   coreKm: number;
-  /** Kilometres from the point to the nearest quiet-side edge. */
-  edgeKm: number;
+  /** True when the point is inside the outline drawn for this storm. */
+  inside: boolean;
   /**
-   * Kilometres to the edge on the upwind side, when the object has a motion.
-   * Null if it is still or new.
+   * Kilometres from the point to the nearest edge of that outline, measured
+   * the same from either side of it. Null when the storm has no ring.
    */
-  upwindEdgeKm: number | null;
-  /**
-   * The point sits inside the rain, on the upwind side, nearer the edge
-   * than the heaviest rain — the flank crews fly.
-   */
-  inWorking: boolean;
+  edgeKm: number | null;
 };
 
 export function km(
@@ -477,39 +470,6 @@ export function upwindOf(
   return delta <= 90;
 }
 
-/** Even-odd test on one ring. Same rule the contourer uses to nest holes. */
-function containsRing(ring: ContourRing, p: [number, number]): boolean {
-  let inside = false;
-  for (let i = 0, j = ring.length - 2; i < ring.length - 1; j = i++) {
-    const [xi, yi] = ring[i];
-    const [xj, yj] = ring[j];
-    if (yi > p[1] !== yj > p[1]) {
-      const x = ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi;
-      if (p[0] < x) inside = !inside;
-    }
-  }
-  return inside;
-}
-
-/** True when the click sits in the polygon the map draws for this storm. */
-export function pointInStorm(
-  lon: number,
-  lat: number,
-  geometry: ContourRing[][]
-): boolean {
-  const p: [number, number] = [lon, lat];
-  for (const polygon of geometry) {
-    if (polygon.length === 0) continue;
-    if (!containsRing(polygon[0], p)) continue;
-    let hole = false;
-    for (let h = 1; h < polygon.length; h++) {
-      if (containsRing(polygon[h], p)) hole = true;
-    }
-    if (!hole) return true;
-  }
-  return false;
-}
-
 function boundaryCells(
   storm: StormObject,
   grid: Grid,
@@ -517,16 +477,16 @@ function boundaryCells(
 ): number[] {
   const { nx, ny, values } = grid;
   const member = new Set(storm.cells);
+  const quiet = (k: number) =>
+    !member.has(k) && values[k] < threshold && values[k] > -900;
   const edge: number[] = [];
   for (const k of storm.cells) {
     const i = k % nx;
     const j = Math.floor(k / nx);
-    const quiet =
-      (i === 0 || values[k - 1] < threshold || !member.has(k - 1)) ||
-      (i === nx - 1 || values[k + 1] < threshold || !member.has(k + 1)) ||
-      (j === 0 || values[k - nx] < threshold || !member.has(k - nx)) ||
-      (j === ny - 1 || values[k + nx] < threshold || !member.has(k + nx));
-    if (quiet) edge.push(k);
+    if (i === 0 || i === nx - 1 || j === 0 || j === ny - 1) continue;
+    if (quiet(k - 1) || quiet(k + 1) || quiet(k - nx) || quiet(k + nx)) {
+      edge.push(k);
+    }
   }
   return edge;
 }
@@ -534,74 +494,156 @@ function boundaryCells(
 function nearestKm(
   lat: number,
   lon: number,
-  keys: number[],
+  keys: ArrayLike<number>,
   geo: Geo
 ): number {
   let best = Infinity;
-  for (const k of keys) {
+  for (let n = 0; n < keys.length; n++) {
+    const k = keys[n];
     const d = km(lat, lon, geo.lats[k], geo.lons[k]);
     if (d < best) best = d;
   }
   return best;
 }
 
+/** Shortest distance from a point to a segment, all in kilometres. */
+function segmentKm(
+  px: number,
+  py: number,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number
+): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const span = dx * dx + dy * dy;
+  // A zero-length segment is a repeated vertex, which rounding can produce.
+  const t =
+    span === 0
+      ? 0
+      : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / span));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+/** Whether a point sits inside a closed ring, lon/lat, even-odd. */
+function inRing(ring: ContourRing, lon: number, lat: number): boolean {
+  let odd = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if (
+      yi > lat !== yj > lat &&
+      lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi
+    ) {
+      odd = !odd;
+    }
+  }
+  return odd;
+}
+
 /**
- * The object whose drawn outline contains `lat`/`lon`, or the nearest
- * drawn object. Null if nothing in the crop has a ring the map would
- * paint. Inside is the averaged 20 dBZ polygon, not the 1 km cell list.
+ * Inside the exterior ring and not inside a hole — GeoJSON ring order, so the
+ * first ring is the exterior and the rest are holes. A click in the hole of a
+ * ring of rain is outside the rain, and its distance is to the hole's edge.
+ */
+function inPolygon(rings: ContourRing[], lon: number, lat: number): boolean {
+  if (rings.length === 0) return false;
+  if (!inRing(rings[0], lon, lat)) return false;
+  for (let k = 1; k < rings.length; k++) {
+    if (inRing(rings[k], lon, lat)) return false;
+  }
+  return true;
+}
+
+/**
+ * How far a point is from the nearest edge of a drawn shape, in kilometres,
+ * and which side of that edge it is on. Null when the shape has no ring.
+ *
+ * Measured against the ring itself rather than against the cells behind it,
+ * so the number is the distance to the boundary the map painted. Flat earth,
+ * on a plane tangent at the point being measured from, like {@link km}: over
+ * the tens of kilometres this is asked about, the curvature is metres.
+ */
+export function edgeDistance(
+  geometry: ContourRing[][],
+  lat: number,
+  lon: number
+): { inside: boolean; km: number } | null {
+  const squeeze = Math.cos((lat * Math.PI) / 180);
+  const x = (lon: number) => lon * KM_PER_DEG * squeeze;
+  const y = (lat: number) => lat * KM_PER_DEG;
+  const px = x(lon);
+  const py = y(lat);
+
+  let inside = false;
+  let best = Infinity;
+  for (const rings of geometry) {
+    if (inPolygon(rings, lon, lat)) inside = true;
+    for (const ring of rings) {
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const d = segmentKm(
+          px,
+          py,
+          x(ring[j][0]),
+          y(ring[j][1]),
+          x(ring[i][0]),
+          y(ring[i][1])
+        );
+        if (d < best) best = d;
+      }
+    }
+  }
+  return Number.isFinite(best) ? { inside, km: best } : null;
+}
+
+/** How far from the rain a click may land and still be given that storm. */
+export const NEAR_LIMIT_KM = 40;
+
+/**
+ * The nearest drawn storm to `lat`/`lon`, and where on that storm the click
+ * landed. Null when no drawn storm has rain within {@link NEAR_LIMIT_KM}.
+ *
+ * Nearest is measured to the storm's raining cells, not to its centroid. A
+ * centroid is a point a long squall line does not pass through, so measuring
+ * to it hands a click on the edge of the line to a round shower 30 km away.
+ * A click inside the rain is nought kilometres from a cell of the storm it is
+ * in, so the same rule picks that storm without a separate test for it.
+ *
+ * Where the click sits on that storm is `edgeKm`: how far it is from the
+ * nearest edge of the ring the radar layer draws, with `inside` saying which
+ * side of the ring it is on. Texas seeds the flank, so the reading an
+ * operator wants is a short distance to the boundary, not a long one from
+ * the heaviest rain. It is measured against the drawn ring itself, so it
+ * cannot disagree with the outline on the screen. The distance to the
+ * strongest cell rides along beside it, unjudged.
  */
 export function near(
   lat: number,
   lon: number,
   storms: StormObject[],
-  grid: Grid,
   geo: Geo,
-  threshold: number,
   validTime: string
 ): StormNear | null {
   const drawn = storms.filter((storm) => storm.geometry.length > 0);
-  if (drawn.length === 0) return null;
-  let inside: StormObject | null = null;
+  let chosen: StormObject | null = null;
+  let best = Infinity;
   for (const storm of drawn) {
-    if (pointInStorm(lon, lat, storm.geometry)) {
-      inside = storm;
-      break;
+    const d = nearestKm(lat, lon, storm.cells, geo);
+    if (d < best) {
+      best = d;
+      chosen = storm;
     }
   }
-  let chosen = inside;
-  if (!chosen) {
-    let best = Infinity;
-    for (const storm of drawn) {
-      const d = km(lat, lon, storm.centroidLat, storm.centroidLon);
-      if (d < best) {
-        best = d;
-        chosen = storm;
-      }
-    }
-  }
-  if (!chosen) return null;
+  if (!chosen || best > NEAR_LIMIT_KM) return null;
 
-  const edge = boundaryCells(chosen, grid, threshold);
-  const edgeKm = nearestKm(lat, lon, edge, geo);
-  const working = upwindBoundary(chosen, grid, geo, threshold);
-  const upwindEdgeKm = working.length
-    ? nearestKm(lat, lon, working, geo)
-    : null;
-  const coreKm = km(lat, lon, chosen.coreLat, chosen.coreLon);
-  const inWorking =
-    inside !== null &&
-    upwindEdgeKm !== null &&
-    upwindEdgeKm <= edgeKm + 0.5 &&
-    edgeKm < coreKm;
-
+  const edge = edgeDistance(chosen.geometry, lat, lon);
   return {
     validTime,
     object: chosen,
-    inside: inside !== null,
-    coreKm,
-    edgeKm,
-    upwindEdgeKm,
-    inWorking,
+    coreKm: km(lat, lon, chosen.coreLat, chosen.coreLon),
+    inside: edge?.inside ?? false,
+    edgeKm: edge ? edge.km : null,
   };
 }
 
@@ -849,9 +891,31 @@ export function foldTracks(
   );
 }
 
+/**
+ * The same tick as {@link motionArrow}, as a two-point line: the core and
+ * the point `km` along the heading.
+ *
+ * The dart carries its width in kilometres, which is what a painted map
+ * wants — it stays the same width against the storm at any scale. A screen
+ * wants the opposite: a line drawn a fixed number of pixels wide, so the
+ * tick reads as a tick zoomed in on one cell and not as a wedge. Both are
+ * the same tick, and the caller says which it is drawing on.
+ */
+export function motionSegment(
+  lat: number,
+  lon: number,
+  towardDeg: number,
+  km: number
+): [number, number][] {
+  return [[lon, lat], destPoint(lat, lon, towardDeg, km)];
+}
+
+export type MotionShape = "dart" | "line";
+
 export function motionFrame(
   validTime: string,
-  storms: StormObject[]
+  storms: StormObject[],
+  shape: MotionShape = "dart"
 ): {
   type: "FeatureCollection";
   validTime: string;
@@ -862,7 +926,9 @@ export function motionFrame(
       motionTowardDeg: number;
       motionKmh: number;
     };
-    geometry: { type: "Polygon"; coordinates: [number, number][][] };
+    geometry:
+      | { type: "Polygon"; coordinates: [number, number][][] }
+      | { type: "LineString"; coordinates: [number, number][] };
   }[];
 } {
   return {
@@ -882,17 +948,28 @@ export function motionFrame(
             motionTowardDeg: storm.motionTowardDeg,
             motionKmh: storm.motionKmh,
           },
-          geometry: {
-            type: "Polygon" as const,
-            coordinates: [
-              motionArrow(
-                storm.coreLat,
-                storm.coreLon,
-                storm.motionTowardDeg,
-                km
-              ),
-            ],
-          },
+          geometry:
+            shape === "line"
+              ? {
+                  type: "LineString" as const,
+                  coordinates: motionSegment(
+                    storm.coreLat,
+                    storm.coreLon,
+                    storm.motionTowardDeg,
+                    km
+                  ),
+                }
+              : {
+                  type: "Polygon" as const,
+                  coordinates: [
+                    motionArrow(
+                      storm.coreLat,
+                      storm.coreLon,
+                      storm.motionTowardDeg,
+                      km
+                    ),
+                  ],
+                },
         },
       ];
     }),

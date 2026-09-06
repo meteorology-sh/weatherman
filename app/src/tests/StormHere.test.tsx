@@ -13,11 +13,8 @@ import type { StormNear } from "@/lib/types";
 
 const reading: StormNear = {
   validTime: "2025-08-11T18:02:00.000Z",
-  inside: false,
-  coreKm: 4.2,
-  edgeKm: 0.6,
-  upwindEdgeKm: 0.8,
-  inWorking: false,
+  inside: true,
+  edgeKm: 4.2,
   slwGM2: 22,
   goesTopC: -14,
   goesTopDeltaC: -2,
@@ -58,51 +55,54 @@ describe("StormHere", () => {
     expect(screen.getByText("none within 40 km")).toBeTruthy();
   });
 
-  it("reports place, motion, and echo top as numbers", () => {
+  // The one thing said about where on the storm the click landed: how far it
+  // is from the drawn edge, and which side of that edge it is on.
+  it("reports the distance to the edge, motion, and echo top as numbers", () => {
     const store = createTestStore();
     renderWithStore(<StormHere />, store);
     act(() => {
       store.dispatch(stormsActions.setHere(reading));
     });
-    expect(screen.getByText("outside rain")).toBeTruthy();
-    expect(screen.getByText("0.6 km")).toBeTruthy();
-    expect(screen.getByText("4.2 km")).toBeTruthy();
+    expect(screen.getByText("Distance to edge")).toBeTruthy();
+    expect(screen.getByText("4.2 km inside")).toBeTruthy();
     expect(screen.getByText("NE 28 km/h")).toBeTruthy();
     expect(screen.getByText("14,000 ft above freezing")).toBeTruthy();
     expect(screen.getByText(/-14 °C · -2 °C/)).toBeTruthy();
   });
 
-  it("names the upwind flank", () => {
+  // The edge is the only place named. A flank, a core, or an inflow notch
+  // needs geometry the reading does not carry.
+  it("names no place on the storm beyond the side of the edge", () => {
     const store = createTestStore();
     renderWithStore(<StormHere />, store);
     act(() => {
-      store.dispatch(
-        stormsActions.setHere({
-          ...reading,
-          inside: true,
-          inWorking: true,
-          coreKm: 4.2,
-          edgeKm: 0.6,
-        })
-      );
+      store.dispatch(stormsActions.setHere(reading));
     });
-    expect(screen.getByText("upwind flank")).toBeTruthy();
+
+    for (const place of ["upwind flank", "near core", "heaviest rain"]) {
+      expect(screen.queryByText(place)).toBeNull();
+    }
   });
 
-  it("names the heaviest rain when the click is on the dot", () => {
+  it("says which side of the edge a click outside the rain is on", () => {
     const store = createTestStore();
     renderWithStore(<StormHere />, store);
     act(() => {
       store.dispatch(
-        stormsActions.setHere({
-          ...reading,
-          inside: true,
-          coreKm: 0.1,
-          edgeKm: 0.6,
-        })
+        stormsActions.setHere({ ...reading, inside: false, edgeKm: 6.1 })
       );
     });
-    expect(screen.getByText("heaviest rain")).toBeTruthy();
+    expect(screen.getByText("6.1 km outside")).toBeTruthy();
+  });
+
+  it("has no distance when the storm has no drawn ring", () => {
+    const store = createTestStore();
+    renderWithStore(<StormHere />, store);
+    act(() => {
+      store.dispatch(stormsActions.setHere({ ...reading, edgeKm: null }));
+    });
+    expect(screen.getByText("Distance to edge")).toBeTruthy();
+    expect(screen.getByText("—")).toBeTruthy();
   });
 
   it("flags a cloud top that warmed", () => {

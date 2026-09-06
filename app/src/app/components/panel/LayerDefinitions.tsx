@@ -12,7 +12,11 @@ export const LayerDefinitions = ({ legend }: PropsT) => (
     <div className="collapse-title text-xs font-semibold">Definitions</div>
     <div className="collapse-content flex flex-col gap-1 text-xs">
       <div>{legend.summary}</div>
-      <div>{legend.source}</div>
+      <div>
+        <div className="badge badge-xs badge-neutral text-white badge-outline">
+          {legend.source}
+        </div>
+      </div>
       {legend.detail.map((line) => (
         <div key={line}>{line}</div>
       ))}

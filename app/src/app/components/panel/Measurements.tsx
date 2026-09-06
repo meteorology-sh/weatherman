@@ -10,6 +10,3 @@ export const MeasurementGrid = ({ rows }: { rows: RowT[] }) => (
     ))}
   </div>
 );
-
-export const dash = (value: string | null | undefined) =>
-  value == null || value === "" ? "—" : value;

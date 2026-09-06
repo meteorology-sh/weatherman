@@ -10,10 +10,7 @@ describe("storms slice", () => {
       stormsActions.setHere({
         validTime: "2025-08-11T18:00:00.000Z",
         inside: true,
-        coreKm: 1,
-        edgeKm: 2,
-        upwindEdgeKm: null,
-        inWorking: false,
+        edgeKm: 1,
         slwGM2: null,
         goesTopC: null,
         goesTopDeltaC: null,

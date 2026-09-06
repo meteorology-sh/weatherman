@@ -17,6 +17,7 @@ import {
   motionFrame,
   motionLengthKm,
   near,
+  NEAR_LIMIT_KM,
   quietRing,
   stormStyle,
   upwindBoundary,
@@ -186,86 +187,122 @@ describe("near", () => {
   const { grid, geo } = scene(rows);
   const storms = identify(grid, geo, 20, TIME);
 
-  it("does not treat a one-cell echo as inside — it is not drawn", () => {
+  // A speck the map does not paint has no core to measure to, so a click near
+  // one is answered the same way as a click near nothing.
+  it("gives no storm for an echo too small to be drawn", () => {
     const { grid, geo } = scene([
       [0, 0, 0],
       [0, 22, 0],
       [0, 0, 0],
     ]);
-    const storms = identify(grid, geo, 20, TIME);
-    assert.equal(near(30.01, -99.99, storms, grid, geo, 20, TIME), null);
+    const specks = identify(grid, geo, 20, TIME);
+    assert.equal(near(30.01, -99.99, specks, geo, TIME), null);
   });
 
-  it("counts a click inside the drawn outline as inside", () => {
-    const storms = identify(grid, geo, 20, TIME);
-    assert.ok(storms[0].geometry.length > 0);
-    const [lon, lat] = storms[0].geometry[0][0][0];
-    const midLon = (lon + storms[0].coreLon) / 2;
-    const midLat = (lat + storms[0].coreLat) / 2;
-    const reading = near(midLat, midLon, storms, grid, geo, 20, TIME);
+  it("names the storm the click landed in", () => {
+    const reading = near(30.04, -99.99, storms, geo, TIME);
     assert.ok(reading);
-    assert.equal(reading.inside, true);
-  });
-
-  it("keeps a one-cell ring when the evaluation asks for the fine outline", () => {
-    const { grid, geo } = scene([
-      [0, 0, 0],
-      [0, 22, 0],
-      [0, 0, 0],
-    ]);
-    const storms = identify(grid, geo, 20, TIME, stormStyle(true));
-    const reading = near(30.01, -99.99, storms, grid, geo, 20, TIME);
-    assert.ok(reading);
-    assert.equal(reading.inside, true);
-    assert.equal(reading.object.nCells, 1);
-  });
-
-  it("says a point in an echoing cell is inside", () => {
-    const reading = near(30.04, -99.99, storms, grid, geo, 20, TIME);
-    assert.ok(reading);
-    assert.equal(reading.inside, true);
     assert.equal(reading.object.maxDbz, 50);
   });
 
-  it("is closer to the edge than to the core on a flank cell", () => {
-    const reading = near(30.04, -99.99, storms, grid, geo, 20, TIME);
+  // The one figure the reading gives: how far the click is from the heaviest
+  // rain in that storm, measured to the strongest cell itself.
+  it("measures the distance to the storm's strongest cell", () => {
+    const reading = near(30.04, -99.99, storms, geo, TIME);
     assert.ok(reading);
-    assert.ok(
-      reading.edgeKm < reading.coreKm,
-      `edge ${reading.edgeKm} core ${reading.coreKm}`
+    assert.equal(
+      Math.round(reading.coreKm * 100),
+      Math.round(
+        km(30.04, -99.99, reading.object.coreLat, reading.object.coreLon) * 100
+      )
     );
   });
 
-  it("still names the object from a quiet cell next to it", () => {
-    const reading = near(30.04, -100, storms, grid, geo, 20, TIME);
+  it("is nought kilometres from the core when the click is on it", () => {
+    const reading = near(
+      storms[0].coreLat,
+      storms[0].coreLon,
+      storms,
+      geo,
+      TIME
+    );
+    assert.ok(reading);
+    assert.equal(Math.round(reading.coreKm * 100), 0);
+  });
+
+  // The one thing the panel says about where on the storm the click landed:
+  // how far it is from the ring the map draws, from either side of it.
+  it("measures the distance to the drawn edge from inside the rain", () => {
+    const reading = near(30.04, -99.99, storms, geo, TIME);
+    assert.ok(reading);
+    assert.equal(reading.inside, true);
+    assert.ok(reading.edgeKm !== null);
+    assert.ok(reading.edgeKm > 0);
+    assert.ok(reading.edgeKm < reading.coreKm);
+  });
+
+  it("measures the same distance from outside the rain", () => {
+    const reading = near(30.04, -100, storms, geo, TIME);
     assert.ok(reading);
     assert.equal(reading.inside, false);
+    assert.ok(reading.edgeKm !== null);
+    assert.ok(reading.edgeKm > 0);
+  });
+
+  // A click on the ring itself is on neither side of it by any margin the
+  // panel prints, so the distance has to fall away to nothing there.
+  it("is nought kilometres from the edge on the ring itself", () => {
+    const [lon, lat] = storms[0].geometry[0][0][0];
+    const reading = near(lat, lon, storms, geo, TIME);
+    assert.ok(reading);
+    assert.ok(reading.edgeKm !== null);
+    assert.ok(reading.edgeKm < 0.001);
+  });
+
+  it("still names the storm from a quiet cell next to it", () => {
+    const reading = near(30.04, -100, storms, geo, TIME);
+    assert.ok(reading);
     assert.equal(reading.object.maxDbz, 50);
   });
 
-  it("does not count a rounded-off protrusion as inside", () => {
-    const reading = near(30.04, -99.91, storms, grid, geo, 20, TIME);
+  // A centroid is a point a long line of rain does not pass through, so
+  // measuring to it hands a click on the flank of the line to a small round
+  // storm sitting well away from it.
+  it("picks the storm whose rain is nearest, not the nearest centroid", () => {
+    const rows = Array.from({ length: 9 }, () => Array(9).fill(0));
+    for (let j = 1; j <= 7; j++) rows[j][1] = 40; // a line, centroid far south
+    rows[8][7] = 40; // a speck, its centroid nearer the click
+    rows[8][6] = 40;
+    const line = scene(rows, 30, -100, 0.05);
+    const found = identify(line.grid, line.geo, 20, TIME);
+    assert.equal(found.length, 2);
+    const reading = near(30.35, -99.85, found, line.geo, TIME);
     assert.ok(reading);
-    assert.equal(reading.inside, false);
+    assert.equal(reading.object.nCells, 7);
   });
 
-  it("measures the upwind edge when the storm has a motion", () => {
-    storms[0].motionTowardDeg = 90;
-    const reading = near(30.04, -99.99, storms, grid, geo, 20, TIME);
-    assert.ok(reading);
-    assert.ok(reading.upwindEdgeKm !== null);
-  });
-
-  it("marks the upwind inside edge as the working area, not quiet ground outside", () => {
-    storms[0].motionTowardDeg = 90;
-    const insideWest = near(30.04, -99.99, storms, grid, geo, 20, TIME);
-    assert.ok(insideWest);
-    assert.equal(insideWest.inside, true);
-    assert.equal(insideWest.inWorking, true);
-    const outside = near(30.04, -100, storms, grid, geo, 20, TIME);
-    assert.ok(outside);
-    assert.equal(outside.inside, false);
-    assert.equal(outside.inWorking, false);
+  // The panel says "none within 40 km" when this returns null, so the reading
+  // has to hold to that rather than name whatever storm the window contains.
+  it("gives no storm at all when the nearest rain is past the limit", () => {
+    const far = scene(
+      [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 40, 40, 0, 0, 0, 0, 0, 0, 0],
+        [0, 40, 40, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      ],
+      30,
+      -100,
+      0.1
+    );
+    const found = identify(far.grid, far.geo, 20, TIME);
+    assert.equal(found.length, 1);
+    const away = near(30.1, -99.1, found, far.geo, TIME);
+    assert.ok(km(30.1, -99.1, 30.1, -99.9) > NEAR_LIMIT_KM);
+    assert.equal(away, null);
+    const close = near(30.1, -99.6, found, far.geo, TIME);
+    assert.ok(km(30.1, -99.6, 30.1, -99.9) < NEAR_LIMIT_KM);
+    assert.ok(close);
   });
 });
 
@@ -432,6 +469,22 @@ describe("motionFrame", () => {
       Math.max(...ring.map((p) => p[0])) - Math.min(...ring.map((p) => p[0]));
     assert.ok(length(long) > length(short) * 2);
     assert.ok(Math.abs(width(long) - width(short)) < width(short) * 0.05);
+  });
+
+  it("draws the same tick as a line for the screen", () => {
+    const { grid, geo } = scene([[40]]);
+    const [storm] = identify(grid, geo, 20, TIME);
+    storm.motionTowardDeg = 90;
+    storm.motionKmh = 40;
+    const frame = motionFrame(TIME, [storm], "line");
+    assert.equal(frame.features.length, 1);
+    const geometry = frame.features[0].geometry;
+    assert.equal(geometry.type, "LineString");
+    const line = geometry.coordinates as [number, number][];
+    assert.equal(line.length, 2);
+    assert.deepEqual(line[0], [storm.coreLon, storm.coreLat]);
+    assert.ok(line[1][0] > storm.coreLon);
+    assert.ok(Math.abs(line[1][1] - storm.coreLat) < 0.02);
   });
 
   it("draws nothing when the storm has no motion", () => {

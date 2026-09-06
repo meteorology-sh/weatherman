@@ -7,12 +7,8 @@ import { replayActions } from "@/lib/store/features/replay";
 
 // ArcGIS
 import {
-  BaseWindowLegend,
   CandidateLegend,
-  CapeLegend,
   CloudBaseLegend,
-  CloudTopLegend,
-  FreezingLegend,
   HeadingLegend,
   EchoFreezeLegend,
   LightningLegend,
@@ -118,34 +114,16 @@ describe("ReplayLayers", () => {
     expect(screen.queryByText(CandidateLegend.summary)).toBeNull();
   });
 
-  it("does not offer cloud-top temperature as a fill", () => {
+
+  it("leaves the modelled liquid off the switches", () => {
     renderWithStore(<ReplayLayers />, createTestStore());
 
-    expect(screen.queryByLabelText(CloudTopLegend.name)).toBeNull();
-  });
-
-  it("leaves freezing, CAPE, and liquid off the switches", () => {
-    renderWithStore(<ReplayLayers />, createTestStore());
-
-    expect(screen.queryByLabelText(CapeLegend.name)).toBeNull();
-    expect(screen.queryByLabelText(FreezingLegend.name)).toBeNull();
     expect(screen.queryByLabelText(LiquidLegend.name)).toBeNull();
   });
 
-  it("offers the Comptroller window only while cloud base is on", () => {
-    const store = createTestStore();
-    renderWithStore(<ReplayLayers />, store);
-
-    expect(screen.queryByLabelText(BaseWindowLegend.name)).toBeNull();
-
-    act(() => {
-      store.dispatch(replayActions.setCloudBase(true));
-    });
-
-    expect(screen.getByLabelText(BaseWindowLegend.name)).toBeTruthy();
-  });
-
-  it("hides the height ramp while the Comptroller window is on", () => {
+  // The same ramp as the candidate map, in the same datum, with nothing
+  // under it. The two panels must not drift.
+  it("shows the height ramp in MSL and offers nothing under it", () => {
     const store = createTestStore();
     const { container } = renderWithStore(<ReplayLayers />, store);
     act(() => {
@@ -158,11 +136,8 @@ describe("ReplayLayers", () => {
       ).filter((el) => el.title.endsWith("ft MSL"));
 
     expect(ramp().length).toBeGreaterThan(0);
-
-    act(() => {
-      store.dispatch(replayActions.setBaseWindow(true));
-    });
-
-    expect(ramp()).toHaveLength(0);
+    expect(container.textContent).toContain("ft MSL");
+    expect(container.textContent).not.toContain("AGL");
+    expect(container.textContent).not.toContain("FLIGHT WINDOW");
   });
 });

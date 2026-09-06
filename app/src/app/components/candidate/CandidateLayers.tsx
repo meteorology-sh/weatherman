@@ -6,7 +6,6 @@ import { seedabilityActions } from "@/lib/store/features/seedability";
 
 // ArcGIS
 import {
-  BaseWindowLegend,
   CandidateLegend,
   CloudBaseLegend,
   EchoFreezeLegend,
@@ -24,7 +23,6 @@ import { CloudBaseRamp } from "@/app/components/panel/CloudBaseRamp";
 export const CandidateLayers = () => {
   const dispatch = useAppDispatch();
   const cloudBase = useAppSelector((state) => state.cloudbase.visible);
-  const baseWindow = useAppSelector((state) => state.cloudbase.window);
   const radar = useAppSelector((state) => state.radar.visible);
   const lightning = useAppSelector((state) => state.radar.lightning);
   const heading = useAppSelector((state) => state.radar.heading);
@@ -33,6 +31,12 @@ export const CandidateLayers = () => {
 
   return (
     <div className="flex flex-col gap-4">
+      <LayerToggle
+        legend={CandidateLegend}
+        checked={field}
+        onChange={(on) => dispatch(seedabilityActions.setVisible(on))}
+      />
+
       <LayerToggle
         legend={RadarLegend}
         checked={radar}
@@ -67,19 +71,7 @@ export const CandidateLayers = () => {
         onChange={(on) => dispatch(cloudBaseActions.setVisible(on))}
       >
         <CloudBaseRamp />
-        <div className="text-xs">ft MSL</div>
-        <SubToggle
-          name={BaseWindowLegend.name}
-          checked={baseWindow}
-          onChange={(on) => dispatch(cloudBaseActions.setWindow(on))}
-        />
       </LayerToggle>
-
-      <LayerToggle
-        legend={CandidateLegend}
-        checked={field}
-        onChange={(on) => dispatch(seedabilityActions.setVisible(on))}
-      />
     </div>
   );
 };

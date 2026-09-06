@@ -42,9 +42,8 @@ type SeedabilityState = {
 };
 
 /**
- * On arrival. This is the Texas fly fill — where to click. Radar, cores,
- * heading, and the upwind flank start on with it. The other switches
- * examine the inputs.
+ * On arrival. This is the Texas fly fill — where to click, and the only
+ * layer the map opens with. Every other switch examines an input to it.
  */
 const initialState: SeedabilityState = {
   visible: true,

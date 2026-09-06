@@ -4,13 +4,6 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { CloudTopStats } from "@/lib/types";
 
 type CloudTopState = {
-  /**
-   * Observed cloud tops on the candidate map.
-   *
-   * Off on arrival. It is the widest fill on the map — it says where there
-   * is cloud at all — so switched on by default it buries the storm.
-   */
-  visible: boolean;
   /** Summary of the scene. The bands themselves never enter the store. */
   stats: CloudTopStats | undefined;
   loading: boolean;
@@ -18,7 +11,6 @@ type CloudTopState = {
 };
 
 const initialState: CloudTopState = {
-  visible: false,
   stats: undefined,
   loading: false,
   error: null,
@@ -28,9 +20,6 @@ const cloudTopSlice = createSlice({
   name: "cloudtop",
   initialState,
   reducers: {
-    setVisible(state, action: PayloadAction<boolean>) {
-      state.visible = action.payload;
-    },
     setStats(state, action: PayloadAction<CloudTopStats>) {
       state.stats = action.payload;
     },

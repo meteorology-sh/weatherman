@@ -52,19 +52,11 @@ type ReplayState = {
   stats: ReplayStats | null;
   /** Which layers are drawn. Mirrors the candidate map's defaults. */
   cloudBase: boolean;
-  baseWindow: boolean;
-  cloudTop: boolean;
   liquid: boolean;
   radar: boolean;
   lightning: boolean;
   heading: boolean;
   echoFreeze: boolean;
-  cape: boolean;
-  cin: boolean;
-  lcl: boolean;
-  freezing: boolean;
-  minus15: boolean;
-  warmDepth: boolean;
   field: boolean;
 };
 
@@ -77,19 +69,11 @@ const initialState: ReplayState = {
   // Radar, the storm object, and the Texas fly fill, like the candidate
   // map: the page opens on where to click.
   cloudBase: false,
-  baseWindow: false,
-  cloudTop: false,
   liquid: false,
   radar: true,
   lightning: false,
   heading: true,
   echoFreeze: false,
-  cape: false,
-  cin: false,
-  lcl: false,
-  freezing: false,
-  minus15: false,
-  warmDepth: false,
   field: true,
 };
 
@@ -122,12 +106,6 @@ const replaySlice = createSlice({
     setCloudBase(state, action: PayloadAction<boolean>) {
       state.cloudBase = action.payload;
     },
-    setBaseWindow(state, action: PayloadAction<boolean>) {
-      state.baseWindow = action.payload;
-    },
-    setCloudTop(state, action: PayloadAction<boolean>) {
-      state.cloudTop = action.payload;
-    },
     setLiquid(state, action: PayloadAction<boolean>) {
       state.liquid = action.payload;
     },
@@ -142,24 +120,6 @@ const replaySlice = createSlice({
     },
     setEchoFreeze(state, action: PayloadAction<boolean>) {
       state.echoFreeze = action.payload;
-    },
-    setCape(state, action: PayloadAction<boolean>) {
-      state.cape = action.payload;
-    },
-    setCin(state, action: PayloadAction<boolean>) {
-      state.cin = action.payload;
-    },
-    setLcl(state, action: PayloadAction<boolean>) {
-      state.lcl = action.payload;
-    },
-    setFreezing(state, action: PayloadAction<boolean>) {
-      state.freezing = action.payload;
-    },
-    setMinus15(state, action: PayloadAction<boolean>) {
-      state.minus15 = action.payload;
-    },
-    setWarmDepth(state, action: PayloadAction<boolean>) {
-      state.warmDepth = action.payload;
     },
     setField(state, action: PayloadAction<boolean>) {
       state.field = action.payload;

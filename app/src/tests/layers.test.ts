@@ -3,24 +3,22 @@ import {
   CandidateFieldLayer,
   ReplayFieldLayer,
   CandidateCloudBaseLayer,
-  CandidateCloudBaseWindowLayer,
-  CandidateCloudTopLayer,
   ForecastCloudsLayer,
   ForecastPrecipLayer,
   CandidateLiquidLayer,
   CandidateRadarLayer,
   CandidateStormCoreLayer,
-  CandidateStormFlankLayer,
   CandidateStormMotionLayer,
   CandidateLightningLayer,
   CandidateEchoFreezeLayer,
-  CandidateCapeLayer,
-  CandidateCinLayer,
-  CandidateLclLayer,
-  CandidateFreezingLayer,
-  CandidateMinus15Layer,
-  CandidateWarmDepthLayer,
+  ReplayStormCoreLayer,
+  ReplayStormMotionLayer,
+  STORM_OBJECT_MIN_SCALE,
+  TEXAS_ZOOM,
 } from "@/lib/arcgis/layers";
+
+/** Web Mercator's scale at a zoom, the figure the tile pyramid is cut on. */
+const scaleAtZoom = (zoom: number) => 591657527.591555 / 2 ** zoom;
 
 const BOX = {
   west: "-107",
@@ -28,31 +26,6 @@ const BOX = {
   south: "25.5",
   north: "37",
 };
-
-describe("GOES cloud-top layer", () => {
-  it("reads the banded scene from our own server, not from GIBS", () => {
-    expect(CandidateCloudTopLayer.url).toBe("/cloudtop/temperature");
-    expect(CandidateCloudTopLayer.customParameters).toEqual(BOX);
-  });
-
-  // The layer this replaced was a raster, and a raster has no nodata. Declaring
-  // the schema is what lets a clear scene come back as an empty collection
-  // without leaving the renderer with no field to match.
-  it("declares its schema, so a cloud-free scene still renders", () => {
-    expect(CandidateCloudTopLayer.geometryType).toBe("polygon");
-    expect(CandidateCloudTopLayer.fields.map((f) => f.name)).toContain(
-      "topColdnessC"
-    );
-  });
-
-  it("credits both sources, because it is built from two", () => {
-    expect(CandidateCloudTopLayer.copyright).toBe("NOAA GOES-East / NOAA HRRR");
-  });
-
-  it("leaves visibility to the map, which drives it from the store", () => {
-    expect(CandidateCloudTopLayer.visible).toBe(false);
-  });
-});
 
 describe("HRRR cloud-base layer", () => {
   // Pinned to the analysis hour, like the liquid-water layer: a cloud base is
@@ -91,49 +64,6 @@ describe("HRRR cloud-base layer", () => {
 
   it("leaves visibility to the map, which drives it from the store", () => {
     expect(CandidateCloudBaseLayer.visible).toBe(false);
-  });
-});
-
-describe("HRRR cloud-base window", () => {
-  it("reads the window-trimmed height ramp from our own server", () => {
-    expect(CandidateCloudBaseWindowLayer.url).toBe("/forecast/cloudbase");
-    expect(CandidateCloudBaseWindowLayer.customParameters).toEqual({
-      hour: "0",
-      window: "1",
-      ...BOX,
-    });
-  });
-
-  // The switch trims the layer rather than replacing it, so the frame carries
-  // the height it has always carried and the swatches keep their meaning.
-  it("carries the same height the untrimmed ramp does", () => {
-    expect(CandidateCloudBaseWindowLayer.geometryType).toBe("polygon");
-    expect(CandidateCloudBaseWindowLayer.fields.map((f) => f.name)).toContain(
-      "cloudBaseFt"
-    );
-    expect(CandidateCloudBaseWindowLayer.renderer).toBe(
-      CandidateCloudBaseLayer.renderer
-    );
-  });
-});
-
-describe("12Z briefing layers", () => {
-  it("reads each field from our server", () => {
-    expect(CandidateCapeLayer.url).toBe("/forecast/briefing/cape");
-    expect(CandidateCinLayer.url).toBe("/forecast/briefing/cin");
-    expect(CandidateLclLayer.url).toBe("/forecast/briefing/lcl");
-    expect(CandidateFreezingLayer.url).toBe("/forecast/briefing/freezing");
-    expect(CandidateMinus15Layer.url).toBe("/forecast/briefing/minus15");
-    expect(CandidateWarmDepthLayer.url).toBe("/forecast/briefing/warm-depth");
-  });
-
-  it("declares the property each frame carries", () => {
-    expect(CandidateCapeLayer.fields.map((f) => f.name)).toContain(
-      "mixedCapeJKg"
-    );
-    expect(CandidateWarmDepthLayer.fields.map((f) => f.name)).toContain(
-      "warmCloudDepthFt"
-    );
   });
 });
 
@@ -228,14 +158,37 @@ describe("CandidateStormCoreLayer", () => {
     expect(CandidateStormCoreLayer.url).toBe("/radar/objects/cores");
   });
 
-  it("draws heading as a filled dart from that point", () => {
-    expect(CandidateStormMotionLayer.geometryType).toBe("polygon");
-    expect(CandidateStormMotionLayer.url).toBe("/radar/objects/motion");
+  it("draws heading as a line from that point, not a ground-width dart", () => {
+    expect(CandidateStormMotionLayer.geometryType).toBe("polyline");
+    expect(CandidateStormMotionLayer.customParameters).toEqual({
+      shape: "line",
+      ...BOX,
+    });
   });
 
-  it("draws the upwind raining edge as a polygon", () => {
-    expect(CandidateStormFlankLayer.geometryType).toBe("polygon");
-    expect(CandidateStormFlankLayer.url).toBe("/radar/objects/flanks");
+  /**
+   * A core is one point on one storm and a heading is a tick off it, so both
+   * only mean something at a zoom where you can see the storm they belong to.
+   * ArcGIS draws a layer while the view's scale is at or under `minScale`, so
+   * the check is that Texas whole is over the line and one step in is not.
+   */
+  it("hides the cores and headings at Texas and wider", () => {
+    for (const layer of [
+      CandidateStormCoreLayer,
+      CandidateStormMotionLayer,
+      ReplayStormCoreLayer,
+      ReplayStormMotionLayer,
+    ]) {
+      expect(layer.minScale).toBe(STORM_OBJECT_MIN_SCALE);
+      expect(scaleAtZoom(TEXAS_ZOOM)).toBeGreaterThan(layer.minScale);
+      expect(scaleAtZoom(TEXAS_ZOOM + 1)).toBeLessThanOrEqual(layer.minScale);
+    }
+  });
+
+  // The rain itself is a field, readable over the whole state, so it keeps no
+  // floor — only the per-storm marks drawn on top of it do.
+  it("keeps the mosaic underneath them drawn at every zoom", () => {
+    expect(CandidateRadarLayer.minScale).toBe(0);
   });
 
   it("draws lightning as points, not a surface", () => {

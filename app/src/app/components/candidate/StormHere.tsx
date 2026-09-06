@@ -27,7 +27,13 @@ function signedC(value: number): string {
 }
 
 /**
- * Where on the radar storm the click landed.
+ * The nearest radar storm to the click, and the readings taken over it.
+ *
+ * Where on the storm the click landed is one distance: to the nearest edge
+ * of the outline the radar layer draws, and which side of that edge it is
+ * on. Texas seeds the flank, so a short distance inside the rain is the
+ * reading being looked for. It is measured against the drawn ring itself,
+ * so it cannot disagree with the outline on the screen.
  */
 export const StormHere = () => {
   const here = useAppSelector((state) => state.storms.here);
@@ -57,16 +63,6 @@ export const StormHere = () => {
   }
 
   const storm = here.object;
-  const onTheDot = here.inside && here.coreKm < 0.8;
-  const place = onTheDot
-    ? "heaviest rain"
-    : here.inWorking
-      ? "upwind flank"
-      : here.inside
-        ? here.edgeKm < here.coreKm
-          ? "inside rain"
-          : "near core"
-        : "outside rain";
 
   const motion =
     storm.motionTowardDeg === null || storm.motionKmh === null
@@ -80,6 +76,11 @@ export const StormHere = () => {
         ? "—"
         : versusFreezing(here.modelEchoTopFt, here.freezingFt);
 
+  const edge =
+    here.edgeKm === null
+      ? "—"
+      : `${km(here.edgeKm)} ${here.inside ? "inside" : "outside"}`;
+
   const goes =
     here.goesTopC === null
       ? "—"
@@ -89,12 +90,10 @@ export const StormHere = () => {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="font-semibold">{RadarLegend.name}</h3>
+      <h3 className="font-semibold">Radar</h3>
       <MeasurementGrid
         rows={[
-          { label: "Place", value: place },
-          { label: "Edge", value: km(here.edgeKm) },
-          { label: "Core", value: km(here.coreKm) },
+          { label: "Distance to edge", value: edge },
           { label: "Motion", value: motion },
           { label: "18 dBZ echo top", value: echo },
           { label: "Cloud top", value: goes },

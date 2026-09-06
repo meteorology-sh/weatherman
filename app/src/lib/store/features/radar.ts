@@ -16,9 +16,9 @@ type RadarState = {
    */
   lightning: boolean;
   /**
-   * The core, the heading arrow, and the upwind raining flank. On with
-   * the mosaic: that is the storm as an object. Only drawn while
-   * reflectivity is on.
+   * The core and the heading arrow — the storm as an object rather than as
+   * a field. Only drawn while reflectivity is on, and only from one zoom in
+   * on Texas, where a core is a mark on a storm you can see.
    */
   heading: boolean;
   /**
@@ -32,10 +32,15 @@ type RadarState = {
   error: string | null;
 };
 
+/**
+ * On arrival, every radar switch is off. The map opens on the fly fill, and
+ * the rain is the first thing an operator turns on over it rather than
+ * something already drawn under it.
+ */
 const initialState: RadarState = {
-  visible: true,
+  visible: false,
   lightning: false,
-  heading: true,
+  heading: false,
   echoFreeze: false,
   stats: undefined,
   loading: false,

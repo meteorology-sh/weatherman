@@ -362,11 +362,9 @@ describe("candidate router", () => {
   it("responds with the radar storm at a click", async (t) => {
     t.mock.method(Storms, "reading", async () => ({
       validTime: "2025-08-11T18:02:00.000Z",
-      inside: true,
       coreKm: 0.4,
-      edgeKm: 1.2,
-      upwindEdgeKm: 1.1,
-      inWorking: false,
+      inside: true,
+      edgeKm: 1.7,
       slwGM2: 22,
       goesTopC: -14,
       goesTopDeltaC: -2,
@@ -381,6 +379,7 @@ describe("candidate router", () => {
 
     assert.equal(res.status, 200);
     const body = await res.json();
+    assert.equal(body.edgeKm, 1.7);
     assert.equal(body.inside, true);
     assert.equal(body.slwGM2, 22);
     assert.equal(body.goesTopDeltaC, -2);

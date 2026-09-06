@@ -96,7 +96,8 @@ radar.get("/objects/motion", async (req: Request, res: Response) => {
       await Mrms.motion(
         parseAt(req.query.at),
         parseBox(req.query),
-        parseFine(req.query)
+        parseFine(req.query),
+        req.query.shape === "line" ? "line" : "dart"
       )
     );
   } catch (error) {

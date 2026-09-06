@@ -26,18 +26,14 @@ import { replayActions } from "@/lib/store/features/replay";
 
 // Fakes
 import {
-  cloudTopLayer,
   liquidLayer,
   map,
   radarLayer,
   replayCloudBaseLayer,
-  replayCloudBaseWindowLayer,
-  replayCloudTopLayer,
   replayConfirmedLayer,
   replayFieldLayer,
   replayRadarLayer,
   replayStormCoreLayer,
-  replayStormFlankLayer,
   replayStormMotionLayer,
   replayLightningLayer,
   replayEchoFreezeLayer,
@@ -59,21 +55,20 @@ describe("ArcGIS in replay mode", () => {
     replayActions.setReady({ at, stats: replayStats });
 
   /**
-   * Switch on the three layers whose reveal is under test.
+   * Switch on the layers whose reveal is under test.
    *
    * The page opens on the candidate field alone, so these start off. Every test
-   * below is about the `ready` gate — whether the three appear together — and
-   * asking for them is the precondition for that, not part of it.
+   * below is about the `ready` gate — whether they appear together — and asking
+   * for them is the precondition for that, not part of it.
    */
   const askFor = (store: ReturnType<typeof createTestStore>) => {
-    store.dispatch(replayActions.setCloudTop(true));
+    store.dispatch(replayActions.setCloudBase(true));
     store.dispatch(replayActions.setRadar(true));
   };
 
   it("draws nothing until an hour is picked", () => {
     renderWithStore(<ArcGIS mode="replay" />, createTestStore());
 
-    expect(replayCloudTopLayer.visible).toBe(false);
     expect(replayRadarLayer.visible).toBe(false);
   });
 
@@ -86,7 +81,6 @@ describe("ArcGIS in replay mode", () => {
       store.dispatch(replayActions.setAt(AT));
     });
 
-    expect(replayCloudTopLayer.visible).toBe(false);
     expect(replayRadarLayer.visible).toBe(false);
   });
 
@@ -104,11 +98,10 @@ describe("ArcGIS in replay mode", () => {
       store.dispatch(replayActions.setAt("2025-05-16T18:00:00.000Z"));
     });
 
-    expect(replayCloudTopLayer.visible).toBe(false);
     expect(replayRadarLayer.visible).toBe(false);
   });
 
-  it("reveals all three together once every source has answered", () => {
+  it("reveals the layers together once every source has answered", () => {
     const store = createTestStore();
     askFor(store);
     renderWithStore(<ArcGIS mode="replay" />, store);
@@ -117,7 +110,7 @@ describe("ArcGIS in replay mode", () => {
       store.dispatch(ready(AT));
     });
 
-    expect(replayCloudTopLayer.visible).toBe(true);
+    expect(replayCloudBaseLayer.visible).toBe(true);
     expect(replayRadarLayer.visible).toBe(true);
   });
 
@@ -131,7 +124,6 @@ describe("ArcGIS in replay mode", () => {
       store.dispatch(ready(AT));
     });
 
-    expect(cloudTopLayer.visible).toBe(false);
     expect(liquidLayer.visible).toBe(false);
     expect(radarLayer.visible).toBe(false);
   });
@@ -145,21 +137,21 @@ describe("ArcGIS in replay mode", () => {
 
     const at = encodeURIComponent(AT);
     const box = "west=-107&east=-93&south=25.5&north=37";
-    expect(replayCloudTopLayer.url).toBe(
-      `/cloudtop/temperature?at=${at}&${box}`
-    );
     expect(replayRadarLayer.url).toBe(`/radar/reflectivity?at=${at}&${box}`);
     expect(replayStormCoreLayer.url).toBe(
       `/radar/objects/cores?at=${at}&${box}`
     );
-    expect(replayStormFlankLayer.url).toBe(
-      `/radar/objects/flanks?at=${at}&${box}`
-    );
     expect(replayStormMotionLayer.url).toBe(
-      `/radar/objects/motion?at=${at}&${box}`
+      `/radar/objects/motion?at=${at}&shape=line&${box}`
     );
-    expect(replayLightningLayer.url).toBe("");
-    expect(replayEchoFreezeLayer.url).toBe("");
+    // Pointed with the rest, not on their switches: the hour is one scene,
+    // and a switch over it should show what is already in hand.
+    expect(replayLightningLayer.url).toBe(
+      `/cloudtop/lightning?at=${at}&${box}`
+    );
+    expect(replayEchoFreezeLayer.url).toBe(
+      `/radar/echotop/past-freezing?at=${at}&${box}`
+    );
     expect(replayCloudBaseLayer.url).toBe(
       `/forecast/cloudbase?hour=0&at=${at}&${box}`
     );
@@ -206,16 +198,13 @@ describe("ArcGIS in replay mode", () => {
     });
 
     const layers = map().layers ?? [];
-    expect(layers).toContain(replayCloudTopLayer);
+    expect(layers).toContain(replayCloudBaseLayer);
     // Cloud base underneath, as on the candidate map: it is the question asked
     // before the others and covers more ground than any of them.
-    expect(layers.indexOf(replayCloudTopLayer)).toBeGreaterThan(
+    expect(layers.indexOf(replayRadarLayer)).toBeGreaterThan(
       layers.indexOf(replayCloudBaseLayer)
     );
-    expect(layers.indexOf(replayRadarLayer)).toBeGreaterThan(
-      layers.indexOf(replayCloudTopLayer)
-    );
-    expect(layers.indexOf(replayCloudBaseWindowLayer)).toBeGreaterThan(
+    expect(layers.indexOf(replayFieldLayer)).toBeGreaterThan(
       layers.indexOf(replayRadarLayer)
     );
   });
@@ -270,25 +259,8 @@ describe("ArcGIS in replay mode", () => {
     expect(replayCloudBaseLayer.visible).toBe(true);
   });
 
-  it("points the Comptroller window at the hour with cloud base", () => {
-    const store = createTestStore();
-    renderWithStore(<ArcGIS mode="replay" />, store);
-    act(() => {
-      store.dispatch(ready(AT));
-      store.dispatch(replayActions.setCloudBase(true));
-      store.dispatch(replayActions.setBaseWindow(true));
-    });
 
-    const at = encodeURIComponent(AT);
-    const box = "west=-107&east=-93&south=25.5&north=37";
-    expect(replayCloudBaseWindowLayer.visible).toBe(true);
-    expect(replayCloudBaseLayer.visible).toBe(false);
-    expect(replayCloudBaseWindowLayer.url).toBe(
-      `/forecast/cloudbase/window?hour=0&at=${at}&${box}`
-    );
-  });
-
-  it("points the core, heading, and flank at the hour with the mosaic", () => {
+  it("points the core and heading at the hour with the mosaic", () => {
     const store = createTestStore();
     renderWithStore(<ArcGIS mode="replay" />, store);
     act(() => {
@@ -300,11 +272,8 @@ describe("ArcGIS in replay mode", () => {
     expect(replayStormCoreLayer.url).toBe(
       `/radar/objects/cores?at=${at}&${box}`
     );
-    expect(replayStormFlankLayer.url).toBe(
-      `/radar/objects/flanks?at=${at}&${box}`
-    );
     expect(replayStormMotionLayer.url).toBe(
-      `/radar/objects/motion?at=${at}&${box}`
+      `/radar/objects/motion?at=${at}&shape=line&${box}`
     );
   });
 

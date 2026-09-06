@@ -11,33 +11,21 @@ import UniqueValueRenderer from "@arcgis/core/renderers/UniqueValueRenderer";
 import SimpleRenderer from "@arcgis/core/renderers/SimpleRenderer";
 import SimpleFillSymbol from "@arcgis/core/symbols/SimpleFillSymbol";
 import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol";
+import SimpleLineSymbol from "@arcgis/core/symbols/SimpleLineSymbol";
 import {
   CLOUD_BANDS,
   CLOUD_RGB,
-  BASE_WINDOW_ALPHA,
-  BASE_WINDOW_RGB,
-  CAPE_BANDS,
-  CAPE_RGB,
-  CIN_BANDS,
-  CIN_RGB,
   CLOUD_BASE_BANDS,
   CLOUD_BASE_RGB,
-  FREEZING_RGB,
-  LCL_RGB,
-  MINUS15_RGB,
-  WARM_DEPTH_RGB,
-  CLOUD_TOP_BANDS,
-  CLOUD_TOP_RGB,
   FLY_ALPHA,
   FLY_RGB,
   CONFIRMED_RGB,
   CONFIRMED_WIDTH,
   ECHO_FREEZE_ALPHA,
   ECHO_FREEZE_RGB,
-  FLANK_RGB,
-  FLANK_WIDTH,
   LIGHTNING_RGB,
   MOTION_RGB,
+  MOTION_WIDTH,
   PRECIP_BANDS,
   PRECIP_RGB,
   RADAR_BANDS,
@@ -112,7 +100,7 @@ export const candidateConfirmedRenderer = new SimpleRenderer({
 export const stormCoreRenderer = new SimpleRenderer({
   symbol: new SimpleMarkerSymbol({
     color: [...RADAR_RGB, 0.95],
-    size: 7,
+    size: 3,
     outline: { color: [0, 0, 0, 0], width: 0 },
   }),
 });
@@ -120,25 +108,21 @@ export const stormCoreRenderer = new SimpleRenderer({
 /**
  * Heading of the storm, from the heaviest-rain cell. Not a nowcast.
  *
- * A filled dart in map coordinates, so the head shrinks with the tick
- * when the view zooms out. A screen-pixel triangle would stay huge.
+ * A line from the core along the heading, with the arrowhead the line
+ * symbol draws at its end. Its length is kilometres of ground and follows
+ * the speed; its width is screen points and follows nothing, so zooming in
+ * on a single cell lengthens the tick without fattening it.
  */
 export const stormMotionRenderer = new SimpleRenderer({
-  symbol: new SimpleFillSymbol({
+  symbol: new SimpleLineSymbol({
     color: [...MOTION_RGB, 0.95],
-    outline: { color: [...MOTION_RGB, 0], width: 0 },
-  }),
-});
-
-/**
- * Raining cells on the upwind edge of the storm. Hollow, so the rain
- * fill underneath is still the rain. Empty when the storm has no heading:
- * we do not guess an inflow side.
- */
-export const stormFlankRenderer = new SimpleRenderer({
-  symbol: new SimpleFillSymbol({
-    color: [0, 0, 0, 0],
-    outline: { color: [...FLANK_RGB, 0.95], width: FLANK_WIDTH },
+    width: MOTION_WIDTH,
+    cap: "butt",
+    marker: {
+      color: [...MOTION_RGB, 0.95],
+      placement: "end",
+      style: "arrow",
+    },
   }),
 });
 
@@ -162,17 +146,6 @@ export const lightningRenderer = new SimpleRenderer({
 });
 
 
-export const candidateCloudTopRenderer = new UniqueValueRenderer({
-  field: "topColdnessC",
-  uniqueValueInfos: CLOUD_TOP_BANDS.map(({ value, alpha }) => ({
-    value,
-    symbol: new SimpleFillSymbol({
-      color: [...CLOUD_TOP_RGB, alpha],
-      outline: { width: 0 },
-    }),
-  })),
-});
-
 export const candidateCloudBaseRenderer = new UniqueValueRenderer({
   field: "cloudBaseFt",
   uniqueValueInfos: CLOUD_BASE_BANDS.map(({ value, alpha }) => ({
@@ -182,56 +155,5 @@ export const candidateCloudBaseRenderer = new UniqueValueRenderer({
       outline: { width: 0 },
     }),
   })),
-});
-
-const heightInfos = (rgb: readonly number[]) =>
-  CLOUD_BASE_BANDS.map(({ value, alpha }) => ({
-    value,
-    symbol: new SimpleFillSymbol({
-      color: [...rgb, alpha],
-      outline: { width: 0 },
-    }),
-  }));
-
-export const capeRenderer = new UniqueValueRenderer({
-  field: "mixedCapeJKg",
-  uniqueValueInfos: CAPE_BANDS.map(({ value, alpha }) => ({
-    value,
-    symbol: new SimpleFillSymbol({
-      color: [...CAPE_RGB, alpha],
-      outline: { width: 0 },
-    }),
-  })),
-});
-
-export const cinRenderer = new UniqueValueRenderer({
-  field: "cinJKg",
-  uniqueValueInfos: CIN_BANDS.map(({ value, alpha }) => ({
-    value,
-    symbol: new SimpleFillSymbol({
-      color: [...CIN_RGB, alpha],
-      outline: { width: 0 },
-    }),
-  })),
-});
-
-export const lclRenderer = new UniqueValueRenderer({
-  field: "lclFt",
-  uniqueValueInfos: heightInfos(LCL_RGB),
-});
-
-export const freezingRenderer = new UniqueValueRenderer({
-  field: "freezingFt",
-  uniqueValueInfos: heightInfos(FREEZING_RGB),
-});
-
-export const minus15Renderer = new UniqueValueRenderer({
-  field: "minus15Ft",
-  uniqueValueInfos: heightInfos(MINUS15_RGB),
-});
-
-export const warmDepthRenderer = new UniqueValueRenderer({
-  field: "warmCloudDepthFt",
-  uniqueValueInfos: heightInfos(WARM_DEPTH_RGB),
 });
 

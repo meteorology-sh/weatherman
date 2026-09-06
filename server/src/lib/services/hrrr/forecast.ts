@@ -70,7 +70,7 @@ import {
   diagnostics,
   recordsAt,
 } from "./diagnostics";
-import { windowBaseValues, windowValues } from "./basewindow";
+import { windowValues } from "./basewindow";
 import {
   BRIEFING_COLD_C,
   CAPE,
@@ -405,36 +405,23 @@ export class ForecastService {
   /**
    * Cloud base, banded — the selection variable Texas practice uses.
    *
-   * `window` trims the field to the 4,000–12,000 ft AGL window without
-   * changing what is drawn: same property, same bands, same height above the
-   * sea, only the ground outside the window taken away. The window is a
-   * height above the terrain and the bands are heights above the sea, so this
-   * has to happen here — the frame carries no terrain for a client to filter
-   * on, and MSL alone cannot say whether a base is reachable.
+   * A height above the sea, drawn everywhere the model has a deck. The
+   * 4,000–12,000 ft AGL window is not applied here: it is a test the
+   * candidate join runs, and {@link cloudBaseWindow} serves it on its own
+   * for the evaluation harness.
    */
   async cloudBase(
     hour: number,
     at?: Date,
     box: LonLatBox = DRAWN,
-    fine = false,
-    window = false
+    fine = false
   ): Promise<ContourFrame> {
     const built = await this.surface(hour, at);
-    const grid = window
-      ? {
-          nx: built.base.grid.nx,
-          ny: built.base.grid.ny,
-          values: windowBaseValues(
-            built.base.grid.values,
-            await this.terrain(await this.cycle(at), hour)
-          ),
-        }
-      : built.base.grid;
     return frame(
       built.run,
       hour,
       this.features(
-        grid,
+        built.base.grid,
         CLOUD_BASE.property,
         CLOUD_BASE.edges,
         box,
@@ -450,8 +437,8 @@ export class ForecastService {
   }
 
   /**
-   * Cloud base in the 4,000–12,000 ft AGL window. A fill, not a gate:
-   * storms stay on the map either way.
+   * The window on its own: 1 where the base sits in the 4,000–12,000 ft AGL
+   * window and nothing elsewhere. What the evaluation harness scores.
    */
   async cloudBaseWindow(
     hour: number,

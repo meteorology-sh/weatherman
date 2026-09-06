@@ -220,10 +220,9 @@ describe("radar router", () => {
   it("responds with the storm nearest a click", async (t) => {
     t.mock.method(Mrms, "objectNear", async () => ({
       validTime: "2026-08-12T04:10:00.000Z",
-      inside: true,
       coreKm: 2.1,
-      edgeKm: 0.4,
-      upwindEdgeKm: 0.8,
+      inside: false,
+      edgeKm: 2.1,
       object: { id: 3, maxDbz: 44, areaKm2: 22 },
     }));
 
@@ -231,7 +230,7 @@ describe("radar router", () => {
 
     assert.equal(res.status, 200);
     const body = await res.json();
-    assert.equal(body.inside, true);
+    assert.equal(body.edgeKm, 2.1);
     assert.equal(body.object.id, 3);
   });
 
@@ -283,6 +282,25 @@ describe("radar router", () => {
     );
     assert.equal(body.features[0].geometry.type, "Polygon");
     assert.equal(body.features[0].properties.motionKmh, 40);
+  });
+
+  it("hands the heading shape the caller asked for to the service", async (t) => {
+    const shapes: unknown[] = [];
+    t.mock.method(
+      Mrms,
+      "motion",
+      async (_at?: Date, _box?: unknown, _fine?: boolean, shape?: unknown) => {
+        shapes.push(shape);
+        return { type: "FeatureCollection", validTime: null, features: [] };
+      }
+    );
+
+    await fetch(`${origin}/radar/objects/motion`).then((r) => r.json());
+    await fetch(`${origin}/radar/objects/motion?shape=line`).then((r) =>
+      r.json()
+    );
+
+    assert.deepEqual(shapes, ["dart", "line"]);
   });
 
   it("responds with the upwind raining edge of each storm", async (t) => {

@@ -18,25 +18,14 @@ const stats: CloudTopStats = {
   coldestTopC: -68.4,
 };
 
+// No layer draws this any more. The slice survives because the scene behind
+// it is what the storm click reports a cloud top from, and CloudTopProvider
+// asks for these stats on entering the map to warm that build.
 describe("cloudtop reducer", () => {
-  // The widest fill on the map, so switched on by default it is the one most
-  // likely to bury the answer drawn over it.
-  it("starts hidden", () => {
-    expect(initialState.visible).toBe(false);
-  });
-
   it("starts with no stats", () => {
     expect(initialState.stats).toBeUndefined();
   });
 
-  it("toggles the layer off", () => {
-    const state = cloudTopReducer(
-      initialState,
-      cloudTopActions.setVisible(false)
-    );
-
-    expect(state.visible).toBe(false);
-  });
 
   it("stores the stats", () => {
     const state = cloudTopReducer(
@@ -47,16 +36,6 @@ describe("cloudtop reducer", () => {
     expect(state.stats).toEqual(stats);
   });
 
-  it("keeps the stats when the layer is hidden", () => {
-    const loaded = cloudTopReducer(
-      initialState,
-      cloudTopActions.setStats(stats)
-    );
-
-    const state = cloudTopReducer(loaded, cloudTopActions.setVisible(false));
-
-    expect(state.stats).toEqual(stats);
-  });
 
   it("tracks loading", () => {
     const state = cloudTopReducer(

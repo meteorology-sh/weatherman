@@ -8,7 +8,6 @@ import {
   OutsideDomain,
   parseBox,
   parseFine,
-  parseFlag,
 } from "../lib/services/shared/grid";
 import { parseAt } from "../lib/services/shared/replay";
 
@@ -104,8 +103,7 @@ forecast.get("/cloudbase", async (req: Request, res: Response) => {
       hour,
       parseAt(req.query.at),
       parseBox(req.query),
-      parseFine(req.query),
-      parseFlag(req.query.window)
+      parseFine(req.query)
     );
     res.send(frame);
   } catch (error) {
@@ -139,9 +137,9 @@ forecast.get("/briefing/:field", async (req: Request, res: Response) => {
 });
 
 // The gate on its own: 1 where the base is in the window and nothing
-// elsewhere, which is what the evaluation harness scores. The map asks
-// `/cloudbase?window=1` instead, because it wants the height ramp trimmed
-// rather than a single pass/fail fill.
+// elsewhere, which is what the evaluation harness scores. The map does not
+// draw the window; it reads cloud base as a height and the candidate fill
+// applies the window as one of its three tests.
 forecast.get("/cloudbase/window", async (req: Request, res: Response) => {
   try {
     const hour = Number(req.query.hour ?? 0);

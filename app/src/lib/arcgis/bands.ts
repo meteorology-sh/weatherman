@@ -135,22 +135,24 @@ export const FLY_ALPHA = 0.45;
 export const CONFIRMED_RGB = [209, 255, 232] as const;
 export const CONFIRMED_WIDTH = 1.5;
 
-/** Heading dart at the heaviest-rain cell. White on the dark basemap. */
+/** Heading tick at the heaviest-rain cell. White on the dark basemap. */
 export const MOTION_RGB = [255, 255, 255] as const;
 
 /**
- * Upwind raining edge of a mosaic storm. Orange so it is not the cyan
- * rain, not the white arrow, and not the yellow lightning.
+ * Tick width, screen points, and the arrowhead as a multiple of it.
+ *
+ * Pixels, not kilometres: the tick says which way the storm is going, and
+ * that claim is the same claim at every zoom. A width in ground units is
+ * a hairline over the state and a wedge over one cell.
  */
-export const FLANK_RGB = [255, 140, 64] as const;
-export const FLANK_WIDTH = 2;
+export const MOTION_WIDTH = 1.25;
 
 /** GLM flash. Yellow so it is not the cyan rain and not the white arrow. */
 export const LIGHTNING_RGB = [250, 204, 21] as const;
 
 /**
  * 18 dBZ top at or above freezing. Ice-blue so it is not the cyan rain
- * fill and not the orange flank.
+ * fill and not the white arrow.
  */
 export const ECHO_FREEZE_RGB = [56, 189, 248] as const;
 export const ECHO_FREEZE_ALPHA = 0.28;
@@ -221,77 +223,6 @@ export const stackedColor = (
 ) => `rgba(${rgb.join(",")},${stackedAlpha(bands, n).toFixed(3)})`;
 
 /**
- * One cloud-top temperature band: the warm edge of the interval, in degrees
- * below zero, and the fill painted for it.
- *
- * **These do not stack**, and that is the whole design. Every other polygon
- * layer here nests — an area meeting the top level is painted by every band —
- * because its field has rare extremes and "more" means "more". Cloud-top
- * temperature is bimodal instead: warm low cloud, or very cold cirrus, with
- * little between. Nested levels there cover nearly the same ground as each
- * other — four rings almost exactly on top of each other, painting a third of
- * the map at full opacity.
- *
- * So exactly one band applies to a cell, each carries the colour it is actually
- * drawn in, and the legend reads them straight rather than compositing them.
- */
-export type CloudTopBand = {
-  /** Warm edge of the interval, °C below zero. Matches the server's property. */
-  readonly value: number;
-  /** Warm and cold edges as temperatures, for the legend. */
-  readonly fromC: number;
-  readonly toC: number | null;
-  readonly label: string;
-  readonly alpha: number;
-};
-
-/**
- * Slate, deliberately colourless. This layer answers "where is cloud, and how
- * cold is its top" — context for the two layers drawn over it, not a verdict.
- * Amber is spent on modelled liquid water and cyan on observed rain; giving
- * cloud shape a hue of its own would compete with both for attention it does
- * not deserve.
- */
-export const CLOUD_TOP_RGB = [148, 163, 184] as const;
-
-/**
- * Mirrors CLOUD_TOP.levels in server/src/lib/services/goes/cloudtop.ts.
- *
- * **The opacity ramp runs backwards from every other layer here, on purpose,
- * and the reason is the ice.** Silver iodide only does something in a cloud
- * that still holds liquid. Natural ice-nucleating particles are scarce at warm
- * subzero temperatures and common well below them, so the colder a top is, the
- * likelier that cloud has already frozen on its own — and a cloud that has
- * frozen has already spent the water seeding would have converted. The warmest
- * band is the loudest because that is where the liquid is most likely still
- * there to work with.
- *
- * **This is a preference, not a test.** A colder top also means the seeding
- * band is more fully enclosed by the cloud, which cuts the other way, and
- * cloud-top temperature is the coldest part of a cloud rather than a summary of
- * it — a vigorous cell with a −60 °C anvil can carry liquid in the band. So
- * nothing is discarded for being cold and the last band is open-ended and still
- * drawn. Neither this layer nor the liquid one observes phase; the liquid layer
- * is at least about the liquid, and it is the model's opinion rather than a
- * measurement. See `MEASUREMENTS.md` §4 for the citation and for why there is
- * no cold cutoff.
- *
- * **The steps are wide because these bands do not stack.** The nested layers
- * get their separation for free — their fills composite, so four alphas of 0.15
- * to 0.26 land on the map as 0.15, 0.30, 0.46, 0.60. A disjoint band is painted
- * at the alpha written here and nothing else, so the alphas have to carry the
- * whole spread themselves. Slate is nearly colourless over a dark basemap, so
- * anything narrower separates the four bands by a few points of grey and the
- * layer reads as one flat wash.
- */
-export const CLOUD_TOP_BANDS: readonly CloudTopBand[] = [
-  { value: 5, fromC: -5, toC: -12, label: "−5 to −12", alpha: 0.65 },
-  { value: 12, fromC: -12, toC: -18, label: "−12 to −18", alpha: 0.45 },
-  { value: 18, fromC: -18, toC: -25, label: "−18 to −25", alpha: 0.28 },
-  { value: 25, fromC: -25, toC: null, label: "below −25", alpha: 0.14 },
-];
-
-/**
  * `rgba(...)` for one unstacked band — what a single swatch is painted.
  *
  * The stacked layers cannot use this: their fills composite, so a legend has to
@@ -303,14 +234,14 @@ export const soloColor = (rgb: readonly number[], alpha: number) =>
 
 /**
  * The window Texas operations select cloud bases in. Mirrors
- * BASE_WINDOW_FT in server/src/lib/services/hrrr/diagnostics.ts.
+ * FLIGHT_WINDOW_FT in server/src/lib/services/hrrr/diagnostics.ts.
  *
  * Drawn as height above the ground, not above the sea. Read as MSL a
  * fixed window means a different thing over every cell — it is
  * 3,997–11,997 ft above ground at Galveston and underground to 1,827 ft
  * above ground at Leadville — so the fill is AGL.
  */
-export const BASE_WINDOW_FT = [4000, 12000] as const;
+export const FLIGHT_WINDOW_FT = [4000, 12000] as const;
 
 /**
  * The drone's service ceiling, ft MSL. Mirrors CEILING_FT in
@@ -341,14 +272,6 @@ export type CloudBaseBand = {
  * and cannot borrow any of the three without reading as one of them.
  */
 export const CLOUD_BASE_RGB = [167, 139, 250] as const;
-
-/**
- * Comptroller window fill. Same hue as the height ramp — the two are
- * never drawn together: the window switch shows this fill instead of
- * the climb.
- */
-export const BASE_WINDOW_RGB = CLOUD_BASE_RGB;
-export const BASE_WINDOW_ALPHA = 0.55;
 
 /**
  * Mirrors CLOUD_BASE.edges in server/src/lib/services/hrrr/diagnostics.ts —
@@ -392,42 +315,6 @@ export const CLOUD_BASE_BANDS: readonly CloudBaseBand[] = [
     alpha: 0.12,
   },
 ];
-
-/**
- * Mixed-layer CAPE, J/kg. Mirrors CAPE.edges on the server — NWS
- * instability classes. Disjoint, like the height ramps.
- */
-export const CAPE_RGB = [225, 90, 70] as const;
-export const CAPE_BANDS: readonly CloudBaseBand[] = [
-  { value: 1000, label: "1–2.5k", alpha: 0.55 },
-  { value: 2500, label: "2.5–4k", alpha: 0.38 },
-  { value: 4000, label: "over 4k", alpha: 0.22 },
-];
-
-/**
- * Mixed-layer CIN magnitude, J/kg. Mirrors CIN.edges on the server.
- * Indigo so it is not CAPE and not the violet cloud-base ramp.
- */
-export const CIN_RGB = [79, 70, 229] as const;
-export const CIN_BANDS: readonly CloudBaseBand[] = [
-  { value: 50, label: "50–100", alpha: 0.5 },
-  { value: 100, label: "100–200", alpha: 0.34 },
-  { value: 200, label: "over 200", alpha: 0.2 },
-];
-
-/** LCL. Same edges as cloud base; a cooler violet so the two ramps differ. */
-export const LCL_RGB = [196, 181, 253] as const;
-
-/** 0 °C height. Ice-blue, not the cyan rain. */
-export const FREEZING_RGB = [125, 211, 252] as const;
-
-/** −15 °C height. A colder blue than freezing. */
-export const MINUS15_RGB = [14, 165, 233] as const;
-
-/**
- * Warm-cloud depth. Teal, so it is not freezing, not liquid, and not rain.
- */
-export const WARM_DEPTH_RGB = [45, 212, 191] as const;
 
 /** The words an operator reads, not the raw number. Parallel to PRECIP_BANDS. */
 export const PRECIP_LABELS = ["trace", "light", "moderate", "heavy"] as const;

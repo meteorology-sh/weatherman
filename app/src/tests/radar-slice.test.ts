@@ -16,23 +16,26 @@ const stats: RadarStats = {
 const initial = reducer(undefined, { type: "@@INIT" });
 
 describe("radar slice", () => {
-  it("starts with the mosaic on, like the layer the map opens on", () => {
-    expect(initial.visible).toBe(true);
+  // The map opens on the fly fill and nothing else. Every switch under radar
+  // starts off with the mosaic itself, so an operator turns the rain on and
+  // then decides what to read on it.
+  it("starts with every radar switch off", () => {
+    expect(initial.visible).toBe(false);
     expect(initial.lightning).toBe(false);
-    expect(initial.heading).toBe(true);
+    expect(initial.heading).toBe(false);
     expect(initial.echoFreeze).toBe(false);
   });
 
   it("toggles lightning without touching the mosaic", () => {
     const on = reducer(initial, radarActions.setLightning(true));
     expect(on.lightning).toBe(true);
-    expect(on.visible).toBe(true);
+    expect(on.visible).toBe(false);
   });
 
   it("toggles the core and heading without touching the mosaic", () => {
     const on = reducer(initial, radarActions.setHeading(true));
     expect(on.heading).toBe(true);
-    expect(on.visible).toBe(true);
+    expect(on.visible).toBe(false);
     expect(on.lightning).toBe(false);
   });
 

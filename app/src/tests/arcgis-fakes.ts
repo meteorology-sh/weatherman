@@ -49,20 +49,17 @@ const layer = (id: string) => ({
 });
 
 export const cloudBaseLayer = layer("cloudbase-layer");
-export const cloudBaseWindowLayer = layer("cloudbase-window-layer");
 export const capeLayer = layer("cape-layer");
 export const cinLayer = layer("cin-layer");
 export const lclLayer = layer("lcl-layer");
 export const freezingLayer = layer("freezing-layer");
 export const minus15Layer = layer("minus15-layer");
 export const warmDepthLayer = layer("warm-depth-layer");
-export const cloudTopLayer = layer("cloudtop-layer");
 export const forecastLayer = layer("forecast-layer");
 export const precipLayer = layer("precip-layer");
 export const liquidLayer = layer("liquid-layer");
 export const radarLayer = layer("radar-layer");
 export const stormCoreLayer = layer("storm-core-layer");
-export const stormFlankLayer = layer("storm-flank-layer");
 export const stormMotionLayer = layer("storm-motion-layer");
 export const lightningLayer = layer("lightning-layer");
 export const echoFreezeLayer = layer("echo-freeze-layer");
@@ -73,18 +70,15 @@ export const confirmedLayer = layer("candidate-confirmed-layer");
 // they are separate in lib/arcgis/layers.ts: pointing the candidate layers at
 // a date would leave that date on the live map.
 export const replayCloudBaseLayer = layer("replay-cloud-base-layer");
-export const replayCloudBaseWindowLayer = layer("replay-cloud-base-window-layer");
 export const replayCapeLayer = layer("replay-cape-layer");
 export const replayCinLayer = layer("replay-cin-layer");
 export const replayLclLayer = layer("replay-lcl-layer");
 export const replayFreezingLayer = layer("replay-freezing-layer");
 export const replayMinus15Layer = layer("replay-minus15-layer");
 export const replayWarmDepthLayer = layer("replay-warm-depth-layer");
-export const replayCloudTopLayer = layer("replay-cloud-top-layer");
 export const replayLiquidLayer = layer("replay-liquid-layer");
 export const replayRadarLayer = layer("replay-radar-layer");
 export const replayStormCoreLayer = layer("replay-storm-core-layer");
-export const replayStormFlankLayer = layer("replay-storm-flank-layer");
 export const replayStormMotionLayer = layer("replay-storm-motion-layer");
 export const replayLightningLayer = layer("replay-lightning-layer");
 export const replayEchoFreezeLayer = layer("replay-echo-freeze-layer");
@@ -94,38 +88,32 @@ export const replayConfirmedLayer = layer("replay-confirmed-layer");
 /** The mocked module: every layer `Map.tsx` imports, under its real name. */
 export const layers = {
   CandidateCloudBaseLayer: cloudBaseLayer,
-  CandidateCloudBaseWindowLayer: cloudBaseWindowLayer,
   CandidateCapeLayer: capeLayer,
   CandidateCinLayer: cinLayer,
   CandidateLclLayer: lclLayer,
   CandidateFreezingLayer: freezingLayer,
   CandidateMinus15Layer: minus15Layer,
   CandidateWarmDepthLayer: warmDepthLayer,
-  CandidateCloudTopLayer: cloudTopLayer,
   ForecastCloudsLayer: forecastLayer,
   ForecastPrecipLayer: precipLayer,
   CandidateLiquidLayer: liquidLayer,
   CandidateRadarLayer: radarLayer,
   CandidateStormCoreLayer: stormCoreLayer,
-  CandidateStormFlankLayer: stormFlankLayer,
   CandidateStormMotionLayer: stormMotionLayer,
   CandidateLightningLayer: lightningLayer,
   CandidateEchoFreezeLayer: echoFreezeLayer,
   CandidateFieldLayer: fieldLayer,
   CandidateConfirmedLayer: confirmedLayer,
   ReplayCloudBaseLayer: replayCloudBaseLayer,
-  ReplayCloudBaseWindowLayer: replayCloudBaseWindowLayer,
   ReplayCapeLayer: replayCapeLayer,
   ReplayCinLayer: replayCinLayer,
   ReplayLclLayer: replayLclLayer,
   ReplayFreezingLayer: replayFreezingLayer,
   ReplayMinus15Layer: replayMinus15Layer,
   ReplayWarmDepthLayer: replayWarmDepthLayer,
-  ReplayCloudTopLayer: replayCloudTopLayer,
   ReplayLiquidLayer: replayLiquidLayer,
   ReplayRadarLayer: replayRadarLayer,
   ReplayStormCoreLayer: replayStormCoreLayer,
-  ReplayStormFlankLayer: replayStormFlankLayer,
   ReplayStormMotionLayer: replayStormMotionLayer,
   ReplayLightningLayer: replayLightningLayer,
   ReplayEchoFreezeLayer: replayEchoFreezeLayer,
@@ -133,7 +121,18 @@ export const layers = {
   ReplayConfirmedLayer: replayConfirmedLayer,
 };
 
-export const watch = vi.fn(() => ({ remove: vi.fn() }));
+/**
+ * `reactiveUtils.watch`, recording the callback so a test can drive it.
+ *
+ * Typed with both parameters even though the fake ignores them: the tests
+ * reach for `calls[0][1]` to make the map think the view stopped moving,
+ * and a `vi.fn()` with no declared parameters records an empty tuple.
+ */
+export const watch = vi.fn<
+  (track: () => unknown, onChange: (value: never) => void) => {
+    remove: () => void;
+  }
+>(() => ({ remove: vi.fn() }));
 
 export class FakeMap {
   layers: unknown[] = [];
