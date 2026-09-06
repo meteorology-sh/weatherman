@@ -47,21 +47,35 @@ export const CEILING_LABEL = `${CEILING_FT.toLocaleString("en-US")} ft`;
 export const BaseWindowLegend: LayerLegend = {
   name: "BASE WINDOW",
   source: "NOAA HRRR",
-  summary: `${BASE_WINDOW_LABEL} above the ground`,
+  summary: `Cloud bottoms ${BASE_WINDOW_LABEL} above the ground — the layer a seeding aircraft can reach and work in.`,
   detail: [
-    `${BASE_WINDOW_LABEL} AGL · NOAA HRRR · 3 km.`,
-    "Same field as cloud base. National fill.",
+    "The same modelled cloud base, measured from the ground rather than " +
+      "from sea level — height above ground level, or AGL — and shaded only " +
+      `where the bottom of the cloud falls inside the ${BASE_WINDOW_LABEL} ` +
+      "window Texas seeding aircraft fly.",
+    "National fill: it is drawn everywhere the model runs, not only over " +
+      "Texas, so the window can be read across a state line.",
   ],
 };
 
 export const CloudBaseLegend: LayerLegend = {
   name: "CLOUD BASE",
   source: "NOAA HRRR",
-  summary: "ft MSL",
+  summary: "The height of the bottom of the lowest cloud deck, in feet above sea level (MSL).",
   detail: [
-    `Lowest deck, ft MSL · NOAA HRRR · 3 km. Bands: thirds of ${CEILING_LABEL}.`,
-    `Window switch: ${BASE_WINDOW_LABEL} AGL. Click: height above the ground.`,
-    "Modelled.",
+    "An estimate from the High-Resolution Rapid Refresh (HRRR), a weather " +
+      "model the National Oceanic and Atmospheric Administration (NOAA) " +
+      "re-runs every hour over squares 3 kilometres across. Modelled rather " +
+      "than measured: no instrument reports the bottom of a cloud everywhere " +
+      "at once.",
+    "Heights are above sea level (MSL), and the colour bands split the " +
+      `aircraft's ceiling of ${CEILING_LABEL} into thirds. Because the ` +
+      "reference is the sea and not the ground, the same cloud reads " +
+      "thousands of feet higher over west Texas than over the coast.",
+    `The switch under this layer redraws the field as height above the ` +
+      `ground and shades only the ${BASE_WINDOW_LABEL} window an aircraft ` +
+      "can work in. Clicking the map reports the height above the ground " +
+      "either way.",
   ],
 };
 
@@ -131,72 +145,126 @@ export const LiquidLegend: LayerLegend = {
 export const RadarLegend: LayerLegend = {
   name: "RADAR REFLECTIVITY",
   source: "NOAA MRMS",
-  summary: "dBZ",
+  summary:
+    "How hard rain is falling right now, seen by ground radar. Bigger, " +
+    "heavier drops send back a stronger echo.",
   detail: [
-    "MRMS mosaic · 1 km · 2 min. Candidate map averages four 1 km cells " +
-      "and rounds; evaluation maps keep the native stairs.",
-    `Rain ≥ ${RADAR_BANDS[0].value} dBZ. Contiguous cells are one storm.`,
-    "Core: strongest echo. Arrow: heading from the previous mosaic. " +
-      "Orange: upwind raining flank. Storms ≥ 16 km².",
-    "Lightning: GOES-East GLM flashes, last 5 minutes.",
-    "Echo past freezing: measured 18 dBZ echo top ≥ modelled freezing.",
-    "Measured.",
+    "Measured, not modelled. The National Oceanic and Atmospheric " +
+      "Administration (NOAA) merges every weather radar in the country into " +
+      "one picture, the Multi-Radar/Multi-Sensor mosaic (MRMS), refreshed " +
+      "every two minutes on a grid of squares 1 kilometre across.",
+    "Echo strength is reported in decibels of reflectivity (dBZ). Rain you " +
+      `would notice falling starts near ${RADAR_BANDS[0].value} dBZ, and the ` +
+      "darkest band is a downpour that may be carrying hail. Any connected " +
+      "patch of rain is treated as a single storm.",
+    "The candidate map averages four 1 km cells and rounds, which softens " +
+      "the blocky edges; evaluation maps keep the native squares so the " +
+      "picture matches the raw feed.",
+    "Three switches sit under this layer. The core is the heaviest rain in " +
+      "a storm; the arrow is the direction the storm has moved since the " +
+      "previous picture; and the orange upwind raining flank is the side new " +
+      "cloud is being fed into. Storms smaller than 16 square kilometres are " +
+      "left out.",
+    "Lightning shows flashes from the last five minutes, seen by the " +
+      "Geostationary Lightning Mapper (GLM) aboard NOAA's GOES-East weather " +
+      "satellite.",
+    "Echo past freezing marks storms whose 18 dBZ echo top — the highest " +
+      "point at which radar still sees raindrops — has reached air colder " +
+      "than freezing.",
   ],
 };
 
 export const HeadingLegend: LayerLegend = {
   name: "CORE, HEADING, AND FLANK",
   source: "NOAA MRMS",
-  summary: "heaviest rain, heading, upwind raining edge",
+  summary:
+    "The heaviest rain in a storm, the direction it is moving, and its " +
+    "upwind raining edge, where new cloud is being fed in.",
   detail: [
-    "Core: strongest echo. Arrow: heading from the previous mosaic. " +
-      "Orange: upwind raining edge. Storms ≥ 16 km².",
+    "The core is the strongest echo in the storm. The arrow is the " +
+      "direction and speed it has travelled since the previous radar " +
+      "picture, two minutes earlier. The orange line is the upwind raining " +
+      "edge. Storms smaller than 16 square kilometres are left out.",
   ],
 };
 
 export const EchoFreezeLegend: LayerLegend = {
   name: "ECHO PAST FREEZING",
   source: "NOAA MRMS + NOAA HRRR",
-  summary: "18 dBZ echo top at or above freezing",
+  summary:
+    "Storms lifting rain high enough that the top of the radar echo, its " +
+    "18 dBZ top, sits in air colder than freezing.",
   detail: [
-    "Measured 18 dBZ echo top ≥ modelled freezing. NOAA MRMS + NOAA HRRR.",
+    "The echo top is the highest point at which radar still sees " +
+      "raindrops, read here at an echo strength of 18 dBZ. That part is " +
+      "measured by the national radar mosaic.",
+    "The freezing level is the height at which the air first falls to " +
+      "0 °C. That part comes from the hourly weather model, so it is an " +
+      "estimate.",
+    "Where the echo top is at or above the freezing level, the storm is " +
+      "carrying water up into cold air, which is the situation seeding is " +
+      "meant to work on.",
   ],
 };
 
 export const LightningLegend: LayerLegend = {
   name: "LIGHTNING",
   source: "NOAA GOES-East GLM",
-  summary: "GLM flashes, last 5 minutes",
+  summary: "Lightning flashes seen from orbit in the last five minutes.",
   detail: [
-    "GOES-East GLM flashes, last 5 minutes. Points.",
+    "Each point is one flash recorded by the Geostationary Lightning " +
+      "Mapper (GLM), an instrument aboard NOAA's GOES-East weather " +
+      "satellite, within the last five minutes.",
   ],
 };
 
 export const CandidateLegend: LayerLegend = {
   name: "SEEDING OPPORTUNITY",
   source: "NOAA HRRR + NOAA MRMS",
-  summary: `${BASE_WINDOW_LABEL} AGL window · 18 dBZ echo top past freezing · rain nearby`,
+  summary:
+    "Where three tests pass at once: the cloud sits in the flyable base " +
+    "window, its radar echo reaches past freezing, and rain is already " +
+    "falling nearby.",
   detail: [
-    `Base ${BASE_WINDOW_LABEL} AGL · 18 dBZ echo top ≥ freezing nearby · rain ≥ ${RADAR_BANDS[0].value} dBZ nearby.`,
-    "3 km cell. Click = FLY.",
-    "NOAA HRRR + NOAA MRMS.",
+    "Green marks a square 3 kilometres across where every test passed. " +
+      `First, the bottom of the cloud is ${BASE_WINDOW_LABEL} above the ` +
+      "ground, so an aircraft can fly to it.",
+    "Second, radar nearby shows an 18 dBZ echo top at or above the " +
+      "freezing level, so the storm is carrying water into cold air.",
+    `Third, rain of at least ${RADAR_BANDS[0].value} dBZ is falling nearby, ` +
+      "so the cloud is already producing rather than only promising to.",
+    "Clicking a green square reports FLY along with the numbers behind the " +
+      "call. The cloud figures are modelled and the radar figures are " +
+      "measured.",
   ],
 };
 
 export const CloudCoverLegend: LayerLegend = {
   name: "CLOUD COVER",
   source: "NOAA HRRR",
-  summary: "percent of sky",
-  detail: ["% of sky · NOAA HRRR · 3 km · forecast 0–18 h."],
+  summary: "How much of the sky is covered by cloud, as a percentage.",
+  detail: [
+    "A forecast from the High-Resolution Rapid Refresh (HRRR), the hourly " +
+      "weather model run by the National Oceanic and Atmospheric " +
+      "Administration (NOAA), on a grid of squares 3 kilometres across.",
+    "Drawn for the present hour and each of the next 18 hours. The " +
+      "thinnest cloud is left off, so a lightly hazy sky does not veil the " +
+      "whole map.",
+  ],
 };
 
 export const PrecipLegend: LayerLegend = {
   name: "PRECIPITATION",
   source: "NOAA HRRR",
-  summary: "mm/hr",
+  summary: "How much rain the model expects to fall in an hour, in millimetres.",
   detail: [
-    "mm/hr · NOAA HRRR · NWS intensity classes.",
-    "Empty at the analysis hour.",
+    "A forecast from the same hourly weather model as cloud cover, the " +
+      "High-Resolution Rapid Refresh (HRRR). The four bands are the " +
+      "National Weather Service intensity classes: trace, light, moderate " +
+      "and heavy.",
+    "The present hour is always empty. The model works this number out by " +
+      "adding rainfall up over a step forward in time, so it does not exist " +
+      "until the first forecast hour.",
   ],
 };
 

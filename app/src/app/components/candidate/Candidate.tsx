@@ -16,12 +16,21 @@ export const Candidate = () => {
             <div className="collapse-title font-semibold">Instructions</div>
             <div className="collapse-content text-sm">
               <div className="prose">
+                <p>
+                  Green marks the places worth flying to. Click one for the
+                  numbers behind the call.
+                </p>
+                <p>Green means all three of these are true at once:</p>
                 <ul>
-                  <li>Click the green fill.</li>
                   <li>
-                    FLY: 4,000–12,000 ft AGL, 18 dBZ echo top past freezing,
-                    rain nearby.
+                    The bottom of the cloud is 4,000–12,000 ft above the
+                    ground, so an aircraft can reach it.
                   </li>
+                  <li>
+                    Radar nearby is seeing rain lifted high enough to be
+                    colder than freezing.
+                  </li>
+                  <li>Rain is already falling nearby.</li>
                 </ul>
               </div>
             </div>

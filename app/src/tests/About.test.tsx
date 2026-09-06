@@ -40,7 +40,7 @@ describe("About", () => {
   it("says the radar is measured", () => {
     render(<About />);
 
-    expect(screen.getByText("Measured.")).toBeTruthy();
+    expect(screen.getByText(/Measured, not modelled/)).toBeTruthy();
   });
 
   it("needs no store to render", () => {
