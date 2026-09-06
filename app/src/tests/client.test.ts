@@ -167,9 +167,13 @@ describe("ForecastCloudBaseUrl", () => {
 });
 
 describe("ForecastCloudBaseWindowUrl", () => {
-  it("asks the AGL window, not the height ramp", () => {
+  // The same field and the same bands as the height ramp, trimmed to the
+  // window — so it is that route with a flag on it, not a route of its own.
+  // `/forecast/cloudbase/window` still exists and still serves the bare gate
+  // the evaluation harness scores; the map does not ask for it.
+  it("asks the height ramp for its window-trimmed half", () => {
     expect(ForecastCloudBaseWindowUrl(0)).toBe(
-      "/forecast/cloudbase/window?hour=0&west=-107&east=-93&south=25.5&north=37"
+      "/forecast/cloudbase?hour=0&window=1&west=-107&east=-93&south=25.5&north=37"
     );
     expect(ForecastCloudBaseWindowUrl(0)).not.toBe(ForecastCloudBaseUrl(0));
   });

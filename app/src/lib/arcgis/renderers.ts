@@ -235,13 +235,3 @@ export const warmDepthRenderer = new UniqueValueRenderer({
   uniqueValueInfos: heightInfos(WARM_DEPTH_RGB),
 });
 
-/**
- * Comptroller window: one fill. Drawn instead of the height ramp, not
- * on top of it.
- */
-export const baseWindowRenderer = new SimpleRenderer({
-  symbol: new SimpleFillSymbol({
-    color: [...BASE_WINDOW_RGB, BASE_WINDOW_ALPHA],
-    outline: { width: 0 },
-  }),
-});

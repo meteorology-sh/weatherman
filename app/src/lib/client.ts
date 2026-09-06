@@ -70,8 +70,9 @@ export function ForecastCloudBaseWindowUrl(
   hour: number,
   box: MapBox = INITIAL_BOX
 ): string {
-  return `/forecast/cloudbase/window?${new URLSearchParams({
+  return `/forecast/cloudbase?${new URLSearchParams({
     hour: String(hour),
+    window: "1",
     ...boxParams(box),
   })}`;
 }
@@ -346,9 +347,10 @@ export function ReplayCloudBaseWindowUrl(
   hour = 0,
   box: MapBox = INITIAL_BOX
 ): string {
-  return `/forecast/cloudbase/window?${new URLSearchParams({
+  return `/forecast/cloudbase?${new URLSearchParams({
     hour: String(hour),
     at,
+    window: "1",
     ...boxParams(box),
   })}`;
 }

@@ -143,8 +143,12 @@ export function parseBox(query: {
 
 /** Whether the caller asked for the evaluation's fine rings. */
 export function parseFine(query: { fine?: unknown }): boolean {
-  const v = query.fine;
-  return v === "1" || v === "true" || v === true || v === 1;
+  return parseFlag(query.fine);
+}
+
+/** A query parameter read as a switch: "1", "true", or the values themselves. */
+export function parseFlag(value: unknown): boolean {
+  return value === "1" || value === "true" || value === true || value === 1;
 }
 
 /**

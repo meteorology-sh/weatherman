@@ -70,7 +70,7 @@ import {
   diagnostics,
   recordsAt,
 } from "./diagnostics";
-import { windowValues } from "./basewindow";
+import { windowBaseValues, windowValues } from "./basewindow";
 import {
   BRIEFING_COLD_C,
   CAPE,
@@ -404,19 +404,37 @@ export class ForecastService {
 
   /**
    * Cloud base, banded — the selection variable Texas practice uses.
+   *
+   * `window` trims the field to the 4,000–12,000 ft AGL window without
+   * changing what is drawn: same property, same bands, same height above the
+   * sea, only the ground outside the window taken away. The window is a
+   * height above the terrain and the bands are heights above the sea, so this
+   * has to happen here — the frame carries no terrain for a client to filter
+   * on, and MSL alone cannot say whether a base is reachable.
    */
   async cloudBase(
     hour: number,
     at?: Date,
     box: LonLatBox = DRAWN,
-    fine = false
+    fine = false,
+    window = false
   ): Promise<ContourFrame> {
     const built = await this.surface(hour, at);
+    const grid = window
+      ? {
+          nx: built.base.grid.nx,
+          ny: built.base.grid.ny,
+          values: windowBaseValues(
+            built.base.grid.values,
+            await this.terrain(await this.cycle(at), hour)
+          ),
+        }
+      : built.base.grid;
     return frame(
       built.run,
       hour,
       this.features(
-        built.base.grid,
+        grid,
         CLOUD_BASE.property,
         CLOUD_BASE.edges,
         box,

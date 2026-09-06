@@ -95,20 +95,24 @@ describe("HRRR cloud-base layer", () => {
 });
 
 describe("HRRR cloud-base window", () => {
-  it("reads the AGL window from our own server", () => {
-    expect(CandidateCloudBaseWindowLayer.url).toBe(
-      "/forecast/cloudbase/window"
-    );
+  it("reads the window-trimmed height ramp from our own server", () => {
+    expect(CandidateCloudBaseWindowLayer.url).toBe("/forecast/cloudbase");
     expect(CandidateCloudBaseWindowLayer.customParameters).toEqual({
       hour: "0",
+      window: "1",
       ...BOX,
     });
   });
 
-  it("declares the schema the frame carries", () => {
+  // The switch trims the layer rather than replacing it, so the frame carries
+  // the height it has always carried and the swatches keep their meaning.
+  it("carries the same height the untrimmed ramp does", () => {
     expect(CandidateCloudBaseWindowLayer.geometryType).toBe("polygon");
     expect(CandidateCloudBaseWindowLayer.fields.map((f) => f.name)).toContain(
-      "inWindow"
+      "cloudBaseFt"
+    );
+    expect(CandidateCloudBaseWindowLayer.renderer).toBe(
+      CandidateCloudBaseLayer.renderer
     );
   });
 });

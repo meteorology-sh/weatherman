@@ -19,10 +19,7 @@ import { RADAR_BANDS, RADAR_RGB } from "@/lib/arcgis/bands";
 // Components
 import { LayerToggle, SubToggle } from "@/app/components/panel/LayerToggle";
 import { Ramp } from "@/app/components/panel/Ramp";
-import {
-  CloudBaseRamp,
-  WindowRamp,
-} from "@/app/components/panel/CloudBaseRamp";
+import { CloudBaseRamp } from "@/app/components/panel/CloudBaseRamp";
 
 export const CandidateLayers = () => {
   const dispatch = useAppDispatch();
@@ -69,8 +66,8 @@ export const CandidateLayers = () => {
         checked={cloudBase}
         onChange={(on) => dispatch(cloudBaseActions.setVisible(on))}
       >
-        {baseWindow ? <WindowRamp /> : <CloudBaseRamp />}
-        <div className="text-xs">{baseWindow ? "ft AGL" : "ft MSL"}</div>
+        <CloudBaseRamp />
+        <div className="text-xs">ft MSL</div>
         <SubToggle
           name={BaseWindowLegend.name}
           checked={baseWindow}

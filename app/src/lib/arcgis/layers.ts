@@ -5,7 +5,6 @@ import {
   candidateFieldRenderer,
   forecastCloudRenderer,
   forecastPrecipRenderer,
-  baseWindowRenderer,
   candidateCloudBaseRenderer,
   candidateCloudTopRenderer,
   candidateLiquidRenderer,
@@ -89,12 +88,12 @@ export const ReplayCloudBaseLayer = new GeoJSONLayer({
 export const ReplayCloudBaseWindowLayer = new GeoJSONLayer({
   title: "HRRR cloud base window (replay)",
   copyright: "NOAA HRRR",
-  renderer: baseWindowRenderer,
+  renderer: candidateCloudBaseRenderer,
   geometryType: "polygon",
   objectIdField: "OBJECTID",
   fields: [
     { name: "OBJECTID", type: "oid" },
-    { name: "inWindow", type: "double" },
+    { name: "cloudBaseFt", type: "double" },
   ],
   visible: false,
 });
@@ -408,20 +407,24 @@ export const CandidateCloudBaseLayer = new GeoJSONLayer({
 });
 
 /**
- * Comptroller window, AGL. A picture of the gate, not a mask.
- * Drawn over the rain, like echo past freezing, so the switch
- * is visible on the storm. Pinned to hour 0 like the height ramp.
+ * The height ramp above, trimmed to cloud an aircraft can reach: the same
+ * bands in the same violet, drawn only where the base sits 4,000–12,000 ft
+ * above the ground.
+ *
+ * A second layer rather than a second url on the one above, so the switch
+ * swaps two loaded layers instead of refetching on every toggle. Pinned to
+ * hour 0 like the height ramp.
  */
 export const CandidateCloudBaseWindowLayer = new GeoJSONLayer({
   title: "HRRR cloud base window",
   url: ForecastCloudBaseWindowUrl(0),
   copyright: "NOAA HRRR",
-  renderer: baseWindowRenderer,
+  renderer: candidateCloudBaseRenderer,
   geometryType: "polygon",
   objectIdField: "OBJECTID",
   fields: [
     { name: "OBJECTID", type: "oid" },
-    { name: "inWindow", type: "double" },
+    { name: "cloudBaseFt", type: "double" },
   ],
   visible: false,
 });

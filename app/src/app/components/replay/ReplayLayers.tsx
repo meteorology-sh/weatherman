@@ -19,7 +19,6 @@ import { LayerToggle, SubToggle } from "@/app/components/panel/LayerToggle";
 import { Ramp } from "@/app/components/panel/Ramp";
 import {
   CloudBaseRamp,
-  WindowRamp,
 } from "@/app/components/panel/CloudBaseRamp";
 
 /**
@@ -71,8 +70,8 @@ export const ReplayLayers = () => {
         checked={cloudBase}
         onChange={(on) => dispatch(replayActions.setCloudBase(on))}
       >
-        {baseWindow ? <WindowRamp /> : <CloudBaseRamp />}
-        <div className="text-xs">{baseWindow ? "ft AGL" : "ft MSL"}</div>
+        <CloudBaseRamp />
+        <div className="text-xs">ft MSL</div>
         <SubToggle
           name={BaseWindowLegend.name}
           checked={baseWindow}
