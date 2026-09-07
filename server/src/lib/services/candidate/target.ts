@@ -241,15 +241,6 @@ export function readTarget(inputs: TargetInputs, i: number): TargetPoint {
   };
 }
 
-export function emptyTarget(): TargetPoint {
-  return {
-    target: "noCloudBase",
-    cloudBaseAglFt: null,
-    freezingFt: null,
-    echoTopFt: null,
-  };
-}
-
 /**
  * Fold the join into the numbers eval needs: how much of the asked ground
  * passed, and what removed the rest.

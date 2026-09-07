@@ -196,7 +196,7 @@ app/src/
     context/               # One data provider per domain
     store/
       store.ts             # Singleton store + AppStore/RootState/AppDispatch
-      hooks.ts             # useAppDispatch/useAppSelector/useAppStore
+      hooks.ts             # useAppDispatch/useAppSelector
       features/            # One slice per domain
   tests/                   # All test files (.test.ts / .test.tsx), plus
                            # utils.tsx and arcgis-fakes.ts
@@ -288,21 +288,24 @@ directly.
 ### Slice conventions
 
 ```ts
-type InteractionsState = { coordinates: [number, number] | null };
-const initialState: InteractionsState = { coordinates: null };
+type DomainState = { ring: DomainRing | null; error: string | null };
+const initialState: DomainState = { ring: null, error: null };
 
-const interactionsSlice = createSlice({
-  name: "interactions",
+const domainSlice = createSlice({
+  name: "domain",
   initialState,
   reducers: {
-    setCoordinates(state, action: PayloadAction<[number, number] | null>) {
-      state.coordinates = action.payload; // Immer draft mutation — standard RTK
+    setRing(state, action: PayloadAction<DomainRing>) {
+      state.ring = action.payload; // Immer draft mutation — standard RTK
+    },
+    setError(state, action: PayloadAction<string | null>) {
+      state.error = action.payload;
     },
   },
 });
 
-export const interactionsActions = interactionsSlice.actions; // named export
-export default interactionsSlice.reducer; // default export
+export const domainActions = domainSlice.actions; // named export
+export default domainSlice.reducer; // default export
 ```
 
 - State shape is an explicit named type (`XxxState`), not inferred.
@@ -679,7 +682,7 @@ runner; `/app` and `/server` differ on purpose, like their module systems.
   singleton's cache cannot leak across tests. Router tests are the exception:
   they mock the singleton's method, since that is what the router imports.
 - **Where a build needs eccodes and a large fixture, test the pure parts
-  instead.** `blockAverage`, `blockAverageSparse`, `accumulate`, `nearestCell`,
+  instead.** `coarsenReflectivity`, `downsample`, `accumulate`, `nearestCell`,
   `isothermFt`, `isothermFieldFt`, `diagnostics`, `baseStats` and `sceneTime` are
   exported for exactly that reason, and they are where the reasoning lives.
   **Don't commit GRIB fixtures to get at the wrapper around them.**

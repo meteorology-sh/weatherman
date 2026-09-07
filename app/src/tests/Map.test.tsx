@@ -24,7 +24,6 @@ beforeEach(resetArcgis);
 
 // Store
 import { candidateActions } from "@/lib/store/features/candidate";
-import { interactionsActions } from "@/lib/store/features/interactions";
 import { forecastActions } from "@/lib/store/features/forecast";
 import { cloudBaseActions } from "@/lib/store/features/cloudbase";
 import { domainActions } from "@/lib/store/features/domain";
@@ -155,23 +154,6 @@ describe("ArcGIS", () => {
     expect(layers.indexOf(liquidLayer)).toBeGreaterThan(
       layers.indexOf(cloudBaseLayer)
     );
-  });
-
-  it("flies to a selected location", () => {
-    const store = createTestStore();
-
-    renderWithStore(<ArcGIS mode="candidate" />, store);
-    act(() => {
-      store.dispatch(interactionsActions.setCoordinates([-100, 40]));
-    });
-
-    expect(view().goTo).toHaveBeenCalledWith({ center: [-100, 40], zoom: 6 });
-  });
-
-  it("does not fly anywhere until a point is selected", () => {
-    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
-
-    expect(view().goTo).not.toHaveBeenCalled();
   });
 });
 

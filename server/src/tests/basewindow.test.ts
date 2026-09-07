@@ -8,7 +8,6 @@ import {
   inBaseWindow,
   windowValues,
 } from "../lib/services/hrrr/basewindow";
-import { inPermits } from "../lib/services/shared/permits";
 
 const [WINDOW_LOW, WINDOW_HIGH] = BASE_WINDOW_FT;
 
@@ -23,20 +22,6 @@ describe("inBaseWindow", () => {
 
   it("rejects a 3,000 ft AGL base", () => {
     assert.equal(inBaseWindow(3000), false);
-  });
-});
-
-describe("inPermits", () => {
-  it("covers San Angelo, which West Texas flies", () => {
-    assert.equal(inPermits(31.45, -100.45), true);
-  });
-
-  it("does not cover Denver", () => {
-    assert.equal(inPermits(39.7, -105.0), false);
-  });
-
-  it("covers Pleasanton, which South Texas flies", () => {
-    assert.equal(inPermits(28.97, -98.48), true);
   });
 });
 

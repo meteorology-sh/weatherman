@@ -86,7 +86,6 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const [viewBox, setViewBox] = useState(INITIAL_BOX);
 
   const dispatch = useAppDispatch();
-  const coordinates = useAppSelector((state) => state.interactions.coordinates);
   const hour = useAppSelector((state) => state.forecast.hour);
   const precip = useAppSelector((state) => state.forecast.precip);
   const forecastLiquid = useAppSelector((state) => state.forecast.liquid);
@@ -483,16 +482,6 @@ export const ArcGIS = ({ mode }: PropsT) => {
 
     return () => handle.remove();
   }, [mode, ring, dispatch]);
-
-  // Fly to a selected location
-  useEffect(() => {
-    if (coordinates && viewRef.current) {
-      viewRef.current.goTo({
-        center: coordinates,
-        zoom: 6,
-      });
-    }
-  }, [coordinates]);
 
   return (
     <div className="w-full h-full">

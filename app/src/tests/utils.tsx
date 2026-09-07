@@ -8,7 +8,6 @@ import candidateReducer from "@/lib/store/features/candidate";
 import cloudBaseReducer from "@/lib/store/features/cloudbase";
 import cloudTopReducer from "@/lib/store/features/cloudtop";
 import domainReducer from "@/lib/store/features/domain";
-import interactionsReducer from "@/lib/store/features/interactions";
 import forecastReducer from "@/lib/store/features/forecast";
 import radarReducer from "@/lib/store/features/radar";
 import seedabilityReducer from "@/lib/store/features/seedability";
@@ -58,7 +57,6 @@ export function createTestStore() {
       cloudbase: cloudBaseReducer,
       cloudtop: cloudTopReducer,
       domain: domainReducer,
-      interactions: interactionsReducer,
       forecast: forecastReducer,
       radar: radarReducer,
       seedability: seedabilityReducer,

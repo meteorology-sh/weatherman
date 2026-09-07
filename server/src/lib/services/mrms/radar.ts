@@ -75,14 +75,7 @@ const LAT0 = 54.995;
 const LON0 = -129.995;
 const STEP = 0.01;
 
-/**
- * 1 km -> 12 km, kept for the averaging helper the tests drive. The
- * candidate map averages four 1 km cells instead ({@link DRAW_BLOCK}).
- */
-const BLOCK = 12;
-
-/** Degrees per block, and the km one degree of latitude spans. */
-const CELL_DEG = BLOCK * STEP;
+/** The km one degree of latitude spans. */
 const KM_PER_DEG = 111.32;
 
 /**
@@ -742,7 +735,7 @@ function prepareRadarDraw(
  * Mean each `factor`×`factor` block in Z = 10^(dBZ/10). A plain mean of
  * dBZ is not the mean of anything. No-coverage points stay out of the
  * denominator; no-echo is a real zero. The crop is already south-up, so
- * this does not flip rows the way {@link blockAverage} does.
+ * this does not flip rows the way {@link nativeGrid} does.
  */
 export function coarsenReflectivity(
   grid: Grid,
@@ -793,64 +786,10 @@ export function coarsenReflectivity(
 }
 
 /**
- * Block-average the mosaic to the 12 km contour grid, **in linear reflectivity
- * factor rather than dBZ**.
- *
- * dBZ is a logarithm, so a plain mean of it is not the mean of anything. The
- * average of 20 and 50 dBZ is not 35 dBZ of weather — it is a cell holding half
- * the water of a 47 dBZ one. So each point is converted to Z = 10^(dBZ/10),
- * averaged there, and converted back, which is the same operation the
- * block-average in forecast.ts performs on a linear field.
- *
- * **Rows are flipped north-up to south-up on the way out**, and that is
- * load-bearing rather than tidiness. MRMS scans north to south; HRRR's grid
- * runs south to north, and `polygons` infers a ring's orientation from its
- * signed area. Feeding it a north-up grid flips the sign of every ring, so
- * exteriors are classified as holes and — having no exterior to nest inside —
- * silently dropped: a mosaic with 2,395 cells over 20 dBZ contoured to 23 tiny
- * polygons, and the 40 and 50 dBZ levels disappeared while the stats still
- * reported a 57 dBZ peak. Flipping here keeps the shared contourer on one
- * convention.
- *
- * `nx`/`ny` are parameters so this is testable on a grid you can read.
- */
-export function blockAverage(values: Float32Array, nx = NX, ny = NY): Grid {
-  const ox = Math.floor(nx / BLOCK);
-  const oy = Math.floor(ny / BLOCK);
-  const out = new Float32Array(ox * oy);
-
-  for (let sj = 0; sj < oy; sj++) {
-    const oj = oy - 1 - sj;
-    for (let bi = 0; bi < ox; bi++) {
-      let z = 0;
-      let covered = 0;
-      for (let dj = 0; dj < BLOCK; dj++) {
-        const row = (sj * BLOCK + dj) * nx + bi * BLOCK;
-        for (let di = 0; di < BLOCK; di++) {
-          const v = values[row + di];
-          if (v <= NO_COVERAGE) continue;
-          covered++;
-          // No echo contributes a real zero: the radar looked and found none.
-          if (v > NO_ECHO) z += Math.pow(10, v / 10);
-        }
-      }
-      out[oj * ox + bi] =
-        covered === 0
-          ? BLOCK_NO_COVERAGE
-          : z === 0
-            ? BLOCK_NO_ECHO
-            : 10 * Math.log10(z / covered);
-    }
-  }
-  return { nx: ox, ny: oy, values: out };
-}
-
-/**
  * Flip a north-up mosaic south-up and keep every 1 km cell.
  *
  * MRMS scans north to south; the shared contourer infers ring orientation from
- * signed area, so a north-up grid would drop every exterior as a hole. The
- * block-average helper flips for the same reason.
+ * signed area, so a north-up grid would drop every exterior as a hole.
  */
 export function nativeGrid(
   values: Float32Array,
@@ -901,29 +840,6 @@ export function mosaicIndex(
   const i = Math.round((lon - LON0) / STEP);
   if (sj < 0 || sj >= ny || i < 0 || i >= nx) return -1;
   return (ny - 1 - sj) * nx + i;
-}
-
-/**
- * Lat/lon of each block's center, south row first. The mosaic is a regular
- * lat/lon grid, so this is arithmetic — no GRIB read required.
- */
-export function blockGeo(nx = NX, ny = NY): Geo {
-  const ox = Math.floor(nx / BLOCK);
-  const oy = Math.floor(ny / BLOCK);
-  const lats = new Float32Array(ox * oy);
-  const lons = new Float32Array(ox * oy);
-  const half = (BLOCK - 1) / 2;
-
-  for (let sj = 0; sj < oy; sj++) {
-    const lat = LAT0 - STEP * (sj * BLOCK + half);
-    const oj = oy - 1 - sj;
-    for (let bi = 0; bi < ox; bi++) {
-      const k = oj * ox + bi;
-      lats[k] = lat;
-      lons[k] = LON0 + STEP * (bi * BLOCK + half);
-    }
-  }
-  return { nx: ox, ny: oy, lats, lons };
 }
 
 /**

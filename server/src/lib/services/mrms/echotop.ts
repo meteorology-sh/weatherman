@@ -60,9 +60,6 @@ const ARCHIVE_CACHE = 4;
 export const NO_ECHO_KM = -1;
 export const NO_COVERAGE_KM = -3;
 
-/** The reflectivity the height is taken at, dBZ. */
-export const ECHO_TOP_DBZ = 18;
-
 /** Kilometers MSL to feet. */
 export const KM_TO_FT = METERS_TO_FEET * 1000;
 

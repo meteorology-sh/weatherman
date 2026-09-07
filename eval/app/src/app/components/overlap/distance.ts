@@ -49,8 +49,6 @@ const UNMEASURED: Tone = {
   label: "Nothing painted at this hour",
 };
 
-export const TONES = [INSIDE, ONE_CELL, TWO_CELLS, BEYOND] as const;
-
 /** Native cell size for a layer, accepting the old single-number files. */
 export function cellSize(
   cellKm: number | Record<string, number> | undefined,

@@ -111,9 +111,6 @@ const CLOUD_TOP = {
   levels: [5, 12, 18, 25],
 } as const;
 
-/** The warm edge, as a temperature. Mirrors BAND_WARMEST_C in the app. */
-export const TOP_WARMEST_C = -CLOUD_TOP.levels[0];
-
 /**
  * Marks a cell the satellite reports as clear.
  *

@@ -18,11 +18,9 @@ import {
   motionLengthKm,
   near,
   NEAR_LIMIT_KM,
-  quietRing,
   stormStyle,
   upwindBoundary,
   upwindOf,
-  upwindRing,
 } from "../lib/services/mrms/objects";
 
 // Types
@@ -303,73 +301,6 @@ describe("near", () => {
     const close = near(30.1, -99.6, found, far.geo, TIME);
     assert.ok(km(30.1, -99.6, 30.1, -99.9) < NEAR_LIMIT_KM);
     assert.ok(close);
-  });
-});
-
-describe("quietRing", () => {
-  it("is the clear cells that touch the rain, not the raining cells", () => {
-    const { grid, geo } = scene([
-      [0, 0, 0, 0, 0],
-      [0, 0, 30, 0, 0],
-      [0, 30, 50, 30, 0],
-      [0, 0, 30, 0, 0],
-      [0, 0, 0, 0, 0],
-    ]);
-    const [storm] = identify(grid, geo, 20, TIME);
-    const ring = quietRing(storm, grid, 20);
-    assert.ok(ring.length > 0);
-    for (const k of ring) {
-      assert.ok(grid.values[k] < 20);
-      assert.ok(!storm.cells.includes(k));
-    }
-  });
-
-  it("does not treat uncovered ground as a place to fly", () => {
-    const { grid, geo } = scene([
-      [-999, -999, -999],
-      [-999, 40, -999],
-      [-999, -999, -999],
-    ]);
-    const [storm] = identify(grid, geo, 20, TIME);
-    assert.equal(quietRing(storm, grid, 20).length, 0);
-  });
-});
-
-describe("upwindRing", () => {
-  it("is empty when the storm has no motion", () => {
-    const { grid, geo } = scene([
-      [0, 0, 0],
-      [0, 40, 0],
-      [0, 0, 0],
-    ]);
-    const [storm] = identify(grid, geo, 20, TIME);
-    assert.equal(upwindRing(storm, grid, geo, 20).length, 0);
-  });
-
-  it("keeps only the quiet cells on the side the storm is moving away from", () => {
-    const { grid, geo } = scene([
-      [0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0],
-      [0, 0, 40, 0, 0],
-      [0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0],
-    ]);
-    const [storm] = identify(grid, geo, 20, TIME);
-    storm.motionTowardDeg = 90;
-    const ring = upwindRing(storm, grid, geo, 20);
-    assert.ok(ring.length > 0);
-    for (const k of ring) {
-      assert.ok(grid.values[k] < 20);
-      assert.ok(
-        upwindOf(
-          storm.coreLat,
-          storm.coreLon,
-          geo.lats[k],
-          geo.lons[k],
-          90
-        )
-      );
-    }
   });
 });
 

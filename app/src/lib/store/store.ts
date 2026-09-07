@@ -3,7 +3,6 @@ import candidateReducer from "./features/candidate";
 import cloudBaseReducer from "./features/cloudbase";
 import cloudTopReducer from "./features/cloudtop";
 import domainReducer from "./features/domain";
-import interactionsReducer from "./features/interactions";
 import forecastReducer from "./features/forecast";
 import radarReducer from "./features/radar";
 import seedabilityReducer from "./features/seedability";
@@ -20,7 +19,6 @@ export const store = configureStore({
     cloudbase: cloudBaseReducer,
     cloudtop: cloudTopReducer,
     domain: domainReducer,
-    interactions: interactionsReducer,
     forecast: forecastReducer,
     radar: radarReducer,
     seedability: seedabilityReducer,

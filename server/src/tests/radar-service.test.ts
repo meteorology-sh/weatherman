@@ -4,8 +4,6 @@ import assert from "node:assert/strict";
 
 // Services
 import {
-  blockAverage,
-  blockGeo,
   coarsenReflectivity,
   nativeGeo,
   nativeGrid,
@@ -14,81 +12,9 @@ import {
 } from "../lib/services/mrms/radar";
 import { polygons } from "../lib/services/shared/contour";
 
-/** MRMS's own sentinels, which the block grid keeps. */
+/** MRMS's own sentinels, which the coarsened grid keeps. */
 const NO_ECHO = -99;
 const NO_COVERAGE = -999;
-
-/** dBZ -> reflectivity factor, so tests can state the answer in Z. */
-const z = (dbz: number) => Math.pow(10, dbz / 10);
-const dbz = (Z: number) => 10 * Math.log10(Z);
-
-/**
- * A grid of `BLOCK` x `BLOCK` points that averages to exactly one output cell.
- * `fill` is the value everywhere; `some` overwrites the first `n` points.
- */
-const oneBlock = (fill: number, some: number[] = []) => {
-  const values = new Float32Array(12 * 12).fill(fill);
-  some.forEach((v, i) => (values[i] = v));
-  return values;
-};
-
-const only = (grid: { values: Float32Array }) => grid.values[0];
-
-describe("blockAverage (reflectivity)", () => {
-  it("averages in reflectivity factor, not in dBZ", () => {
-    // 72 points at 20 dBZ and 72 at 50 dBZ. The dBZ mean would be 35; the
-    // physical answer is the mean of Z, which is ~47 dBZ.
-    const values = oneBlock(50, new Array(72).fill(20));
-
-    const got = only(blockAverage(values, 12, 12));
-
-    assert.equal(
-      Math.round(got),
-      Math.round(dbz((72 * z(20) + 72 * z(50)) / 144))
-    );
-    assert.ok(got > 46 && got < 48, `${got}`);
-  });
-
-  it("keeps a single value unchanged", () => {
-    assert.equal(Math.round(only(blockAverage(oneBlock(35), 12, 12))), 35);
-  });
-
-  // The radar looked and found nothing. That is data, and it must dilute the
-  // cell it shares with an echo rather than being skipped.
-  it("counts no-echo points as zero water, not as absent", () => {
-    const values = oneBlock(NO_ECHO, new Array(72).fill(40));
-
-    const got = only(blockAverage(values, 12, 12));
-
-    assert.equal(Math.round(got), Math.round(dbz((72 * z(40)) / 144)));
-  });
-
-  // The opposite case, and the one that would lie: no radar sees these points,
-  // so they cannot be evidence that it is not raining there.
-  it("drops no-coverage points from the denominator", () => {
-    const values = oneBlock(NO_COVERAGE, new Array(72).fill(40));
-
-    const got = only(blockAverage(values, 12, 12));
-
-    assert.equal(Math.round(got), 40);
-  });
-
-  it("marks a block nothing covers as no coverage", () => {
-    assert.equal(
-      only(blockAverage(oneBlock(NO_COVERAGE), 12, 12)),
-      NO_COVERAGE
-    );
-  });
-
-  it("marks a covered block with no echo as no echo, not as no coverage", () => {
-    assert.equal(only(blockAverage(oneBlock(NO_ECHO), 12, 12)), NO_ECHO);
-  });
-
-  it("puts both sentinels below every contour level", () => {
-    assert.ok(NO_ECHO < 20);
-    assert.ok(NO_COVERAGE < 20);
-  });
-});
 
 describe("coarsenReflectivity", () => {
   it("averages a crop in Z, without flipping rows", () => {
@@ -135,60 +61,6 @@ describe("coarsenReflectivity", () => {
   });
 });
 
-describe("blockAverage orientation", () => {
-  /**
-   * MRMS scans north to south and the contourer reads ring orientation from
-   * signed area, so a north-up grid inverts every ring and the polygons are
-   * silently dropped. This is the assertion that catches that: the echo is in
-   * the *first* source row, which is the northernmost, and must come out in the
-   * *last* grid row.
-   */
-  it("flips north-up rows into the south-up grid the contourer expects", () => {
-    const values = new Float32Array(12 * 24).fill(NO_ECHO);
-    for (let i = 0; i < 12 * 12; i++) values[i] = 40; // northern block
-
-    const grid = blockAverage(values, 12, 24);
-
-    assert.equal(grid.ny, 2);
-    assert.equal(Math.round(grid.values[1]), 40); // row 1 is the north one
-    assert.equal(grid.values[0], NO_ECHO);
-  });
-
-  it("gives the northern block the higher latitude", () => {
-    const geo = blockGeo(12, 24);
-
-    assert.ok(geo.lats[1] > geo.lats[0]);
-  });
-
-  // The bug this pair exists for: with the rows the other way up every ring's
-  // signed area flips, exteriors are read as holes, and a solid blob contours to
-  // nothing at all.
-  it("contours a blob rather than dropping it as an inverted ring", () => {
-    // 3x3 blocks; the echo is the middle block of the northernmost row.
-    const values = new Float32Array(36 * 36).fill(NO_ECHO);
-    for (let row = 0; row < 12; row++) {
-      for (let col = 12; col < 24; col++) values[row * 36 + col] = 40;
-    }
-
-    const rings = polygons(blockAverage(values, 36, 36), blockGeo(36, 36), 20);
-
-    assert.equal(rings.length, 1);
-  });
-
-  it("draws that blob in the north, where the radar saw it", () => {
-    const values = new Float32Array(36 * 36).fill(NO_ECHO);
-    for (let row = 0; row < 12; row++) {
-      for (let col = 12; col < 24; col++) values[row * 36 + col] = 40;
-    }
-    const geo = blockGeo(36, 36);
-
-    const [exterior] = polygons(blockAverage(values, 36, 36), geo, 20)[0];
-    const lats = exterior.map(([, lat]) => lat);
-
-    assert.ok(Math.min(...lats) > geo.lats[geo.nx], `${Math.min(...lats)}`);
-  });
-});
-
 describe("nativeGrid orientation", () => {
   it("flips north-up rows into the south-up grid the contourer expects", () => {
     const values = new Float32Array(12 * 2).fill(NO_ECHO);
@@ -222,23 +94,6 @@ describe("nativeGeo", () => {
   it("steps a point at a time", () => {
     const geo = nativeGeo(12, 12);
     assert.ok(Math.abs(geo.lons[1] - geo.lons[0] - 0.01) < 1e-4);
-  });
-});
-
-describe("blockGeo", () => {
-  it("places the first block at the mosaic's north-west corner", () => {
-    const geo = blockGeo();
-
-    // 583 x 291 blocks of 12, centered half a block in from 54.995 N, 129.995 W.
-    const north = geo.lats[(geo.ny - 1) * geo.nx];
-    assert.ok(Math.abs(north - 54.94) < 0.01, `${north}`);
-    assert.ok(Math.abs(geo.lons[0] - -129.94) < 0.01, `${geo.lons[0]}`);
-  });
-
-  it("steps a block at a time, not a point at a time", () => {
-    const geo = blockGeo();
-
-    assert.ok(Math.abs(geo.lons[1] - geo.lons[0] - 0.12) < 1e-4);
   });
 });
 

@@ -648,57 +648,6 @@ export function near(
 }
 
 /**
- * Cells that touch this storm and are below `threshold`, but that a radar
- * actually looked at. No-coverage sentinels stay out: nobody saw those.
- */
-export function quietRing(
-  storm: StormObject,
-  grid: Grid,
-  threshold: number
-): number[] {
-  const { nx, ny, values } = grid;
-  const member = new Set(storm.cells);
-  const ring = new Set<number>();
-  const step = [
-    [-1, 0],
-    [1, 0],
-    [0, -1],
-    [0, 1],
-  ];
-  for (const k of storm.cells) {
-    const i = k % nx;
-    const j = Math.floor(k / nx);
-    for (const [di, dj] of step) {
-      const ni = i + di;
-      const nj = j + dj;
-      if (ni < 0 || ni >= nx || nj < 0 || nj >= ny) continue;
-      const nk = nj * nx + ni;
-      if (member.has(nk)) continue;
-      // Below rain, but not "no radar": −999 is uncovered ground.
-      if (values[nk] < threshold && values[nk] > -900) ring.add(nk);
-    }
-  }
-  return [...ring];
-}
-
-/**
- * The quiet, covered cells on the side this storm is moving away from.
- * Empty when the storm has no motion: we do not guess an inflow side.
- */
-export function upwindRing(
-  storm: StormObject,
-  grid: Grid,
-  geo: Geo,
-  threshold: number
-): number[] {
-  if (storm.motionTowardDeg === null) return [];
-  const toward = storm.motionTowardDeg;
-  return quietRing(storm, grid, threshold).filter((k) =>
-    upwindOf(storm.coreLat, storm.coreLon, geo.lats[k], geo.lons[k], toward)
-  );
-}
-
-/**
  * Raining cells on the upwind edge of this storm. The flank, still ≥20 dBZ,
  * not the no-rain ground outside it. Empty when the storm has no motion.
  */

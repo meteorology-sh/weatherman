@@ -328,13 +328,6 @@ export const PRECIP_LABELS = ["trace", "light", "moderate", "heavy"] as const;
 export const SLW_LABELS = ["trace", "marginal", "good", "prime"] as const;
 
 /**
- * Parallel to CANDIDATE_BANDS. The same words as SLW_LABELS, because it is the
- * same quantity on the same levels — what differs is that these cells passed
- * every other test, not how much water is in them.
- */
-export const CANDIDATE_LABELS = SLW_LABELS;
-
-/**
  * Parallel to RADAR_BANDS. The NWS reflectivity classes, in the words an
  * operator reads: 20 dBZ is drizzle you could fly through, 50 is a cell with
  * hail in it.

@@ -11,94 +11,12 @@ import {
   recordsAt,
 } from "../lib/services/hrrr/diagnostics";
 import { CEILING_FT } from "../lib/services/shared/aircraft";
-import { blockAverageSparse } from "../lib/services/shared/grid";
 
 // Types
 import type { Fields } from "../lib/services/hrrr/diagnostics";
 import type { Grid } from "../lib/services/shared/contour";
 
-const MISSING = -9_999_999;
 const RUN = new Date("2025-05-15T18:00:00.000Z");
-
-/** A 4x4 field, which is exactly one 12 km block. */
-const block = (values: number[]) => new Float32Array(values);
-
-describe("blockAverageSparse", () => {
-  it("averages a fully sampled block like the plain block average", () => {
-    const grid = blockAverageSparse(
-      block(new Array(16).fill(3000)),
-      1,
-      MISSING,
-      4,
-      4
-    );
-
-    assert.equal(grid.values[0], 3000);
-  });
-
-  // Averaging a sentinel in would put a cloud base halfway to -9,999,999
-  // wherever cloud met clear sky.
-  it("keeps missing points out of the mean", () => {
-    const values = [...new Array(9).fill(4000), ...new Array(7).fill(MISSING)];
-    const grid = blockAverageSparse(block(values), 1, MISSING, 4, 4);
-
-    assert.equal(grid.values[0], 4000);
-  });
-
-  // The same majority rule the satellite scene is resampled with: scattered
-  // cumulus under half a 12 km box is not a target a drone is sent to.
-  it("gives a cell no value at all when most of it is unsampled", () => {
-    const values = [...new Array(8).fill(4000), ...new Array(8).fill(MISSING)];
-    const grid = blockAverageSparse(block(values), 1, MISSING, 4, 4);
-
-    assert.ok(Number.isNaN(grid.values[0]));
-  });
-
-  it("counts a bare majority as sampled", () => {
-    const values = [...new Array(9).fill(4000), ...new Array(7).fill(MISSING)];
-    const grid = blockAverageSparse(block(values), 1, MISSING, 4, 4);
-
-    assert.equal(Number.isNaN(grid.values[0]), false);
-  });
-
-  // Meters in the GRIB, feet on the readout.
-  it("scales the block mean into the units the readout uses", () => {
-    const grid = blockAverageSparse(
-      block(new Array(16).fill(1000)),
-      3.28084,
-      MISSING,
-      4,
-      4
-    );
-
-    assert.equal(Math.round(grid.values[0]), 3281);
-  });
-
-  // A field with no bitmap has no sentinel, and the majority rule must not
-  // then fire on a value that happens to equal one.
-  it("treats every point as sampled when the field has no sentinel", () => {
-    const values = [...new Array(16).fill(MISSING)];
-    const grid = blockAverageSparse(block(values), 1, null, 4, 4);
-
-    assert.equal(grid.values[0], MISSING);
-  });
-
-  // eccodes prints missing points as 9999 by default, and 9999 meters is an
-  // ordinary cloud top — HRRR carries real ones half again as high in the same
-  // file. Decoding at the default reads deep convection as nodata, and the
-  // symptom is a cloud top below its own cloud base rather than an error.
-  it("keeps 9999 as a value, because in meters it is one", () => {
-    const grid = blockAverageSparse(
-      block(new Array(16).fill(9999)),
-      1,
-      MISSING,
-      4,
-      4
-    );
-
-    assert.equal(grid.values[0], 9999);
-  });
-});
 
 describe("recordsAt", () => {
   // The same fact PRATE has, verified the same way: LTNG at f00 is a 188-byte

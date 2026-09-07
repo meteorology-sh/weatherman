@@ -4,7 +4,6 @@ import assert from "node:assert/strict";
 
 // Services
 import {
-  emptyTarget,
   flyValues,
   join,
   readTarget,
@@ -282,17 +281,6 @@ describe("readTarget", () => {
       readTarget(cell({ echoTopFt: Number.NaN }), 0).echoTopFt,
       null
     );
-  });
-});
-
-describe("emptyTarget", () => {
-  it("is the answer when the target join did not run", () => {
-    const point = emptyTarget();
-
-    assert.equal(point.target, "noCloudBase");
-    assert.equal(point.cloudBaseAglFt, null);
-    assert.equal(point.freezingFt, null);
-    assert.equal(point.echoTopFt, null);
   });
 });
 
