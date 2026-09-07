@@ -7,14 +7,17 @@ import { forecastActions } from "@/lib/store/features/forecast";
 
 // ArcGIS
 import {
+  BAND_LABEL,
   CLOUD_BANDS,
   PRECIP_BANDS,
+  SLW_BANDS,
+  SLW_RGB,
   stackedColor,
   PRECIP_RGB,
 } from "@/lib/arcgis/bands";
 
 // ArcGIS
-import { PrecipLegend } from "@/lib/arcgis/legends";
+import { LiquidLegend, PrecipLegend } from "@/lib/arcgis/legends";
 
 // Components
 import { ForecastLayers } from "@/app/components/forecast/ForecastLayers";
@@ -176,5 +179,94 @@ describe("ForecastLayers", () => {
     });
 
     expect(store.getState().forecast.hour).toBe(1);
+  });
+});
+
+// The forecast map's third layer, and the only one on it that is off on
+// arrival: cloud and rain are what this map is, and this is a seeding reading
+// taken on the same run.
+describe("ForecastLayers supercooled liquid", () => {
+  const LIQUID = LiquidLegend.name;
+
+  it("offers the layer, switched off", () => {
+    renderWithStore(<ForecastLayers />, createTestStore());
+
+    expect((screen.getByLabelText(LIQUID) as HTMLInputElement).checked).toBe(
+      false
+    );
+  });
+
+  it("turns the layer on when its switch is clicked", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ForecastLayers />, store);
+    act(() => {
+      (screen.getByLabelText(LIQUID) as HTMLElement).click();
+    });
+
+    expect(store.getState().forecast.liquid).toBe(true);
+  });
+
+  // Off on arrival, so the panel opens on the two ramps it always had.
+  it("keeps its ramp out of the panel until it is asked for", () => {
+    const store = createTestStore();
+
+    const { container } = renderWithStore(<ForecastLayers />, store);
+    expect(swatches(container)).toHaveLength(
+      CLOUD_BANDS.length + PRECIP_BANDS.length
+    );
+
+    act(() => {
+      store.dispatch(forecastActions.setLiquid(true));
+    });
+
+    expect(swatches(container)).toHaveLength(
+      CLOUD_BANDS.length + PRECIP_BANDS.length + SLW_BANDS.length
+    );
+  });
+
+  it("paints each swatch the color the map composites", () => {
+    const store = createTestStore();
+
+    const { container } = renderWithStore(<ForecastLayers />, store);
+    act(() => {
+      store.dispatch(forecastActions.setPrecip(false));
+      store.dispatch(forecastActions.setLiquid(true));
+    });
+
+    const liquid = swatches(container).slice(CLOUD_BANDS.length);
+    const richest = liquid[liquid.length - 1];
+    expect(rgba(richest.style.backgroundColor)).toBe(
+      rgba(stackedColor(SLW_BANDS, SLW_RGB, SLW_BANDS.length))
+    );
+  });
+
+  // g/m² is a column amount over ground, not a concentration and not an area.
+  it("says the figure is per square meter of ground, over the band", () => {
+    const store = createTestStore();
+
+    const { container } = renderWithStore(<ForecastLayers />, store);
+    act(() => {
+      store.dispatch(forecastActions.setLiquid(true));
+    });
+
+    expect(container.textContent).toContain("g/m² of ground");
+    expect(container.textContent).toContain(BAND_LABEL);
+    expect(container.textContent).not.toContain("g/m³");
+  });
+
+  // Unlike precipitation, which HRRR only has once it steps forward. A blanked
+  // ramp here would say the model has nothing at f00, which is false.
+  it("draws at the analysis hour, where precipitation cannot", () => {
+    const store = createTestStore();
+
+    const { container } = renderWithStore(<ForecastLayers />, store);
+    act(() => {
+      store.dispatch(forecastActions.setPrecip(false));
+      store.dispatch(forecastActions.setLiquid(true));
+    });
+
+    expect(store.getState().forecast.hour).toBe(0);
+    expect(container.querySelectorAll(".opacity-30")).toHaveLength(0);
   });
 });

@@ -309,6 +309,38 @@ export const CandidateLiquidLayer = new GeoJSONLayer({
   url: ForecastLiquidUrl(0),
   copyright: "NOAA HRRR",
   renderer: candidateLiquidRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "slwPath", type: "double" },
+  ],
+  visible: false,
+});
+
+/**
+ * The same field on the forecast map, following the hour slider.
+ *
+ * Its own instance rather than the candidate map's, for the reason every pair
+ * here is split: that one is pinned to the analysis, and repointing it at +12 h
+ * would leave a forecast on a map captioned "right now".
+ *
+ * `fields` and `geometryType` are declared rather than inferred, like the
+ * precipitation layer's and for the same reason — an hour with no in-band
+ * liquid anywhere comes back as an empty FeatureCollection, which gives ArcGIS
+ * no schema to infer and leaves the renderer with no field to match.
+ */
+export const ForecastLiquidLayer = new GeoJSONLayer({
+  title: "HRRR forecast supercooled liquid water",
+  url: ForecastLiquidUrl(0),
+  copyright: "NOAA HRRR",
+  renderer: candidateLiquidRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: [
+    { name: "OBJECTID", type: "oid" },
+    { name: "slwPath", type: "double" },
+  ],
   visible: false,
 });
 
@@ -406,5 +438,3 @@ export const CandidateEchoFreezeLayer = new GeoJSONLayer({
   ],
   visible: false,
 });
-
-

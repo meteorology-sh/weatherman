@@ -3,14 +3,22 @@ import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
 import { forecastActions } from "@/lib/store/features/forecast";
 
 // ArcGIS
-import { CloudCoverLegend, PrecipLegend } from "@/lib/arcgis/legends";
 import {
+  CloudCoverLegend,
+  LiquidLegend,
+  PrecipLegend,
+} from "@/lib/arcgis/legends";
+import {
+  BAND_LABEL,
   CLOUD_BANDS,
   CLOUD_RGB,
   PRECIP_BANDS,
   PRECIP_LABELS,
   PRECIP_RGB,
   PRECIP_FIRST_HOUR,
+  SLW_BANDS,
+  SLW_LABELS,
+  SLW_RGB,
 } from "@/lib/arcgis/bands";
 
 // Components
@@ -21,6 +29,7 @@ import { Ramp } from "@/app/components/panel/Ramp";
 export const ForecastLayers = () => {
   const dispatch = useAppDispatch();
   const precip = useAppSelector((state) => state.forecast.precip);
+  const liquid = useAppSelector((state) => state.forecast.liquid);
   const hour = useAppSelector((state) => state.forecast.hour);
   const blank = hour < PRECIP_FIRST_HOUR;
 
@@ -70,6 +79,28 @@ export const ForecastLayers = () => {
         ) : (
           <div className="text-xs">mm/hr</div>
         )}
+      </LayerToggle>
+
+      {/* The one layer on this map that is off on arrival. Cloud and rain are
+          what the forecast map is; this is a seeding reading taken on it, and
+          each hour of it is a fresh integration on the server rather than a
+          window off a build that is already warm. So it waits to be asked. */}
+      <LayerToggle
+        legend={LiquidLegend}
+        checked={liquid}
+        onChange={(on) => dispatch(forecastActions.setLiquid(on))}
+      >
+        <Ramp
+          bands={SLW_BANDS}
+          rgb={SLW_RGB}
+          captions={SLW_BANDS.map((band) => String(band.value))}
+          titles={SLW_LABELS}
+        />
+        <div className="text-xs">
+          g/m² of ground, summed through the {BAND_LABEL} band. Unlike
+          precipitation it exists at the analysis hour: a mixing ratio is a
+          state the model holds, not a flux it steps forward to find.
+        </div>
       </LayerToggle>
     </div>
   );

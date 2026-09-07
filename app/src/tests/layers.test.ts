@@ -5,6 +5,7 @@ import {
   CandidateCloudBaseLayer,
   ForecastCloudsLayer,
   ForecastPrecipLayer,
+  ForecastLiquidLayer,
   CandidateLiquidLayer,
   CandidateRadarLayer,
   CandidateStormCoreLayer,
@@ -72,6 +73,7 @@ describe("HRRR contour layers", () => {
     for (const layer of [
       ForecastCloudsLayer,
       ForecastPrecipLayer,
+      ForecastLiquidLayer,
       CandidateLiquidLayer,
     ]) {
       expect(layer.copyright).toBe("NOAA HRRR");
@@ -82,6 +84,7 @@ describe("HRRR contour layers", () => {
     for (const layer of [
       ForecastCloudsLayer,
       ForecastPrecipLayer,
+      ForecastLiquidLayer,
       CandidateLiquidLayer,
     ]) {
       expect(layer.visible).toBe(false);
@@ -94,6 +97,7 @@ describe("HRRR contour layers", () => {
     expect(ForecastCloudsLayer.renderer).toHaveProperty("field", "cloudCover");
     expect(ForecastPrecipLayer.renderer).toHaveProperty("field", "precipRate");
     expect(CandidateLiquidLayer.renderer).toHaveProperty("field", "slwPath");
+    expect(ForecastLiquidLayer.renderer).toHaveProperty("field", "slwPath");
   });
 
   // The candidate map is "right now", and CLWMR is a state the analysis holds,
@@ -105,6 +109,28 @@ describe("HRRR contour layers", () => {
   it("pins the liquid layer to the analysis hour", () => {
     expect(CandidateLiquidLayer.url).toBe("/forecast/liquid");
     expect(CandidateLiquidLayer.customParameters).toEqual({
+      hour: "0",
+      ...BOX,
+    });
+  });
+
+  // An hour with no in-band liquid anywhere comes back as an empty
+  // FeatureCollection, which gives ArcGIS nothing to infer a schema from and
+  // would leave the renderer with no field to match.
+  it("declares the liquid schema on both instances, so an empty hour renders", () => {
+    for (const layer of [CandidateLiquidLayer, ForecastLiquidLayer]) {
+      expect(layer.geometryType).toBe("polygon");
+      expect(layer.fields.map((f) => f.name)).toContain("slwPath");
+    }
+  });
+
+  // Its own instance rather than the candidate map's: that one is pinned to
+  // the analysis, and repointing it at +12 h would leave a forecast on a map
+  // captioned "right now".
+  it("gives the forecast map its own liquid layer, on the slider", () => {
+    expect(ForecastLiquidLayer).not.toBe(CandidateLiquidLayer);
+    expect(ForecastLiquidLayer.url).toBe("/forecast/liquid");
+    expect(ForecastLiquidLayer.customParameters).toEqual({
       hour: "0",
       ...BOX,
     });

@@ -9,9 +9,17 @@ import {
   EchoFreezeLegend,
   HeadingLegend,
   LightningLegend,
+  LiquidLegend,
   RadarLegend,
 } from "@/lib/arcgis/legends";
-import { RADAR_BANDS, RADAR_RGB } from "@/lib/arcgis/bands";
+import {
+  BAND_LABEL,
+  RADAR_BANDS,
+  RADAR_RGB,
+  SLW_BANDS,
+  SLW_LABELS,
+  SLW_RGB,
+} from "@/lib/arcgis/bands";
 
 // Components
 import { LayerToggle, SubToggle } from "@/app/components/panel/LayerToggle";
@@ -30,9 +38,16 @@ export const ReplayLayers = () => {
   const heading = useAppSelector((state) => state.replay.heading);
   const echoFreeze = useAppSelector((state) => state.replay.echoFreeze);
   const field = useAppSelector((state) => state.replay.field);
+  const liquid = useAppSelector((state) => state.replay.liquid);
 
   return (
     <div className="flex flex-col gap-4">
+      <LayerToggle
+        legend={CandidateLegend}
+        checked={field}
+        onChange={(on) => dispatch(replayActions.setField(on))}
+      />
+
       <LayerToggle
         legend={RadarLegend}
         checked={radar}
@@ -70,10 +85,21 @@ export const ReplayLayers = () => {
       </LayerToggle>
 
       <LayerToggle
-        legend={CandidateLegend}
-        checked={field}
-        onChange={(on) => dispatch(replayActions.setField(on))}
-      />
+        legend={LiquidLegend}
+        checked={liquid}
+        onChange={(on) => dispatch(replayActions.setLiquid(on))}
+      >
+        <Ramp
+          bands={SLW_BANDS}
+          rgb={SLW_RGB}
+          captions={SLW_BANDS.map((band) => String(band.value))}
+          titles={SLW_LABELS}
+        />
+        <div className="text-xs">
+          g/m² of ground, summed through the {BAND_LABEL} band, from that hour's
+          HRRR analysis.
+        </div>
+      </LayerToggle>
     </div>
   );
 };

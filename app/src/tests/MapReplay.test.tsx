@@ -30,6 +30,7 @@ import {
   map,
   radarLayer,
   replayCloudBaseLayer,
+  replayLiquidLayer,
   replayConfirmedLayer,
   replayFieldLayer,
   replayRadarLayer,
@@ -63,6 +64,7 @@ describe("ArcGIS in replay mode", () => {
    */
   const askFor = (store: ReturnType<typeof createTestStore>) => {
     store.dispatch(replayActions.setCloudBase(true));
+    store.dispatch(replayActions.setLiquid(true));
     store.dispatch(replayActions.setRadar(true));
   };
 
@@ -111,6 +113,7 @@ describe("ArcGIS in replay mode", () => {
     });
 
     expect(replayCloudBaseLayer.visible).toBe(true);
+    expect(replayLiquidLayer.visible).toBe(true);
     expect(replayRadarLayer.visible).toBe(true);
   });
 
@@ -154,6 +157,11 @@ describe("ArcGIS in replay mode", () => {
     );
     expect(replayCloudBaseLayer.url).toBe(
       `/forecast/cloudbase?hour=0&at=${at}&${box}`
+    );
+    // The replayed hour's own analysis, not a step off it — the same hour 0
+    // the live map pins to, asked for at the date the operator picked.
+    expect(replayLiquidLayer.url).toBe(
+      `/forecast/liquid?hour=0&at=${at}&${box}`
     );
     expect(replayConfirmedLayer.url).toBe(
       `/candidate/field/confirmed?at=${at}&${box}`
@@ -199,6 +207,15 @@ describe("ArcGIS in replay mode", () => {
 
     const layers = map().layers ?? [];
     expect(layers).toContain(replayCloudBaseLayer);
+    expect(layers).toContain(replayLiquidLayer);
+    // The liquid is inside the cloud, the measured rain over both — the same
+    // stack the candidate map draws.
+    expect(layers.indexOf(replayLiquidLayer)).toBeGreaterThan(
+      layers.indexOf(replayCloudBaseLayer)
+    );
+    expect(layers.indexOf(replayRadarLayer)).toBeGreaterThan(
+      layers.indexOf(replayLiquidLayer)
+    );
     // Cloud base underneath, as on the candidate map: it is the question asked
     // before the others and covers more ground than any of them.
     expect(layers.indexOf(replayRadarLayer)).toBeGreaterThan(
@@ -239,6 +256,25 @@ describe("ArcGIS in replay mode", () => {
 
     expect(replayRadarLayer.refresh).toHaveBeenCalled();
     expect(replayRadarLayer.url).toContain("2025-05-16");
+  });
+
+  // Off on arrival on both maps, so a readied hour must not switch it on by
+  // itself. The pinned live instance stays off here whatever this one does.
+  it("leaves the replayed liquid off until it is asked for", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(ready(AT));
+    });
+
+    expect(replayLiquidLayer.visible).toBe(false);
+
+    act(() => {
+      store.dispatch(replayActions.setLiquid(true));
+    });
+
+    expect(replayLiquidLayer.visible).toBe(true);
+    expect(liquidLayer.visible).toBe(false);
   });
 
   // The cloud base is off on arrival on both maps, so a readied hour must not

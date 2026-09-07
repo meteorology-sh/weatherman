@@ -56,9 +56,10 @@ export const CloudBaseLegend: LayerLegend = {
 export const LiquidLegend: LayerLegend = {
   name: "SUPERCOOLED LIQUID WATER",
   source: "HRRR",
-  summary: `Liquid water in the ${BAND_LABEL} band, in g/m² — the water silver iodide converts to ice.`,
+  summary: `Liquid water held in the ${BAND_LABEL} band, in grams over each square meter of ground.`,
   detail: [
     `HRRR carries cloud water on 40 pressure levels. The server integrates the liquid content through temperatures in the ${BAND_LABEL} band.`,
+    `The result is a column amount, not a concentration and not an area: g/m² is the whole depth of in-band liquid above a square meter of ground, so a thin rich layer and a deep thin one can read the same. The same figure answers a click on the map.`,
   ],
 };
 
@@ -85,7 +86,7 @@ export const HeadingLegend: LayerLegend = {
 export const EchoFreezeLegend: LayerLegend = {
   name: "ECHO PAST FREEZING",
   source: "MRMS + HRRR",
-  summary: `Storms whose 18 dBZ echo top reaches air colder than freezing.`,
+  summary: `Storms whose 18 dBZ echo top reaches freezing altitudes.`,
   detail: [
     `The echo top is the highest altitude at which radar detects raindrops, read here at 18 dBZ. It is measured. Joined with HRRR for the modeled freezing level 0 °C.`
   ],
@@ -133,8 +134,8 @@ export const PrecipLegend: LayerLegend = {
 
 /**
  * Every layer the app names, in the order the About page reads them: the
- * storm first, then the readings on it, then the liquid-with-no-rain composite, then
- * the forecast map's two.
+ * storm first, then the readings on it, then the joined answer, then the
+ * forecast map's two.
  *
  * The About page and the legend tests both walk this, so a new layer cannot be
  * added without a page section and the checks that come with it.
@@ -143,6 +144,7 @@ export const ALL_LEGENDS: readonly LayerLegend[] = [
   RadarLegend,
   EchoFreezeLegend,
   CloudBaseLegend,
+  LiquidLegend,
   CandidateLegend,
   CloudCoverLegend,
   PrecipLegend,

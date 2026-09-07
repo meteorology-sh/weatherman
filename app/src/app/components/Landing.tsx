@@ -23,7 +23,7 @@ export const LandingPage = () => {
               </Link>
               <br />
               <br />
-              <small>Developed for America</small>
+              <small>Made in Texas</small>
             </div>
           </div>
         </div>

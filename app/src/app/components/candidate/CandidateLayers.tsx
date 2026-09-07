@@ -3,6 +3,7 @@ import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
 import { cloudBaseActions } from "@/lib/store/features/cloudbase";
 import { radarActions } from "@/lib/store/features/radar";
 import { seedabilityActions } from "@/lib/store/features/seedability";
+import { candidateActions } from "@/lib/store/features/candidate";
 
 // ArcGIS
 import {
@@ -11,9 +12,17 @@ import {
   EchoFreezeLegend,
   HeadingLegend,
   LightningLegend,
+  LiquidLegend,
   RadarLegend,
 } from "@/lib/arcgis/legends";
-import { RADAR_BANDS, RADAR_RGB } from "@/lib/arcgis/bands";
+import {
+  BAND_LABEL,
+  RADAR_BANDS,
+  RADAR_RGB,
+  SLW_BANDS,
+  SLW_LABELS,
+  SLW_RGB,
+} from "@/lib/arcgis/bands";
 
 // Components
 import { LayerToggle, SubToggle } from "@/app/components/panel/LayerToggle";
@@ -28,6 +37,7 @@ export const CandidateLayers = () => {
   const heading = useAppSelector((state) => state.radar.heading);
   const echoFreeze = useAppSelector((state) => state.radar.echoFreeze);
   const field = useAppSelector((state) => state.seedability.visible);
+  const liquid = useAppSelector((state) => state.candidate.liquid);
 
   return (
     <div className="flex flex-col gap-4">
@@ -71,6 +81,22 @@ export const CandidateLayers = () => {
         onChange={(on) => dispatch(cloudBaseActions.setVisible(on))}
       >
         <CloudBaseRamp />
+      </LayerToggle>
+
+      <LayerToggle
+        legend={LiquidLegend}
+        checked={liquid}
+        onChange={(on) => dispatch(candidateActions.setLiquid(on))}
+      >
+        <Ramp
+          bands={SLW_BANDS}
+          rgb={SLW_RGB}
+          captions={SLW_BANDS.map((band) => String(band.value))}
+          titles={SLW_LABELS}
+        />
+        <div className="text-xs">
+          g/m² of ground, summed through the {BAND_LABEL} band.
+        </div>
       </LayerToggle>
     </div>
   );

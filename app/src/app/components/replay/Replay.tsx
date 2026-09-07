@@ -6,7 +6,6 @@ import { ArcGIS } from "@/app/components/Map";
 import { ReplayCalendar } from "./ReplayCalendar";
 import { ReplayLayers } from "./ReplayLayers";
 import { ReplayStatus } from "./ReplayStatus";
-import { ReplayField } from "./ReplayField";
 
 /**
  * The same three observed-and-modeled layers as the candidate map, at an hour
@@ -39,8 +38,6 @@ export const Replay = () => {
             <ReplayStatus />
             {ready !== null && (
               <>
-                <div className="divider my-1" />
-                <ReplayField />
                 <div className="divider my-1" />
                 <ReplayLayers />
               </>

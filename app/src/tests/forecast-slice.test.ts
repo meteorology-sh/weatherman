@@ -30,6 +30,25 @@ describe("forecast slice", () => {
     expect(initial().precip).toBe(true);
   });
 
+  // Cloud and rain are what this map is; the seeding band is a reading taken
+  // on it, and each hour of it is its own build on the server.
+  it("starts with the supercooled liquid off", () => {
+    expect(initial().liquid).toBe(false);
+  });
+
+  it("turns the supercooled liquid on", () => {
+    const state = reducer(initial(), forecastActions.setLiquid(true));
+
+    expect(state.liquid).toBe(true);
+  });
+
+  it("leaves the forecast hour alone when the liquid toggles", () => {
+    const moved = reducer(initial(), forecastActions.setHour(9));
+    const state = reducer(moved, forecastActions.setLiquid(true));
+
+    expect(state.hour).toBe(9);
+  });
+
   it("stores the run metadata", () => {
     const state = reducer(initial(), forecastActions.setMeta(meta));
 

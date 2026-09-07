@@ -23,6 +23,7 @@ vi.mock("@arcgis/core/geometry/Extent", () => ({ default: FakeExtent }));
 beforeEach(resetArcgis);
 
 // Store
+import { candidateActions } from "@/lib/store/features/candidate";
 import { interactionsActions } from "@/lib/store/features/interactions";
 import { forecastActions } from "@/lib/store/features/forecast";
 import { cloudBaseActions } from "@/lib/store/features/cloudbase";
@@ -37,6 +38,8 @@ import {
   confirmedLayer,
   fieldLayer,
   forecastLayer,
+  forecastLiquidLayer,
+  liquidLayer,
   map,
   precipLayer,
   radarLayer,
@@ -78,10 +81,12 @@ describe("ArcGIS", () => {
 
     expect(map().layers).toEqual([
       cloudBaseLayer,
-          forecastLayer,
+      forecastLayer,
+      forecastLiquidLayer,
       precipLayer,
+      liquidLayer,
       radarLayer,
-          echoFreezeLayer,
+      echoFreezeLayer,
       lightningLayer,
       stormMotionLayer,
       stormCoreLayer,
@@ -124,6 +129,34 @@ describe("ArcGIS", () => {
     );
   });
 
+  // The liquid is inside the cloud it is integrated from, and the rain is what
+  // falls out of it, so it belongs between the two.
+  it("draws the forecast liquid inside the cloud, under the rain", () => {
+    renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
+
+    const layers = map().layers ?? [];
+    expect(layers.indexOf(forecastLiquidLayer)).toBeGreaterThan(
+      layers.indexOf(forecastLayer)
+    );
+    expect(layers.indexOf(precipLayer)).toBeGreaterThan(
+      layers.indexOf(forecastLiquidLayer)
+    );
+  });
+
+  // The mosaic is the disqualifier, so it has to be the layer you can see:
+  // a candidate is ruled out exactly where cyan covers amber.
+  it("draws the measured rain above the modeled liquid it rules out", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    const layers = map().layers ?? [];
+    expect(layers.indexOf(radarLayer)).toBeGreaterThan(
+      layers.indexOf(liquidLayer)
+    );
+    expect(layers.indexOf(liquidLayer)).toBeGreaterThan(
+      layers.indexOf(cloudBaseLayer)
+    );
+  });
+
   it("flies to a selected location", () => {
     const store = createTestStore();
 
@@ -154,6 +187,7 @@ describe("ArcGIS in candidate mode", () => {
     expect(stormMotionLayer.visible).toBe(false);
     expect(lightningLayer.visible).toBe(false);
     expect(cloudBaseLayer.visible).toBe(false);
+    expect(liquidLayer.visible).toBe(false);
   });
 
   // Every layer is fetched on landing, switched on or not: the panel is a
@@ -168,6 +202,7 @@ describe("ArcGIS in candidate mode", () => {
     expect(stormCoreLayer.url).toContain("/radar/objects/cores");
     expect(stormMotionLayer.url).toContain("/radar/objects/motion");
     expect(cloudBaseLayer.url).toContain("/forecast/cloudbase");
+    expect(liquidLayer.url).toContain("/forecast/liquid");
     expect(lightningLayer.url).toContain("/cloudtop/lightning");
     expect(echoFreezeLayer.url).toContain("/radar/echotop/past-freezing");
     expect(lightningLayer.visible).toBe(false);
@@ -311,6 +346,48 @@ describe("ArcGIS in candidate mode", () => {
     expect(cloudBaseLayer.visible).toBe(false);
   });
 
+  it("leaves the supercooled liquid off until it is asked for", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+
+    expect(liquidLayer.visible).toBe(false);
+
+    act(() => {
+      store.dispatch(candidateActions.setLiquid(true));
+    });
+
+    expect(liquidLayer.visible).toBe(true);
+  });
+
+  // The candidate map is "right now", so its instance is pinned to the
+  // analysis. The forecast map has its own, which is the one that moves.
+  it("keeps its liquid layer pinned to the analysis hour", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+    act(() => {
+      store.dispatch(candidateActions.setLiquid(true));
+      store.dispatch(forecastActions.setHour(9));
+    });
+
+    expect(liquidLayer.url).toContain("hour=0");
+    expect(forecastLiquidLayer.url).toBe("");
+  });
+
+  // Two instances, so the pinned one cannot be dragged onto a forecast hour
+  // and the forecast one cannot leave a +12 h frame on a map captioned "now".
+  it("keeps the candidate liquid off the forecast map, and the reverse", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="forecast" />, store);
+    act(() => {
+      store.dispatch(candidateActions.setLiquid(true));
+    });
+
+    expect(liquidLayer.visible).toBe(false);
+  });
+
 
 });
 
@@ -394,6 +471,86 @@ describe("ArcGIS in forecast mode", () => {
     expect(forecastLayer.refresh).toHaveBeenCalled();
   });
 
+  it("draws the supercooled liquid only once it is asked for", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="forecast" />, store);
+
+    expect(forecastLiquidLayer.visible).toBe(false);
+
+    act(() => {
+      store.dispatch(forecastActions.setLiquid(true));
+    });
+
+    expect(forecastLiquidLayer.visible).toBe(true);
+  });
+
+  // Unlike precipitation, which HRRR only has once it steps forward: a mixing
+  // ratio is a state the analysis holds, so f00 is a real frame here.
+  it("asks for the analysis hour, which this field actually has", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="forecast" />, store);
+    act(() => {
+      store.dispatch(forecastActions.setLiquid(true));
+    });
+
+    expect(forecastLiquidLayer.url).toBe(
+      "/forecast/liquid?hour=0&west=-107&east=-93&south=25.5&north=37"
+    );
+  });
+
+  it("follows the slider once the layer is on", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="forecast" />, store);
+    act(() => {
+      store.dispatch(forecastActions.setLiquid(true));
+    });
+    forecastLiquidLayer.refresh.mockClear();
+    act(() => {
+      store.dispatch(forecastActions.setHour(12));
+    });
+
+    expect(forecastLiquidLayer.url).toBe(
+      "/forecast/liquid?hour=12&west=-107&east=-93&south=25.5&north=37"
+    );
+    expect(forecastLiquidLayer.refresh).toHaveBeenCalled();
+  });
+
+  // Every other layer here is fetched whatever its switch says, because each
+  // is a window off one cached build. This one is a fresh integration per
+  // hour, so nineteen of them nobody asked for is not a cheap courtesy.
+  it("fetches no frame at all while its switch is off", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="forecast" />, store);
+    act(() => {
+      store.dispatch(forecastActions.setHour(6));
+    });
+
+    expect(forecastLiquidLayer.url).toBe("");
+  });
+
+  it("keeps the frame it already fetched when toggled off and on", () => {
+    const store = createTestStore();
+
+    renderWithStore(<ArcGIS mode="forecast" />, store);
+    act(() => {
+      store.dispatch(forecastActions.setLiquid(true));
+    });
+    act(() => {
+      store.dispatch(forecastActions.setLiquid(false));
+    });
+    forecastLiquidLayer.refresh.mockClear();
+    act(() => {
+      store.dispatch(forecastActions.setLiquid(true));
+    });
+
+    expect(forecastLiquidLayer.visible).toBe(true);
+    expect(forecastLiquidLayer.refresh).not.toHaveBeenCalled();
+  });
+
   it("does not repoint the forecast layer while on the candidate map", () => {
     const store = createTestStore();
 
@@ -404,6 +561,7 @@ describe("ArcGIS in forecast mode", () => {
 
     expect(forecastLayer.url).toBe("");
     expect(precipLayer.url).toBe("");
+    expect(forecastLiquidLayer.url).toBe("");
   });
 });
 

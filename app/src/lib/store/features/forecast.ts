@@ -9,6 +9,14 @@ type ForecastState = {
   hour: number;
   /** Whether the precipitation contours are drawn over the cloud contours. */
   precip: boolean;
+  /**
+   * Whether the supercooled-liquid contours are drawn inside the cloud.
+   *
+   * Off on arrival, unlike precipitation. Cloud and rain are what this map is;
+   * the liquid in the seeding band is a reading taken on the forecast, and each
+   * hour of it is its own ~30 s build on the server. So it is asked for.
+   */
+  liquid: boolean;
   /** True while the map is fetching/drawing the selected frame. */
   drawing: boolean;
   loading: boolean;
@@ -19,6 +27,7 @@ const initialState: ForecastState = {
   meta: undefined,
   hour: 0,
   precip: true,
+  liquid: false,
   drawing: false,
   loading: false,
   error: null,
@@ -36,6 +45,9 @@ const forecastSlice = createSlice({
     },
     setPrecip(state, action: PayloadAction<boolean>) {
       state.precip = action.payload;
+    },
+    setLiquid(state, action: PayloadAction<boolean>) {
+      state.liquid = action.payload;
     },
     setDrawing(state, action: PayloadAction<boolean>) {
       state.drawing = action.payload;

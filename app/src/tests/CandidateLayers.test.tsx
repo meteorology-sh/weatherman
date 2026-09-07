@@ -3,14 +3,18 @@ import { act, screen, within } from "@testing-library/react";
 import { createTestStore, renderWithStore } from "./utils";
 
 // Store
+import { candidateActions } from "@/lib/store/features/candidate";
 import { cloudBaseActions } from "@/lib/store/features/cloudbase";
 import { radarActions } from "@/lib/store/features/radar";
 import { seedabilityActions } from "@/lib/store/features/seedability";
 
 // ArcGIS
 import {
+  BAND_LABEL,
   RADAR_BANDS,
   RADAR_RGB,
+  SLW_BANDS,
+  SLW_RGB,
   stackedColor,
   soloColor,
 } from "@/lib/arcgis/bands";
@@ -47,6 +51,7 @@ const swatches = (container: HTMLElement, layer: string) => {
 
 const RADAR = RadarLegend.name;
 const FIELD = CandidateLegend.name;
+const LIQUID = LiquidLegend.name;
 
 const rgba = (css: string) =>
   css
@@ -72,10 +77,10 @@ describe("CandidateLayers", () => {
   });
 
 
-  it("leaves the modeled liquid off the switches", () => {
+  it("offers the modeled liquid as a switch", () => {
     renderWithStore(<CandidateLayers />, createTestStore());
 
-    expect(screen.queryByLabelText(LiquidLegend.name)).toBeNull();
+    expect(screen.getByLabelText(LIQUID)).toBeTruthy();
   });
 
 
@@ -291,5 +296,101 @@ describe("CandidateLayers radar", () => {
     });
 
     expect(store.getState().radar.heading).toBe(true);
+  });
+});
+
+// The one modeled field on a map of measurements, and the reading the whole
+// product is built around — so it is offered here, and it is off until asked
+// for, like every other input to the fill.
+describe("CandidateLayers supercooled liquid", () => {
+  it("starts off, so the map opens on the fill alone", () => {
+    renderWithStore(<CandidateLayers />, createTestStore());
+
+    expect((screen.getByLabelText(LIQUID) as HTMLInputElement).checked).toBe(
+      false
+    );
+  });
+
+  it("turns the layer on when its switch is clicked", () => {
+    const store = createTestStore();
+
+    renderWithStore(<CandidateLayers />, store);
+    act(() => {
+      (screen.getByLabelText(LIQUID) as HTMLElement).click();
+    });
+
+    expect(store.getState().candidate.liquid).toBe(true);
+  });
+
+  it("drives its switch from the store", () => {
+    const store = createTestStore();
+
+    renderWithStore(<CandidateLayers />, store);
+    const toggle = screen.getByLabelText(LIQUID) as HTMLInputElement;
+    act(() => {
+      store.dispatch(candidateActions.setLiquid(true));
+    });
+    expect(toggle.checked).toBe(true);
+
+    act(() => {
+      store.dispatch(candidateActions.setLiquid(false));
+    });
+    expect(toggle.checked).toBe(false);
+  });
+
+  it("hides its ramp until the layer is switched on", () => {
+    const store = createTestStore();
+
+    const { container } = renderWithStore(<CandidateLayers />, store);
+    expect(swatches(container, LIQUID)).toHaveLength(0);
+
+    act(() => {
+      store.dispatch(candidateActions.setLiquid(true));
+    });
+
+    expect(swatches(container, LIQUID)).toHaveLength(SLW_BANDS.length);
+  });
+
+  // The swatch has to be the color the map composites, or the legend quietly
+  // stops describing the map.
+  it("paints each swatch the color the map composites", () => {
+    const store = createTestStore();
+
+    const { container } = renderWithStore(<CandidateLayers />, store);
+    act(() => {
+      store.dispatch(candidateActions.setLiquid(true));
+    });
+
+    const richest = swatches(container, LIQUID)[SLW_BANDS.length - 1];
+    expect(rgba(richest.style.backgroundColor)).toBe(
+      rgba(stackedColor(SLW_BANDS, SLW_RGB, SLW_BANDS.length))
+    );
+  });
+
+  // g/m² is a column amount over ground, not a concentration and not an area.
+  // The unit line has to say which, and it has to name the band it summed
+  // through — the band is what makes the figure a seeding number.
+  it("says the figure is per square meter of ground, over the band", () => {
+    const store = createTestStore();
+
+    const { container } = renderWithStore(<CandidateLayers />, store);
+    act(() => {
+      store.dispatch(candidateActions.setLiquid(true));
+    });
+
+    expect(container.textContent).toContain("g/m² of ground");
+    expect(container.textContent).toContain(BAND_LABEL);
+    expect(container.textContent).not.toContain("g/m³");
+  });
+
+  it("says what the layer gives you under its switch", () => {
+    const store = createTestStore();
+
+    renderWithStore(<CandidateLayers />, store);
+    act(() => {
+      store.dispatch(candidateActions.setLiquid(true));
+    });
+
+    expect(screen.getAllByText(LiquidLegend.summary).length).toBeGreaterThan(0);
   });
 });

@@ -1,10 +1,5 @@
 // ArcGIS
-import {
-  BAND_LABEL,
-  FLIGHT_WINDOW_FT,
-  CEILING_FT,
-  RADAR_BANDS,
-} from "@/lib/arcgis/bands";
+import { BAND_LABEL, CEILING_FT, RADAR_BANDS } from "@/lib/arcgis/bands";
 import {
   ALL_LEGENDS,
   FLIGHT_WINDOW_LABEL,

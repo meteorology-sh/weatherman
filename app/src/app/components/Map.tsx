@@ -13,6 +13,7 @@ import { insideRing } from "@/lib/geometry";
 import {
   ForecastCloudsUrl,
   ForecastPrecipUrl,
+  ForecastLiquidUrl,
   ForecastCloudBaseUrl,
   RadarReflectivityUrl,
   RadarStormCoresUrl,
@@ -24,6 +25,7 @@ import {
   ReplayCandidateUrl,
   ReplayConfirmedUrl,
   ReplayCloudBaseUrl,
+  ReplayLiquidUrl,
   ReplayRadarUrl,
   ReplayRadarStormCoresUrl,
   ReplayRadarStormMotionUrl,
@@ -39,7 +41,9 @@ import * as reactiveUtils from "@arcgis/core/core/reactiveUtils";
 import {
   CandidateCloudBaseLayer,
   ForecastCloudsLayer,
+  ForecastLiquidLayer,
   ForecastPrecipLayer,
+  CandidateLiquidLayer,
   CandidateRadarLayer,
   CandidateEchoFreezeLayer,
   CandidateStormCoreLayer,
@@ -50,6 +54,7 @@ import {
   ReplayCloudBaseLayer,
   ReplayConfirmedLayer,
   ReplayFieldLayer,
+  ReplayLiquidLayer,
   ReplayRadarLayer,
   ReplayEchoFreezeLayer,
   ReplayStormCoreLayer,
@@ -74,6 +79,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const viewRef = useRef<MapView | null>(null);
   const drawnCloudUrl = useRef<string | null>(null);
   const drawnPrecipUrl = useRef<string | null>(null);
+  const drawnLiquidUrl = useRef<string | null>(null);
   const drawnReplayAt = useRef<string | null>(null);
   const drawnBuild = useRef<string | null>(null);
   const drawnBoxKey = useRef<string | null>(null);
@@ -83,7 +89,9 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const coordinates = useAppSelector((state) => state.interactions.coordinates);
   const hour = useAppSelector((state) => state.forecast.hour);
   const precip = useAppSelector((state) => state.forecast.precip);
+  const forecastLiquid = useAppSelector((state) => state.forecast.liquid);
   const cloudBase = useAppSelector((state) => state.cloudbase.visible);
+  const liquid = useAppSelector((state) => state.candidate.liquid);
   const radar = useAppSelector((state) => state.radar.visible);
   const lightning = useAppSelector((state) => state.radar.lightning);
   const heading = useAppSelector((state) => state.radar.heading);
@@ -93,6 +101,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const ring = useAppSelector((state) => state.domain.ring);
   const ready = useAppSelector((state) => state.replay.ready);
   const replayCloudBase = useAppSelector((state) => state.replay.cloudBase);
+  const replayLiquid = useAppSelector((state) => state.replay.liquid);
   const replayRadar = useAppSelector((state) => state.replay.radar);
   const replayLightning = useAppSelector((state) => state.replay.lightning);
   const replayHeading = useAppSelector((state) => state.replay.heading);
@@ -115,10 +124,15 @@ export const ArcGIS = ({ mode }: PropsT) => {
         // Cloud base is at the bottom: it covers more ground than any of
         // them and it is the question you ask *before* the others — can I
         // get into this cloud at all — so it belongs under the answers.
+        //
+        // Either map's supercooled liquid sits inside the cloud it is drawn
+        // from, so it goes over the cloud and under what falls out of it.
         layers: [
           CandidateCloudBaseLayer,
-                  ForecastCloudsLayer,
+          ForecastCloudsLayer,
+          ForecastLiquidLayer,
           ForecastPrecipLayer,
+          CandidateLiquidLayer,
           CandidateRadarLayer,
           CandidateEchoFreezeLayer,
           CandidateLightningLayer,
@@ -163,8 +177,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     if (!view) return;
     const apply = () => {
       const extent = view.extent as
-        | { xmin: number; ymin: number; xmax: number; ymax: number }
-        | undefined;
+        { xmin: number; ymin: number; xmax: number; ymax: number } | undefined;
       if (!extent) return;
       setViewBox((held) => heldBox(held, extent));
     };
@@ -193,8 +206,12 @@ export const ArcGIS = ({ mode }: PropsT) => {
 
   useEffect(() => {
     ForecastCloudsLayer.visible = forecasting;
+    ForecastLiquidLayer.visible = forecasting && forecastLiquid;
     ForecastPrecipLayer.visible = raining && precip;
     CandidateCloudBaseLayer.visible = candidating && cloudBase;
+    // Modeled, so it belongs to the candidate map only — the same rule that
+    // keeps the observed layers off the forecast one, running the other way.
+    CandidateLiquidLayer.visible = candidating && liquid;
     // Observations, so they never appear on the modeled map — the same rule
     // that keeps the satellite cloud tops off it.
     CandidateRadarLayer.visible = candidating && radar;
@@ -212,6 +229,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     // apart, and revealing each as it landed showed two dates at once.
     const drawable = replaying && ready !== null;
     ReplayCloudBaseLayer.visible = drawable && replayCloudBase;
+    ReplayLiquidLayer.visible = drawable && replayLiquid;
     ReplayRadarLayer.visible = drawable && replayRadar;
     ReplayEchoFreezeLayer.visible = drawable && replayRadar && replayEchoFreeze;
     ReplayLightningLayer.visible = drawable && replayRadar && replayLightning;
@@ -225,7 +243,9 @@ export const ArcGIS = ({ mode }: PropsT) => {
     replaying,
     raining,
     precip,
+    forecastLiquid,
     cloudBase,
+    liquid,
     radar,
     lightning,
     heading,
@@ -233,6 +253,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     field,
     ready,
     replayCloudBase,
+    replayLiquid,
     replayRadar,
     replayLightning,
     replayHeading,
@@ -246,10 +267,17 @@ export const ArcGIS = ({ mode }: PropsT) => {
   // alone rather than sent after an empty frame. The guards matter: without
   // them StrictMode's double-invoked effect re-downloads the same frame.
   //
-  // The candidate liquid layer has no equivalent — it is pinned to the analysis
-  // hour, so its constructor url is the only one it ever needs.
+  // The candidate map's liquid layer has no equivalent — it is pinned to the
+  // analysis hour, so its constructor url is the only hour it ever needs. The
+  // forecast map's own instance is repointed here with the other two.
   const cloudUrl = forecasting ? ForecastCloudsUrl(hour, viewBox) : null;
   const precipUrl = raining ? ForecastPrecipUrl(hour, viewBox) : null;
+  // Fetched only while its switch is on, unlike every other layer here. Each
+  // hour of this field is its own integration on the server rather than a
+  // window off one cached national build, so pre-fetching nineteen of them to
+  // have them in hand is not the cheap courtesy it is elsewhere.
+  const liquidUrl =
+    forecasting && forecastLiquid ? ForecastLiquidUrl(hour, viewBox) : null;
 
   useEffect(() => {
     if (cloudUrl === null || drawnCloudUrl.current === cloudUrl) return;
@@ -264,6 +292,13 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ForecastPrecipLayer.url = precipUrl;
     ForecastPrecipLayer.refresh();
   }, [precipUrl]);
+
+  useEffect(() => {
+    if (liquidUrl === null || drawnLiquidUrl.current === liquidUrl) return;
+    drawnLiquidUrl.current = liquidUrl;
+    ForecastLiquidLayer.url = liquidUrl;
+    ForecastLiquidLayer.refresh();
+  }, [liquidUrl]);
 
   // Live candidate layers are pinned to the analysis hour, but the window
   // they contour follows the view. Repointing the url refetches that window
@@ -298,6 +333,8 @@ export const ArcGIS = ({ mode }: PropsT) => {
     CandidateStormMotionLayer.refresh();
     CandidateCloudBaseLayer.url = ForecastCloudBaseUrl(0, viewBox);
     CandidateCloudBaseLayer.refresh();
+    CandidateLiquidLayer.url = ForecastLiquidUrl(0, viewBox);
+    CandidateLiquidLayer.refresh();
     CandidateLightningLayer.url = LightningUrl(viewBox);
     CandidateLightningLayer.refresh();
     CandidateConfirmedLayer.url = CandidateConfirmedUrl(viewBox);
@@ -357,6 +394,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayStormCoreLayer.url = ReplayRadarStormCoresUrl(at, viewBox);
     ReplayStormMotionLayer.url = ReplayRadarStormMotionUrl(at, viewBox);
     ReplayCloudBaseLayer.url = ReplayCloudBaseUrl(at, 0, viewBox);
+    ReplayLiquidLayer.url = ReplayLiquidUrl(at, 0, viewBox);
     ReplayLightningLayer.url = ReplayLightningUrl(at, viewBox);
     ReplayConfirmedLayer.url = ReplayConfirmedUrl(at, viewBox);
     ReplayEchoFreezeLayer.url = ReplayRadarEchoFreezeUrl(at, viewBox);
@@ -364,10 +402,12 @@ export const ArcGIS = ({ mode }: PropsT) => {
     const map = mapRef.current;
     if (map && !map.layers.includes(ReplayCloudBaseLayer)) {
       // Draw order matches the candidate map: cloud base underneath, the
-      // measured radar over it, the storm marks over that.
+      // modeled liquid over it, the measured radar over both, the storm
+      // marks over that.
       map.addMany([
         ReplayCloudBaseLayer,
-              ReplayRadarLayer,
+        ReplayLiquidLayer,
+        ReplayRadarLayer,
         ReplayEchoFreezeLayer,
         ReplayLightningLayer,
         ReplayStormMotionLayer,
@@ -382,6 +422,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayStormCoreLayer.refresh();
     ReplayStormMotionLayer.refresh();
     ReplayCloudBaseLayer.refresh();
+    ReplayLiquidLayer.refresh();
     ReplayLightningLayer.refresh();
     ReplayConfirmedLayer.refresh();
     ReplayEchoFreezeLayer.refresh();

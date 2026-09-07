@@ -15,11 +15,14 @@ describe("replay slice", () => {
     expect(initial.at).toBe(null);
   });
 
-  it("starts with radar and the storm object, like the candidate map", () => {
+  // The candidate map opens on the Texas fly fill and nothing else, so this
+  // one does too: every reading that feeds the fill is asked for, including
+  // the modeled liquid.
+  it("opens on the fly fill alone, like the candidate map", () => {
     expect(initial.field).toBe(true);
-    expect(initial.radar).toBe(true);
+    expect(initial.radar).toBe(false);
     expect(initial.lightning).toBe(false);
-    expect(initial.heading).toBe(true);
+    expect(initial.heading).toBe(false);
     expect(initial.echoFreeze).toBe(false);
     expect(initial.liquid).toBe(false);
     expect(initial.cloudBase).toBe(false);
@@ -84,19 +87,24 @@ describe("replay slice", () => {
   it("toggles each layer independently", () => {
     let state = reducer(initial, replayActions.setLiquid(true));
     expect(state.liquid).toBe(true);
-    expect(state.radar).toBe(true);
-
-    state = reducer(state, replayActions.setRadar(false));
     expect(state.radar).toBe(false);
+
+    state = reducer(state, replayActions.setRadar(true));
+    expect(state.radar).toBe(true);
     expect(state.liquid).toBe(true);
 
     state = reducer(state, replayActions.setLightning(true));
     expect(state.lightning).toBe(true);
-    expect(state.radar).toBe(false);
+    expect(state.radar).toBe(true);
+
+    state = reducer(state, replayActions.setLiquid(false));
+    expect(state.liquid).toBe(false);
+    expect(state.radar).toBe(true);
+    expect(state.lightning).toBe(true);
 
     state = reducer(state, replayActions.setCloudBase(true));
     expect(state.cloudBase).toBe(true);
-    expect(state.liquid).toBe(true);
-    expect(state.radar).toBe(false);
+    expect(state.liquid).toBe(false);
+    expect(state.radar).toBe(true);
   });
 });

@@ -66,13 +66,11 @@ const initialState: ReplayState = {
   loading: false,
   error: null,
   stats: null,
-  // Radar, the storm object, and the Texas fly fill, like the candidate
-  // map: the page opens on where to click.
   cloudBase: false,
   liquid: false,
-  radar: true,
+  radar: false,
   lightning: false,
-  heading: true,
+  heading: false,
   echoFreeze: false,
   field: true,
 };

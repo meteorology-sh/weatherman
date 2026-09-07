@@ -58,6 +58,7 @@ export const warmDepthLayer = layer("warm-depth-layer");
 export const forecastLayer = layer("forecast-layer");
 export const precipLayer = layer("precip-layer");
 export const liquidLayer = layer("liquid-layer");
+export const forecastLiquidLayer = layer("forecast-liquid-layer");
 export const radarLayer = layer("radar-layer");
 export const stormCoreLayer = layer("storm-core-layer");
 export const stormMotionLayer = layer("storm-motion-layer");
@@ -96,6 +97,7 @@ export const layers = {
   CandidateWarmDepthLayer: warmDepthLayer,
   ForecastCloudsLayer: forecastLayer,
   ForecastPrecipLayer: precipLayer,
+  ForecastLiquidLayer: forecastLiquidLayer,
   CandidateLiquidLayer: liquidLayer,
   CandidateRadarLayer: radarLayer,
   CandidateStormCoreLayer: stormCoreLayer,
