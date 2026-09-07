@@ -7,8 +7,7 @@ proxy prefix, mirrored types, a client function, a slice, a provider
 where one is needed, a component in the route folder, tests for the
 file that changed.
 
-Honor `AGENTS.md`. Take liberty with the product: the quiet-liquid join
-stops being the thing the map is. Do not wrap TITAN. Do not add LROSE.
+Honor `AGENTS.md`. Take liberty with the product. Do not wrap TITAN. Do not add LROSE.
 Do not retarget the opportunity contour onto flares.
 
 ---
@@ -23,8 +22,7 @@ Panel order follows the object: radar first, then the inputs, then the
 join last. A click leads with the storm (`StormHere`), then the column.
 
 Copy names the job: which storm, which flank, can we reach the base.
-`CandidateLegend` remains the quiet-liquid join and says so. It is not
-"where every test passes" as the thing to fly.
+`CandidateLegend` is the seeding opportunity and says so.
 
 **Already in the building.** Storm objects, cores, heading ticks, the
 click readout, `target` on `CandidatePoint`. This increment is defaults,
@@ -42,7 +40,7 @@ upwind edge of each mosaic storm. Empty when the storm has no heading:
 we do not guess inflow.
 
 Wire it as a GeoJSON layer, live and replay, driven with cores and
-heading so one switch shows the object. Hollow fill, a colour that is
+heading so one switch shows the object. Hollow fill, a color that is
 not the cyan rain, not the white arrow, not the yellow lightning. The
 legend says this is the upwind raining edge, not the updraft.
 
@@ -53,16 +51,14 @@ visibility in `layers.test.ts` and `Map.test.tsx`. Legend summary pins
 
 ## 3. The click is a Texas reading
 
-`CloudHere` stops treating rain as a veto and the quiet-liquid join as
-the badge. It reports, in order:
+`CloudHere` stops treating rain as a veto. It reports, in order:
 
 1. The Texas tests already on `CandidatePoint.target` — base in the
    4,000–12,000 ft AGL window, echo top at or above freezing in the
-   neighbourhood, rain in that neighbourhood.
+   neighborhood, rain in that neighborhood.
 2. Supercooled liquid, base, top, reflectivity, and observed phase as
    readings. Rain is "the radar sees rain here," not "raining itself
    out."
-3. The quiet-liquid join as a second, named check, not the headline.
 
 `StormHere` stays the object: inside, flank, heading, age, growth,
 echo top past freezing, liquid over the storm.
@@ -87,8 +83,8 @@ literals. A column in the window outside Texas still draws.
 
 TWMA briefings: for glaciogenic seeding, look for a core of higher
 reflectivity at or above the freezing level. Sample MRMS onto the 3 km
-column and draw echo at the freezing level, labelled as measured
-reflectivity at a modelled height. Finding 1 already trusts that height
+column and draw echo at the freezing level, labeled as measured
+reflectivity at a modeled height. Finding 1 already trusts that height
 against the balloons.
 
 Not a volume scan. Not a second rain fill on every storm. A picture of
@@ -105,13 +101,13 @@ CAPE, CIN, LCL, freezing level, −15 °C, cloud base, warm-cloud depth
 they are a clicked-point readout or a balloon table. As a map they are
 the 12Z decision, statewide, at 3 km.
 
-Warm-cloud depth is produced as **depth**, labelled as such. That is
+Warm-cloud depth is produced as **depth**, labeled as such. That is
 not hygroscopic targeting.
 
 The forecast route's nested cloud-cover polygons are not this loop.
 They can stay; they are not the morning briefing.
 
-**Tests.** On flying days, the modelled 12Z column at Midland and Del
+**Tests.** On flying days, the modeled 12Z column at Midland and Del
 Rio against the table they printed, past the two isotherms Finding 1
 already matches.
 
@@ -138,7 +134,7 @@ with the same storm reading `paint.mjs` stored.
 ## 9. Evaluate against the season
 
 Score every located 2025 flare against Weatherman's own layers at that
-minute, re-score the 12Z balloons against the modelled seeding band, and
+minute, re-score the 12Z balloons against the modeled seeding band, and
 store JSON the eval app reads as regional maps and tables.
 
 The operator map (increments 1–6) is the product this run scores. Paint
@@ -155,7 +151,7 @@ flare has `near.target`, `near.baseWindow`, `near.echoFreeze`, and
 
 ## Standing refusals
 
-- Embed or wrap LROSE/TITAN. A programme track export is a source, not
+- Embed or wrap LROSE/TITAN. A program track export is a source, not
   a host process.
 - Gate on a threshold because it raises flare overlap.
 - Claim volume, precipitation mass, or lifetime percentile from the

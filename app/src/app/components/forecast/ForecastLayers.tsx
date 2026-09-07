@@ -43,7 +43,7 @@ export const ForecastLayers = () => {
         checked={precip}
         onChange={(on) => dispatch(forecastActions.setPrecip(on))}
       >
-        {/* The ramp is greyed at the analysis hour rather than hidden: the
+        {/* The ramp is grayed at the analysis hour rather than hidden: the
             layer exists and will paint one step along, so the operator should
             see what is coming, not watch a control vanish. */}
         <Ramp

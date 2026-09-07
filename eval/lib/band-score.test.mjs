@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 // Local
-import { bandOverlap, summariseOverlaps, unusableKey } from "./band-score.mjs";
+import { bandOverlap, summarizeOverlaps, unusableKey } from "./band-score.mjs";
 
 const row = (date, site, freezeR, freezeO, topR, topO) => ({
   date,
@@ -21,7 +21,7 @@ describe("bandOverlap", () => {
     assert.equal(overlap.depth, 2400);
   });
 
-  it("penalises a band drawn too deep against the union", () => {
+  it("penalizes a band drawn too deep against the union", () => {
     // Measured 4000–6400, ours 3500–7000. Shared 2400, union 3500.
     const overlap = bandOverlap(row("2025-04-19", "KMAF", 4000, 3500, 6400, 7000));
     assert.equal(overlap.fraction, 2400 / 3500);
@@ -42,7 +42,7 @@ describe("bandOverlap", () => {
   });
 });
 
-describe("summariseOverlaps", () => {
+describe("summarizeOverlaps", () => {
   it("reports the median and how many clear 90%", () => {
     const overlaps = [0.95, 0.97, 0.8].map((fraction, i) => ({
       date: `2025-04-0${i + 1}`,
@@ -52,7 +52,7 @@ describe("summariseOverlaps", () => {
       depth: 2400,
       fraction,
     }));
-    const summary = summariseOverlaps(overlaps);
+    const summary = summarizeOverlaps(overlaps);
     assert.equal(summary.n, 3);
     assert.equal(summary.median, 0.95);
     assert.equal(summary.over90, 2);

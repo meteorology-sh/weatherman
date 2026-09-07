@@ -31,7 +31,7 @@ const initial = reducer(undefined, { type: "@@INIT" });
 describe("sounding slice", () => {
   // Read on arrival to warm the national profile grid every later click is
   // answered from, not to fill the panel.
-  it("starts on the centre of the map", () => {
+  it("starts on the center of the map", () => {
     expect(initial.point).toEqual(DEFAULT_POINT);
   });
 
@@ -59,7 +59,7 @@ describe("sounding slice", () => {
   });
 
   // The old column is about somewhere else. Leaving it on screen under new
-  // coordinates would be the wrong answer, confidently labelled.
+  // coordinates would be the wrong answer, confidently labeled.
   it("drops the old profile when the point moves", () => {
     const loaded = reducer(initial, soundingActions.setData(sounding));
 

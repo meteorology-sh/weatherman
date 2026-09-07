@@ -2,7 +2,7 @@
 
 **Evaluate against the season** means: score every located 2025 flare
 against Weatherman's own layers at that minute, re-score the 12Z balloons
-against the modelled seeding band, and store JSON the eval app reads as
+against the modeled seeding band, and store JSON the eval app reads as
 regional maps and tables.
 
 Three analyses of every painted 2025 release, then one check of the seeding
@@ -13,8 +13,8 @@ Texas selection features, on every located flare. How to run that job is
 
 1. **How many flares sat in each original Weatherman layer?** Cloud base,
    cloud tops, radar reflectivity, supercooled liquid water, and the
-   liquid-with-no-rain composite, at the minute and place each flare left
-   the aircraft.
+   supercooled liquid water, at the minute and place each flare left the
+   aircraft.
 2. **How many flares sat in each fill the operator map draws?** The
    seeding opportunity, the cloud-base window, and echo past freezing.
 3. **How many flares sat in each Texas selection feature?** Upwind of the
@@ -33,9 +33,9 @@ free feeds can answer. The comparison itself is the harness in `eval/`.
 
 ## The ground truth
 
-Texas licenses several weather modification programmes. Everything below is
+Texas licenses several weather modification programs. Everything below is
 one of them. Each daily report carries every flare — position, UTC minute,
-aircraft, and whether it was silver iodide or salt — and, where the programme
+aircraft, and whether it was silver iodide or salt — and, where the program
 briefs on a balloon, a sounding table.
 
 **117 flying days, 1,353 located flares.** Nine more releases have a time
@@ -57,33 +57,32 @@ painted frames.
 Each release is compared to the analysis nearest its own minute. HRRR's
 0–6 km storm motion carries the release point to where that air is at the
 moment of the frame. **Inside is inside the contour** after that drift.
-Native sampling: cloud base, supercooled liquid and the join on HRRR's
-3 km cells, cloud tops on GOES 2 km, radar on MRMS 1 km.
+Native sampling: cloud base and supercooled liquid on HRRR's 3 km cells,
+cloud tops on GOES 2 km, radar on MRMS 1 km.
 
 A layer that could not be built for an hour is dropped from that column
 only, so the percentages are of the releases that layer could be compared
 against.
 
-| Programme      | Releases |        Cloud base |       Cloud tops | Radar reflectivity | Supercooled liquid water | Liquid with no rain |
-| -------------- | -------: | ----------------: | ---------------: | -----------------: | -----------------------: | ------------------: |
-| West Texas     |      497 |   344/497 (69.2%) |     6/497 (1.2%) |    302/497 (60.8%) |           31/497 (6.2%) |     12/497 (2.4%) |
-| Trans Pecos    |      465 |   354/465 (76.1%) |    11/464 (2.4%) |    320/462 (69.3%) |           25/456 (5.5%) |      6/444 (1.4%) |
-| Panhandle      |      255 |   186/255 (72.9%) |     2/252 (0.8%) |    132/255 (51.8%) |          27/248 (10.9%) |      7/253 (2.8%) |
-| South Texas    |       83 |     63/83 (75.9%) |      3/70 (4.3%) |      24/83 (28.9%) |             3/76 (3.9%) |      2/69 (2.9%) |
-| Rolling Plains |       53 |     40/53 (75.5%) |      3/48 (6.3%) |      21/48 (43.8%) |            6/53 (11.3%) |      3/48 (6.3%) |
-| Season         |    1,353 | 987/1,353 (72.9%) |  25/1,331 (1.9%) |  799/1,345 (59.4%) |         92/1,330 (6.9%) |  30/1,311 (2.3%) |
+| Program        | Releases |        Cloud base |       Cloud tops | Radar reflectivity | Supercooled liquid water |
+| -------------- | -------: | ----------------: | ---------------: | -----------------: | -----------------------: |
+| West Texas     |      497 |   344/497 (69.2%) |     6/497 (1.2%) |    302/497 (60.8%) |            31/497 (6.2%) |
+| Trans Pecos    |      465 |   354/465 (76.1%) |    11/464 (2.4%) |    320/462 (69.3%) |            25/456 (5.5%) |
+| Panhandle      |      255 |   186/255 (72.9%) |     2/252 (0.8%) |    132/255 (51.8%) |           27/248 (10.9%) |
+| South Texas    |       83 |     63/83 (75.9%) |      3/70 (4.3%) |      24/83 (28.9%) |              3/76 (3.9%) |
+| Rolling Plains |       53 |     40/53 (75.5%) |      3/48 (6.3%) |      21/48 (43.8%) |             6/53 (11.3%) |
+| Season         |    1,353 | 987/1,353 (72.9%) |  25/1,331 (1.9%) |  799/1,345 (59.4%) |          92/1,330 (6.9%) |
 
-**Cloud base holds. Cloud tops do not.** 72.9% of releases sit in modelled
-cloud; 1.9% sit in the −5 °C GOES tops. Radar splits the programmes:
+**Cloud base holds. Cloud tops do not.** 72.9% of releases sit in modeled
+cloud; 1.9% sit in the −5 °C GOES tops. Radar splits the programs:
 Trans Pecos 69.3%, West Texas 60.8%, the Panhandle 51.8%, South Texas
-28.9%. Supercooled liquid is low everywhere. The liquid-with-no-rain
-composite is lower still, because it rules out rain and they fly into rain.
+28.9%. Supercooled liquid is low everywhere.
 
 A denominator short of the release count is an hour that layer could not
 be built.
 
-The evaluation app shows this table on the programme page. Every release
-of a painted day lists the same inside-or-kilometres under THE FLARES.
+The evaluation app shows this table on the program page. Every release
+of a painted day lists the same inside-or-kilometers under THE FLARES.
 
 ---
 
@@ -94,7 +93,7 @@ window, and echo past freezing under the radar. The seeding opportunity is a
 composite of the Texas tests, drawn as one fill so the operator can see where
 to click. These are the layers a crew would have had in front of them.
 
-| Programme      | Releases | Seeding opportunity |     Base window | Echo past freezing |
+| Program      | Releases | Seeding opportunity |     Base window | Echo past freezing |
 | -------------- | -------: | --------------: | --------------: | -----------------: |
 | West Texas     |      497 | 279/497 (56.1%) | 266/497 (53.5%) |    325/497 (65.4%) |
 | Trans Pecos    |      465 | 305/461 (66.2%) | 324/465 (69.7%) |    349/461 (75.7%) |
@@ -103,29 +102,29 @@ to click. These are the layers a crew would have had in front of them.
 | Rolling Plains |       53 |   21/48 (43.8%) |   22/53 (41.5%) |      22/48 (45.8%) |
 | Season         |    1,353 | 791/1,332 (59.4%) | 765/1,353 (56.5%) | 869/1,344 (64.7%) |
 
-**The seeding opportunity covers 59.4% of releases**, against 2.3% for the
-liquid-with-no-rain composite in the first table. The fill Texas would
-actually have flown accepts the rain the other composite rules out.
+**The seeding opportunity covers 59.4% of releases**, against 6.9% for
+supercooled liquid water in the first table. The fill Texas would actually
+have flown accepts the rain a liquid test rules out.
 
-The evaluation app shows these three on the programme page and as columns
+The evaluation app shows these three on the program page and as columns
 on every release under THE FLARES.
 
 ---
 
 ## Flare overlap with each Texas selection feature
 
-Texas programmes select the upwind side of a raining cell, near the edge,
+Texas programs select the upwind side of a raining cell, near the edge,
 with the echo top at or above freezing. The evaluation app already scores
 those four features at the analysis each flare is charged to. The table
 below is that page, pooled.
 
 Inside 20 dBZ means the drifted point sat in a contiguous radar object.
-Echo top is the measured 18 dBZ height against the modelled freezing
+Echo top is the measured 18 dBZ height against the modeled freezing
 level. Nearer the edge and upwind are distances and heading on that same
 object. A flare with no 20 dBZ echo within about 40 km is a no on radar
 and is dropped from the other columns rather than counted as a no there.
 
-| Programme      | Releases |          Upwind |       In 20 dBZ |     Nearer the edge | Echo top past freezing |
+| Program      | Releases |          Upwind |       In 20 dBZ |     Nearer the edge | Echo top past freezing |
 | -------------- | -------: | --------------: | --------------: | ------------------: | ---------------------: |
 | West Texas     |      497 | 229/442 (51.8%) | 303/497 (61.0%) |     447/470 (95.1%) |        463/467 (99.1%) |
 | Trans Pecos    |      465 | 167/421 (39.7%) | 310/465 (66.7%) |     429/458 (93.7%) |        453/454 (99.8%) |
@@ -137,14 +136,12 @@ and is dropped from the other columns rather than counted as a no there.
 **Just over half the releases sat inside 20 dBZ. Almost all of those
 storms had an 18 dBZ top at or above freezing.** The typical geometry is
 nearer the edge than the heaviest rain (94.8%). Upwind of the heaviest
-rain is about half (47.1%). South Texas is the programme that sits
+rain is about half (47.1%). South Texas is the program that sits
 outside the rain: 24 of 83 inside 20 dBZ.
 
-That is the opposite of the liquid-with-no-rain composite in the first
-table. The join rules rain out and they fly into it. These four features
-are overlap with the object they already fly.
+These four features are overlap with the object they already fly.
 
-The evaluation app shows these four on the programme page and as columns
+The evaluation app shows these four on the program page and as columns
 on every release under THE FLARES.
 
 ---
@@ -156,7 +153,7 @@ work: from the freezing level up to about −15 °C. Everything the product
 does depends on drawing that layer in the right part of the sky.
 
 The National Weather Service flies a balloon from Midland and from Del Rio
-twice a day. Four programmes brief on those ascents: West Texas reads both,
+twice a day. Four programs brief on those ascents: West Texas reads both,
 Trans Pecos and the Rolling Plains read Midland, South Texas reads Del Rio.
 The 12Z ascent lands on a model analysis hour, so neither side is rounded
 to meet the other.
@@ -164,25 +161,25 @@ to meet the other.
 Each edge column is signed bias, then the typical miss. Bias is the height
 we drew minus the balloon's, so a negative number means we put that edge
 lower. The typical miss is the median of the absolute errors. Band overlap
-is the median share of the combined layer both sides agree on, so a band
-drawn far too deep is penalised rather than rewarded for covering
+is the mean share of the combined layer both sides agree on, so a band
+drawn far too deep is penalized rather than rewarded for covering
 everything.
 
-| Programme      | Ascents | Freezing level | −15 °C height | Band overlap | Cleared 90% |
+| Program      | Ascents | Freezing level | −15 °C height | Band overlap | Cleared 90% |
 | -------------- | ------: | -------------: | ------------: | -----------: | ----------: |
-| West Texas     |      64 |   −31 m / 45 m |  −26 m / 57 m |    **95.7%** |    56 of 64 |
-| Trans Pecos    |      39 |   −25 m / 32 m |  −10 m / 48 m |    **96.9%** |    36 of 39 |
-| South Texas    |      11 |   −20 m / 40 m |  −33 m / 26 m |    **95.3%** |    11 of 11 |
-| Rolling Plains |       7 |   −23 m / 15 m |  −66 m / 55 m |    **97.7%** |      6 of 7 |
+| West Texas     |      64 |   −31 m / 45 m |  −26 m / 57 m |    **94.7%** |    56 of 64 |
+| Trans Pecos    |      39 |   −25 m / 32 m |  −10 m / 48 m |    **95.5%** |    36 of 39 |
+| South Texas    |      11 |   −20 m / 40 m |  −33 m / 26 m |    **95.2%** |    11 of 11 |
+| Rolling Plains |       7 |   −23 m / 15 m |  −66 m / 55 m |    **95.4%** |      6 of 7 |
 
 The layer is 2,429 m deep at the median. Bias sits within 70 m of zero on
 every edge, so the misses are scatter rather than a standing offset.
 
-**The four programmes are not four independent samples.** Midland serves
+**The four programs are not four independent samples.** Midland serves
 West Texas, Trans Pecos and the Rolling Plains, so a morning all three
 flew is one balloon counted three times: 121 scored ascents, 101 distinct.
 The 101 distinct mornings have a mean overlap of 95.0%. The
-per-programme rows say the result is not an artefact of one target area.
+per-program rows say the result is not an artifact of one target area.
 They should not be added together.
 
 **One ascent is excluded on physical grounds.** South Texas prints a
@@ -206,7 +203,7 @@ their agreement as accuracy.
 **The balloon is close in time, not simultaneous.** It is released about 45
 minutes before its nominal hour and reaches the seeding band minutes into
 the flight, so the gap is 20–30 minutes. That is survivable here and would
-not be for a flare: a temperature profile at 4–7 km moves tens of metres in
+not be for a flare: a temperature profile at 4–7 km moves tens of meters in
 an hour, while a growing storm swings 40 dBZ in the same span.
 
 **The sounding numbers are the operator's reading**, lifted from their
@@ -218,10 +215,10 @@ without sitting inside most of them, and 12Z is morning while seeding flies
 in the afternoon.
 
 **Native sampling is the resolution limit of the flare tables**: 3 km for
-the HRRR fields and the join, 2 km for GOES cloud tops, 1 km for the radar
+the HRRR fields, 2 km for GOES cloud tops, 1 km for the radar
 storm. A 4 km bearing-and-range error and leftover drift if the storm
 turned sit on top of that, and are named per release rather than folded
-into inside. Two programmes print a bearing and a range from an origin
+into inside. Two programs print a bearing and a range from an origin
 their reports never name; those rows are projections.
 
 **This measures the atmosphere, not what a forecaster could have had.**
@@ -231,7 +228,7 @@ reading at 1843Z. That is a limit on operating from this platform, not on
 measuring against it, and the two must not be quoted as one number.
 
 **Rainfall is not measured and no claim is made about it.** Attribution
-needs a randomised or target/control design over seasons, not a season of
+needs a randomized or target/control design over seasons, not a season of
 flare positions.
 
 **How far back this can go at all:** the model reaches 2014-07-30, radar
@@ -243,7 +240,7 @@ flare positions.
 
 SSH into the us-east-1 box, start one Weatherman API per painter, and run
 one `paint.mjs` per flying day in parallel, then `balloons.mjs` for each
-sonde programme. How to run that job, what JSON it writes, and how the
+sonde program. How to run that job, what JSON it writes, and how the
 eval app should drive from those files, is `eval/README.md`. The flight
 records are already in `eval/data/`.
 
@@ -255,7 +252,7 @@ node eval/verify.mjs
 node eval/score-season.mjs
 ```
 
-The evaluation app at `/<programme>` lists the flare tables and THE BAND.
+The evaluation app at `/<program>` lists the flare tables and THE BAND.
 This file is the result. After a complete Texas `out/`, reprint the
 tables from `score-season.mjs` into this file.
 

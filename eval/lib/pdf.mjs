@@ -1,10 +1,10 @@
 /**
  * Just enough PDF to read a text-based operations report.
  *
- * The programmes file two kinds of document and this reads both. Which kind a
+ * The programs file two kinds of document and this reads both. Which kind a
  * file is decides how the text comes out, and `extractText` settles that by
  * decoding the pages and asking what they were drawn with rather than by
- * reading a font dictionary — every programme declares a glyph font somewhere,
+ * reading a font dictionary — every program declares a glyph font somewhere,
  * so declaring one says nothing.
  *
  * `literalText` is the whole of the reader West Texas, Trans-Pecos and the
@@ -21,7 +21,7 @@
  * in the glyph stream instead, and the cursor is worth reading only for where
  * a line ends. That is what `glyphText` does, and it is where this stops: it
  * resolves fonts far enough to decode text and knows nothing about widths,
- * colour or anything drawn.
+ * color or anything drawn.
  *
  * A scanned report comes back empty rather than wrong either way — there are
  * no strings at all in a page that is one big image. `parseReport` checks for
@@ -379,7 +379,7 @@ function pageText(content, fonts) {
       if (font) drawn[font.wide ? "wide" : "narrow"] += bytes.length;
 
       const line = baseline();
-      // A run set a fraction of a point off its neighbour is on the same line.
+      // A run set a fraction of a point off its neighbor is on the same line.
       // Word does that to a table cell often enough that a strict comparison
       // puts every row of a flight table on a line of its own.
       if (last !== null && Math.abs(line - last) > 1) out.push("\n");
@@ -447,7 +447,7 @@ function glyphText(buffer, source) {
  * The report's text, however the document chose to store it.
  *
  * **Which reader is right is settled by asking the document, not by guessing
- * from its fonts.** Every programme's reports declare an `Identity-H` font
+ * from its fonts.** Every program's reports declare an `Identity-H` font
  * somewhere, so declaring one says nothing; what separates them is how much of
  * the page is drawn with it. West Texas, Trans-Pecos and the Panhandle draw
  * between 1.5% and 4.1% of their characters that way and are read as

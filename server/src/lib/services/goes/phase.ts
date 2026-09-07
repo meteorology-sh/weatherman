@@ -152,7 +152,7 @@ export class CloudPhaseService {
 
   /**
    * A past scene, keyed by the S3 object rather than the requested time, so
-   * neighbouring requests share one build. No TTL — a scan from last May will
+   * neighboring requests share one build. No TTL — a scan from last May will
    * not be rescanned.
    */
   private async replay(at: Date): Promise<Scene> {
@@ -238,7 +238,7 @@ export const GoesPhase = new CloudPhaseService();
  *
  * Built from `flag_meanings` and `flag_values` rather than from a table here,
  * so a product that renumbers or reorders its classes still decodes. A class
- * name we do not recognise maps to `unknown` rather than being guessed at.
+ * name we do not recognize maps to `unknown` rather than being guessed at.
  *
  * `flag_values` is absent from some scenes, in which case the values are the
  * positions — which is what the product publishes when it publishes both.

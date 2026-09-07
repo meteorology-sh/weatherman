@@ -1,5 +1,5 @@
 /**
- * Turn a programme's daily reports into the release list everything else scores
+ * Turn a program's daily reports into the release list everything else scores
  * against.
  *
  * `node eval/releases.mjs [--region=wtwma]` — downloads what it does not
@@ -7,7 +7,7 @@
  * flight record `data/regions.json` names for that region. The PDFs are cached
  * because they never change and the sites are slow.
  *
- * **Four of the five programmes file the same document**, so one parser in
+ * **Four of the five programs file the same document**, so one parser in
  * `lib/reports.mjs` reads them all, told which counties end a table row, which
  * sounding sites the indices table has columns for, and where a bearing and a
  * range are measured from. The Panhandle files something different enough to
@@ -51,7 +51,7 @@ if (!region?.counties) {
   process.exit(1);
 }
 
-/** One directory per programme, so a second one's reports cannot collide. */
+/** One directory per program, so a second one's reports cannot collide. */
 const CACHE = join(HERE, "cache", region.id);
 
 /** The cached report, or the one download that puts it there. */

@@ -3,10 +3,10 @@
  * reflectivity still meets 18 dBZ.
  *
  * That is the top of precipitating hydrometeors, not of the cloud. GOES
- * still owns cloud-top temperature. Heights are kilometres MSL in the
+ * still owns cloud-top temperature. Heights are kilometers MSL in the
  * GRIB; the click reports feet. The glaciogenic cue — 18 dBZ top at or
- * above the freezing level — is drawn as its own fill, labelled as
- * measured height at a modelled isotherm, not a volume scan.
+ * above the freezing level — is drawn as its own fill, labeled as
+ * measured height at a modeled isotherm, not a volume scan.
  */
 
 // Node
@@ -19,7 +19,7 @@ import { cellAt, DRAWN, prepareDraw } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
 import { features, smoothFor } from "../shared/contour";
 import type { ContourFrame, Geo, Grid } from "../shared/contour";
-import { METRES_TO_FEET } from "../hrrr/profile";
+import { METERS_TO_FEET } from "../hrrr/profile";
 import { Hrrr } from "../hrrr/forecast";
 import {
   archiveKeyTime,
@@ -55,7 +55,7 @@ const ARCHIVE_CACHE = 4;
  * - **-1: no echo.** A radar looked here and found no 18 dBZ.
  * - **-3: no coverage.** No radar sees this column.
  *
- * Real tops are kilometres MSL, always positive. Zero does not appear.
+ * Real tops are kilometers MSL, always positive. Zero does not appear.
  */
 export const NO_ECHO_KM = -1;
 export const NO_COVERAGE_KM = -3;
@@ -63,8 +63,8 @@ export const NO_COVERAGE_KM = -3;
 /** The reflectivity the height is taken at, dBZ. */
 export const ECHO_TOP_DBZ = 18;
 
-/** Kilometres MSL to feet. */
-export const KM_TO_FT = METRES_TO_FEET * 1000;
+/** Kilometers MSL to feet. */
+export const KM_TO_FT = METERS_TO_FEET * 1000;
 
 type Scene = { grid: Grid; geo: Geo; validTime: string };
 
@@ -112,7 +112,7 @@ export function sampleEchoTopKm(mosaic: Grid, geo: Geo): Float32Array {
 }
 
 /**
- * 1 where the measured 18 dBZ top sits at or above the modelled
+ * 1 where the measured 18 dBZ top sits at or above the modeled
  * freezing level. NaN elsewhere.
  */
 export function pastFreezingValues(
@@ -206,7 +206,7 @@ export class EchoTopService {
 
   /**
    * Where the 18 dBZ top is at or above the freezing level. Measured
-   * height, modelled isotherm, on HRRR's 3 km cells.
+   * height, modeled isotherm, on HRRR's 3 km cells.
    */
   async pastFreezing(
     at?: Date,

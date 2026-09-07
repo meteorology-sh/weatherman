@@ -45,7 +45,7 @@ function cell(
   };
 }
 
-/** A 3×3 of in-window bases with no echo and no echo top. Centre is 4. */
+/** A 3×3 of in-window bases with no echo and no echo top. Center is 4. */
 function quiet3(): TargetInputs {
   const fill = (v: number) => new Float32Array(9).fill(v);
   return {
@@ -136,7 +136,7 @@ describe("target join", () => {
     );
   });
 
-  it("charges a neighbourhood with no freezing level separately from one whose top sits below it", () => {
+  it("charges a neighborhood with no freezing level separately from one whose top sits below it", () => {
     assert.equal(
       verdict(cell({ freezingFt: Number.NaN, echoTopFt: Number.NaN }), 0),
       "noFreezingLevel"
@@ -152,7 +152,7 @@ describe("target join", () => {
     assert.equal(verdict(cell({ echoTopFt: 16000 }), 0), "target");
   });
 
-  it("rejects modelled echo above freezing when the radar sees no storm", () => {
+  it("rejects modeled echo above freezing when the radar sees no storm", () => {
     assert.equal(verdict(cell({ dbz: NO_ECHO }), 0), "noStorm");
   });
 
@@ -161,7 +161,7 @@ describe("target join", () => {
   });
 
   it("counts rejections so they partition the cells asked", () => {
-    // One-cell grids, so a neighbourhood test cannot borrow a neighbour's
+    // One-cell grids, so a neighborhood test cannot borrow a neighbor's
     // echo. Adjacent cells on a real grid would leak those two tests.
     const cases = [
       cell({ cloudBaseFt: Number.NaN }),
@@ -210,8 +210,8 @@ function emptyCounts() {
   };
 }
 
-describe("neighbourhood", () => {
-  it("takes a storm in an 8-connected neighbour as the cell's storm", () => {
+describe("neighborhood", () => {
+  it("takes a storm in an 8-connected neighbor as the cell's storm", () => {
     const inputs = quiet3();
     put(inputs, 5, { echoTopFt: 18000, dbz: 35 });
 
@@ -219,21 +219,21 @@ describe("neighbourhood", () => {
   });
 
   it("does not wrap around the grid", () => {
-    // Cell 0's neighbours are 0, 1, 3, 4. Cell 2 is the other end of the row.
+    // Cell 0's neighbors are 0, 1, 3, 4. Cell 2 is the other end of the row.
     const inputs = quiet3();
     put(inputs, 2, { echoTopFt: 18000, dbz: 35 });
 
     assert.equal(verdict(inputs, 0), "topBelowFreezing");
   });
 
-  it("does not treat a diagonal-opposite corner as a neighbour", () => {
+  it("does not treat a diagonal-opposite corner as a neighbor", () => {
     const inputs = quiet3();
     put(inputs, 8, { echoTopFt: 18000, dbz: 35 });
 
     assert.equal(verdict(inputs, 0), "topBelowFreezing");
   });
 
-  it("sees a diagonal neighbour of the centre", () => {
+  it("sees a diagonal neighbor of the center", () => {
     const inputs = quiet3();
     put(inputs, 0, { echoTopFt: 18000, dbz: 35 });
 
@@ -346,7 +346,7 @@ describe("summarize", () => {
     assert.equal(stats.rejected.noCloudBase, 0);
   });
 
-  it("still sees a neighbour that sits just outside the box", () => {
+  it("still sees a neighbor that sits just outside the box", () => {
     // Two cells. The asked one is quiet; the one outside the box holds the
     // storm. A crop-then-join would miss it.
     const inputs: TargetInputs = {

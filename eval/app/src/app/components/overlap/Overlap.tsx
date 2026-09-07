@@ -190,7 +190,7 @@ export const Overlap = () => {
               against all of them: whether it sat inside the paint, and how far
               it was if it did not. A flare can sit in rain under a reachable
               cloud base and still miss the fly fill, because that fill wants
-              all three tests at once. Season counts live on the programme page.
+              all three tests at once. Season counts live on the program page.
             </p>
           </div>
 
@@ -214,7 +214,7 @@ export const Overlap = () => {
                 <>
                   <Section
                     heading="How close each release was"
-                    subtitle={`${painted.proximity.flares} releases this day. Inside means the flare sat in that layer. A number is kilometres to the nearest edge, after drifting the remaining minutes to the analysis. SEEDING OPPORTUNITY is the last column: the ones before it are the tests that fill wants at once.`}
+                    subtitle={`${painted.proximity.flares} releases this day. Inside means the flare sat in that layer. A number is kilometers to the nearest edge, after drifting the remaining minutes to the analysis. SEEDING OPPORTUNITY is the last column: the ones before it are the tests that fill wants at once.`}
                   >
                     <FlareDistances
                       flares={flares}
@@ -224,7 +224,7 @@ export const Overlap = () => {
 
                   <Section
                     heading="What a click on each release would have said"
-                    subtitle="The operator panel, one row per flare. FLY or DON'T FLY on that 3 km cell with the numbers behind the call, the modelled column over the point, and the convective numbers under it. The cell is read at the release minute; the column is the analysis the release is charged to."
+                    subtitle="The operator panel, one row per flare. FLY or DON'T FLY on that 3 km cell with the numbers behind the call, the modeled column over the point, and the convective numbers under it. The cell is read at the release minute; the column is the analysis the release is charged to."
                   >
                     <FlareReadouts flares={flares} />
                   </Section>

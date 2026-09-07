@@ -267,7 +267,7 @@ describe("the observed cloud-top phase", () => {
     assert.equal(out.liquid, 0);
   });
 
-  it("does not count a frozen top over ground with no modelled liquid", () => {
+  it("does not count a frozen top over ground with no modeled liquid", () => {
     assert.equal(join(cell({ slw: 4 }, "ice")).phase.missed, 0);
   });
 
@@ -342,7 +342,7 @@ describe("the observed cloud-top phase", () => {
 });
 
 describe("sampleRadar", () => {
-  /** Two HRRR cells placed on known mosaic cell centres. */
+  /** Two HRRR cells placed on known mosaic cell centers. */
   const geo = (points: [number, number][]): Geo => ({
     nx: points.length,
     ny: 1,
@@ -350,7 +350,7 @@ describe("sampleRadar", () => {
     lons: new Float32Array(points.map((p) => p[1])),
   });
 
-  it("reads the 1 km cell a centre falls in", () => {
+  it("reads the 1 km cell a center falls in", () => {
     const mosaic = nativeGeo(12, 12);
     const values = new Float32Array(mosaic.nx * mosaic.ny).fill(-99);
     values[5] = 42;

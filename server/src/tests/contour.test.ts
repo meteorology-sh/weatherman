@@ -344,7 +344,7 @@ describe("bandFeatures", () => {
     return asGrid(values);
   };
 
-  // Bands used to be traced from a mask each, so neighbours thinned and
+  // Bands used to be traced from a mask each, so neighbors thinned and
   // rounded the boundary they share separately and drifted apart on it: a
   // sliver of double fill on one side, bare basemap on the other. Sharing the
   // ring makes both impossible rather than rare.

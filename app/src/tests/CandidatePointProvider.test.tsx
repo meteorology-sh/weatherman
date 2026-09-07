@@ -69,7 +69,7 @@ describe("CandidatePointProvider", () => {
   });
 
   // Unlike the sounding, this one waits: the readout is about the cell an
-  // operator picked, and the default centre of the country is not one.
+  // operator picked, and the default center of the country is not one.
   it("reads nothing until the map is clicked", () => {
     const store = mount();
 

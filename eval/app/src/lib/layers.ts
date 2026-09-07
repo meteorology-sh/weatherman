@@ -2,7 +2,7 @@
  * The layers the map draws, wired to Weatherman's own definitions.
  *
  * **Nothing here describes a layer. Everything here points at the description
- * the product already has.** The levels, the colours, the alphas, the on-screen
+ * the product already has.** The levels, the colors, the alphas, the on-screen
  * name and the prose all come out of `@/lib/arcgis`, so a band that moves in the
  * product moves here, and a page built to find disagreements between the map and
  * an operator cannot introduce one between itself and the map it is inspecting.
@@ -11,7 +11,7 @@
  * fills with one gate under them: radar with echo past freezing under it, cloud
  * base, and the Texas fly fill it names SEEDING OPPORTUNITY. A layer this page
  * drew that the product does not draw would be a claim about a map nobody
- * flies, so cloud tops, supercooled liquid water, the quiet-liquid join and the
+ * flies, so cloud tops, supercooled liquid water, the liquid-with-no-rain composite and the
  * flyable window are not here — the product draws none of the four, and a
  * painted file that still carries them is simply not read. The window is
  * reported on a click and scored into `EVALUATION.md`; it is not a fill.
@@ -92,7 +92,7 @@ export type EvalLayer = BandedLayer | GateLayer;
 /**
  * The layers, in the order Weatherman's own panel lists them.
  *
- * Tables read this order too, so a row on the programme page and a switch on
+ * Tables read this order too, so a row on the program page and a switch on
  * the map name the same layers in the same sequence.
  */
 export const LAYERS: readonly EvalLayer[] = [
@@ -152,7 +152,7 @@ export const PANEL: readonly { layer: EvalLayer; gates: EvalLayer[] }[] =
  *
  * Cloud base under the rain, echo past freezing over the rain it annotates,
  * and the fly fill last — the same stack the operator's map composites, so a
- * colour that comes out on top there comes out on top here.
+ * color that comes out on top there comes out on top here.
  */
 export const DRAW_ORDER: readonly string[] = [
   "cloudBase",

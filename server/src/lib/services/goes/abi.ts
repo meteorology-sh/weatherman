@@ -19,9 +19,9 @@
 export type AbiGrid = {
   /** Longitude of the sub-satellite point, radians. */
   lon0: number;
-  /** Distance from the earth's centre to the satellite, metres. */
+  /** Distance from the earth's center to the satellite, meters. */
   H: number;
-  /** Equatorial and polar radii, metres. */
+  /** Equatorial and polar radii, meters. */
   rEq: number;
   rPol: number;
   /** First eccentricity squared, derived from the two radii. */
@@ -66,7 +66,7 @@ export function abiGrid(p: {
   return {
     lon0: p.lonOriginDeg * DEG,
     // The attribute is height above the ellipsoid; the formulas want distance
-    // from the centre.
+    // from the center.
     H: p.perspectiveHeight + p.semiMajor,
     rEq: p.semiMajor,
     rPol: p.semiMinor,
@@ -97,7 +97,7 @@ export function scanAngles(
   const lon = lonDeg * DEG;
 
   // Geocentric latitude: the ellipsoid means the local vertical does not pass
-  // through the earth's centre, and at 45 N the difference is ~11 arcminutes.
+  // through the earth's center, and at 45 N the difference is ~11 arcminutes.
   const latC = Math.atan((grid.rPol ** 2 / grid.rEq ** 2) * Math.tan(lat));
   const cosLatC = Math.cos(latC);
   const rc = grid.rPol / Math.sqrt(1 - grid.e2 * cosLatC ** 2);

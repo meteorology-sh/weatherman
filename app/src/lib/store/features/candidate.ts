@@ -11,7 +11,7 @@ type CandidateState = {
    * this is a reading on the selected storm, not the mask.
    *
    * Cloud tops have their own slice: this one covers a single data domain, and
-   * anything that fetches and summarises a scene of its own gets its own.
+   * anything that fetches and summarizes a scene of its own gets its own.
    */
   liquid: boolean;
   /** Summary of the liquid layer. The geometry itself never enters the store. */

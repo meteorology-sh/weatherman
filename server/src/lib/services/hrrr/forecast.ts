@@ -52,7 +52,7 @@ import {
 } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
 import {
-  METRES_TO_FEET,
+  METERS_TO_FEET,
   PROFILE_LEVELS,
   SOUNDING_LEVELS,
   isothermFieldFt,
@@ -338,7 +338,7 @@ export class ForecastService {
    * Resolve which cycle to read, and from where.
    *
    * `at` names the **run**, not the valid time: a replayed request asks for the
-   * cycle initialised at that hour, and `hour` still selects f00–f18 within it,
+   * cycle initialized at that hour, and `hour` still selects f00–f18 within it,
    * exactly as the live map does. Absent `at` is the live path and behaves
    * identically to before this existed.
    */
@@ -900,7 +900,7 @@ export class ForecastService {
         return;
       }
       if (name === "gh") {
-        heightFt.set(levelKey(level), scaleField(values, METRES_TO_FEET));
+        heightFt.set(levelKey(level), scaleField(values, METERS_TO_FEET));
       }
     });
 
@@ -939,7 +939,7 @@ export class ForecastService {
 
     let surface: Float32Array | null = null;
     await eachHrrrMessage(grib, (_name, _level, values) => {
-      surface = scaleField(values, METRES_TO_FEET);
+      surface = scaleField(values, METERS_TO_FEET);
     });
     if (!surface) throw new Error("HRRR carried no surface height");
     return surface;

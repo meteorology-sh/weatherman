@@ -15,7 +15,7 @@ import type { Diagnostics, SoundingLevel } from "@/lib/types";
 /* ---------- regions ---------- */
 
 /**
- * One weather modification programme.
+ * One weather modification program.
  *
  * `evaluable` is false until its reports have been parsed into a flight record.
  * A region that cannot be evaluated is still listed — the list is the honest
@@ -30,7 +30,7 @@ export type Region = {
   source: string | null;
   season: number | null;
   window: { west: number; east: number; south: number; north: number } | null;
-  /** What this programme briefs on — balloon sites, or a model column. */
+  /** What this program briefs on — balloon sites, or a model column. */
   sounding: string[];
   evaluable: boolean;
   days: number;
@@ -54,7 +54,7 @@ export type Reading = {
 export type Ascent = {
   date: string;
   site: string;
-  /** Bottom and top of the band the balloon measured, metres. */
+  /** Bottom and top of the band the balloon measured, meters. */
   measured: [number, number];
   /** The same two heights as we drew them. */
   ours: [number, number];
@@ -130,7 +130,7 @@ export type Day = {
 /* ---------- the painted frames ---------- */
 
 export type PaintedLevel = {
-  /** The band's value, which is what matches it to a colour. */
+  /** The band's value, which is what matches it to a color. */
   level: number;
   /** Polygons, each a list of rings, each a list of [lon, lat]. */
   polygons: [number, number][][][];
@@ -159,7 +159,7 @@ export type Drift = {
   to: [number, number] | null;
 };
 
-/** How far a release was from one layer, in kilometres. Zero means inside. */
+/** How far a release was from one layer, in kilometers. Zero means inside. */
 export type Nearness = {
   /**
    * What "any of this layer at all" meant here. Nested bands stack, so the
@@ -233,7 +233,7 @@ export type CellAtFlare = {
 };
 
 /**
- * The modelled column over the release, from `/forecast/sounding` at the
+ * The modeled column over the release, from `/forecast/sounding` at the
  * analysis the flare is charged to.
  *
  * `levels` is the profile whole, so the −15 °C height is interpolated here by

@@ -1,7 +1,7 @@
 # Investigation — what to build so this map is a tool Texas operators can fly with
 
 The 2025 evaluation showed the candidate field and the five licensed Texas
-programmes select different clouds. This file is the plan that follows from
+programs select different clouds. This file is the plan that follows from
 that, not a re-run of the August 2026 snapshot that found the layers unjoined.
 The join exists. Cloud base exists. The band is in the right place. The miss
 is the question the map asks.
@@ -28,7 +28,7 @@ located release. This file argues what to change.
 | --- | --- |
 | **Glaciogenic seeding** | Silver iodide (AgI) into supercooled liquid, so ice forms and the Wegener–Bergeron–Findeisen process can grow precipitation. |
 | **Hygroscopic seeding** | Salt (NaCl) into the warm part of a cloud, so droplets grow by coalescence. Out of scope for the candidate field; present in the logs. |
-| **Seeding band** | −5 °C to −18 °C. Warm edge is physics (AgI barely nucleates above it). Cold edge is a judgement about supply. |
+| **Seeding band** | −5 °C to −18 °C. Warm edge is physics (AgI barely nucleates above it). Cold edge is a judgment about supply. |
 | **Supercooled liquid water (SLW)** | Liquid colder than 0 °C. The only substance glaciogenic seeding acts on. Nothing free and national measures it in the vertical. |
 | **TITAN** | Thunderstorm Identification, Tracking, Analysis, and Nowcasting (Dixon and Wiener, 1993). NCAR radar-object software. Mandatory on Texas Weather Modification Association projects since 1999. |
 | **Cell** | A contiguous radar storm TITAN (or an analogue) has given an identity, a track, and a set of attributes. |
@@ -39,7 +39,7 @@ located release. This file argues what to change.
 | **HRRR** | NOAA's 3 km hourly convection-allowing model, already ingested here. |
 | **GOES-19 ABI** | 2 km / 5 min geostationary cloud-top products, already ingested here. |
 | **GLM** | Geostationary Lightning Mapper. On the same GOES bucket. Not ingested. |
-| **TDLR** | Texas Department of Licensing and Regulation. Licenses the programmes and excludes severe storms under permit. |
+| **TDLR** | Texas Department of Licensing and Regulation. Licenses the programs and excludes severe storms under permit. |
 
 **The seven criteria (C1–C7)** from the system design remain the physics
 yardstick. They are not the operator's checklist. Texas practice maps onto them
@@ -59,13 +59,13 @@ unevenly, which is the point of §2.
 
 ## 1. What the 2025 season established
 
-Four programmes that brief a balloon put the seeding band where we draw it:
+Four programs that brief a balloon put the seeding band where we draw it:
 median overlap 95.3–97.7%, edge biases within 70 m of zero. Finding 3 is not
 "the layer is in the wrong sky."
 
 At native sampling, inside the contour after storm-motion drift:
 
-| Programme | Cloud base | Cloud tops | Radar | Supercooled liquid | Seeding opportunity |
+| Program | Cloud base | Cloud tops | Radar | Supercooled liquid | Seeding opportunity |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | West Texas | 69.4% | 1.4% | 60.8% | 6.4% | 2.8% |
 | South Texas | 75.9% | 4.2% | 28.9% | 2.6% | 2.9% |
@@ -101,7 +101,7 @@ This is the state of the art in Texas, not an inference from the flares.
 ### 2.1 The loop on an operational day
 
 A licensed meteorologist and one or two aircraft. The West Texas reports are
-the worked example; the other four programmes are the same shape.
+the worked example; the other four programs are the same shape.
 
 1. **Morning briefing.** The 12Z Midland and Del Rio soundings: freezing level,
    −15 °C height, precipitable water, CAPE, LCL, CIN, CCL, lifted index, cloud
@@ -181,9 +181,9 @@ product.
 A national candidate map of **static columns**. Per 3 km HRRR cell, at the
 analysis hour:
 
-- SLW in the band ≥ 10 g/m² (modelled)
-- cloud base exists and sits below the band's cold edge (modelled)
-- GOES top at or colder than −5 °C (observed geometry, modelled temperature)
+- SLW in the band ≥ 10 g/m² (modeled)
+- cloud base exists and sits below the band's cold edge (modeled)
+- GOES top at or colder than −5 °C (observed geometry, modeled temperature)
 - MRMS < 20 dBZ, or no coverage (measured)
 
 Rejections partition in that order. Rain is last, which is why the
@@ -203,7 +203,7 @@ Also built, and not used as a selection:
 
 Honest against `MEASUREMENTS.md`. Wrong object for a Texas sortie. The
 operator asks "which turret, is it still growing, where is the inflow." The
-map answers "which 3 km column has quiet modelled liquid."
+map answers "which 3 km column has quiet modeled liquid."
 
 C3 is solved and checked. C6 is measured and applied as a veto they do not
 use. C2 is half-built (base is drawn, depth and the Texas window are not a
@@ -292,7 +292,7 @@ quantities from it would be invention.
 What the analogue still gives, and what the column map cannot:
 
 - A thing with a name, the way `158/262` is a thing.
-- A lifetime, so "first half" is a number instead of a judgement with no
+- A lifetime, so "first half" is a number instead of a judgment with no
   display.
 - A predicted position from the track (and from HRRR 0–6 km storm motion as
   a second vector, already computed in the evaluation).
@@ -324,8 +324,8 @@ carries as a vector — and treat that as the working area.
 
 Honest limits: we do not measure inflow. Pilots do, with the aircraft. The
 map can say "this is the upwind quiet side of a live cell." It cannot say
-"800 ft/min here." Labelling a climb rate from HRRR vertical velocity at 3 km
-hourly would be a modelled hint, and it must be labelled as one.
+"800 ft/min here." Labeling a climb rate from HRRR vertical velocity at 3 km
+hourly would be a modeled hint, and it must be labeled as one.
 
 This is the geometry that makes Option 1 operationally real. Lifting the veto
 without flanks just draws the core they already see on TITAN.
@@ -345,7 +345,7 @@ reflectivity on constant-temperature surfaces.
 We have the temperature profile (HRRR, checked against the balloons they
 brief) and we have reflectivity (MRMS). A layer that says "echo at the
 freezing level" / "echo at −5 °C" is those two, sampled onto the 3 km
-column, **labelled as model height × measured reflectivity**. It is not a
+column, **labeled as model height × measured reflectivity**. It is not a
 volume scan. It is closer to the operational cue than composite dBZ, and it
 is something TITAN-on-C-band does not automatically join to today's sounding.
 
@@ -389,7 +389,7 @@ or a balloon table. As a map they are the 12Z decision, statewide, at 3 km,
 an hour after the balloon.
 
 Warm-cloud depth is the hygroscopic number we currently refuse to produce.
-Producing it as **depth, labelled as such**, is not promoting salt to a
+Producing it as **depth, labeled as such**, is not promoting salt to a
 candidate field. It is giving the briefing back as geography. South Texas
 Finding 3 already needs this sentence: a deep warm cloud can be enormous
 and hold very little water in the band we measure.
@@ -401,7 +401,7 @@ MSL and AGL disagree over high terrain (`diagnostics.ts`). Drawing it as a
 banding the national layer on it. That is the honest version of the Texas
 gate.
 
-Test: on flying days, does the modelled 12Z column at KMAF / KDRT match the
+Test: on flying days, does the modeled 12Z column at KMAF / KDRT match the
 table they printed, the way Finding 1 already matches the two isotherms?
 CAPE, LCL, and warm-cloud depth are the rows that are still unchecked.
 
@@ -420,7 +420,7 @@ which is a more useful posture than a mask that erased 93.6% of West Texas
 releases.
 
 Test: the liquid-inside rate stays the diagnostic it is today (6.4% West
-Texas, 2.6–11.3% across programmes). It stops being a shipping criterion
+Texas, 2.6–11.3% across programs). It stops being a shipping criterion
 for the targeting map. Days where the typical release *was* inside liquid
 (one West Texas day of 34) are the days to put in front of an operator
 first.
@@ -434,7 +434,7 @@ West Texas and Trans-Pecos) coordinates. Replay already rebuilds every layer
 at that hour. What it does not do is show **this flare on this cell, with
 this climb-rate call, against this model column**.
 
-That is the briefing tool a programme could use the next morning, and the
+That is the briefing tool a program could use the next morning, and the
 publication figure for Finding 2 that is not a table. It is also how Option
 2–5 get developed: look at a scored day, look at the objects, see whether
 the flank geometry matches the radio log.
@@ -500,9 +500,9 @@ What waits, and why:
 - Hygroscopic candidate logic — warm-cloud depth must exist as a layer
   first, and salt is rare in the 2025 log.
 - MRMS 18 dBZ echo-top is now a reading on the storm click, compared to
-  modelled freezing. It is not a map fill. VIL and the 33-level cube
+  modeled freezing. It is not a map fill. VIL and the 33-level cube
   (storm volume, height of the maximum) still wait. Score the 216
-  flares for measured top past freezing before colouring anything.
+  flares for measured top past freezing before coloring anything.
 - Aircraft telemetry live — they have it; we would need a feed, not a
   cleverer use of HRRR.
 - A cold cutoff on cloud-top temperature — still no citation, and a −60 °C
@@ -523,22 +523,22 @@ The tests, in order, each cited:
    would move the window with the ground; AGL is what transfers across
    South Texas and Trans-Pecos.
 3. **Echo top at or above the freezing level**, in this cell or an
-   8-connected 3 km neighbour. Freezing height is `isothermFieldFt(profile,
+   8-connected 3 km neighbor. Freezing height is `isothermFieldFt(profile,
    0)`, the same function Finding 1 already trusts. Echo top is HRRR
-   `RETOP` — modelled height, labelled as such, not a volume scan. The
+   `RETOP` — modeled height, labeled as such, not a volume scan. The
    aircraft is not under the cold GOES top, so cloud-top temperature at
    this cell is not this test.
-4. **Measured echo at 20 dBZ** in that same neighbourhood. `RAIN_DBZ`, the
+4. **Measured echo at 20 dBZ** in that same neighborhood. `RAIN_DBZ`, the
    lowest contour we already draw. South Texas's typical release sits
-   1.4 km outside 20 dBZ, which is inside one HRRR cell. The neighbourhood
+   1.4 km outside 20 dBZ, which is inside one HRRR cell. The neighborhood
    is the grid's own spacing, not a radius chosen to swallow the 23 km
    cloud-top miss.
 
 Rain in this cell is not a reject. Supercooled liquid is not a test. GOES
 top temperature and phase stay readings.
 
-The neighbourhood does not wrap. A cell on the domain edge has fewer
-neighbours; it does not see the opposite side of the country.
+The neighborhood does not wrap. A cell on the domain edge has fewer
+neighbors; it does not see the opposite side of the country.
 
 `paint.mjs` scores each located flare against the radar storm at the
 analysis it is charged to. A high flare-inside rate with target area

@@ -76,7 +76,7 @@ const seedabilitySlice = createSlice({
   // Moving the click is what makes the readout fetch, exactly as it is for the
   // sounding: the old cell's answer is about somewhere else, and leaving it on
   // screen under new coordinates would be the wrong answer confidently
-  // labelled. The two readouts answer the same click, so they clear on the same
+  // labeled. The two readouts answer the same click, so they clear on the same
   // action rather than on two that could drift apart.
   extraReducers: (builder) => {
     builder.addCase(soundingActions.setPoint, (state) => {

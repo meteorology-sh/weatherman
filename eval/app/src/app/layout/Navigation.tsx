@@ -8,7 +8,7 @@ import { useAppDispatch, useAppSelector } from "~/lib/store/hooks";
 import { dayActions } from "~/lib/store/features/day";
 
 /**
- * The chrome: which programme is open, which day, and the findings within them.
+ * The chrome: which program is open, which day, and the findings within them.
  *
  * **The day belongs here rather than in the page.** It selects what every map
  * below is showing, so it has to be reachable without scrolling to find it —
@@ -33,7 +33,7 @@ export const Navigation = () => {
   // sitting off the text's baseline.
   const painted = days?.filter((day) => day.painted) ?? [];
 
-  // A programme with no flight record has nothing behind the two finding links,
+  // A program with no flight record has nothing behind the two finding links,
   // so it gets neither rather than two pages that explain themselves away.
   const links = !region
     ? []

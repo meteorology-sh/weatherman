@@ -248,7 +248,7 @@ export class CandidateService {
    *
    * No box means the whole domain. A box counts only those cells, but the
    * join still ran on the full grid so a cell just inside the box can see a
-   * neighbour just outside it. Flare hit-rate without this number is how a
+   * neighbor just outside it. Flare hit-rate without this number is how a
    * join that paints Texas cheats.
    */
   async targetStats(at?: Date, box?: LonLatBox): Promise<TargetStats> {
@@ -418,7 +418,7 @@ export class CandidateService {
     const geo = band.geo;
     const dbz = sampleRadar(radar.grid, geo);
     // Measured 18 dBZ top, same sample the echo-past-freezing fill is
-    // drawn from. Modelled echo top is a different height and was why
+    // drawn from. Modeled echo top is a different height and was why
     // a click on that fill could read "below freezing".
     const echoTopFt = echo
       ? echoTopFtValues(sampleEchoTopKm(echo.grid, geo))

@@ -1,7 +1,7 @@
 /**
  * How much of the seeding band we drew is the band a radiosonde measured.
  *
- * Overlap over union, so a band drawn far too deep is penalised rather than
+ * Overlap over union, so a band drawn far too deep is penalized rather than
  * rewarded for covering everything. A crew does not fly an edge, it flies
  * the layer between them.
  *
@@ -77,7 +77,7 @@ export function spread(values) {
   };
 }
 
-export function summariseOverlaps(overlaps) {
+export function summarizeOverlaps(overlaps) {
   const fractions = overlaps.map((o) => o.fraction).sort((a, b) => a - b);
   const depths = overlaps.map((o) => o.depth).sort((a, b) => a - b);
   if (!fractions.length) return null;

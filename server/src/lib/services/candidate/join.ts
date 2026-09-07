@@ -93,7 +93,7 @@ export type PhaseCheck = {
   /** Candidate ground the observation neither confirms nor contradicts, km². */
   unresolvedKm2: number;
   /**
-   * Ground with an observed supercooled top carrying less modelled in-band
+   * Ground with an observed supercooled top carrying less modeled in-band
    * liquid than the lowest contour draws, km².
    */
   missedKm2: number;
@@ -264,7 +264,7 @@ export type Join = {
  *
  * The mosaic is a regular 1 km lat/lon grid and HRRR's is 3 km Lambert, so the
  * two arrays do not line up cell for cell and the join cannot assume they do.
- * Taking the 1 km cell each HRRR centre falls in resamples the finer grid onto
+ * Taking the 1 km cell each HRRR center falls in resamples the finer grid onto
  * the coarser one — no interpolation, and no structure invented
  * (`MEASUREMENTS.md` §3).
  *

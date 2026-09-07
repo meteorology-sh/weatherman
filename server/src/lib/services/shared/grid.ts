@@ -421,7 +421,7 @@ export function assertInDomain(lat: number, lon: number) {
 }
 
 /**
- * The farthest a point inside the grid can be from the nearest cell centre:
+ * The farthest a point inside the grid can be from the nearest cell center:
  * half a cell's diagonal. Beyond it the point is outside the grid, however
  * close the edge cell happens to be.
  */
@@ -495,7 +495,7 @@ export function perimeter(geo: Geo, step = 4): [number, number][] {
  * degrees, which at 45 N would be 40% wrong east-west.
  *
  * Do not call this in a loop over another grid. `cellAt` takes an optional
- * seed so a walk across neighbouring pixels reuses the last cell.
+ * seed so a walk across neighboring pixels reuses the last cell.
  */
 export function nearestCell(geo: Geo, lat: number, lon: number): number {
   const scale = Math.cos((lat * Math.PI) / 180);
@@ -519,25 +519,25 @@ export function nearestCell(geo: Geo, lat: number, lon: number): number {
  * This is what a readout wants and `nearestCell` is not it. A cell's footprint
  * is a square in the grid's own row and column space, and the contours are
  * traced in that same space, with each band edge drawn midway between two cell
- * centres. The nearest *centre* in latitude and longitude is a different
+ * centers. The nearest *center* in latitude and longitude is a different
  * question, and near a cell boundary the two answer differently, so a point
- * inside a drawn band could be reported against a neighbouring cell that the
+ * inside a drawn band could be reported against a neighboring cell that the
  * band excluded.
  *
  * **Solved in the grid's own space, without a projection inverse.** Take a
  * starting guess, then read the two vectors that step one cell along its row
  * and one along its column straight off the lat/lon arrays. They span the local
- * grid, so the point's offset from that cell's centre resolves into "how many
+ * grid, so the point's offset from that cell's center resolves into "how many
  * cells along the row, how many along the column", and rounding both lands on
  * the cell containing it. The starting guess only has to be within a cell for
  * the rounding to correct it, which `nearestCell` always is.
  *
  * `seed` is that guess when the caller already has a nearby cell — a walk
- * across neighbouring pixels of another grid. Without it this falls back to
+ * across neighboring pixels of another grid. Without it this falls back to
  * `nearestCell`, which is the right seed for a single click and the wrong one
  * for 3.75 million GOES pixels.
  *
- * At the grid's edge the step goes to the neighbour behind and the vector is
+ * At the grid's edge the step goes to the neighbor behind and the vector is
  * negated, so the basis means the same thing everywhere.
  */
 export function cellAt(

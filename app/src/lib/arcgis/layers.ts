@@ -223,7 +223,7 @@ export const ReplayConfirmedLayer = new GeoJSONLayer({
 });
 
 /**
- * Modelled cloud base, banded server-side from HRRR — the height an aircraft
+ * Modeled cloud base, banded server-side from HRRR — the height an aircraft
  * would climb through, and the variable Texas operations actually select on.
  *
  * **Disjoint bands, not nested contours**, because the field is a window rather
@@ -251,7 +251,7 @@ export const CandidateCloudBaseLayer = new GeoJSONLayer({
 });
 
 /**
- * Modelled cloud cover, contoured server-side from HRRR into nested polygons.
+ * Modeled cloud cover, contoured server-side from HRRR into nested polygons.
  * Vector rather than raster on purpose: GOES cannot forecast, and unlike an
  * infrared image these have true nodata — where the model has no cloud, nothing
  * is drawn and the basemap shows through. Map.tsx repoints `url` as the
@@ -266,7 +266,7 @@ export const ForecastCloudsLayer = new GeoJSONLayer({
 });
 
 /**
- * Modelled precipitation rate, contoured the same way and drawn over the cloud
+ * Modeled precipitation rate, contoured the same way and drawn over the cloud
  * layer — rain is the more specific signal and covers far less ground, so it
  * belongs on top.
  *
@@ -314,7 +314,7 @@ export const CandidateLiquidLayer = new GeoJSONLayer({
 
 /**
  * Observed reflectivity, contoured server-side from the MRMS national mosaic —
- * the only layer on either map that is measured rather than modelled, and the
+ * the only layer on either map that is measured rather than modeled, and the
  * check on the liquid-water contours it is drawn over. A candidate already
  * raining itself out is one the model still paints amber.
  *

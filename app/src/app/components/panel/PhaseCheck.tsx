@@ -79,7 +79,7 @@ export const PhaseCheck = ({ stats }: PropsT) => {
         <div className="text-xs">
           {stats.candidateKm2 > 0 ? "It also sees" : "The satellite sees"} a
           supercooled top over {km2.format(phase.missedKm2)} km² carrying less
-          modelled liquid than the lowest band draws — cloud that never reached
+          modeled liquid than the lowest band draws — cloud that never reached
           this map to be ruled out. A thin supercooled deck can sit under that
           band honestly, so this is ground worth a look rather than a count of
           mistakes.

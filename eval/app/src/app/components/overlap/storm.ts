@@ -8,7 +8,7 @@ import type { StormAtFlare } from "~/lib/types";
 import { type Tone } from "./distance";
 
 /**
- * How a yes, a no and a missing reading are coloured.
+ * How a yes, a no and a missing reading are colored.
  *
  * Shared by every place that prints a pass or a fail, so FLY on the readout
  * table and a green cell anywhere else are the same green.
@@ -42,11 +42,11 @@ function echoVersusFreezing(storm: StormAtFlare): string {
   if (top === null) {
     if (storm.modelEchoTopFt === null) return "no 18 dBZ echo top";
     if (freeze === null) {
-      return `modelled echo top ${feet(storm.modelEchoTopFt)} MSL; column never crosses freezing`;
+      return `modeled echo top ${feet(storm.modelEchoTopFt)} MSL; column never crosses freezing`;
     }
     return storm.modelEchoTopFt >= freeze
-      ? `modelled echo top ${feet(storm.modelEchoTopFt - freeze)} above freezing`
-      : `modelled echo top ${feet(freeze - storm.modelEchoTopFt)} below freezing`;
+      ? `modeled echo top ${feet(storm.modelEchoTopFt - freeze)} above freezing`
+      : `modeled echo top ${feet(freeze - storm.modelEchoTopFt)} below freezing`;
   }
   if (freeze === null) {
     return `18 dBZ echo top ${feet(top)} MSL; column never crosses freezing`;

@@ -19,8 +19,8 @@ export const LEVEL_STEP_MB = 25;
 export const LAYER_PA = LEVEL_STEP_MB * 100;
 export const GRAVITY = 9.81;
 
-/** Metres to feet: HGT is geopotential metres, operators fly in feet. */
-export const METRES_TO_FEET = 3.28084;
+/** Meters to feet: HGT is geopotential meters, operators fly in feet. */
+export const METERS_TO_FEET = 3.28084;
 
 /**
  * Coarse ladder used to find the seeding band before reading it properly.

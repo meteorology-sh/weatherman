@@ -262,7 +262,7 @@ export class RadarService {
    * we do not guess a direction.
    *
    * `shape` picks the geometry the caller can draw: the painted maps take
-   * the dart, whose width is kilometres of ground; the live map takes the
+   * the dart, whose width is kilometers of ground; the live map takes the
    * line, whose width is pixels of screen.
    */
   async motion(
@@ -316,7 +316,7 @@ export class RadarService {
    * over the whole drawn box, because a click pays for its own scan. The
    * window is far wider than the answer it is asked for: a storm cut by its
    * wall has a core that is only the strongest cell in the crop and an
-   * upwind side measured from that wrong centre, so the window has to hold
+   * upwind side measured from that wrong center, so the window has to hold
    * the whole storm, not just the 40 km the reading covers.
    */
   async atPoint(
@@ -904,7 +904,7 @@ export function mosaicIndex(
 }
 
 /**
- * Lat/lon of each block's centre, south row first. The mosaic is a regular
+ * Lat/lon of each block's center, south row first. The mosaic is a regular
  * lat/lon grid, so this is arithmetic — no GRIB read required.
  */
 export function blockGeo(nx = NX, ny = NY): Geo {
@@ -1001,7 +1001,7 @@ export function sceneTime(date: string, time: string): string {
  * `.../20250515/MRMS_MergedBaseReflectivityQC_00.50_20250515-181439.grib2.gz`,
  * so the time is `YYYYMMDD-HHMMSS` before the extension. This is only used to
  * *choose* a key — the frame's own `validTime` still comes from the decoded
- * message, so a mislabelled filename cannot caption the map.
+ * message, so a mislabeled filename cannot caption the map.
  */
 export function archiveKeyTime(key: string): string {
   const m = key.match(/_(\d{8})-(\d{6})\./);

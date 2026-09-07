@@ -11,7 +11,7 @@ import type { Row } from "./readout";
  *
  * **These are the operator's own panel, one row per flare.** Weatherman answers
  * a click with FLY or DON'T FLY and the numbers behind the call, plus the
- * modelled column over that point. Both blocks are formatted by `readout.ts`
+ * modeled column over that point. Both blocks are formatted by `readout.ts`
  * from the product's own rules, so a figure printed here reads as the figure an
  * operator would have read. The storm a release sat in is context for the map
  * rather than a verdict, and stays on the hover there.

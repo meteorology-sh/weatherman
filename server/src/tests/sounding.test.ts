@@ -134,7 +134,7 @@ describe("nearestCell", () => {
   it("measures on the ground, not in degrees", () => {
     // 0.6 deg east but only 0.5 deg north of cell 4. In raw degrees the
     // northern cell wins; on the ground at 40 N, 0.6 deg of longitude is
-    // ~0.46 deg worth of distance, so cell 4's eastern neighbour is closer.
+    // ~0.46 deg worth of distance, so cell 4's eastern neighbor is closer.
     const cell = nearestCell(geo, 40.5, -98.4);
 
     assert.equal(geo.lats[cell], 40);
@@ -147,7 +147,7 @@ describe("nearestCell", () => {
  *
  * The grid here is **rotated**, like the real one — HRRR's rows run along the
  * Lambert projection rather than along a parallel. That is what separates this
- * from `nearestCell`: on a rotated grid the nearest centre and the containing
+ * from `nearestCell`: on a rotated grid the nearest center and the containing
  * footprint are different cells near a boundary, and a readout that answers
  * with the first can contradict a band drawn from the second.
  */
@@ -181,22 +181,22 @@ describe("cellAt", () => {
   });
 
   // The case the readout was getting wrong. Toward the corner of a rotated
-  // cell, a neighbour's centre is closer on the ground while the point is still
+  // cell, a neighbor's center is closer on the ground while the point is still
   // inside this cell's own footprint — and the footprint is what was contoured.
-  it("keeps a point in its own cell where a neighbour's centre is nearer", () => {
+  it("keeps a point in its own cell where a neighbor's center is nearer", () => {
     const [lat, lon] = offset(1, 1, 0.45, 0.45);
 
     assert.notEqual(nearestCell(geo, lat, lon), 4);
     assert.equal(cellAt(geo, lat, lon), 4);
   });
 
-  it("crosses to the neighbour once the point does", () => {
+  it("crosses to the neighbor once the point does", () => {
     const [lat, lon] = offset(1, 1, 0.55, 0);
 
     assert.equal(cellAt(geo, lat, lon), 5);
   });
 
-  // The basis is read from a neighbour, and an edge cell has one on one side
+  // The basis is read from a neighbor, and an edge cell has one on one side
   // only. Stepping backwards and negating has to give the same answer.
   it("resolves against the edge of the grid", () => {
     const [lat, lon] = offset(2, 2, -0.1, -0.1);
@@ -237,7 +237,7 @@ describe("the edge of the grid", () => {
   it("walks the edge as a closed ring", () => {
     const ring = perimeter(geo, 1);
 
-    // Eight edge cells, and the first repeated to close it. The centre is not
+    // Eight edge cells, and the first repeated to close it. The center is not
     // on the edge and must not appear.
     assert.equal(ring.length, 9);
     assert.deepEqual(ring[0], ring[ring.length - 1]);

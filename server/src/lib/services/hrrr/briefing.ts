@@ -2,7 +2,7 @@
  * The 12Z sounding table, as fields on the 3 km grid.
  *
  * CAPE, CIN, LCL, freezing level, −15 °C, and warm-cloud depth are the
- * rows Texas programmes print from the morning balloon. They are already
+ * rows Texas programs print from the morning balloon. They are already
  * in HRRR. This file is the arithmetic that turns those arrays into the
  * bands the map draws. Cloud base is the remaining row, and it already
  * has its own layer.

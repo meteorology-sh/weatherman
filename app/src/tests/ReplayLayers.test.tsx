@@ -115,7 +115,7 @@ describe("ReplayLayers", () => {
   });
 
 
-  it("leaves the modelled liquid off the switches", () => {
+  it("leaves the modeled liquid off the switches", () => {
     renderWithStore(<ReplayLayers />, createTestStore());
 
     expect(screen.queryByLabelText(LiquidLegend.name)).toBeNull();

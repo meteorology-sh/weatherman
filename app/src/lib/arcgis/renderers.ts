@@ -2,7 +2,7 @@
  * The ArcGIS symbols each layer is drawn with.
  *
  * One renderer per layer, built from the band tables in `bands.ts` — this file
- * decides nothing about which levels exist or what colour they are, so a layer
+ * decides nothing about which levels exist or what color they are, so a layer
  * cannot be painted one way on the map and another in the legend.
  */
 
@@ -109,7 +109,7 @@ export const stormCoreRenderer = new SimpleRenderer({
  * Heading of the storm, from the heaviest-rain cell. Not a nowcast.
  *
  * A line from the core along the heading, with the arrowhead the line
- * symbol draws at its end. Its length is kilometres of ground and follows
+ * symbol draws at its end. Its length is kilometers of ground and follows
  * the speed; its width is screen points and follows nothing, so zooming in
  * on a single cell lengthens the tick without fattening it.
  */

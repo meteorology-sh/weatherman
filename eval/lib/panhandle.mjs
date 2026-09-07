@@ -51,7 +51,7 @@ const MONTHS = {
   december: 12,
 };
 
-/** The forecast rows worth carrying. Heights are metres above sea level. */
+/** The forecast rows worth carrying. Heights are meters above sea level. */
 const INDICES = [
   ["freezingLevelM", String.raw`Freezing\s+Level\s+\(m,MSL\)`],
   ["minus5HeightM", String.raw`-5.?C\s+Height\s+\(m,MSL\)`],

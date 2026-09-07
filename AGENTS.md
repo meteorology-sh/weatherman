@@ -191,7 +191,7 @@ app/src/
       layers.ts            #   Module-scope GeoJSONLayer instances
       legends.ts           #   Per layer: on-screen name, source, what it
                            #   measures, and what it does not tell you
-      bands.ts             #   Contour levels, colours and labels per layer
+      bands.ts             #   Contour levels, colors and labels per layer
       renderers.ts         #   The ArcGIS symbols those bands are drawn with
     context/               # One data provider per domain
     store/
@@ -424,7 +424,7 @@ so a new layer cannot arrive without a section.
 **Panel text is undimmed.** No `opacity-*` on anything carrying words; the
 DaisyUI classes that dim themselves (`stat-title`, `stat-desc`, `prose`) are
 un-dimmed once in `index.css` rather than fought per component. Muting is for a
-control that cannot act — the greyed ramp at an hour its layer cannot draw.
+control that cannot act — the grayed ramp at an hour its layer cannot draw.
 
 **Use early-return guards. Never ternaries for loading/error/empty at the top
 level:**
@@ -487,7 +487,7 @@ relative.
 This is load-bearing. The chrome hardcodes `bg-black` and the ArcGIS dark theme
 is imported, so if DaisyUI falls back to its light default `text-base-content`
 resolves to dark text on black and the sidebar becomes unreadable. Don't remove
-the pin, and don't "fix" contrast by hardcoding text colours on top of it — that
+the pin, and don't "fix" contrast by hardcoding text colors on top of it — that
 hides the theme break rather than fixing it.
 
 ## Testing — Vitest

@@ -64,7 +64,7 @@ import type { ClickEvent } from "@arcgis/core/views/input/types";
 import type { MapMode } from "@/lib/types";
 
 type PropsT = {
-  /** Which map this route is: modelled forecast, or observed candidate. */
+  /** Which map this route is: modeled forecast, or observed candidate. */
   mode: MapMode;
 };
 
@@ -179,13 +179,13 @@ export const ArcGIS = ({ mode }: PropsT) => {
   }, []);
 
   // Layer visibility is derived from the route's mode plus the store, in one
-  // place. The forecast map is modelled contours; the candidate map is observed
+  // place. The forecast map is modeled contours; the candidate map is observed
   // cloud tops plus the analysis of what is inside the cloud. Both stay on the
   // map so switching re-uses what's loaded.
   //
   // The precipitation layer hides before PRECIP_FIRST_HOUR rather than drawing
   // an empty frame: HRRR has no precipitation at the analysis, and a layer
-  // that's on but blank reads as "no rain" instead of "not modelled yet".
+  // that's on but blank reads as "no rain" instead of "not modeled yet".
   // The candidate layers are pinned to "now", so they stay off while replaying
   // — showing today's scene under a 2025 date is the one thing this page must
   // never do, and it would look like a slow load rather than a wrong answer.
@@ -195,14 +195,14 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ForecastCloudsLayer.visible = forecasting;
     ForecastPrecipLayer.visible = raining && precip;
     CandidateCloudBaseLayer.visible = candidating && cloudBase;
-    // Observations, so they never appear on the modelled map — the same rule
+    // Observations, so they never appear on the modeled map — the same rule
     // that keeps the satellite cloud tops off it.
     CandidateRadarLayer.visible = candidating && radar;
     CandidateEchoFreezeLayer.visible = candidating && radar && echoFreeze;
     CandidateLightningLayer.visible = candidating && radar && lightning;
     CandidateStormMotionLayer.visible = candidating && radar && heading;
     CandidateStormCoreLayer.visible = candidating && radar && heading;
-    // The Texas fly fill — where to click. The quiet-liquid outline is
+    // The Texas fly fill — where to click. The liquid-with-no-rain outline is
     // not this layer.
     CandidateFieldLayer.visible = candidating && field;
     CandidateConfirmedLayer.visible = false;

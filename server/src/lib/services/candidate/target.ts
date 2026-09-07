@@ -2,9 +2,9 @@
  * The Texas-target join: a cloud-base column next to a storm, not a quiet
  * supercooled-liquid column under a cold top.
  *
- * Texas programmes select convective cloud with a base in the 4,000–12,000 ft
+ * Texas programs select convective cloud with a base in the 4,000–12,000 ft
  * window, depth past the freezing level, and a raining cell to work the flank
- * of. They do not gate on modelled liquid in the seeding band, and they do not
+ * of. They do not gate on modeled liquid in the seeding band, and they do not
  * cross a cell off for rain. That arithmetic lives here, on the same grids the
  * seeding-opportunity join already reads, plus terrain, the freezing level and
  * the measured 18 dBZ echo top the map draws.
@@ -14,10 +14,10 @@
  *
  * **What this still cannot ask.** Growing / first half-lifetime needs tracked
  * objects. Inflow in ft/min is a pilot call. The upwind flank is a geometry
- * this 1-cell neighbourhood is not. Severe-weather watches are not ingested.
+ * this 1-cell neighborhood is not. Severe-weather watches are not ingested.
  * Those are the remaining miss if 2025 still disagrees, not a looser window.
  *
- * **The neighbourhood is one HRRR cell.** 8-connected, no wrap. That is the
+ * **The neighborhood is one HRRR cell.** 8-connected, no wrap. That is the
  * grid's own spacing — South Texas's typical release sits 1.4 km outside 20 dBZ
  * — not a radius chosen to swallow the 23 km cloud-top miss.
  */
@@ -42,11 +42,11 @@ export type TargetRejected = {
   noCloudBase: number;
   /** Base sits above the aircraft's service ceiling — it cannot be reached. */
   baseAboveCeiling: number;
-  /** No column in the neighbourhood has a freezing level. */
+  /** No column in the neighborhood has a freezing level. */
   noFreezingLevel: number;
-  /** No column in the neighbourhood has echo top at or above freezing. */
+  /** No column in the neighborhood has echo top at or above freezing. */
   topBelowFreezing: number;
-  /** No column in the neighbourhood has measured echo at 20 dBZ. */
+  /** No column in the neighborhood has measured echo at 20 dBZ. */
   noStorm: number;
 };
 
@@ -138,16 +138,16 @@ type TargetContext = {
  * a property of the airframe and is read in ft MSL, which is also what removes
  * the MSL-against-AGL disagreement a fixed window has over high terrain.
  *
- * A programme with a minimum altitude of its own applies it in its own
+ * A program with a minimum altitude of its own applies it in its own
  * operations; it is not a property of the cloud and is not gated here.
  */
 const CEILING = CEILING_FT;
 
 /**
- * 8-connected neighbourhood including the cell itself. No wrap: a cell on
- * the domain edge has fewer neighbours, it does not see the opposite side.
+ * 8-connected neighborhood including the cell itself. No wrap: a cell on
+ * the domain edge has fewer neighbors, it does not see the opposite side.
  */
-function neighbourhood(i: number, nx: number, ny: number): number[] {
+function neighborhood(i: number, nx: number, ny: number): number[] {
   const x = i % nx;
   const y = (i - x) / nx;
   const out: number[] = [];
@@ -174,7 +174,7 @@ export function verdict(inputs: TargetInputs, i: number): TargetVerdict {
 
   if (!(base < CEILING)) return "baseAboveCeiling";
 
-  const around = neighbourhood(i, inputs.nx, inputs.ny);
+  const around = neighborhood(i, inputs.nx, inputs.ny);
 
   let sawFreezing = false;
   let pastFreezing = false;
@@ -255,7 +255,7 @@ export function emptyTarget(): TargetPoint {
  * passed, and what removed the rest.
  *
  * The join itself always runs on the full domain so a cell just inside a box
- * can still see a neighbour just outside it. Counting is what the box limits.
+ * can still see a neighbor just outside it. Counting is what the box limits.
  * Rejections inside a box are re-charged from `verdict`, because the join's
  * own counts include cells the box did not ask about.
  */

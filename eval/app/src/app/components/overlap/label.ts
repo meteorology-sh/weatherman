@@ -1,9 +1,9 @@
 /**
  * Where to write a county's name.
  *
- * **The centre of a bounding box is not inside a county of an awkward shape.**
+ * **The center of a bounding box is not inside a county of an awkward shape.**
  * Tom Green wraps around a notch and Crockett's north-western boundary follows
- * the Pecos, so both had their bbox centre land on or beside a boundary line —
+ * the Pecos, so both had their bbox center land on or beside a boundary line —
  * Tom Green with 0.2 km of clearance, Crockett with 4.8 km, against 20 km or
  * more for every well-behaved county on the map. A name on the line reads as
  * belonging to whichever county the eye picks.
@@ -11,7 +11,7 @@
  * So the label goes at the **pole of inaccessibility**: the interior point
  * farthest from any edge. It is the standard answer to this and it degrades
  * gracefully — for a county that is roughly a rectangle it lands within a
- * hundred metres of the centre it would have had anyway, so nothing that was
+ * hundred meters of the center it would have had anyway, so nothing that was
  * already right moves.
  */
 
@@ -20,7 +20,7 @@ export type Ring = [number, number][];
 /**
  * Vertices kept per ring before searching.
  *
- * Label placement is a coarse question and the answer moves by metres when the
+ * Label placement is a coarse question and the answer moves by meters when the
  * river detail is dropped, while the search is linear in vertex count — Crockett
  * alone carries 8,317 points. Thinning the whole map to 4,452 makes this a few
  * hundred milliseconds instead of several seconds.
@@ -32,7 +32,7 @@ const MAX_VERTS = 400;
  *
  * The coarse pass only has to land in the right lobe of the county — the
  * refinements find the actual pole from there, and every grid from 20 to 32
- * gives the same answer to a tenth of a kilometre on the thirteen counties
+ * gives the same answer to a tenth of a kilometer on the thirteen counties
  * here. 24 is the middle of that range, kept as margin for a shape from a
  * region that has not been loaded yet.
  *

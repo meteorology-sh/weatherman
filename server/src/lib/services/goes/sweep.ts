@@ -187,7 +187,7 @@ async function resolveLatest(): Promise<Sweep> {
  * The archived sweep nearest `at` that both products filed.
  *
  * Lists the hour and the one before it, as a single-product lookup does — a
- * scan starting at 13:56 is the nearest neighbour of 14:00 and lives under the
+ * scan starting at 13:56 is the nearest neighbor of 14:00 and lives under the
  * previous hour's prefix.
  */
 async function resolveAt(at: Date, tolerance: number): Promise<Sweep> {

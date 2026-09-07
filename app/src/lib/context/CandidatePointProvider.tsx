@@ -18,7 +18,7 @@ import { CandidateBuild, GetCandidatePoint } from "@/lib/client";
  * is already drawing, so a click costs one cached read rather than a build.
  *
  * It waits for a click, unlike the sounding. The readout is about the cell an
- * operator picked, and the centre of the country is not one — reading it would
+ * operator picked, and the center of the country is not one — reading it would
  * fill the panel with an answer about nowhere in particular.
  *
  * **A click is also what catches the map being out of date.** The answer names

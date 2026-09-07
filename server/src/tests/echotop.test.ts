@@ -39,7 +39,7 @@ function scene(rows: number[][]) {
 }
 
 describe("heightFt", () => {
-  it("converts kilometres MSL to feet", () => {
+  it("converts kilometers MSL to feet", () => {
     assert.equal(heightFt(10), Math.round(10 * KM_TO_FT));
   });
 
@@ -51,7 +51,7 @@ describe("heightFt", () => {
 });
 
 describe("echoTopFtValues", () => {
-  it("converts kilometres to feet on the same cells", () => {
+  it("converts kilometers to feet on the same cells", () => {
     const out = echoTopFtValues(new Float32Array([10, NO_ECHO_KM]));
     assert.equal(out[0], Math.round(10 * KM_TO_FT));
     assert.ok(Number.isNaN(out[1]));

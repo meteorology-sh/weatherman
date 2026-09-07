@@ -4,7 +4,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { Sounding } from "@/lib/types";
 
 /**
- * Where the column is read before anyone clicks: the centre of the map, and of
+ * Where the column is read before anyone clicks: the center of the map, and of
  * the country.
  *
  * It is read to warm the profile grid, not to fill the panel. That build is
@@ -20,7 +20,7 @@ type SoundingState = {
   /**
    * Whether the point came from a click.
    *
-   * The column is worth reading over the default centre — it is a profile of
+   * The column is worth reading over the default center — it is a profile of
    * somewhere, and the grid behind it has to be built anyway. The join's
    * readout is not: it is headed "cloud over this point", and there is no
    * *this point* until someone picks one.
@@ -48,7 +48,7 @@ const soundingSlice = createSlice({
       state.point = action.payload;
       state.clicked = true;
       // The old column is about somewhere else. Keeping it on screen under a
-      // new set of coordinates would be the wrong answer, confidently labelled.
+      // new set of coordinates would be the wrong answer, confidently labeled.
       state.data = undefined;
       state.error = null;
     },

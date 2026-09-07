@@ -16,7 +16,7 @@
 // Grid
 import { CELL_KM2 } from "../shared/grid";
 import { CEILING_FT } from "../shared/aircraft";
-import { METRES_TO_FEET } from "./profile";
+import { METERS_TO_FEET } from "./profile";
 
 // Types
 import type { Grid } from "../shared/contour";
@@ -24,7 +24,7 @@ import type { Grid } from "../shared/contour";
 /**
  * What a bitmapped-missing point is printed as while decoding these records.
  *
- * eccodes defaults to 9999, and **for a height in metres that is a real
+ * eccodes defaults to 9999, and **for a height in meters that is a real
  * value**: HRRR's `HGT:cloud top` carries tops to 15,698 m in this same file,
  * so 9999 would silently read genuine deep convection as nodata. The first pass
  * at this layer produced cloud tops below cloud bases for exactly that reason.
@@ -46,7 +46,7 @@ const KNOTS = 1.94384;
  * The window Texas operations select cloud bases in, ft above the ground.
  *
  * **Cited, not derived.** The state's published description of its permitted
- * programmes targets convective clouds with bases between 4,000 and 12,000 ft;
+ * programs targets convective clouds with bases between 4,000 and 12,000 ft;
  * this is that number, not a cutoff chosen from a coverage table.
  *
  * **Drawn in AGL wherever the model has a base in the window**, as its own
@@ -105,7 +105,7 @@ export const DIAGNOSTICS = {
   cloudBase: {
     grib: { name: "HGT", level: "cloud base" },
     id: "3:5:cloudBase",
-    scale: METRES_TO_FEET,
+    scale: METERS_TO_FEET,
     missing: SFC_MISSING,
     firstHour: 0,
   },
@@ -120,7 +120,7 @@ export const DIAGNOSTICS = {
   cloudTop: {
     grib: { name: "HGT", level: "cloud top" },
     id: "3:5:cloudTop",
-    scale: METRES_TO_FEET,
+    scale: METERS_TO_FEET,
     missing: SFC_MISSING,
     firstHour: 0,
   },
@@ -155,14 +155,14 @@ export const DIAGNOSTICS = {
     firstHour: 0,
   },
   /**
-   * Lifting condensation level, geopotential metres MSL. The height a
+   * Lifting condensation level, geopotential meters MSL. The height a
    * surface parcel saturates if lifted dry-adiabatically. Same `HGT`
    * identity as cloud base; the level name is what distinguishes them.
    */
   lcl: {
     grib: { name: "HGT", level: "level of adiabatic condensation from sfc" },
     id: "3:5:adiabaticCondensation",
-    scale: METRES_TO_FEET,
+    scale: METERS_TO_FEET,
     missing: SFC_MISSING,
     firstHour: 0,
   },
@@ -217,7 +217,7 @@ export const DIAGNOSTICS = {
   echoTop: {
     grib: { name: "RETOP", level: "cloud top" },
     id: "16:3:cloudTop",
-    scale: METRES_TO_FEET,
+    scale: METERS_TO_FEET,
     missing: NO_ECHO,
     firstHour: 0,
   },

@@ -2,10 +2,10 @@
  * The five Texas rain-enhancement permit areas this map is for.
  *
  * Bounding boxes from the 2025 evaluation windows — the ground those
- * programmes fly, not the whole HRRR domain. A cell is in the permits
+ * programs fly, not the whole HRRR domain. A cell is in the permits
  * if it sits in any one box. The boxes overlap; that is fine.
  *
- * Cited from the TDLR programme list, not from a coverage table.
+ * Cited from the TDLR program list, not from a coverage table.
  */
 
 import { inBox } from "./grid";

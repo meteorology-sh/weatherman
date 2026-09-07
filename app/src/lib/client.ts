@@ -82,7 +82,7 @@ export async function GetCloudBaseStats(
 
 /**
  * Summary of the supercooled-liquid layer. Small enough for the store, unlike
- * the frame it summarises — and asking for it warms the server's build of that
+ * the frame it summarizes — and asking for it warms the server's build of that
  * frame, which is why the provider fetches it on landing rather than on the map.
  */
 export async function GetLiquidStats(
@@ -128,7 +128,7 @@ export async function GetSounding(
 
 /**
  * The Texas fly fill — base in the window, echo top past freezing,
- * rain nearby. Quiet-liquid geometry stays on `/candidate/field` for
+ * rain nearby. Liquid-with-no-rain geometry stays on `/candidate/field` for
  * eval.
  */
 export function CandidateFieldUrl(box: MapBox = INITIAL_BOX): string {
@@ -326,7 +326,7 @@ export function RadarStormCoresUrl(box: MapBox = INITIAL_BOX): string {
  *
  * `shape=line` asks for the tick as a line rather than the painted dart:
  * this map draws it a fixed number of pixels wide, so the width must not
- * be baked into the geometry as kilometres.
+ * be baked into the geometry as kilometers.
  */
 export function RadarStormMotionUrl(box: MapBox = INITIAL_BOX): string {
   return `/radar/objects/motion?${new URLSearchParams({
@@ -381,7 +381,7 @@ export function ReplayLightningUrl(
 }
 
 /**
- * The storm containing this click, or the nearest one, with modelled liquid
+ * The storm containing this click, or the nearest one, with modeled liquid
  * and the observed top change over that storm. Null when none is near.
  */
 export async function GetStormNear(

@@ -229,7 +229,7 @@ describe("blockGeo", () => {
   it("places the first block at the mosaic's north-west corner", () => {
     const geo = blockGeo();
 
-    // 583 x 291 blocks of 12, centred half a block in from 54.995 N, 129.995 W.
+    // 583 x 291 blocks of 12, centered half a block in from 54.995 N, 129.995 W.
     const north = geo.lats[(geo.ny - 1) * geo.nx];
     assert.ok(Math.abs(north - 54.94) < 0.01, `${north}`);
     assert.ok(Math.abs(geo.lons[0] - -129.94) < 0.01, `${geo.lons[0]}`);

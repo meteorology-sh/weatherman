@@ -81,7 +81,7 @@ describe("identify", () => {
     assert.equal(storms[0].geometry.length, 0);
   });
 
-  it("joins diagonal neighbours (8-connected)", () => {
+  it("joins diagonal neighbors (8-connected)", () => {
     const { grid, geo } = scene([
       [30, 0, 0],
       [0, 30, 0],
@@ -218,7 +218,7 @@ describe("near", () => {
     );
   });
 
-  it("is nought kilometres from the core when the click is on it", () => {
+  it("is nought kilometers from the core when the click is on it", () => {
     const reading = near(
       storms[0].coreLat,
       storms[0].coreLon,
@@ -251,7 +251,7 @@ describe("near", () => {
 
   // A click on the ring itself is on neither side of it by any margin the
   // panel prints, so the distance has to fall away to nothing there.
-  it("is nought kilometres from the edge on the ring itself", () => {
+  it("is nought kilometers from the edge on the ring itself", () => {
     const [lon, lat] = storms[0].geometry[0][0][0];
     const reading = near(lat, lon, storms, geo, TIME);
     assert.ok(reading);

@@ -5,7 +5,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { Region } from "~/lib/types";
 
 /**
- * The programmes this evaluation can be run against, and which one is open.
+ * The programs this evaluation can be run against, and which one is open.
  *
  * `active` is set from the url rather than by a control, so a link to a region's
  * findings is a link to that region's findings. The picker navigates; it does

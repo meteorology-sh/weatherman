@@ -3,7 +3,7 @@
  *
  * `node eval/days.mjs [--region=wtwma]`
  *
- * No region flag prints `region<TAB>date` for every programme. The AWS
+ * No region flag prints `region<TAB>date` for every program. The AWS
  * season job feeds these dates to `paint.mjs`.
  */
 

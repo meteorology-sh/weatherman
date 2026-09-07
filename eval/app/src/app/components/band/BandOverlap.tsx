@@ -2,7 +2,7 @@
 import type { Ascent, BandFinding } from "~/lib/types";
 
 const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
-const metres = (value: number) => `${Math.round(value)} m`;
+const meters = (value: number) => `${Math.round(value)} m`;
 
 type PropsT = { band: BandFinding };
 
@@ -11,7 +11,7 @@ function siteName(band: BandFinding, code: string): string {
 }
 
 function bandSpan(pair: [number, number]): string {
-  return `${metres(pair[0])} – ${metres(pair[1])}`;
+  return `${meters(pair[0])} – ${meters(pair[1])}`;
 }
 
 /**
@@ -53,7 +53,7 @@ export const BandOverlap = ({ band }: PropsT) => {
                 {pct(ascent.fraction)}
               </td>
               <td className="text-right font-mono">
-                {metres(ascent.depth)}
+                {meters(ascent.depth)}
               </td>
             </tr>
           ))}

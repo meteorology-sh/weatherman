@@ -34,7 +34,7 @@ export type Decode = {
   /**
    * What a bitmapped-missing point is printed as. eccodes defaults to **9999**,
    * which is safe for a mixing ratio and unsafe for anything measured in
-   * metres: HRRR's `HGT:cloud top` carries real values to 15,698 m, so 9999
+   * meters: HRRR's `HGT:cloud top` carries real values to 15,698 m, so 9999
    * would be read as nodata over genuine deep convection. A field with a
    * bitmap must name a sentinel outside its own physical range.
    */

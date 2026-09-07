@@ -27,7 +27,7 @@ import "./index.css";
 /**
  * Routes are region-major: `/wtwma/flares`, not `/flares?region=wtwma`.
  *
- * The programme selects the whole dataset — a different season, a different
+ * The program selects the whole dataset — a different season, a different
  * flight record, different soundings — so a page for one is a different page,
  * not a filtered view of a shared one. It also makes a finding linkable: a url
  * carries which operator's numbers it is showing.

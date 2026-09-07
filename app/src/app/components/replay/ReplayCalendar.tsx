@@ -122,7 +122,7 @@ export const ReplayCalendar = () => {
             <button
               key={day}
               className={`btn btn-xs ${
-                isSelected(day) ? "btn-primary" : "btn-ghost"
+                isSelected(day) ? "btn-success" : "btn-ghost"
               }`}
               disabled={off}
               onClick={() => choose(day, hour)}

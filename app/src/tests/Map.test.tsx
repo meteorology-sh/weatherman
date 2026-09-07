@@ -277,7 +277,7 @@ describe("ArcGIS in candidate mode", () => {
     expect(stormMotionLayer.visible).toBe(false);
   });
 
-  it("hides the modelled forecast contours", () => {
+  it("hides the modeled forecast contours", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
 
     expect(forecastLayer.visible).toBe(false);
@@ -298,7 +298,7 @@ describe("ArcGIS in candidate mode", () => {
     expect(cloudBaseLayer.visible).toBe(true);
   });
 
-  // Modelled, so it belongs to the candidate map only — the same rule that
+  // Modeled, so it belongs to the candidate map only — the same rule that
   // keeps the observed layers off the forecast one, running the other way.
   it("keeps the cloud base off the forecast map even when it is switched on", () => {
     const store = createTestStore();
@@ -326,9 +326,9 @@ describe("ArcGIS radar", () => {
     expect(radarLayer.visible).toBe(true);
   });
 
-  // An observation, so the same rule that keeps the satellite off the modelled
+  // An observation, so the same rule that keeps the satellite off the modeled
   // map keeps this off it — the forecast map has HRRR's own precipitation.
-  it("keeps it off the modelled map", () => {
+  it("keeps it off the modeled map", () => {
     renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
 
     expect(radarLayer.visible).toBe(false);
@@ -352,7 +352,7 @@ describe("ArcGIS radar", () => {
 });
 
 describe("ArcGIS in forecast mode", () => {
-  it("shows the modelled contours", () => {
+  it("shows the modeled contours", () => {
     renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
 
     expect(forecastLayer.visible).toBe(true);
@@ -508,7 +508,7 @@ describe("ArcGIS precipitation", () => {
   });
 
   // HRRR diagnoses PRATE by stepping forward, so f00 is zero everywhere. A
-  // layer that is on but empty reads as "no rain" rather than "not modelled",
+  // layer that is on but empty reads as "no rain" rather than "not modeled",
   // so it stays hidden instead.
   it("hides precipitation at the analysis hour rather than drawing nothing", () => {
     renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
@@ -596,7 +596,7 @@ describe("ArcGIS sounding point", () => {
 
   // The profile is the analysis hour, so offering it under a slider set to
   // +12 h would answer a question about now while the map shows later.
-  it("does not listen on the modelled map", () => {
+  it("does not listen on the modeled map", () => {
     renderWithStore(<ArcGIS mode="forecast" />, createTestStore());
 
     expect(view().handlers.click).toBeUndefined();

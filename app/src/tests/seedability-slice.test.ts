@@ -58,7 +58,7 @@ describe("seedability slice", () => {
     });
 
     // The old cell's answer is about somewhere else. Keeping it under new
-    // coordinates would be the wrong answer, confidently labelled — and an
+    // coordinates would be the wrong answer, confidently labeled — and an
     // undefined point is also what makes the provider fetch the new one.
     it("forgets the point when the click moves", () => {
       const loaded = reducer(initial(), seedabilityActions.setHere(here));

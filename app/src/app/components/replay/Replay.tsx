@@ -9,7 +9,7 @@ import { ReplayStatus } from "./ReplayStatus";
 import { ReplayField } from "./ReplayField";
 
 /**
- * The same three observed-and-modelled layers as the candidate map, at an hour
+ * The same three observed-and-modeled layers as the candidate map, at an hour
  * the operator picks rather than at this one.
  *
  * The panel carries the picker, what actually loaded, and the candidate field's

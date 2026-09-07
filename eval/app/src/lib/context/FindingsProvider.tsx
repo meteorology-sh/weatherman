@@ -21,7 +21,7 @@ import { GetBand, GetNear, NotRunYet } from "~/lib/client";
  * so a missing one is recorded and the other still loads. Only a real failure
  * sets `error`.
  *
- * It wraps the region's routes, so navigating to another programme unmounts it
+ * It wraps the region's routes, so navigating to another program unmounts it
  * and the next one loads from scratch. The region comes from the url rather than
  * a prop for the same reason: the address is what selects the dataset.
  */

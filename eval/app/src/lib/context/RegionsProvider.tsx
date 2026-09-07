@@ -11,7 +11,7 @@ import { regionsActions } from "~/lib/store/features/regions";
 import { GetRegions } from "~/lib/client";
 
 /**
- * Loads the programme list once, app-wide.
+ * Loads the program list once, app-wide.
  *
  * It wraps the router rather than a route, because the navigation bar names the
  * region and needs it on every page — including the list itself, which is what

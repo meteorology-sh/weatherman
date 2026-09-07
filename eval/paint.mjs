@@ -2,14 +2,13 @@
  * Everything a map needs to show one flying day, in one file.
  *
  * `node eval/paint.mjs 2025-04-19 [--region=wtwma]` — with the Weatherman server
- * running. Writes the name `data/regions.json` gives that programme, e.g.
+ * running. Writes the name `data/regions.json` gives that program, e.g.
  * `eval/out/painted-2025-04-19.json` for West Texas.
  *
  * **It paints the product's own layers, not a layer invented for the page.**
  * Each fill is the same route the maps fetch, at the same hour parameter,
  * carrying the same property — so a band drawn here is the band Weatherman
- * draws. `candidate` is the quiet-liquid join at `/candidate/field`.
- * `target` is the Texas fly fill at `/candidate/target`. Cores, heading
+ * draws. `target` is the seeding opportunity at `/candidate/target`. Cores, heading
  * ticks, and lightning are the same marks the candidate map draws under
  * radar, stored beside the fills.
  *
@@ -18,11 +17,11 @@
  * release 3 km outside a contour is a different result from one 80 km away. Only
  * the distance can separate a map that is wrong from operators who are working
  * off something we do not have. So every release gets a distance to the nearest
- * edge of every layer, in kilometres, and being inside is simply distance zero.
+ * edge of every layer, in kilometers, and being inside is simply distance zero.
  *
  * **Every release also carries what a click on it would have said.** The
  * operator map answers a click with FLY or DON'T FLY and the numbers behind
- * the call, the modelled column over that point, and the storm the point sat
+ * the call, the modeled column over that point, and the storm the point sat
  * in. All three are stored on the flare — `cell`, `column` and `storm` — from
  * the same routes the panel calls, so the page can read out the release the
  * way an operator would have read out that cell.
@@ -66,7 +65,7 @@ if (!DATE) {
 }
 
 /**
- * Native cell size of each layer, kilometres. Inside means inside the contour
+ * Native cell size of each layer, kilometers. Inside means inside the contour
  * after that layer's own drift; these numbers are the next honest step out,
  * not a second definition of inside.
  */
@@ -75,7 +74,6 @@ const CELL_KM = {
   cloudTop: 2,
   liquid: 3,
   radar: 1,
-  candidate: 3,
   target: 3,
   baseWindow: 3,
   echoFreeze: 3,
@@ -105,12 +103,12 @@ if (!region.releases) {
  * The window worth drawing, from the region.
  *
  * A frame covers CONUS and all of it is geometry we would otherwise carry into
- * the page, so everything outside the programme's working area is dropped before
+ * the page, so everything outside the program's working area is dropped before
  * the file is written rather than after.
  */
 const WINDOW = region.window;
 
-/** Ask the server to contour this programme's box, not all of Texas. */
+/** Ask the server to contour this program's box, not all of Texas. */
 function withBox(path) {
   const sep = path.includes("?") ? "&" : "?";
   return (
@@ -132,8 +130,8 @@ function withBox(path) {
  * valid time. The join already splits those clocks: HRRR rounds to the hour,
  * GOES and radar keep the minute.
  *
- * `candidate` is fetched first. It is the quiet-liquid join, so building it
- * warms every source the Texas fly fill and the other HRRR fields read.
+ * `target` is fetched first: building it warms every source the other HRRR
+ * fields read.
  */
 const LAYERS = [
   {
@@ -174,17 +172,8 @@ const LAYERS = [
     cellKm: CELL_KM.radar,
   },
   {
-    key: "candidate",
-    name: "SEEDING OPPORTUNITY",
-    path: (at) => `/candidate/field?at=${encodeURIComponent(at)}&fine=1`,
-    property: "seedableSlwPath",
-    unit: "g/m²",
-    shape: "nested",
-    cellKm: CELL_KM.candidate,
-  },
-  {
     key: "target",
-    name: "TEXAS FLY FILL",
+    name: "SEEDING OPPORTUNITY",
     path: (at) => `/candidate/target?at=${encodeURIComponent(at)}&fine=1`,
     property: "fly",
     unit: "pass",
@@ -213,9 +202,8 @@ const LAYERS = [
   },
 ];
 
-/** Warms the join first; the Texas fill reads that same cached scene. */
+/** Warms the join first; every other fill reads that same cached scene. */
 const FETCH_ORDER = [
-  "candidate",
   "target",
   "liquid",
   "cloudBase",
@@ -379,7 +367,7 @@ const KM_PER_DEGREE_LAT = 110.574;
 const KM_PER_DEGREE_LON = 111.32;
 
 /**
- * The modelled column over a release, at the analysis the flare is charged to.
+ * The modeled column over a release, at the analysis the flare is charged to.
  *
  * The same answer `/map/candidate` prints after a click: the ground, the
  * freezing level, the seeding band, and the wrfsfc diagnostics under them.
@@ -498,7 +486,7 @@ function coverage(frame, shape) {
 }
 
 /**
- * How far a release was from each layer, in kilometres.
+ * How far a release was from each layer, in kilometers.
  *
  * The question at this stage is whether there was any of that field there at
  * all, not how much of it. A distance to the richest band would answer a
@@ -699,7 +687,7 @@ await mkdir(OUT, { recursive: true });
 /**
  * The name the region entry gives this run, not one built here.
  *
- * **Every region has to name its own file or they collide.** Two programmes fly
+ * **Every region has to name its own file or they collide.** Two programs fly
  * the same afternoon — 17 August 2025 is a flying day in both West Texas and
  * Trans-Pecos — and a name built from the date alone means the second run
  * silently overwrites the first, leaving a file whose `region` says one thing

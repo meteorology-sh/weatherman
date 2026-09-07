@@ -14,7 +14,7 @@ import type { Geo, Grid } from "../lib/services/shared/contour";
  * half of that a lookup can close.
  *
  * **Two halves, and only one is fixable.** The lookup half is asking the wrong
- * question — the nearest cell *centre* in latitude and longitude, where the
+ * question — the nearest cell *center* in latitude and longitude, where the
  * contour was traced in the grid's own rows and columns. On a grid whose rows
  * lean away from the meridian those are different cells near a boundary, and
  * `cellAt` closes it.
@@ -119,7 +119,7 @@ function stray(
 }
 
 describe("the cell a point inside a drawn band reads", () => {
-  // The control. With rows along a parallel the nearest centre and the
+  // The control. With rows along a parallel the nearest center and the
   // containing footprint are the same cell, so the lookup half does not exist.
   it("is the band's own cell either way while the grid is not turned", () => {
     const geo = turned(0);
@@ -129,13 +129,13 @@ describe("the cell a point inside a drawn band reads", () => {
   });
 
   // The bug. Turning the grid separates the two questions, and the nearest
-  // centre starts answering with cells the band excluded.
-  it("is a cell outside the band for the nearest centre once it is turned", () => {
+  // center starts answering with cells the band excluded.
+  it("is a cell outside the band for the nearest center once it is turned", () => {
     const geo = turned(20);
 
     assert.ok(
       stray(geo, solid, nearestCell).stray > 0,
-      "expected the nearest centre to stray on a turned grid"
+      "expected the nearest center to stray on a turned grid"
     );
   });
 
@@ -173,7 +173,7 @@ describe("a band's edge is smoothed, not cell-exact", () => {
   });
 
   // What the fix is still worth on the shape that carries both halves at once.
-  it("still leaves far less of it than the nearest centre does", () => {
+  it("still leaves far less of it than the nearest center does", () => {
     const geo = turned(20);
 
     assert.ok(

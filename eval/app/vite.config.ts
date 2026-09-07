@@ -12,7 +12,7 @@ import tailwindcss from "@tailwindcss/vite";
  * The evaluation app.
  *
  * **It imports the product's own objects rather than copies.** `@` resolves
- * into `/app/src`, so the ramps, the band levels, the colours and the layer
+ * into `/app/src`, so the ramps, the band levels, the colors and the layer
  * names are the ones Weatherman draws with. A page built to find disagreements
  * between the map and an operator must not introduce one between itself and the
  * map it is inspecting.

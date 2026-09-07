@@ -11,7 +11,7 @@ export type Fitted = { extent: Extent; width: number; height: number };
  * Grow an extent until it fills the width it is given.
  *
  * **The shape of a day's flying should not decide how much screen it gets.** A
- * programme working one county produces a tall, narrow extent, and drawing it
+ * program working one county produces a tall, narrow extent, and drawing it
  * at its own aspect left the map a sliver down one side of the page — the same
  * thirteen releases, a sixth of the area, and far harder to read than a day
  * whose releases happened to spread east to west.

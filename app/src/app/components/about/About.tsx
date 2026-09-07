@@ -11,7 +11,7 @@ import { LayerAbout } from "./LayerAbout";
 const SOURCES: readonly { name: string; text: string }[] = [
   {
     name: "HRRR",
-    text: `The High-Resolution Rapid Refresh, a weather model run by the National Oceanic and Atmospheric Administration (NOAA). It runs every hour over the whole country at 3 km resolution and estimates cloud base, the temperature at each level, and how much water a cloud holds. Every value from this source is modelled.`,
+    text: `The High-Resolution Rapid Refresh, a weather model run by the National Oceanic and Atmospheric Administration (NOAA). It runs every hour over the whole country at 3 km resolution and estimates cloud base, the temperature at each level, and how much water a cloud holds. Every value from this source is modeled.`,
   },
   {
     name: "MRMS",
@@ -34,7 +34,7 @@ const SOURCES: readonly { name: string; text: string }[] = [
 const APPROXIMATIONS: readonly { name: string; text: string }[] = [
   {
     name: "The point",
-    text: `A click is rounded to about 100 m and answered from the model cell that contains it. That cell is 3 km across, so the figures describe the neighbourhood rather than the exact spot.`,
+    text: `A click is rounded to about 100 m and answered from the model cell that contains it. That cell is 3 km across, so the figures describe the neighborhood rather than the exact spot.`,
   },
   {
     name: "The storm",
@@ -46,11 +46,11 @@ const APPROXIMATIONS: readonly { name: string; text: string }[] = [
   },
   {
     name: "Cloud top and lightning",
-    text: `Both are read over the whole storm rather than at the point clicked, so they describe the cell you are looking at and not the square metre under the cursor.`,
+    text: `Both are read over the whole storm rather than at the point clicked, so they describe the cell you are looking at and not the square meter under the cursor.`,
   },
   {
     name: "Nearest storm",
-    text: `A click outside the rain is answered with the nearest storm within 40 km, measured to its rain rather than to its centre. Past 40 km no storm is reported.`,
+    text: `A click outside the rain is answered with the nearest storm within 40 km, measured to its rain rather than to its center. Past 40 km no storm is reported.`,
   },
   {
     name: "Estimates against measurements",

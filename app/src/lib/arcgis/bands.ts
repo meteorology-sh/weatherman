@@ -1,5 +1,5 @@
 /**
- * What each layer's bands are, and what colour each is painted.
+ * What each layer's bands are, and what color each is painted.
  *
  * Data only — no ArcGIS, no components. The renderers next door turn these into
  * symbols and the panel's ramps read the same arrays, so a swatch and a fill
@@ -57,7 +57,7 @@ export const PRECIP_BANDS: readonly Band[] = [
  * stale silently.
  *
  * −5 °C is a physical threshold (AgI barely nucleates ice above it). −18 °C is
- * a judgement about where supercooled liquid stops being worth looking for —
+ * a judgment about where supercooled liquid stops being worth looking for —
  * see the server's note for what that choice trades.
  */
 export const BAND_WARMEST_C = -5;
@@ -106,15 +106,15 @@ export const CANDIDATE_BANDS: readonly Band[] = [
 
 /**
  * Emerald, and the last hue this map has. Slate is cloud shape, violet is
- * cloud base, amber is modelled liquid, cyan is rain. The candidate field is a
+ * cloud base, amber is modeled liquid, cyan is rain. The candidate field is a
  * fifth claim — "every test passed here" — and borrowing any of the four would
  * read as one of them. Green is also the only hue on the map that means go.
  */
 export const CANDIDATE_RGB = [52, 211, 153] as const;
 
 /**
- * Texas fly fill. Same hue as the old quiet-liquid field — green is
- * still the only colour on this map that means go — drawn as one gate
+ * Texas fly fill. Same hue as the old liquid-with-no-rain field — green is
+ * still the only color on this map that means go — drawn as one gate
  * over the rain, not as a liquid ramp.
  */
 export const FLY_RGB = CANDIDATE_RGB;
@@ -126,7 +126,7 @@ export const FLY_ALPHA = 0.45;
  *
  * **A line, not a fill, and the same hue as what it encloses.** It marks which
  * part of the green has an observation behind it rather than a different
- * quantity, so it must not read as a sixth claim on the map — a new colour
+ * quantity, so it must not read as a sixth claim on the map — a new color
  * would. Near-white emerald reads as emphasis on the green it sits on.
  *
  * Wide enough to survive over four composited fills and thin enough that a
@@ -141,7 +141,7 @@ export const MOTION_RGB = [255, 255, 255] as const;
 /**
  * Tick width, screen points, and the arrowhead as a multiple of it.
  *
- * Pixels, not kilometres: the tick says which way the storm is going, and
+ * Pixels, not kilometers: the tick says which way the storm is going, and
  * that claim is the same claim at every zoom. A width in ground units is
  * a hairline over the state and a wedge over one cell.
  */
@@ -187,7 +187,7 @@ export const RADAR_BANDS: readonly Band[] = [
 export const PRECIP_FIRST_HOUR = 1;
 
 /**
- * Fill colours. Cloud is the neutral veil; rain is the one thing drawn on top
+ * Fill colors. Cloud is the neutral veil; rain is the one thing drawn on top
  * of it, so it gets a hue cloud can never be confused for. One hue per layer,
  * shaded by the stacking — a multi-hue ramp cannot work here, because a heavy
  * cell is painted by all four bands at once and the hues would blend.
@@ -268,7 +268,7 @@ export type CloudBaseBand = {
 
 /**
  * Violet, and the last hue this map has left. Slate is cloud shape, amber is
- * modelled liquid water, cyan is observed rain; cloud base is a fourth claim
+ * modeled liquid water, cyan is observed rain; cloud base is a fourth claim
  * and cannot borrow any of the three without reading as one of them.
  */
 export const CLOUD_BASE_RGB = [167, 139, 250] as const;
@@ -320,7 +320,7 @@ export const CLOUD_BASE_BANDS: readonly CloudBaseBand[] = [
 export const PRECIP_LABELS = ["trace", "light", "moderate", "heavy"] as const;
 
 /**
- * Parallel to SLW_BANDS. These are seeding judgements, not measurements: a cloud
+ * Parallel to SLW_BANDS. These are seeding judgments, not measurements: a cloud
  * carrying under ~50 g/m^2 of supercooled liquid is not worth a sortie, and the
  * top band is where the classic glaciogenic-seeding literature puts a strong
  * target.

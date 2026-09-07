@@ -39,7 +39,7 @@ const daySlice = createSlice({
   name: "day",
   initialState,
   reducers: {
-    /** Switching programme drops the other one's season entirely. */
+    /** Switching program drops the other one's season entirely. */
     setRegion(state, action: PayloadAction<string>) {
       if (state.region === action.payload) return;
       state.region = action.payload;

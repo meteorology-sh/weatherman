@@ -26,7 +26,7 @@ That is `SENSING_STRATEGY` **C3 ∧ C4** (the temperature band ∧ the phase), g
 by **C6** (not already precipitating).
 
 **The band's two edges are different kinds of number.** −5 °C is physics: silver
-iodide barely nucleates ice above it. −18 °C is a judgement about where the
+iodide barely nucleates ice above it. −18 °C is a judgment about where the
 _supply_ of liquid thins out, because natural ice nuclei activate and take it
 first; AgI itself keeps working to roughly −20 °C. Treat the warm edge as fixed
 and the cold edge as a choice that a tool for _finding_ candidates should make
@@ -97,11 +97,11 @@ built from: walk each column from the top down and report the highest
 altitude where reflectivity still meets 18 dBZ. The field is 1 km / 2
 minutes, same grid as the mosaic. Storm-scale heights have a long enough
 correlation length to draw as a surface; this product does not, because
-the raining cells already have a fill and a second colour on the same
+the raining cells already have a fill and a second color on the same
 blobs would not show a different object. The number lives on the storm
-click: feet MSL, compared to the modelled freezing level in that column.
+click: feet MSL, compared to the modeled freezing level in that column.
 Sentinels are the same kind as reflectivity, different values: −1 is no
-18 dBZ, −3 is no radar. Units in the GRIB are kilometres. GOES still
+18 dBZ, −3 is no radar. Units in the GRIB are kilometers. GOES still
 owns the cloud top. Radar still cannot see 10 µm droplets, so a tall
 18 dBZ top is not supercooled liquid and a missing one is not a quiet
 candidate.
@@ -182,13 +182,13 @@ called clear by the phase product.
 So **"the satellite sees no cloud here" is a statement about the pressure
 retrieval, not about the sky.** A cell can be rejected for it while the phase
 scan is describing the top of that same cloud, and both readings belong on the
-panel labelled as what they are.
+panel labeled as what they are.
 
 **Read the two products from one sweep.** ABI scans CONUS every 5 minutes and
 publishes each product as its own file; the phase file lands about a minute
 ahead of the pressure file, so taking each product's newest file pairs a cloud
 top from one sweep with a phase from the next for about a minute in five. Five
-minutes is enough for a cell's cloud to drift into its neighbour at ordinary
+minutes is enough for a cell's cloud to drift into its neighbor at ordinary
 storm speeds and enough for a turret to glaciate, which is the change the phase
 observation exists to catch. Resolve the newest sweep both products have
 published and read both from it — a scan up to five minutes old beats two scans
@@ -237,7 +237,7 @@ contours is that case, not a contradiction.
 **Neither layer observes phase, and §2 is why.** The supercooled-liquid contours
 are HRRR's CLWMR — the model's opinion about the right variable. The cloud-top
 ramp is an inference about phase from a different variable, read at one height.
-Prefer the layer that is at least about the liquid, and hold it as a modelled
+Prefer the layer that is at least about the liquid, and hold it as a modeled
 claim rather than a measurement: nothing free and national measures supercooled
 liquid water, which is the whole reason this product fuses sources instead of
 reading one.
@@ -253,7 +253,7 @@ cloud is no evidence about what is inside it.
 
 **eccodes' default nodata sentinel is 9999, which is a real value in half the
 fields worth reading.** It is safe for a mixing ratio and unsafe for anything in
-metres: 9999 m is an ordinary cloud top, and HRRR carries real ones half again
+meters: 9999 m is an ordinary cloud top, and HRRR carries real ones half again
 as high. Decoding a bitmapped height field at the default reads genuine deep
 convection as missing, and the symptom is cloud tops below cloud bases rather
 than an error. **Name a sentinel outside the field's own physical range** —

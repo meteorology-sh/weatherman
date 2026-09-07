@@ -58,10 +58,10 @@ export const Band = () => {
             <div className="stat">
               <div className="stat-title">Overlap with the measured band</div>
               <div className="stat-value text-success">
-                {pct(band.overlap.median)}
+                {pct(band.overlap.mean)}
               </div>
               <div className="stat-desc">
-                median of {band.overlap.n} · worst {pct(band.overlap.worst)}
+                mean of {band.overlap.n} · worst {pct(band.overlap.worst)}
               </div>
             </div>
             <div className="stat">
@@ -149,7 +149,7 @@ export const Band = () => {
             about 45 minutes before its nominal hour and reaches the seeding
             band minutes into the flight, so the gap is 20–30 minutes. That is
             survivable here because a temperature profile at 4–7 km moves tens
-            of metres in an hour.
+            of meters in an hour.
           </p>
         </div>
       </div>

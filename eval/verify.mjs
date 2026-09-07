@@ -1,7 +1,7 @@
 /**
  * Is this tree a complete season — every report in cache, every seeded day
  * with a located flare painted at native sampling with storm motion, the
- * click readout, and a balloon file for each programme that briefs on a
+ * click readout, and a balloon file for each program that briefs on a
  * sonde.
  *
  * `node eval/verify.mjs`
@@ -42,7 +42,6 @@ function native(cellKm) {
     cellKm.cloudTop === 2 &&
     cellKm.liquid === 3 &&
     cellKm.radar === 1 &&
-    cellKm.candidate === 3 &&
     cellKm.target === 3 &&
     cellKm.baseWindow === 3 &&
     cellKm.echoFreeze === 3

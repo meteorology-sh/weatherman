@@ -1,7 +1,7 @@
 /**
  * A daily operations report, as data.
  *
- * Four of the five Texas programmes file the same document, so one parser
+ * Four of the five Texas programs file the same document, so one parser
  * reads them all. What differs between them arrives as a profile rather than
  * being baked in here: the county list, how many sounding sites the indices
  * table carries, the window a position has to fall inside, and the point a
@@ -11,7 +11,7 @@
  * with a UTC minute and a position. That is the record the whole
  * evaluation is scored against, and it is the one thing here that must be
  * parsed exactly rather than approximately. **How the position is written is
- * the thing that varies most**, five ways across the five programmes and
+ * the thing that varies most**, five ways across the five programs and
  * sometimes twice within one season, so it is read by trying the spellings in
  * turn rather than by telling each region which one it uses.
  *
@@ -30,7 +30,7 @@ import { project } from "./geo.mjs";
  *
  * Used to end a row rather than to validate one: the county is the last field,
  * some names are two words, and the next row's time follows immediately with
- * nothing between them. Matching against the programme's own list is what tells
+ * nothing between them. Matching against the program's own list is what tells
  * "Tom Green 1957" from "Green" followed by a stray number. The list is the
  * region's, from `data/regions.json`.
  */
@@ -38,9 +38,9 @@ const county = (counties) =>
   counties.map((name) => name.replace(" ", "\\s+")).join("|");
 
 /**
- * How a programme writes down where a flare went.
+ * How a program writes down where a flare went.
  *
- * Five spellings across the five programmes, and two of them can appear in one
+ * Five spellings across the five programs, and two of them can appear in one
  * season: South Texas prints degrees in March and a radial from April on, and
  * the Rolling Plains stop writing the hemisphere out halfway through June. So
  * the spellings are tried in turn rather than fixed per region, and the reader
@@ -105,7 +105,7 @@ const PAYLOAD = /^(?:\d+\s*[GH])(?:\s*\+\s*\d+\s*[GH])*(?!\S)/;
  * Where a row of the flight table starts: a UTC minute and an aircraft.
  *
  * Everything between one of these and the next is that release's own cell, and
- * that is how the row is read — the fields inside it differ by programme, and
+ * that is how the row is read — the fields inside it differ by program, and
  * anchoring on all of them at once made the pattern depend on how many
  * spellings of a position there happened to be.
  *
@@ -193,22 +193,22 @@ const MONTHS = {
 /**
  * Sounding rows are `LABEL KMAF KDRT`, two per line in the source table.
  *
- * The label is written a little differently by programme — `(m)` in the north
+ * The label is written a little differently by program — `(m)` in the north
  * and `(meters)` in the south, `LCL` with the unit and without, `J/kg` and
  * `J/Kg` — and every one of those is the same reading. A label that does not
  * match drops the reading silently, which is how South Texas came to have no
  * cloud base for a season.
  */
-const METRES = String.raw`\(m(?:eters)?\)`;
+const Meters = String.raw`\(m(?:eters)?\)`;
 
 const INDICES = [
-  ["freezingLevelM", String.raw`Freezing\s+Level\s+${METRES}`],
-  ["minus15HeightM", String.raw`-15.?C\s+Height\s+${METRES}`],
-  ["lclM", String.raw`LCL(?:\s+${METRES})?`],
-  ["cclM", String.raw`CCL(?:\s+${METRES})?`],
-  ["cloudBaseM", String.raw`Cloud\s+Base\s+${METRES}`],
+  ["freezingLevelM", String.raw`Freezing\s+Level\s+${Meters}`],
+  ["minus15HeightM", String.raw`-15.?C\s+Height\s+${Meters}`],
+  ["lclM", String.raw`LCL(?:\s+${Meters})?`],
+  ["cclM", String.raw`CCL(?:\s+${Meters})?`],
+  ["cloudBaseM", String.raw`Cloud\s+Base\s+${Meters}`],
   ["cloudBaseTempC", String.raw`Cloud\s+Base\s+Temp\s+\(.?C\)`],
-  ["warmCloudDepthM", String.raw`Warm\s+Cloud\s+Depth\s+${METRES}`],
+  ["warmCloudDepthM", String.raw`Warm\s+Cloud\s+Depth\s+${Meters}`],
   ["capeJKg", String.raw`CAPE\s+\(J/[Kk]g\)`],
   ["temp700Mb", String.raw`700\s+mb\s+Temp\s+\(.?C\)`],
 ];

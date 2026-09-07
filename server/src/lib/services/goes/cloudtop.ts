@@ -264,7 +264,7 @@ export class CloudTopService {
 
   /**
    * A past scene. Keyed by the S3 object rather than the requested time, so
-   * neighbouring requests share one build, and cached without a TTL because a
+   * neighboring requests share one build, and cached without a TTL because a
    * scan from last May will not be rescanned.
    */
   private async replay(at: Date): Promise<Scene> {
@@ -368,7 +368,7 @@ export class CloudTopService {
    * from the nearest HRRR 3 km column at that pixel's cloud-top pressure.
    *
    * Only the Texas window is walked. CONUS at 2 km is more geometry than the
-   * map will paint. Neighbouring pixels seed `cellAt` so lookups stay local.
+   * map will paint. Neighboring pixels seed `cellAt` so lookups stay local.
    */
   private nativeField(
     grid: AbiGrid,

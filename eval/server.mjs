@@ -31,10 +31,10 @@ import { fileURLToPath } from "node:url";
 import {
   bandOverlap,
   spread,
-  summariseOverlaps,
+  summarizeOverlaps,
   unusableKey,
 } from "./lib/band-score.mjs";
-import { summariseDay, tallyFlags } from "./lib/storm-score.mjs";
+import { summarizeDay, tallyFlags } from "./lib/storm-score.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, "out");
@@ -45,11 +45,11 @@ const M_PER_FT = 0.3048;
 /* ---------- committed input, read once ---------- */
 
 /**
- * The programmes this evaluation can run against, and the flight record each
+ * The programs this evaluation can run against, and the flight record each
  * one has been parsed into.
  *
  * **A region with no parsed record is still listed.** Texas licenses several
- * programmes and only one of them has been read out of its reports so far; a
+ * programs and only one of them has been read out of its reports so far; a
  * region list that hid the others would make one operator's season look like the
  * whole state. The app routes to them and says what is missing.
  */
@@ -136,7 +136,7 @@ async function band({ region }) {
     attempted: rows.length,
     failed: rows.filter((row) => row.error).length,
     readings,
-    overlap: summariseOverlaps(overlaps),
+    overlap: summarizeOverlaps(overlaps),
     ascents: overlaps.sort((a, b) => a.date.localeCompare(b.date)),
     rows,
   };
@@ -156,7 +156,7 @@ const forDate = (template, date) => template.replace("{date}", date);
  * out, not a second definition of inside. Two cells is carried as the step
  * after that. Neither is a claim about how near an aircraft ought to be.
  */
-function summarise(measured, cell) {
+function summarize(measured, cell) {
   const kms = measured.map((near) => near.km).sort((a, b) => a - b);
   return {
     n: measured.length,
@@ -194,7 +194,7 @@ function offsets(flares) {
 }
 
 /**
- * The day's distances, summarised per layer.
+ * The day's distances, summarized per layer.
  *
  * Computed here rather than in the page for the reason everything else is: a
  * figure quoted anywhere has to come from one place, or the map and the prose
@@ -212,7 +212,7 @@ function proximity(painted) {
   const layers = {};
 
   for (const layer of painted.layers ?? []) {
-    layers[layer.key] = summarise(
+    layers[layer.key] = summarize(
       measuredAgainst(flares, layer.key),
       cellOf(painted, layer)
     );
@@ -266,7 +266,7 @@ async function near({ region, seeded }) {
     layers: Object.fromEntries(
       layers.map((layer) => [
         layer.key,
-        summarise(
+        summarize(
           measuredAgainst(all, layer.key),
           cellOf(built[0].painted, layer)
         ),
@@ -306,7 +306,7 @@ async function storms({ region, seeded }) {
     ).length,
     tests: tallyFlags(all),
     rows: built.map((entry) =>
-      summariseDay(entry.date, flaresOf(entry.painted))
+      summarizeDay(entry.date, flaresOf(entry.painted))
     ),
   };
 }
@@ -345,7 +345,7 @@ async function day({ region, seeded }, date) {
 /**
  * The seeding-band heights the operator briefed on, in feet.
  *
- * The reports print metres and the app talks in feet everywhere else, so the
+ * The reports print meters and the app talks in feet everywhere else, so the
  * conversion happens once, here, rather than at each place that draws it.
  */
 function briefing(record) {
@@ -386,7 +386,7 @@ const server = createServer(async (req, res) => {
     if (path === "/healthcheck") return send(200, { ok: true });
     if (path === "/counties.geojson") return send(200, counties);
 
-    // Every programme, whether or not its reports have been parsed,
+    // Every program, whether or not its reports have been parsed,
     // so the app can route to one that has not been and say what is missing.
     if (path === "/regions") {
       return send(
@@ -417,7 +417,7 @@ const server = createServer(async (req, res) => {
       );
     }
 
-    // Everything below is one programme's season. The region is in the path
+    // Everything below is one program's season. The region is in the path
     // rather than a query parameter because it selects the whole dataset, not a
     // filter on one — a page for a region is a different page.
     const scoped = path.match(/^\/region\/([a-z0-9-]+)(\/.*)?$/);

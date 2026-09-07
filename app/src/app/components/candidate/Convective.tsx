@@ -10,7 +10,7 @@ const feet = (value: number | null) =>
   value === null ? "—" : `${num.format(value)} ft`;
 
 /**
- * Modelled convective numbers on this column.
+ * Modeled convective numbers on this column.
  */
 export const Convective = () => {
   const data = useAppSelector((state) => state.sounding.data);
@@ -37,7 +37,7 @@ export const Convective = () => {
           { label: "CIN, mixed layer", value: `${num.format(d.cinJKg)} J/kg` },
           { label: "LCL", value: feet(d.lclFt) },
           { label: "Warm-cloud depth", value: feet(warmDepth) },
-          { label: "Modelled echo top", value: feet(d.echoTopFt) },
+          { label: "Modeled echo top", value: feet(d.echoTopFt) },
           { label: "Integrated liquid", value: `${d.vilKgM2} kg/m²` },
         ]}
       />

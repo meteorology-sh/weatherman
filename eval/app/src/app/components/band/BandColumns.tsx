@@ -10,7 +10,7 @@ import type { Ascent } from "~/lib/types";
  * One pair of bars per balloon: the outline is the layer the sonde found, the
  * fill is the layer we drew for the same place and hour. Blue filling the
  * outline is agreement, outline showing through is the miss. This is the whole
- * finding in one picture — the numbers beside it are the same thing summarised.
+ * finding in one picture — the numbers beside it are the same thing summarized.
  */
 
 const PAD = { left: 46, right: 8, top: 10, bottom: 30 };
@@ -36,8 +36,8 @@ export const BandColumns = ({ ascents }: PropsT) => {
   );
   const floor = Math.floor((lowest - 300) / 500) * 500;
   const ceiling = Math.ceil((highest + 300) / 500) * 500;
-  const y = (metres: number) =>
-    PAD.top + plotHeight - ((metres - floor) / (ceiling - floor)) * plotHeight;
+  const y = (meters: number) =>
+    PAD.top + plotHeight - ((meters - floor) / (ceiling - floor)) * plotHeight;
 
   const gridlines: number[] = [];
   for (let m = floor; m <= ceiling; m += 1000) gridlines.push(m);
@@ -50,7 +50,7 @@ export const BandColumns = ({ ascents }: PropsT) => {
           height={HEIGHT}
           viewBox={`0 0 ${width} ${HEIGHT}`}
           role="img"
-          aria-label="Measured and modelled seeding band heights for every ascent"
+          aria-label="Measured and modeled seeding band heights for every ascent"
         >
           {gridlines.map((m) => (
             <g key={m}>
@@ -117,7 +117,7 @@ export const BandColumns = ({ ascents }: PropsT) => {
             y={HEIGHT - 8}
             className="fill-base-content text-[10px] font-mono"
           >
-            one column per ascent, in date order — metres above sea level
+            one column per ascent, in date order — meters above sea level
           </text>
         </svg>
       </div>

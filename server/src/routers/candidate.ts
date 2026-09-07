@@ -119,7 +119,7 @@ candidate.get("/point", async (req: Request, res: Response) => {
   }
 });
 
-// The radar storm at a click, with modelled liquid and the observed cloud-top
+// The radar storm at a click, with modeled liquid and the observed cloud-top
 // change over that storm. Null when no 20 dBZ echo sits within about 40 km.
 candidate.get("/storm", async (req: Request, res: Response) => {
   try {

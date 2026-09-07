@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import {
   bandOverlap,
   spread,
-  summariseOverlaps,
+  summarizeOverlaps,
 } from "./lib/band-score.mjs";
 import { tallyFlags } from "./lib/storm-score.mjs";
 
@@ -29,7 +29,6 @@ const LAYERS = [
   ["cloudTop", "Cloud tops"],
   ["radar", "Radar reflectivity"],
   ["liquid", "Supercooled liquid water"],
-  ["candidate", "Liquid with no rain"],
 ];
 
 const TEXAS_FILLS = [
@@ -106,7 +105,7 @@ for (const name of files) {
 
 console.log("## Flare overlap with each original Weatherman layer\n");
 console.log(
-  "| Programme | Releases | " +
+  "| Program | Releases | " +
     LAYERS.map(([, label]) => label).join(" | ") +
     " |"
 );
@@ -139,7 +138,7 @@ console.log(
 
 console.log("\n## Flare overlap with each Texas fill\n");
 console.log(
-  "| Programme | Releases | " +
+  "| Program | Releases | " +
     TEXAS_FILLS.map(([, label]) => label).join(" | ") +
     " |"
 );
@@ -166,7 +165,7 @@ console.log(
 
 console.log("\n## Flare overlap with each Texas selection feature\n");
 console.log(
-  "| Programme | Releases | " +
+  "| Program | Releases | " +
     TEXAS_KEYS.map(([, label]) => label).join(" | ") +
     " |"
 );
@@ -194,7 +193,7 @@ console.log(
 
 function bandRow(rows) {
   const overlaps = rows.map(bandOverlap).filter(Boolean);
-  const summary = summariseOverlaps(overlaps);
+  const summary = summarizeOverlaps(overlaps);
   const freeze = [];
   const top = [];
   for (const row of rows) {
@@ -218,7 +217,7 @@ function edge(s) {
 
 function overlapCell(summary) {
   if (!summary) return "—";
-  return `**${(summary.median * 100).toFixed(1)}%**`;
+  return `**${(summary.mean * 100).toFixed(1)}%**`;
 }
 
 function cleared(summary) {
@@ -228,7 +227,7 @@ function cleared(summary) {
 
 console.log("\n## The seeding band against the balloons\n");
 console.log(
-  "| Programme | Ascents | Freezing level | −15 °C height | Band overlap | Cleared 90% |"
+  "| Program | Ascents | Freezing level | −15 °C height | Band overlap | Cleared 90% |"
 );
 console.log("| --- | ---: | ---: | ---: | ---: | ---: |");
 

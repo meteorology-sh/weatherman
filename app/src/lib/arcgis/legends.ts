@@ -9,7 +9,7 @@ import {
 /**
  * The prose half of a layer's legend: its name, where it comes from, the one
  * sentence the panel shows, and the longer read the About page shows. The
- * swatches themselves come from the renderer, so a colour can never drift
+ * swatches themselves come from the renderer, so a color can never drift
  * between the map and the panel.
  *
  * Both maps read these, which is the point — the candidate map and the replay
@@ -26,7 +26,7 @@ export type LayerLegend = {
    */
   summary: string;
   /**
-   * Compact facts: what the layer is, what it is measured or modelled from,
+   * Compact facts: what the layer is, what it is measured or modeled from,
    * its units and resolution, what it excludes, and what the switches under
    * it do. The Definitions dropdown and the About page both print these.
    *
@@ -49,7 +49,7 @@ export const CloudBaseLegend: LayerLegend = {
   source: "HRRR",
   summary: "The height of the lowest cloud deck, in feet above sea level (MSL).",
   detail: [
-    `Modelled at 3 km resolution. The bands are thirds of the ${CEILING_LABEL} service ceiling.`,
+    `Modeled at 3 km resolution. The bands are thirds of the ${CEILING_LABEL} service ceiling.`,
   ],
 };
 
@@ -77,7 +77,7 @@ export const HeadingLegend: LayerLegend = {
   source: "MRMS",
   summary: "The heaviest rain in a storm and the direction it is moving.",
   detail: [
-    `The core is the strongest echo cell in the storm. The vector illustrates the velocity and direction the storm has travelled since the previous radar scan, two minutes earlier.`,
+    `The core is the strongest echo cell in the storm. The vector illustrates the velocity and direction the storm has traveled since the previous radar scan, two minutes earlier.`,
     `Storms smaller than 16 km² are excluded.`,
   ],
 };
@@ -87,7 +87,7 @@ export const EchoFreezeLegend: LayerLegend = {
   source: "MRMS + HRRR",
   summary: `Storms whose 18 dBZ echo top reaches air colder than freezing.`,
   detail: [
-    `The echo top is the highest altitude at which radar detects raindrops, read here at 18 dBZ. It is measured. Joined with HRRR for the modelled freezing level 0 °C.`
+    `The echo top is the highest altitude at which radar detects raindrops, read here at 18 dBZ. It is measured. Joined with HRRR for the modeled freezing level 0 °C.`
   ],
 };
 
@@ -108,7 +108,7 @@ export const CandidateLegend: LayerLegend = {
     `Green marks a 3 km cell where three tests pass: cloud base below the ${CEILING_LABEL} service ceiling; an 18 dBZ echo top at or above the freezing level nearby; and reflectivity of at least ${RADAR_BANDS[0].value} dBZ nearby.`
 ,
     `There is no lower bound on the base. A low cloud is still cloud an aircraft can climb into, and the ceiling is read in feet above sea level, so terrain does not move it.`,
-    `Clicking a cell reports a judgement call with the value behind each test.`,
+    `Clicking a cell reports a judgment call with the value behind each test.`,
   ],
 };
 
@@ -124,7 +124,7 @@ export const CloudCoverLegend: LayerLegend = {
 export const PrecipLegend: LayerLegend = {
   name: "PRECIPITATION",
   source: "HRRR",
-  summary: "How much rain the model expects to fall in an hour, in millimetres.",
+  summary: "How much rain the model expects to fall in an hour, in millimeters.",
   detail: [
     `Forecast by the same hourly model as cloud cover. The four bands are the National Weather Service intensity classes: trace, light, moderate and heavy.`,
     `The present hour is empty. The value accumulates over a forecast step, so it does not exist at the analysis.`,
@@ -133,7 +133,7 @@ export const PrecipLegend: LayerLegend = {
 
 /**
  * Every layer the app names, in the order the About page reads them: the
- * storm first, then the readings on it, then the quiet-liquid join, then
+ * storm first, then the readings on it, then the liquid-with-no-rain composite, then
  * the forecast map's two.
  *
  * The About page and the legend tests both walk this, so a new layer cannot be

@@ -97,7 +97,7 @@ describe("RADAR_BANDS", () => {
 
   // Observed rain and forecast rain are the same quantity, and they never share
   // a map. A second hue would imply a second variable.
-  it("paints observed rain the colour the forecast map paints rain", () => {
+  it("paints observed rain the color the forecast map paints rain", () => {
     expect(RADAR_RGB).toEqual(PRECIP_RGB);
   });
 
@@ -192,7 +192,7 @@ describe("soloColor", () => {
     expect(soloColor(CLOUD_BASE_RGB, 0.3)).toBe("rgba(167,139,250,0.300)");
   });
 
-  it("gives the legend the colour each band is actually painted", () => {
+  it("gives the legend the color each band is actually painted", () => {
     expect(soloColor(CLOUD_BASE_RGB, CLOUD_BASE_BANDS[0].alpha)).toContain(
       String(CLOUD_BASE_BANDS[0].alpha)
     );

@@ -27,7 +27,7 @@
  * The offset is small rather than absent. A sonde is released about 45 minutes
  * before the nominal hour and reaches the seeding band minutes into the flight,
  * so the true separation is 20–30 minutes. It is survivable here because a
- * thermal profile at 4–7 km moves tens of metres in an hour, where a growing
+ * thermal profile at 4–7 km moves tens of meters in an hour, where a growing
  * turret swings 40 dBZ in the same span.
  *
  * The rows the operator prints are the seeding decision itself — the freezing
@@ -62,7 +62,7 @@ const M_PER_FT = 0.3048;
 const TIMEOUT_MS = Number(process.env.WEATHERMAN_TIMEOUT_MS ?? 240_000);
 
 /**
- * The radiosonde sites the programmes brief on, and where they are released
+ * The radiosonde sites the programs brief on, and where they are released
  * from. A region names the ones it reads in `data/regions.json`; anything it
  * names that is not here is not a balloon and cannot be scored against.
  */
@@ -123,7 +123,7 @@ function tempAtMb(levels, mb) {
  * What is being compared, and in which direction.
  *
  * Each pair states the report's field, ours, and the unit both are put into.
- * Heights are compared in metres because that is what the report prints —
+ * Heights are compared in meters because that is what the report prints —
  * converting ours rather than theirs leaves the report's own numbers alone.
  */
 const PAIRS = [
@@ -429,7 +429,7 @@ for (const pair of PAIRS) {
  * answers "would an aircraft holding our band have been in theirs": 1.0 is the
  * same layer, 0.0 is two layers that do not touch. Reported against the union
  * rather than against theirs alone so that drawing a band far too deep is
- * penalised rather than rewarded for covering everything.
+ * penalized rather than rewarded for covering everything.
  */
 const overlaps = rows
   .map((row) => {

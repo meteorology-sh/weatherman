@@ -22,7 +22,7 @@ const share = (n: number, d: number) =>
  * **Two cards, because there are two questions.** Is the band in the right
  * place, and do the flares fall in the fill we tell an operator to fly? Both
  * are totals over the whole season rather than a day — a single afternoon can
- * flatter or damn either one, and the programme page is where the season is
+ * flatter or damn either one, and the program page is where the season is
  * read. The day-by-day picture lives behind "Every release".
  */
 export const Findings = () => {
@@ -34,7 +34,7 @@ export const Findings = () => {
     state.regions.all?.find((entry) => entry.id === region)
   );
 
-  // Named rather than assumed: the ascents a programme briefs on are its own.
+  // Named rather than assumed: the ascents a program briefs on are its own.
   const sites = open?.sounding.length
     ? `${open.sounding.join(" and ")} ${
         open.sounding.length > 1 ? "ascents" : "ascent"
@@ -56,7 +56,7 @@ export const Findings = () => {
     );
   }
 
-  // A programme whose reports have not been read yet has no findings to show,
+  // A program whose reports have not been read yet has no findings to show,
   // and saying so is different from showing two empty cards.
   if (open && !open.evaluable) {
     return (
@@ -64,7 +64,7 @@ export const Findings = () => {
         <div className="max-w-2xl p-8 flex flex-col gap-4">
           <h1 className="text-2xl font-semibold">{open.name}</h1>
           <p className="text-sm">
-            Nothing has been measured against this programme. Its daily reports
+            Nothing has been measured against this program. Its daily reports
             have not been found and parsed into a flight record, so there are no
             flare coordinates to check the map against and no sounding table to
             check the seeding band against.
@@ -76,7 +76,7 @@ export const Findings = () => {
             read its report layout.
           </p>
           <Link to="/" className="btn btn-sm btn-outline self-start">
-            Back to the programmes
+            Back to the programs
           </Link>
         </div>
       </div>
@@ -90,7 +90,7 @@ export const Findings = () => {
           <h1 className="mb-1">Does the map agree with what Texas flies?</h1>
           <p className="text-base-content/90">
             Two questions, in order. Both are answered against{" "}
-            {open ? `the ${open.name}'s` : "the programme's"} own daily reports
+            {open ? `the ${open.name}'s` : "the program's"} own daily reports
             for the {open?.season ?? ""} season, summed over every day of it.
           </p>
         </div>
@@ -204,7 +204,7 @@ export const Findings = () => {
                   </div>
                 </div>
                 <p className="text-sm">
-                  Each row is this programme's whole season against one layer
+                  Each row is this program's whole season against one layer
                   Weatherman draws — the rain and its echo past freezing, cloud
                   base, and the fill the operator map names SEEDING OPPORTUNITY.
                   Inside is inside the contour after storm-motion drift to that

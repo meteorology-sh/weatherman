@@ -12,7 +12,7 @@
  * reports never name, so its agreement is a measurement of the projection, and
  * it means nothing without the other two to read it against.
  *
- * A miss is not a parse error. A release two kilometres inside the next county
+ * A miss is not a parse error. A release two kilometers inside the next county
  * is a pilot naming the county they were working, and both numbers are the
  * operator's.
  */

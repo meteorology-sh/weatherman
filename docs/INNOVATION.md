@@ -1,8 +1,8 @@
 # Innovation — what this app is for Texas rain-enhancement
 
 Weatherman is a decision-support overlay for licensed Texas rain-enhancement
-programmes. It does not replace TITAN. It does not pick quiet columns of
-modelled liquid. It hangs the sounding, the satellite, and modelled
+programs. It does not replace TITAN. It does not pick quiet columns of
+modeled liquid. It hangs the sounding, the satellite, and modeled
 supercooled liquid on the **storm the meteorologist is already watching**.
 
 `WEATHERMAN.md` says what each layer claims. `MEASUREMENTS.md` says what a
@@ -15,7 +15,7 @@ app will not become.
 
 ## The object is a storm
 
-Texas programmes select a convective cell on TITAN: still growing, first
+Texas programs select a convective cell on TITAN: still growing, first
 half of its lifetime, cloud base 4,000–12,000 ft above the ground, depth
 past the freezing level, enough cloud-base inflow, not severe. They
 release silver iodide at cloud base into that updraft. Rain in the core
@@ -26,7 +26,7 @@ seeding-opportunity contour. Contiguous cells at 20 dBZ or more on the
 national mosaic are one storm. A click names that storm: inside the rain
 or outside it, nearer the edge or the heaviest rain, on the upwind side
 or not. The 18 dBZ echo top against the freezing level, the raining
-area's growth, how long that rain has been on the mosaic, modelled
+area's growth, how long that rain has been on the mosaic, modeled
 liquid over the storm, and the GOES top, are readings on that object.
 
 These mosaic storms are not TITAN cells. They have no TITAN identity.
@@ -69,19 +69,13 @@ where to click. Cloud base off until asked for. Supercooled liquid,
 freezing, −15 °C, CAPE, CIN, LCL, and warm-cloud depth are numbers on
 the click.
 
-The quiet-liquid join remains in the code and in eval: modelled liquid
-at or above 10 g/m², a base below the band's cold edge, a GOES top at
-or colder than −5 °C, and no rain at 20 dBZ. That is a quiet-liquid
-column. It is the wrong object for a Texas sortie. 30 of 1,311 located
-2025 flares sat in it. It is not the map layer. Rain on a cell is not
-a reason to delete the storm.
+Rain on a cell is not a reason to delete the storm.
 
 A click leads with the storm. The column — liquid, base, top, rain,
 observed phase — follows as what each source said over that 3 km cell.
 "The radar is watching this cell rain" is a fact about the storm, not a
 veto. The Texas tests on that cell (base in the window, echo top past
-freezing, rain in the neighbourhood) are a separate answer from the
-quiet-liquid join.
+freezing, rain in the neighborhood) are the answer.
 
 ## TITAN stays where it is
 
@@ -105,11 +99,11 @@ MDV, read SPDB. Different stack, polar volumes we do not ingest, a
 second catalogue of IDs the radio will not use. The daily report names
 their cells, not ours.
 
-**Wrap their TITAN.** Ingest the track file the programme already
+**Wrap their TITAN.** Ingest the track file the program already
 writes, and hang the table above on those IDs. That is the only wrap
 that preserves the log. It needs a feed from their machine. There is no
-public stream. Until a programme exports Tstorms XML or the equivalent,
-this app has mosaic storms, labelled as mosaic storms.
+public stream. Until a program exports Tstorms XML or the equivalent,
+this app has mosaic storms, labeled as mosaic storms.
 
 If that feed arrives, it is another source of the same object type. The
 map does not care which tracker named the storm. The app is not an
@@ -122,7 +116,7 @@ swallow the tracker.
 
 ## What this is not
 
-- A mountain-west snowfall product. Quiet liquid over a barrier, for
+- A mountain-west snowfall product. Supercooled liquid over a barrier, for
   hours, with flow toward the crest, is a different environment. The
   band integral already follows temperature into a winter airmass; the
   targeting loop does not. Scope is Texas, rainy season.
@@ -139,7 +133,7 @@ swallow the tracker.
 
 **Evaluate against the season** means: score every located 2025 flare
 against Weatherman's own layers at that minute, re-score the 12Z balloons
-against the modelled seeding band, and store JSON the eval app reads as
+against the modeled seeding band, and store JSON the eval app reads as
 regional maps and tables. The job is `eval/README.md`.
 
 The test is not "overlap with flares went up." Flares are a biased

@@ -33,7 +33,7 @@ describe("About", () => {
 
   // The page carries both kinds of layer, and which is which is the one
   // thing an operator has to be able to tell from reading it.
-  it("says the cloud-base layer is modelled", () => {
+  it("says the cloud-base layer is modeled", () => {
     render(<About />);
 
     expect(screen.getAllByText(/model/i).length).toBeGreaterThan(0);

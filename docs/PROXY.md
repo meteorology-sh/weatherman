@@ -2,7 +2,7 @@
 
 The four columns under "Flare overlap with each Texas selection feature" in
 `EVALUATION.md` are a proxy for the decision Texas rain-enhancement
-programmes already make: upwind of the heaviest rain, inside 20 dBZ,
+programs already make: upwind of the heaviest rain, inside 20 dBZ,
 nearer the edge than the core, and an 18 dBZ echo top at or above
 freezing. The candidate map's seeding-opportunity join is a different
 mask and is not this proxy.
@@ -24,7 +24,7 @@ object within about 40 km — and is dropped from that column's
 denominator in `EVALUATION.md`. Here a blank is not a yes, so a flare
 that cannot answer a column does not hold all four.
 
-| Programme      | Releases | All four | Of those that could answer all four |
+| Program      | Releases | All four | Of those that could answer all four |
 | -------------- | -------: | -------: | ----------------------------------: |
 | West Texas     |      497 | 138/497 (27.8%) |                   138/429 (32.2%) |
 | Trans Pecos    |      465 | 100/465 (21.5%) |                   100/399 (25.1%) |
@@ -79,7 +79,7 @@ freezing. They have a storm. They are on the quiet side of it.
 
 ## How Texas actually selects
 
-Texas programmes do not score a drifted lat/lon against four flags.
+Texas programs do not score a drifted lat/lon against four flags.
 `INVESTIGATION.md` §2 is the loop, taken from the Comptroller's
 description, TWMA operations papers, and the 2025 daily reports:
 
@@ -115,7 +115,7 @@ permit fact, not a house style.
 
 **Echo top past freezing certifies the storm.** 1,195 of 1,250 releases
 that had both heights sat in a storm whose 18 dBZ top was at or above
-the modelled freezing level. South Texas is the softest at 62 of 74
+the modeled freezing level. South Texas is the softest at 62 of 74
 (83.8%); everyone else is above 95%. That is the glaciogenic cue in
 their own words, scored on the object they flew, and it holds.
 
@@ -152,12 +152,12 @@ has the lifetime. The national mosaic, as ingested, does not.
 
 **The seeding-opportunity join is not this proxy.** 30 of 1,311
 releases sat in that contour all season. Four of the 325 that held all
-four Texas columns sat in it. The join asks for modelled supercooled
+four Texas columns sat in it. The join asks for modeled supercooled
 liquid at or above 10 g/m², a GOES top at or colder than −5 °C, and no
 rain at 20 dBZ. Texas selects the opposite rain test, does not gate on
-modelled liquid, and seeds at cloud base under tops that are not −5 °C
+modeled liquid, and seeds at cloud base under tops that are not −5 °C
 at the cell — 6 of those 325 sat in the GOES −5 °C tops. 28 of 325 had
-modelled liquid over the storm at 10 g/m².
+modeled liquid over the storm at 10 g/m².
 
 ---
 
@@ -179,7 +179,7 @@ the crews unsystematic. Both numbers are what you get when you score a
 cell-level decision at a flare.
 
 What would make the proxy tighter is not a looser 20 dBZ, and not more
-weight on modelled liquid:
+weight on modeled liquid:
 
 1. **Lifetime of the object**, from a tracker or a longer radar
    history, so first-half-lifetime is a percentile rather than an
@@ -188,9 +188,9 @@ weight on modelled liquid:
    pilot call. Storm-motion upwind is the wrong substitute to keep
    tightening.
 3. **Cloud base in the 4,000–12,000 ft window, in AGL**, as a test on
-   the cell. 987 of 1,353 releases sat in modelled cloud base; that is
+   the cell. 987 of 1,353 releases sat in modeled cloud base; that is
    "a base exists," not the Comptroller window.
-4. **A neighbourhood on rain**, one HRRR cell, so a pass 1–3 km
+4. **A neighborhood on rain**, one HRRR cell, so a pass 1–3 km
    outside 20 dBZ is the flank rather than a no. South Texas's typical
    release already sits in that gap.
 

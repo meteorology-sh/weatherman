@@ -29,7 +29,7 @@ sampling rule that decides whether a proposed layer is honest at all. **Read
   never the other way. Compare a variable's correlation length to the
   sample spacing before drawing any new field (`MEASUREMENTS.md` §3).
 - **A source too sparse to pass that test is drawn as points, and only points** —
-  colour banding in a marker ramp, each marker where the observation was, nothing
+  color banding in a marker ramp, each marker where the observation was, nothing
   between them.
 - **A threshold needs a citation, not a coverage table.** Coverage figures say
   what a threshold costs, never whether it is real.
@@ -41,7 +41,7 @@ sampling rule that decides whether a proposed layer is honest at all. **Read
 Two differ editorially, not cosmetically; the third is the same layers at a
 different hour.
 
-### `/map/forecast` — modelled
+### `/map/forecast` — modeled
 
 HRRR cloud cover, contoured server-side into nested polygons, with a slider
 stepping f00–f18. **Satellites cannot forecast**, so nothing observed appears
@@ -53,7 +53,7 @@ The fills on this map, bottom to top:
 
 | Layer                 | Claim    | Source                |
 | --------------------- | -------- | --------------------- |
-| Cloud base            | modelled | HRRR `wrfsfc`         |
+| Cloud base            | modeled | HRRR `wrfsfc`         |
 | Radar                 | measured | MRMS mosaic, GOES GLM |
 | Seeding opportunity   | join     | HRRR + MRMS           |
 
@@ -71,7 +71,7 @@ native ring. The dot is the strongest cell in that storm. A white arrow
 at that dot is the heading from the previous mosaic — not a forecast of
 where the storm will be, and not inflow. Length follows speed; width does
 not. A storm with no motion has no arrow. A switch under this layer draws
-where the measured 18 dBZ top sits at or above the modelled freezing
+where the measured 18 dBZ top sits at or above the modeled freezing
 level. Lightning is a switch under this layer: yellow markers are
 GOES-East GLM flashes in the last five minutes, drawn where they were,
 and only while radar is on. Lightning is too sparse to contour.
@@ -82,21 +82,21 @@ which way the storm is moving; how long that rain has been on the mosaic
 (from earlier scans, about 18 minutes back); whether the raining area grew
 or shrank; the coldest GOES cloud top over the storm and whether that top
 is colder than five minutes ago; how many GLM flashes sat over the storm
-in those five minutes; the highest modelled supercooled liquid in the
+in those five minutes; the highest modeled supercooled liquid in the
 seeding band over the storm; and how high the measured 18 dBZ echo top
 sits relative to the freezing level. Liquid does not hide the storm. The
 arrow is heading, not inflow: pilots measure climb rate with the aircraft.
 Echo top is the top of precipitating drops, not of the cloud the satellite
 sees. A click reports the GOES top over that storm and whether it cooled;
 the storm map does not draw cloud-top temperature as a fill. Freezing
-level stays modelled.
+level stays modeled.
 
 **Clicking is how the panel is read.** A click answers whether to fly that
 column. The Texas tests already on the cell — base in the 4,000–12,000 ft
 window above the ground, echo top at or above freezing nearby, rain in
-the neighbourhood — become fly or don't fly, with the numbers that made
+the neighborhood — become fly or don't fly, with the numbers that made
 the call: base above the ground, 18 dBZ echo top against freezing, rain,
-modelled liquid, freezing level, −15 °C, the seeding band, CAPE, CIN,
+modeled liquid, freezing level, −15 °C, the seeding band, CAPE, CIN,
 LCL, and warm-cloud depth.
 
 **A click outside the model does nothing.** The grid is a Lambert quadrilateral
@@ -111,7 +111,7 @@ error or by a blank.
 
 **Nothing about a point is drawn until one is picked.** There is no _this point_
 until someone clicks, and a column, a set of diagnostics and a verdict over the
-centre of the country are dashes about a cell nobody asked for. The column _is_
+center of the country are dashes about a cell nobody asked for. The column _is_
 read over that default point on arrival, because that build is the national
 profile grid every later click is answered from — warming it, not drawing it, is
 the difference between a first click costing ~30 s and costing milliseconds.
@@ -134,7 +134,7 @@ starts off.
 
 **A click on the fly fill is FLY.** The panel names the base above the
 ground, the 18 dBZ echo top against freezing, the rain on that cell,
-modelled liquid, and where on the storm the click landed. The echo top
+modeled liquid, and where on the storm the click landed. The echo top
 is the measured 18 dBZ height, the same sample the echo-past-freezing
 fill is drawn from.
 
@@ -143,17 +143,17 @@ first** — can an aircraft climb into this cloud at all — and the layers abov
 are answers about a cloud you can reach.
 
 **The 12Z table hangs on the click.** Freezing level, −15 °C, warm-cloud
-depth (freezing minus cloud base), CAPE, CIN, and LCL are labelled
+depth (freezing minus cloud base), CAPE, CIN, and LCL are labeled
 numbers after a click. Cloud base carries the Comptroller window
 underneath it. GOES cloud-top temperature is a reading on the click.
 
 **The product this map is** lives in `docs/INNOVATION.md`. Mosaic storms are
-not TITAN cells and are not labelled as such.
+not TITAN cells and are not labeled as such.
 
 ### `/map/replay` — the candidate map at an hour you pick
 
 **The same layers as the candidate map, with the same defaults and the same
-legends**, rebuilt from that hour's own sources: the HRRR cycle initialised then,
+legends**, rebuilt from that hour's own sources: the HRRR cycle initialized then,
 and the satellite and radar scans nearest it. A layer offered live and not here
 is one an operator cannot check against a seeding log. The left panel is a
 calendar, what actually loaded, and the seeding-opportunity summary — the one
@@ -229,7 +229,7 @@ a fixed level.
 
 **The band is −5 °C to −18 °C, and its two edges are different kinds of number.**
 −5 °C is physics: silver iodide barely nucleates ice above it. −18 °C is a
-judgement about where the _supply_ of liquid thins out, because natural ice
+judgment about where the _supply_ of liquid thins out, because natural ice
 nuclei activate and take it first; AgI itself keeps working to roughly −20 °C.
 Both edges live in `SEEDING` in `server/src/lib/services/hrrr/slw.ts`, mirrored by
 `BAND_WARMEST_C`/`BAND_COLDEST_C` in the app. **Every caption, legend bracket and
@@ -278,7 +278,7 @@ base is, so a depth layer would vanish over most of the cloud the base layer
 shows. Depth, and whether the seeding band lies between base and top, are
 answered at the clicked point instead, and the map's cloud top comes from the
 satellite. The rest of the file's diagnostics — CAPE, storm motion, lightning,
-vertically integrated liquid, modelled echo top — ride the same build as
+vertically integrated liquid, modeled echo top — ride the same build as
 **attributes on that point readout, and nothing gates on them.** The storm
 click's 18 dBZ echo-top is the measured height from MRMS, not this field.
 
@@ -286,18 +286,14 @@ click's 18 dBZ echo-top is the measured height from MRMS, not this field.
 
 Three tests on one 3 km cell:
 
-- modelled cloud base sits **4,000–12,000 ft above the ground**
-- a measured 18 dBZ echo top sits **at or above the modelled freezing
+- modeled cloud base sits **4,000–12,000 ft above the ground**
+- a measured 18 dBZ echo top sits **at or above the modeled freezing
   level** in this cell or the ones next to it
 - rain at **20 dBZ** in this cell or next to it
 
-The fill is those cells. A click on it is FLY. Modelled liquid, freezing
+The fill is those cells. A click on it is FLY. Modeled liquid, freezing
 level, −15 °C, CAPE, CIN, LCL, and warm-cloud depth are numbers on that
 click.
-
-The evaluation harness scores quiet-liquid columns at `/candidate/field`:
-supercooled liquid at or above 10 g/m², a base below the band's cold
-edge, a GOES top at or colder than −5 °C, and rain below 20 dBZ.
 
 **The band-inside-cloud test is an interval overlap.** Cloud spans base to top;
 the band spans its warm edge (−5 °C, lower) to its cold edge (−18 °C, higher).
@@ -382,15 +378,15 @@ cannot separate a turret that has frozen from one that has not; this can.
 footprint is the 3 km block that was averaged into it — a square in the grid's
 own rows and columns — and that is the square the contours are traced from, so
 the readout and the bands are answering in the same space. Not the nearest cell
-_centre_ in latitude and longitude: HRRR's grid is Lambert, its rows lean away
-from the central meridian, and near a boundary the nearest centre is a different
+_center_ in latitude and longitude: HRRR's grid is Lambert, its rows lean away
+from the central meridian, and near a boundary the nearest center is a different
 cell from the one the ground belongs to.
 
 **A band's drawn edge is smoothed, and near a concave corner it overhangs a cell
 it excludes.** The tracer cuts across a corner rather than turning it, so where a
 band bends inward — around a hole, along a one-cell diagonal — the fill covers
-part of a neighbouring cell that failed a test. A click there reads that
-neighbour, correctly: the cell is excluded and the band is what is drawn
+part of a neighboring cell that failed a test. A click there reads that
+neighbor, correctly: the cell is excluded and the band is what is drawn
 loosely. No cell lookup closes this, because there is nothing wrong with the
 lookup; it is the price of a smooth boundary over a 3 km grid, and it is worst
 exactly where the candidate field is thinnest. **The coordinates in the panel
@@ -609,7 +605,7 @@ arrive continuously with no publication cycle to key off, so both use a 5-minute
 TTL and each frame carries its own valid time — the sidebar reports the scene's
 age rather than implying it is live.
 
-## Colour
+## Color
 
 One hue per claim, and they cannot be swapped without the map lying:
 
@@ -617,8 +613,8 @@ One hue per claim, and they cannot be swapped without the map lying:
 | ------- | -------------------------- |
 | Slate   | cloud top — context        |
 | Violet  | cloud base                 |
-| Amber   | modelled liquid water      |
-| Cyan    | rain, modelled or measured |
+| Amber   | modeled liquid water      |
+| Cyan    | rain, modeled or measured |
 | Emerald | seeding opportunity        |
 
 Cyan is the same on both maps deliberately: it is the same quantity, and the two

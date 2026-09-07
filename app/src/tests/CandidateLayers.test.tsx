@@ -72,7 +72,7 @@ describe("CandidateLayers", () => {
   });
 
 
-  it("leaves the modelled liquid off the switches", () => {
+  it("leaves the modeled liquid off the switches", () => {
     renderWithStore(<CandidateLayers />, createTestStore());
 
     expect(screen.queryByLabelText(LiquidLegend.name)).toBeNull();
@@ -182,7 +182,7 @@ describe("CandidateLayers radar", () => {
     expect(swatches(container, RADAR)).toHaveLength(RADAR_BANDS.length);
   });
 
-  it("paints each swatch the colour the map composites", () => {
+  it("paints each swatch the color the map composites", () => {
     const { container } = renderWithStore(<CandidateLayers />, allOn());
 
     const hardest = swatches(container, RADAR)[RADAR_BANDS.length - 1];

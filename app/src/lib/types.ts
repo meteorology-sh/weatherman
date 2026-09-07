@@ -1,5 +1,5 @@
 /**
- * Which map a route is showing. Forecast is modelled; candidate is observed;
+ * Which map a route is showing. Forecast is modeled; candidate is observed;
  * replay is the candidate set at a past hour rather than at this one.
  */
 export type MapMode = "forecast" | "candidate" | "replay";
@@ -41,7 +41,7 @@ export interface PhaseCheck {
   /** Candidate ground the observation neither confirms nor contradicts, km². */
   unresolvedKm2: number;
   /**
-   * Ground with an observed supercooled top carrying less modelled in-band
+   * Ground with an observed supercooled top carrying less modeled in-band
    * liquid than the lowest contour draws, km². Routinely larger than the
    * candidate field: a thin supercooled deck can be honestly below it.
    */
@@ -146,7 +146,7 @@ export interface CandidatePoint {
   /** A candidate, nothing to seed, or the first test the cell failed. */
   verdict: Verdict;
   /**
-   * Does this column look like the cloud Texas programmes say they seed?
+   * Does this column look like the cloud Texas programs say they seed?
    * Independent of `verdict` — rain and missing liquid do not reject it.
    */
   target: TargetVerdict;
@@ -293,12 +293,12 @@ export interface StormNear {
   /** True when the click is inside the outline the radar layer draws. */
   inside: boolean;
   /**
-   * Kilometres from the click to the nearest edge of that outline, measured
+   * Kilometers from the click to the nearest edge of that outline, measured
    * the same from either side of it. Null when the storm has no ring.
    */
   edgeKm: number | null;
   object: StormObjectView;
-  /** Highest modelled in-band liquid over the storm, g/m². */
+  /** Highest modeled in-band liquid over the storm, g/m². */
   slwGM2: number | null;
   /** Coldest observed cloud top over the storm, °C. */
   goesTopC: number | null;
@@ -310,7 +310,7 @@ export interface StormNear {
    * be read.
    */
   echoTopFt: number | null;
-  /** Highest modelled echo top over the storm, ft MSL. */
+  /** Highest modeled echo top over the storm, ft MSL. */
   modelEchoTopFt: number | null;
   /** Freezing level in the column of the echo top that is reported, ft MSL. */
   freezingFt: number | null;

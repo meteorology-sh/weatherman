@@ -1,7 +1,7 @@
 /**
  * The two pieces of geometry these scripts need, and nothing more.
  *
- * Projecting a bearing and a range onto the globe, because two programmes
+ * Projecting a bearing and a range onto the globe, because two programs
  * position their releases that way and never print a coordinate. And the
  * distance from a point to the nearest edge of a painted region, because that
  * is the whole measurement this evaluation makes.
@@ -19,15 +19,15 @@ const EARTH_KM = 6371;
  * Where a bearing and a range put a release.
  *
  * Great-circle rather than flat: at 50 nm a flat projection is off by a few
- * hundred metres, which is nothing against a 3 km cell, but the spherical form
+ * hundred meters, which is nothing against a 3 km cell, but the spherical form
  * is no harder and does not have to be explained.
  *
- * **The bearing is used as printed.** Two programmes position their releases
+ * **The bearing is used as printed.** Two programs position their releases
  * this way and neither states whether the display was set to true or magnetic
  * north. The county each row names is not sharp enough to settle it either —
  * about six degrees of eastward rotation fits both records better, which is
  * what a magnetic display would look like and is also what a slightly wrong
- * origin would look like. So no rotation is applied, and the few kilometres
+ * origin would look like. So no rotation is applied, and the few kilometers
  * that question is worth stay in the number rather than being silently
  * corrected. `positions.mjs` is what measures the cost.
  */
@@ -58,11 +58,11 @@ const KM_PER_DEGREE_LAT = 110.574;
 const KM_PER_DEGREE_LON = 111.32;
 
 /**
- * Degrees to kilometres on a plane tangent at the point being measured from.
+ * Degrees to kilometers on a plane tangent at the point being measured from.
  *
  * Flat earth, like the grid module's own separation maths, and for the same
- * reason: the distances that matter here are tens of kilometres over west Texas,
- * where the error from ignoring curvature is metres. Anchoring the projection at
+ * reason: the distances that matter here are tens of kilometers over west Texas,
+ * where the error from ignoring curvature is meters. Anchoring the projection at
  * the query point rather than at a fixed origin keeps it that way however far
  * the ring extends.
  */
@@ -99,7 +99,7 @@ function inPolygon(rings, lon, lat) {
   return true;
 }
 
-/** Shortest distance from a point to a segment, all in kilometres. */
+/** Shortest distance from a point to a segment, all in kilometers. */
 function toSegment(px, py, ax, ay, bx, by) {
   const dx = bx - ax;
   const dy = by - ay;
@@ -113,7 +113,7 @@ function toSegment(px, py, ax, ay, bx, by) {
 }
 
 /**
- * How far a point is from a set of polygons, in kilometres, and whether it is
+ * How far a point is from a set of polygons, in kilometers, and whether it is
  * inside one.
  *
  * **Zero when inside, and the distance to the nearest edge when not.** This is

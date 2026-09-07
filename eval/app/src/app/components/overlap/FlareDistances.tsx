@@ -8,12 +8,12 @@ import type { Flare } from "~/lib/types";
 import { cellSize, distanceLabel, toneFor } from "./distance";
 
 /**
- * Each release against every layer, as inside or as kilometres.
+ * Each release against every layer, as inside or as kilometers.
  *
  * **The row is one flare.** A release can sit in rain, under a cloud base the
  * model has at all, and still miss the fly fill that wants a reachable base
  * and an echo top past freezing as well; this is where those facts are visible
- * together, without hovering a map. Kilometres are to the nearest edge after
+ * together, without hovering a map. Kilometers are to the nearest edge after
  * drifting to the analysis — the same number the maps measure at the
  * arrowhead.
  *

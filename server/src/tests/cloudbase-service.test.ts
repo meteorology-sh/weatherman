@@ -61,7 +61,7 @@ describe("blockAverageSparse", () => {
     assert.equal(Number.isNaN(grid.values[0]), false);
   });
 
-  // Metres in the GRIB, feet on the readout.
+  // Meters in the GRIB, feet on the readout.
   it("scales the block mean into the units the readout uses", () => {
     const grid = blockAverageSparse(
       block(new Array(16).fill(1000)),
@@ -83,11 +83,11 @@ describe("blockAverageSparse", () => {
     assert.equal(grid.values[0], MISSING);
   });
 
-  // eccodes prints missing points as 9999 by default, and 9999 metres is an
+  // eccodes prints missing points as 9999 by default, and 9999 meters is an
   // ordinary cloud top — HRRR carries real ones half again as high in the same
   // file. Decoding at the default reads deep convection as nodata, and the
   // symptom is a cloud top below its own cloud base rather than an error.
-  it("keeps 9999 as a value, because in metres it is one", () => {
+  it("keeps 9999 as a value, because in meters it is one", () => {
     const grid = blockAverageSparse(
       block(new Array(16).fill(9999)),
       1,
@@ -321,7 +321,7 @@ describe("diagnostics", () => {
 
   // RETOP writes -999 where there is no echo, and the block average drops it
   // like any other nodata — so a quiet cell has no echo top rather than one
-  // 999 metres below sea level.
+  // 999 meters below sea level.
   it("has no echo top where the model diagnoses no echo", () => {
     const d = diagnostics(fields({ echoTop: NaN }), 0, surfaceFt, null);
 

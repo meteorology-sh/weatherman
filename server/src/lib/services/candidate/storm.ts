@@ -1,5 +1,5 @@
 /**
- * The radar storm at a click, with modelled liquid and the observed cloud-top
+ * The radar storm at a click, with modeled liquid and the observed cloud-top
  * change over that storm — not over the one 3 km column the click snapped to.
  *
  * Motion comes from the previous mosaic. Liquid, the top, and the 18 dBZ
@@ -25,7 +25,7 @@ const ANALYSIS_HOUR = 0;
 const GOES_PREV_MS = 5 * 60_000;
 
 export type StormReading = ReturnType<typeof nearJson> & {
-  /** Highest modelled in-band liquid over the storm, g/m². */
+  /** Highest modeled in-band liquid over the storm, g/m². */
   slwGM2: number | null;
   /** Coldest observed cloud top over the storm, °C. */
   goesTopC: number | null;
@@ -40,7 +40,7 @@ export type StormReading = ReturnType<typeof nearJson> & {
    * be read.
    */
   echoTopFt: number | null;
-  /** Highest modelled echo top over the storm, ft MSL. */
+  /** Highest modeled echo top over the storm, ft MSL. */
   modelEchoTopFt: number | null;
   /** Freezing level in the column of the echo top that is reported, ft MSL. */
   freezingFt: number | null;
@@ -97,16 +97,16 @@ async function overStorm(
     Hrrr.diagnosticField("echoTop", ANALYSIS_HOUR, at),
     Hrrr.bandField(ANALYSIS_HOUR, at),
   ]).then(([measured, echo, band]) => {
-    const modelled = echo.values
+    const modeled = echo.values
       ? maxCellOver(storm, stormGeo, echo.geo, echo.values)
       : null;
-    if (modelled) modelEchoTopFt = Math.round(modelled.value);
+    if (modeled) modelEchoTopFt = Math.round(modeled.value);
     if (measured) {
       echoTopFt = measured.echoTopFt;
       const freeze = band.freezingFt[cellAt(band.geo, measured.lat, measured.lon)];
       freezingFt = Number.isFinite(freeze) ? Math.round(freeze) : null;
-    } else if (modelled) {
-      const freeze = band.freezingFt[modelled.cell];
+    } else if (modeled) {
+      const freeze = band.freezingFt[modeled.cell];
       freezingFt = Number.isFinite(freeze) ? Math.round(freeze) : null;
     }
   });

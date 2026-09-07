@@ -77,10 +77,10 @@ describe("CloudBaseLegend", () => {
     expect(detailOf(CloudBaseLegend)).not.toContain(FLIGHT_WINDOW_LABEL);
   });
 
-  // Modelled data on a map of measurements, so the detail has to say which
+  // Modeled data on a map of measurements, so the detail has to say which
   // this is.
-  it("says the layer is modelled", () => {
-    expect(detailOf(CloudBaseLegend)).toMatch(/modelled/i);
+  it("says the layer is modeled", () => {
+    expect(detailOf(CloudBaseLegend)).toMatch(/modeled/i);
   });
 
   // MSL and AGL differ by thousands of feet across Texas, so a height with no
@@ -92,14 +92,14 @@ describe("CloudBaseLegend", () => {
 });
 
 describe("LiquidLegend", () => {
-  // The one modelled layer on an observed map, and the band it is integrated
+  // The one modeled layer on an observed map, and the band it is integrated
   // over is what makes it a seeding number rather than a cloud-water number.
   it("names the band it integrates over", () => {
     expect(LiquidLegend.summary).toContain(BAND_LABEL);
     expect(detailOf(LiquidLegend)).toContain(BAND_LABEL);
   });
 
-  // The one modelled field on a map of measurements. It names the model it
+  // The one modeled field on a map of measurements. It names the model it
   // comes from, which is what says it is not a reading.
   it("names the model it comes from", () => {
     expect(LiquidLegend.source).toContain("HRRR");

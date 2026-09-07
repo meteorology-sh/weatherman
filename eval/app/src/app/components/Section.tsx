@@ -9,7 +9,7 @@ type PropsT = {
  * A titled block of the page.
  *
  * Every section says what it is before it shows it. A map, a set of buttons and
- * a coloured key are all things a reader can see but not name, and a page of
+ * a colored key are all things a reader can see but not name, and a page of
  * them with no headings is a page that has to be explained by whoever built it.
  */
 export const Section = ({ heading, subtitle, children }: PropsT) => (

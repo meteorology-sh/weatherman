@@ -1,14 +1,14 @@
 /**
- * The other Texas programmes' 2025 reports, on disk.
+ * The other Texas programs' 2025 reports, on disk.
  *
  * `node eval/records.mjs [--region=transpecos]` — downloads what
  * `data/<region>-2025.json` lists into `eval/cache/<region>/`, skipping
- * anything already there. With no region it does every programme that has a
+ * anything already there. With no region it does every program that has a
  * manifest.
  *
  * **It fetches and nothing else.** `releases.mjs` and `panhandle.mjs` both
  * download and parse, because parsing is what they are for; this is the way to
- * pull a programme's documents down without parsing them — to look at a layout
+ * pull a program's documents down without parsing them — to look at a layout
  * before writing against it, or to warm the cache for a run that will parse
  * every region in turn.
  *
@@ -30,7 +30,7 @@ const DATA = join(HERE, "data");
 
 const ONLY = process.argv.find((arg) => arg.startsWith("--region="))?.slice(9);
 
-/** Every programme with a manifest of documents, in the order they are listed. */
+/** Every program with a manifest of documents, in the order they are listed. */
 const { regions } = JSON.parse(
   await readFile(join(DATA, "regions.json"), "utf8")
 );

@@ -65,7 +65,7 @@ export const SEEDING = {
    * **Warm edge, −5 °C: a physical threshold.** Silver iodide barely nucleates
    * ice above it, so liquid warmer than this is not seedable with AgI at all.
    *
-   * **Cold edge, −18 °C: a judgement, and a deliberately generous one.** AgI
+   * **Cold edge, −18 °C: a judgment, and a deliberately generous one.** AgI
    * keeps working to roughly −20 °C; what falls off below about −12 °C is not
    * the seeding agent but the *supply* — natural ice nuclei activate and take
    * the liquid first, so there is progressively less of it to find. −12 °C is

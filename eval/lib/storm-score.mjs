@@ -129,7 +129,7 @@ export function tallyFlags(flares) {
   });
 }
 
-export function summariseDay(date, flares) {
+export function summarizeDay(date, flares) {
   const scored = flares.filter((flare) => flagsOf(flare) !== null);
   const tests = tallyFlags(flares);
   return {

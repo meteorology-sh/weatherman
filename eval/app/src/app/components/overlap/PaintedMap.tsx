@@ -43,7 +43,7 @@ import { cellRows, columnRows, flew } from "./readout";
  * fixed frame with points on top, and drawing it directly removes a lifecycle
  * that has nothing to manage.
  *
- * **The colours are not chosen here.** Every fill is `soloColor` over the band
+ * **The colors are not chosen here.** Every fill is `soloColor` over the band
  * table in `@/lib/arcgis/bands`, which is the same table the product's renderers
  * are built from, so a band that moves in Weatherman moves on this map. Levels
  * are drawn low to high and left to composite exactly as they composite there,
@@ -54,15 +54,15 @@ import { cellRows, columnRows, flew } from "./readout";
  * 3 km square, so they are painted at the single alpha the product paints them
  * at rather than shaded by a contour level that carries no quantity.
  *
- * **The releases carry no verdict in their colour.** They are white dots: what
- * the operator did, stated as a fact and left alone. Colouring them by distance
+ * **The releases carry no verdict in their color.** They are white dots: what
+ * the operator did, stated as a fact and left alone. Coloring them by distance
  * put our answer on top of their record and competed with the very bands being
  * judged, which is the wrong way round for a page asking whether the bands are
  * right. Every layer's distance is in the readout instead.
  *
  * **The white arrow is the clock, drawn.** A release at 1843Z is being compared
  * against a 19Z field, seventeen minutes later, and at twenty knots the air has
- * moved ten kilometres in between — most of a grid cell. It runs from where the
+ * moved ten kilometers in between — most of a grid cell. It runs from where the
  * flare was dropped to where that air is at the moment of the frame underneath,
  * and the arrowhead is where every distance is measured from.
  */
@@ -320,7 +320,7 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
            * The releases themselves, drawn where the aircraft actually dropped
            * them.
            *
-           * **White, with no verdict in the colour.** Colouring a release by how
+           * **White, with no verdict in the color.** Coloring a release by how
            * far it was from one layer put our answer on top of the operator's
            * fact, and it competed with the bands underneath — which are the
            * thing being judged. The distance is in the readout instead, for

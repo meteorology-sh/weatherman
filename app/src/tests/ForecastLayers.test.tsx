@@ -22,7 +22,7 @@ import { ForecastLayers } from "@/app/components/forecast/ForecastLayers";
 const swatches = (container: HTMLElement) =>
   Array.from(container.querySelectorAll<HTMLElement>("div.h-4"));
 
-/** jsdom re-prints rgba() with spaces; compare the colour, not the spacing. */
+/** jsdom re-prints rgba() with spaces; compare the color, not the spacing. */
 const rgba = (css: string) => css.replace(/\s+/g, "");
 
 describe("ForecastLayers", () => {
@@ -50,9 +50,9 @@ describe("ForecastLayers", () => {
     expect(screen.getAllByText(/mm\/hr/).length).toBeGreaterThan(0);
   });
 
-  // The swatch has to be the colour the map paints, not a hand-picked one, or
+  // The swatch has to be the color the map paints, not a hand-picked one, or
   // the legend quietly stops describing the map.
-  it("paints each swatch the colour the map composites", () => {
+  it("paints each swatch the color the map composites", () => {
     const { container } = renderWithStore(
       <ForecastLayers />,
       createTestStore()
@@ -167,7 +167,7 @@ describe("ForecastLayers", () => {
   });
 
   // The explanation names the fix, so it should be able to perform it.
-  it("steps to the first modelled hour when the operator takes the offer", () => {
+  it("steps to the first modeled hour when the operator takes the offer", () => {
     const store = createTestStore();
 
     renderWithStore(<ForecastLayers />, store);

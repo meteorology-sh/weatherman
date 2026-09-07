@@ -9,9 +9,9 @@ import { Status } from "./Status";
 import { Section } from "./Section";
 
 /**
- * Every programme this evaluation can be run against.
+ * Every program this evaluation can be run against.
  *
- * **A programme with no parsed flight record is still listed.** Texas licenses
+ * **A program with no parsed flight record is still listed.** Texas licenses
  * several and only one has been read out of its reports so far. A list showing
  * only that one would make a single operator's season look like the whole state,
  * which is the error this page exists to prevent.
@@ -26,7 +26,7 @@ export const Regions = () => {
           loading={loading}
           missing={null}
           error={error}
-          what="Reading the programme list"
+          what="Reading the program list"
         />
       </div>
     );
@@ -40,12 +40,12 @@ export const Regions = () => {
       <div className="max-w-4xl p-8 flex flex-col gap-8">
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold">
-            Which programme are we checking?
+            Which program are we checking?
           </h1>
           <p className="text-sm max-w-2xl">
-            Weather modification in Texas is run by several licensed programmes,
+            Weather modification in Texas is run by several licensed programs,
             each publishing its own daily reports. The evaluation runs against
-            one programme at a time, because a season is a whole dataset rather
+            one program at a time, because a season is a whole dataset rather
             than a filter on one.
           </p>
         </div>

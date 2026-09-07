@@ -29,7 +29,7 @@ export const Rejections = ({ stats }: PropsT) => {
   }
 
   const rows: [string, number][] = [
-    ["no modelled cloud base", stats.rejected.noCloudBase],
+    ["no modeled cloud base", stats.rejected.noCloudBase],
     ["cloud colder than the band throughout", stats.rejected.baseAboveBand],
     ["satellite sees no cloud", stats.rejected.noCloudSeen],
     ["cloud top too warm — band above it", stats.rejected.topTooWarm],

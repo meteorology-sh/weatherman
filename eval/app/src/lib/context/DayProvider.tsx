@@ -43,14 +43,14 @@ export function DayProvider({ children }: { children: React.ReactNode }) {
    * each time is cheaper than being wrong about what exists.
    */
   useEffect(() => {
-    let cancelled = false;
+    let canceled = false;
 
     async function load(on: string) {
       try {
         const fresh = await GetDays(on);
-        if (!cancelled) dispatch(dayActions.setDays(fresh));
+        if (!canceled) dispatch(dayActions.setDays(fresh));
       } catch (error) {
-        if (cancelled) return;
+        if (canceled) return;
         dispatch(
           dayActions.setError(
             error instanceof Error ? error.message : "Failed to load days"
@@ -61,7 +61,7 @@ export function DayProvider({ children }: { children: React.ReactNode }) {
 
     if (region && loaded === region) load(region);
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [region, loaded, dispatch]);
 

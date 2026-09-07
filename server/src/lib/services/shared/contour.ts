@@ -177,7 +177,7 @@ export function bandFeatures(
   style: RingStyle = DRAWN_STYLE
 ): ContourFeature[] {
   // A ring that is neither rounded nor interpolated sits on the cell-edge
-  // midpoints whichever way it was traced, so two neighbouring bands cannot
+  // midpoints whichever way it was traced, so two neighboring bands cannot
   // disagree about the boundary they share and there is nothing to fix: the
   // evaluation harness keeps the mask trace it has always been checked on.
   const rings =

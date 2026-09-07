@@ -9,7 +9,7 @@
  * wrote, served on 3100. Weather comes from the product's own server through
  * `@/lib/client`, and this file never fetches any.
  *
- * **Every finding is scoped to a region.** A programme's season is a whole
+ * **Every finding is scoped to a region.** A program's season is a whole
  * dataset rather than a filter on one, so the region is a path segment and every
  * call below takes it. There is no unscoped route to fall back to, which is what
  * stops one operator's numbers being read as the state's.
@@ -40,7 +40,7 @@ async function get<T>(path: string): Promise<T> {
   return res.json();
 }
 
-/** Every programme, including the ones with no flight record parsed yet. */
+/** Every program, including the ones with no flight record parsed yet. */
 export async function GetRegions(): Promise<Region[]> {
   return get<Region[]>("/regions");
 }

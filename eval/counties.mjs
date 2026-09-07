@@ -1,7 +1,7 @@
 /**
  * The county polygons the target-area figures are clipped to.
  *
- * `node eval/counties.mjs` — reads which counties appear in any programme's
+ * `node eval/counties.mjs` — reads which counties appear in any program's
  * release list, pulls each one's boundary from Census TIGERweb as GeoJSON,
  * writes `eval/data/counties-tx.geojson`.
  *
@@ -45,7 +45,7 @@ async function county(name) {
 }
 
 /**
- * Every county any programme's flight record names.
+ * Every county any program's flight record names.
  *
  * One file for all of them rather than one per region: the counties overlap —
  * West Texas and Trans-Pecos both fly Pecos, Crane, Crockett, Terrell and Upton

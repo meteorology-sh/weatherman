@@ -105,7 +105,7 @@ export function warmDepthFt(column: ColumnAtFlare): number | null {
   return base < column.freezingFt ? column.freezingFt - base : null;
 }
 
-/** The modelled convective numbers, as `Convective` prints them. */
+/** The modeled convective numbers, as `Convective` prints them. */
 export function environmentRows(
   column: ColumnAtFlare | null | undefined
 ): Row[] {
@@ -121,7 +121,7 @@ export function environmentRows(
       label: "Warm-cloud depth",
       value: column ? feet(warmDepthFt(column)) : "—",
     },
-    { label: "Modelled echo top", value: feet(d?.echoTopFt) },
+    { label: "Modeled echo top", value: feet(d?.echoTopFt) },
     {
       label: "Integrated liquid",
       value: d == null ? "—" : `${d.vilKgM2} kg/m²`,

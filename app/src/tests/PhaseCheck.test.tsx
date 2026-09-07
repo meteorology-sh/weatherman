@@ -94,7 +94,7 @@ describe("PhaseCheck", () => {
 
     expect(
       screen.getByText(
-        /supercooled top over 8,640 km² carrying less modelled liquid/
+        /supercooled top over 8,640 km² carrying less modeled liquid/
       )
     ).toBeTruthy();
   });

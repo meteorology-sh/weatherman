@@ -2,7 +2,7 @@
 import type { Nearness } from "~/lib/types";
 
 /**
- * How a distance is coloured, and where the steps fall.
+ * How a distance is colored, and where the steps fall.
  *
  * **The steps are grid cells, not opinions about seeding.** Inside is inside
  * the contour after that layer's own drift. One cell is the next honest step

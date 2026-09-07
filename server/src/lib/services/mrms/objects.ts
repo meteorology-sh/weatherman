@@ -13,7 +13,7 @@ import { MAP_STYLE, polygons, SIMPLIFY_CELL } from "../shared/contour";
 // Types
 import type { Grid, Geo, ContourRing, RingStyle } from "../shared/contour";
 
-/** Degrees of latitude to kilometres. */
+/** Degrees of latitude to kilometers. */
 const KM_PER_DEG = 111.32;
 
 /** How far an object may move between scans and still be the same storm, km. */
@@ -79,12 +79,12 @@ export type StormFrame = {
 export type StormNear = {
   validTime: string;
   object: StormObject;
-  /** Kilometres from the point to the storm's strongest cell. */
+  /** Kilometers from the point to the storm's strongest cell. */
   coreKm: number;
   /** True when the point is inside the outline drawn for this storm. */
   inside: boolean;
   /**
-   * Kilometres from the point to the nearest edge of that outline, measured
+   * Kilometers from the point to the nearest edge of that outline, measured
    * the same from either side of it. Null when the storm has no ring.
    */
   edgeKm: number | null;
@@ -240,7 +240,7 @@ export function identify(
 export const MIN_DRAWN_STORM_KM2 = 16;
 
 /**
- * Nearby specks within this many kilometres of a larger echo belong to
+ * Nearby specks within this many kilometers of a larger echo belong to
  * that shower. Two storms both above {@link MIN_DRAWN_STORM_KM2} stay
  * two storms even if they sit this close.
  */
@@ -506,7 +506,7 @@ function nearestKm(
   return best;
 }
 
-/** Shortest distance from a point to a segment, all in kilometres. */
+/** Shortest distance from a point to a segment, all in kilometers. */
 function segmentKm(
   px: number,
   py: number,
@@ -557,13 +557,13 @@ function inPolygon(rings: ContourRing[], lon: number, lat: number): boolean {
 }
 
 /**
- * How far a point is from the nearest edge of a drawn shape, in kilometres,
+ * How far a point is from the nearest edge of a drawn shape, in kilometers,
  * and which side of that edge it is on. Null when the shape has no ring.
  *
  * Measured against the ring itself rather than against the cells behind it,
  * so the number is the distance to the boundary the map painted. Flat earth,
  * on a plane tangent at the point being measured from, like {@link km}: over
- * the tens of kilometres this is asked about, the curvature is metres.
+ * the tens of kilometers this is asked about, the curvature is meters.
  */
 export function edgeDistance(
   geometry: ContourRing[][],
@@ -607,7 +607,7 @@ export const NEAR_LIMIT_KM = 40;
  * Nearest is measured to the storm's raining cells, not to its centroid. A
  * centroid is a point a long squall line does not pass through, so measuring
  * to it hands a click on the edge of the line to a round shower 30 km away.
- * A click inside the rain is nought kilometres from a cell of the storm it is
+ * A click inside the rain is nought kilometers from a cell of the storm it is
  * in, so the same rule picks that storm without a separate test for it.
  *
  * Where the click sits on that storm is `edgeKm`: how far it is from the
@@ -895,7 +895,7 @@ export function foldTracks(
  * The same tick as {@link motionArrow}, as a two-point line: the core and
  * the point `km` along the heading.
  *
- * The dart carries its width in kilometres, which is what a painted map
+ * The dart carries its width in kilometers, which is what a painted map
  * wants — it stays the same width against the storm at any scale. A screen
  * wants the opposite: a line drawn a fixed number of pixels wide, so the
  * tick reads as a tick zoomed in on one cell and not as a wedge. Both are
