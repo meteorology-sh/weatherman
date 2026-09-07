@@ -5,7 +5,7 @@ import { useAppDispatch, useAppSelector } from "~/lib/store/hooks";
 import { mapActions } from "~/lib/store/features/map";
 
 // Layers
-import { LAYERS } from "~/lib/layers";
+import { HOURLY, PANEL } from "~/lib/layers";
 
 // ArcGIS
 import { HeadingLegend, LightningLegend } from "@/lib/arcgis/legends";
@@ -13,19 +13,48 @@ import { HeadingLegend, LightningLegend } from "@/lib/arcgis/legends";
 // Components
 import { LayerToggle, SubToggle } from "@/app/components/panel/LayerToggle";
 import { Ramp } from "@/app/components/panel/Ramp";
-import { CloudTopRamp } from "@/app/components/panel/CloudTopRamp";
 import { CloudBaseRamp } from "@/app/components/panel/CloudBaseRamp";
+
+// Types
+import type { EvalLayer } from "~/lib/layers";
 
 /**
  * The map's controls — the same switches the product's own panel uses.
  *
- * `LayerToggle`, `Ramp`, `CloudTopRamp` and `CloudBaseRamp` are imported from
+ * `LayerToggle`, `SubToggle`, `Ramp` and `CloudBaseRamp` are imported from
  * `/app` rather than reimplemented, so a layer is named, described and ramped
  * here exactly as it is in Weatherman. Rewriting them would have made this page
  * a second opinion about the map instead of a window onto it.
+ *
+ * **The nesting is the product's nesting.** Echo past freezing sits under the
+ * rain, because that is where `CandidateLayers.tsx` puts it and because it is
+ * not a layer on its own — it annotates the field above it. Cores, heading and
+ * lightning hang off the rain for the same reason.
  */
 
 const hhmm = (iso: string) => `${iso.slice(11, 13)}${iso.slice(14, 16)}Z`;
+
+/**
+ * A gate has no ramp, so its switch carries only its name and its prose.
+ *
+ * `CloudBaseRamp` prints its own unit, like the product's panel, so only the
+ * stacked ramp is given one here.
+ */
+const ramp = (layer: EvalLayer) => {
+  if (layer.kind === "gate") return null;
+  if (layer.key === "cloudBase") return <CloudBaseRamp />;
+  return (
+    <>
+      <Ramp
+        bands={layer.bands}
+        rgb={layer.rgb}
+        captions={layer.captions}
+        titles={layer.titles}
+      />
+      <div className="text-xs">{layer.unit}</div>
+    </>
+  );
+};
 
 export const LayerPanel = () => {
   const { visible, selectedHour, drift, heading, lightning, counties } =
@@ -34,7 +63,7 @@ export const LayerPanel = () => {
     (state) => state.day.painted?.analyses.map((entry) => entry.at) ?? []
   );
   const dispatch = useAppDispatch();
-  const hourlyOn = Boolean(visible.liquid || visible.candidate);
+  const hourlyOn = HOURLY.some((key) => visible[key]);
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -42,8 +71,8 @@ export const LayerPanel = () => {
         <div className="flex flex-col gap-2">
           <div className="text-xs tracking-widest">HOURS</div>
           <p className="text-xs">
-            Each button is one model hour and the flares charged to it — not
-            the same flares at two times.
+            Each button is one model hour and the flares charged to it — not the
+            same flares at two times.
           </p>
           <div className="join">
             <button
@@ -78,20 +107,16 @@ export const LayerPanel = () => {
       >
         <div className="text-xs tracking-widest">ANNOTATIONS</div>
         {hourlyOn && (
-          <>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="toggle toggle-sm"
-                checked={drift}
-                aria-label="Flare at this hour"
-                onChange={(e) =>
-                  dispatch(mapActions.setDrift(e.target.checked))
-                }
-              />
-              <span className="text-sm font-semibold">FLARE AT THIS HOUR</span>
-            </label>
-          </>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              className="toggle toggle-sm"
+              checked={drift}
+              aria-label="Flare at this hour"
+              onChange={(e) => dispatch(mapActions.setDrift(e.target.checked))}
+            />
+            <span className="text-sm font-semibold">FLARE AT THIS HOUR</span>
+          </label>
         )}
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -107,7 +132,7 @@ export const LayerPanel = () => {
 
       <div className="flex flex-col gap-4 border-t border-base-300 pt-4">
         <div className="text-xs tracking-widest">LAYERS</div>
-        {LAYERS.map((layer) => (
+        {PANEL.map(({ layer, gates }) => (
           <LayerToggle
             key={layer.key}
             legend={layer.legend}
@@ -116,19 +141,7 @@ export const LayerPanel = () => {
               dispatch(mapActions.toggleLayer({ key: layer.key, visible: on }))
             }
           >
-            {layer.key === "cloudTop" ? (
-              <CloudTopRamp />
-            ) : layer.key === "cloudBase" ? (
-              <CloudBaseRamp />
-            ) : (
-              <Ramp
-                bands={layer.bands}
-                rgb={layer.rgb}
-                captions={layer.captions}
-                titles={layer.titles}
-              />
-            )}
-            <div className="text-xs">{layer.unit}</div>
+            {ramp(layer)}
             {layer.key === "radar" && (
               <>
                 <SubToggle
@@ -147,6 +160,20 @@ export const LayerPanel = () => {
                 </SubToggle>
               </>
             )}
+            {gates.map((gate) => (
+              <SubToggle
+                key={gate.key}
+                name={gate.legend.name}
+                checked={Boolean(visible[gate.key])}
+                onChange={(on) =>
+                  dispatch(
+                    mapActions.toggleLayer({ key: gate.key, visible: on })
+                  )
+                }
+              >
+                <div className="text-xs">{gate.legend.summary}</div>
+              </SubToggle>
+            ))}
           </LayerToggle>
         ))}
       </div>

@@ -1,5 +1,5 @@
 // Layers
-import { LAYERS } from "~/lib/layers";
+import { RESULT_ORDER } from "~/lib/layers";
 
 // Types
 import type { Flare } from "~/lib/types";
@@ -10,10 +10,16 @@ import { cellSize, distanceLabel, toneFor } from "./distance";
 /**
  * Each release against every layer, as inside or as kilometres.
  *
- * **The row is one flare.** A release can sit in painted liquid and still miss
- * the join; this is where that pair of facts is visible at once, without
- * hovering a map. Kilometres are to the nearest edge after drifting to the
- * analysis — the same number the maps measure at the arrowhead.
+ * **The row is one flare.** A release can sit in rain, under a cloud base the
+ * model has at all, and still miss the fly fill that wants a reachable base
+ * and an echo top past freezing as well; this is where those facts are visible
+ * together, without hovering a map. Kilometres are to the nearest edge after
+ * drifting to the analysis — the same number the maps measure at the
+ * arrowhead.
+ *
+ * **SEEDING OPPORTUNITY is the last column.** Every column left of it is one of
+ * the tests that fill wants at once, so the row reads as the working and then
+ * the answer.
  */
 
 type PropsT = {
@@ -35,7 +41,7 @@ export const FlareDistances = ({ flares, cellKm }: PropsT) => {
           <tr>
             <th>Time</th>
             <th>County</th>
-            {LAYERS.map((layer) => (
+            {RESULT_ORDER.map((layer) => (
               <th key={layer.key} className="text-right whitespace-normal">
                 {layer.legend.name}
               </th>
@@ -47,7 +53,7 @@ export const FlareDistances = ({ flares, cellKm }: PropsT) => {
             <tr key={flare.at}>
               <td className="font-mono whitespace-nowrap">{flare.timeZ}Z</td>
               <td>{flare.county}</td>
-              {LAYERS.map((layer) => {
+              {RESULT_ORDER.map((layer) => {
                 const near = flare.near[layer.key] ?? null;
                 const tone = toneFor(near, cellSize(cellKm, layer.key));
                 return (

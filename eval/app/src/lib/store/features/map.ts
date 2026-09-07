@@ -20,7 +20,10 @@ type MapState = {
    * flares at two times.
    */
   selectedHour: string | null;
-  /** Draw the drop-to-hour estimate. Only drawn while liquid or the join is on. */
+  /**
+   * Draw the drop-to-hour estimate. Only drawn while a layer that answers by
+   * the hour rather than by the minute is on — see `HOURLY` in `~/lib/layers`.
+   */
   drift: boolean;
   /** Heaviest-rain dots and heading ticks. Only drawn while radar is on. */
   heading: boolean;
@@ -33,7 +36,9 @@ const initialState: MapState = {
   visible: { ...OPEN_WITH },
   selectedHour: null,
   drift: true,
-  heading: false,
+  // On with the rain, like the product's own map: the core and the heading
+  // are how a storm object is read, not an extra opinion about it.
+  heading: true,
   lightning: false,
   counties: true,
 };

@@ -1,7 +1,8 @@
 /**
  * Is this tree a complete season — every report in cache, every seeded day
- * with a located flare painted at native sampling with storm motion, and
- * a balloon file for each programme that briefs on a sonde.
+ * with a located flare painted at native sampling with storm motion, the
+ * click readout, and a balloon file for each programme that briefs on a
+ * sonde.
  *
  * `node eval/verify.mjs`
  *
@@ -30,6 +31,7 @@ let painted = 0;
 let flares = 0;
 let drifted = 0;
 let withStorm = 0;
+let withClick = 0;
 let balloons = 0;
 
 function native(cellKm) {
@@ -76,8 +78,7 @@ for (const region of regions) {
     await readFile(join(DATA, region.releases), "utf8")
   );
   const days = record.days.filter(
-    (day) =>
-      day.seeded && day.releases.some((release) => release.located)
+    (day) => day.seeded && day.releases.some((release) => release.located)
   );
 
   for (const day of days) {
@@ -108,6 +109,17 @@ for (const region of regions) {
         } else {
           missing.push(`out/${name} ${flare.timeZ} (no storm reading)`);
         }
+        // The cell and the column may each be null — a release outside the
+        // model's grid is answered "not here" rather than with numbers — so
+        // it is the keys that have to be there, not values under them.
+        if (
+          Object.prototype.hasOwnProperty.call(flare, "cell") &&
+          Object.prototype.hasOwnProperty.call(flare, "column")
+        ) {
+          withClick += 1;
+        } else {
+          missing.push(`out/${name} ${flare.timeZ} (no click readout)`);
+        }
       }
     }
   }
@@ -134,6 +146,7 @@ console.log("season complete");
 console.log(`  reports   ${reports}`);
 console.log(
   `  painted   ${painted} native days, ${flares} located flares, ` +
-    `storm motion on ${drifted}, storm reading on ${withStorm}`
+    `storm motion on ${drifted}, storm reading on ${withStorm}, ` +
+    `click readout on ${withClick}`
 );
 console.log(`  balloons  ${balloons}`);

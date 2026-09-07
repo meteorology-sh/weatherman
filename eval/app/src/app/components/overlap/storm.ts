@@ -2,11 +2,17 @@
 import { SLW_BANDS } from "@/lib/arcgis/bands";
 
 // Types
-import type { Flare, StormAtFlare } from "~/lib/types";
+import type { StormAtFlare } from "~/lib/types";
 
 // Components
 import { type Tone } from "./distance";
 
+/**
+ * How a yes, a no and a missing reading are coloured.
+ *
+ * Shared by every place that prints a pass or a fail, so FLY on the readout
+ * table and a green cell anywhere else are the same green.
+ */
 export const MATCH: Tone = {
   fill: "fill-success",
   stroke: "stroke-success",
@@ -27,189 +33,97 @@ export const NEUTRAL: Tone = {
 };
 
 const num = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
+const feet = (value: number) =>
+  `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value)} ft`;
 
-export type Verdict = { ok: boolean | null; label: string };
-
-export function toneOf(ok: boolean | null): Tone {
-  if (ok === null) return NEUTRAL;
-  return ok ? MATCH : MISS;
-}
-
-function unscored(): Verdict {
-  return { ok: null, label: "—" };
-}
-
-function noStorm(): Verdict {
-  return { ok: false, label: "no storm" };
-}
-
-/** Same test as the server: within 90° of the opposite of the heading. */
-export function upwindOf(
-  coreLat: number,
-  coreLon: number,
-  lat: number,
-  lon: number,
-  towardDeg: number
-): boolean {
-  const upwind = (towardDeg + 180) % 360;
-  const mid = ((coreLat + lat) / 2) * (Math.PI / 180);
-  const dlat = lat - coreLat;
-  const dlon = (lon - coreLon) * Math.cos(mid);
-  let deg = (Math.atan2(dlon, dlat) * 180) / Math.PI;
-  if (deg < 0) deg += 360;
-  let delta = Math.abs(deg - upwind);
-  if (delta > 180) delta = 360 - delta;
-  return delta <= 90;
-}
-
-function rainVerdict(storm: StormAtFlare | null | undefined): Verdict {
-  if (storm === undefined) return unscored();
-  if (!storm?.object) return noStorm();
-  if (storm.inside) return { ok: true, label: "yes" };
-  return {
-    ok: false,
-    label: storm.edgeKm != null ? `${num.format(storm.edgeKm)} km` : "no",
-  };
-}
-
-function upwindVerdict(flare: Flare, storm: StormAtFlare | null): Verdict {
-  const toward = storm?.object?.motionTowardDeg;
-  if (
-    toward == null ||
-    storm?.object == null ||
-    storm.object.coreLat == null ||
-    storm.object.coreLon == null
-  ) {
-    return { ok: null, label: "no heading" };
+function echoVersusFreezing(storm: StormAtFlare): string {
+  const top = storm.echoTopFt;
+  const freeze = storm.freezingFt;
+  if (top === null) {
+    if (storm.modelEchoTopFt === null) return "no 18 dBZ echo top";
+    if (freeze === null) {
+      return `modelled echo top ${feet(storm.modelEchoTopFt)} MSL; column never crosses freezing`;
+    }
+    return storm.modelEchoTopFt >= freeze
+      ? `modelled echo top ${feet(storm.modelEchoTopFt - freeze)} above freezing`
+      : `modelled echo top ${feet(freeze - storm.modelEchoTopFt)} below freezing`;
   }
-  const ok = upwindOf(
-    storm.object.coreLat,
-    storm.object.coreLon,
-    flare.lat,
-    flare.lon,
-    toward
-  );
-  return { ok, label: ok ? "yes" : "no" };
-}
-
-function edgeVerdict(storm: StormAtFlare): Verdict {
-  if (storm.edgeKm == null || storm.coreKm == null) {
-    return { ok: null, label: "—" };
+  if (freeze === null) {
+    return `18 dBZ echo top ${feet(top)} MSL; column never crosses freezing`;
   }
-  const ok = storm.edgeKm < storm.coreKm;
-  return { ok, label: ok ? "yes" : "no" };
+  return top >= freeze
+    ? `${feet(top - freeze)} above freezing`
+    : `${feet(freeze - top)} below freezing`;
 }
 
-function echoVerdict(storm: StormAtFlare): Verdict {
-  if (storm.echoTopFt == null || storm.freezingFt == null) {
-    return { ok: null, label: "—" };
-  }
-  const ok = storm.echoTopFt >= storm.freezingFt;
-  return { ok, label: ok ? "yes" : "no" };
-}
-
-function grewVerdict(storm: StormAtFlare): Verdict {
+function grewLabel(storm: StormAtFlare): string {
   const d = storm.object?.areaDeltaKm2;
-  if (d == null) return { ok: null, label: "—" };
-  if (d > 0.5) return { ok: true, label: "yes" };
-  if (d < -0.5) return { ok: false, label: "no" };
-  return { ok: null, label: "unchanged" };
+  if (d == null) return "—";
+  if (d > 0.5) return `grew ${num.format(d)} km²`;
+  if (d < -0.5) return `shrank ${num.format(-d)} km²`;
+  return "unchanged";
 }
-
-function lightningVerdict(storm: StormAtFlare): Verdict {
-  if (storm.glmFlashes == null) return { ok: null, label: "—" };
-  if (storm.glmFlashes === 0) return { ok: false, label: "none" };
-  return {
-    ok: true,
-    label: `${storm.glmFlashes}`,
-  };
-}
-
-function colderTopVerdict(storm: StormAtFlare): Verdict {
-  const delta = storm.goesTopDeltaC;
-  if (delta == null) return { ok: null, label: "—" };
-  if (delta < -0.5) {
-    return { ok: true, label: `${num.format(-delta)} °C` };
-  }
-  if (delta > 0.5) {
-    return { ok: false, label: `${num.format(delta)} °C warmer` };
-  }
-  return { ok: null, label: "unchanged" };
-}
-
-function liquidVerdict(storm: StormAtFlare): Verdict {
-  if (storm.slwGM2 == null) return { ok: null, label: "—" };
-  if (storm.slwGM2 >= SLW_BANDS[0].value) {
-    return { ok: true, label: `${num.format(storm.slwGM2)} g/m²` };
-  }
-  return { ok: false, label: "none" };
-}
-
-export type StormColumn = {
-  key: string;
-  heading: string;
-  of: (flare: Flare, storm: StormAtFlare) => Verdict;
-};
 
 /**
- * Each column is one test we can score from the storm at the release minute.
+ * One-line facts about the storm a release sat in, for the map's hover.
  *
- * The first five are the Texas radar-object tests. The last three are the
- * readings hanging on that same storm — lightning, whether the top cooled,
- * and whether the model put liquid in the band over it.
+ * The storm is context for a release on the map, not a score of its own: the
+ * page answers with the fly fill, and these lines say what the rain under that
+ * flare was doing. Missing fields stay out rather than printing "null".
  */
-export const STORM_COLUMNS: readonly StormColumn[] = [
-  {
-    key: "inRain",
-    heading: "In the rain",
-    of: (_flare, storm) => rainVerdict(storm),
-  },
-  {
-    key: "upwind",
-    heading: "Upwind of the heaviest rain",
-    of: (flare, storm) => upwindVerdict(flare, storm),
-  },
-  {
-    key: "nearerEdge",
-    heading: "Nearer the edge than the core",
-    of: (_flare, storm) => edgeVerdict(storm),
-  },
-  {
-    key: "echoPastFreezing",
-    heading: "Echo top past freezing",
-    of: (_flare, storm) => echoVerdict(storm),
-  },
-  {
-    key: "grew",
-    heading: "Raining area grew",
-    of: (_flare, storm) => grewVerdict(storm),
-  },
-  {
-    key: "lightning",
-    heading: "Lightning in five minutes",
-    of: (_flare, storm) => lightningVerdict(storm),
-  },
-  {
-    key: "colderTop",
-    heading: "Cloud top colder",
-    of: (_flare, storm) => colderTopVerdict(storm),
-  },
-  {
-    key: "liquidOverStorm",
-    heading: "Supercooled liquid over the storm",
-    of: (_flare, storm) => liquidVerdict(storm),
-  },
-];
-
-/** One row of the storm table, including flares that were never asked. */
-export function stormCells(flare: Flare): Verdict[] {
-  if (!("storm" in flare) || flare.storm === undefined) {
-    return STORM_COLUMNS.map(() => unscored());
+export function stormLines(storm: StormAtFlare): string[] {
+  const lines: string[] = [];
+  if (!storm.object) {
+    lines.push("No rain at 20 dBZ within about 40 km.");
+    return lines;
   }
-  if (!flare.storm?.object) {
-    return STORM_COLUMNS.map((column) =>
-      column.key === "inRain" ? noStorm() : unscored()
+  if (storm.inside && storm.edgeKm !== null && storm.coreKm !== null) {
+    lines.push(
+      storm.edgeKm < storm.coreKm
+        ? `Inside the rain, ${num.format(storm.edgeKm)} km from the edge and ${num.format(storm.coreKm)} km from the heaviest rain.`
+        : `Inside the rain, ${num.format(storm.coreKm)} km from the heaviest rain and ${num.format(storm.edgeKm)} km from the edge.`
+    );
+  } else if (storm.edgeKm !== null) {
+    lines.push(
+      `Outside the rain, ${num.format(storm.edgeKm)} km from the edge.`
     );
   }
-  return STORM_COLUMNS.map((column) => column.of(flare, flare.storm!));
+  lines.push(echoVersusFreezing(storm));
+  if (storm.object.ageMin !== null) {
+    lines.push(
+      storm.object.ageFloor
+        ? `Rain on the mosaic for at least ${storm.object.ageMin} min`
+        : `Rain on the mosaic for ${storm.object.ageMin} min`
+    );
+  }
+  if (storm.object.areaDeltaKm2 !== null) {
+    lines.push(grewLabel(storm));
+  }
+  if (storm.glmFlashes !== null) {
+    lines.push(
+      storm.glmFlashes === 0
+        ? "No lightning over this storm in five minutes"
+        : `${storm.glmFlashes} lightning ${storm.glmFlashes === 1 ? "flash" : "flashes"} in five minutes`
+    );
+  }
+  if (storm.goesTopC !== null) {
+    const delta = storm.goesTopDeltaC;
+    lines.push(
+      delta === null
+        ? `Cloud top ${num.format(storm.goesTopC)} °C`
+        : delta < -0.5
+          ? `Cloud top ${num.format(storm.goesTopC)} °C, ${num.format(-delta)} °C colder than five minutes ago`
+          : delta > 0.5
+            ? `Cloud top ${num.format(storm.goesTopC)} °C, ${num.format(delta)} °C warmer than five minutes ago`
+            : `Cloud top ${num.format(storm.goesTopC)} °C, unchanged from five minutes ago`
+    );
+  }
+  if (storm.slwGM2 !== null) {
+    lines.push(
+      storm.slwGM2 >= SLW_BANDS[0].value
+        ? `Model puts ${num.format(storm.slwGM2)} g/m² of supercooled liquid in the seeding band over this storm`
+        : `Model puts no supercooled liquid in the seeding band over this storm (under ${SLW_BANDS[0].value} g/m²)`
+    );
+  }
+  return lines;
 }

@@ -96,7 +96,7 @@ const targetStats: TargetStats = {
   boxKm2: 450000,
   rejected: {
     noCloudBase: 120000,
-    baseOutsideWindow: 81000,
+    baseAboveCeiling: 81000,
     noFreezingLevel: 9000,
     topBelowFreezing: 162000,
     noStorm: 59100,

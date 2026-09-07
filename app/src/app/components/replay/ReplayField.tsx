@@ -27,7 +27,7 @@ export const ReplayField = () => {
           },
           {
             label: "Base outside window",
-            value: `${km2.format(target.rejected.baseOutsideWindow)} km²`,
+            value: `${km2.format(target.rejected.baseAboveCeiling)} km²`,
           },
           {
             label: "Freezing level missing",

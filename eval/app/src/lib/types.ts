@@ -9,6 +9,9 @@
  * layers through `@/lib/client`, so those types come from `@/lib/types`.
  */
 
+// Types
+import type { Diagnostics, SoundingLevel } from "@/lib/types";
+
 /* ---------- regions ---------- */
 
 /**
@@ -167,6 +170,14 @@ export type Nearness = {
   km: number | null;
   /** The same distance without the drift correction, for comparison. */
   kmAtRelease: number | null;
+  /**
+   * When the frame this was measured against is true of. HRRR rounds to the
+   * analysis hour; the radar and the satellite keep the scan minute, so the
+   * two clocks are visible rather than averaged into one.
+   */
+  validTime: string | null;
+  /** Minutes the release was carried to meet that frame. Signed. */
+  offsetMinutes: number | null;
 };
 
 /**
@@ -177,11 +188,8 @@ export type Nearness = {
  */
 export type StormAtFlare = {
   inside: boolean;
-  /** Inside the rain, on the upwind side, nearer the edge than the heaviest rain. */
-  inWorking: boolean;
   coreKm: number | null;
   edgeKm: number | null;
-  upwindEdgeKm: number | null;
   object: {
     id: number;
     maxDbz: number;
@@ -201,6 +209,44 @@ export type StormAtFlare = {
   echoTopFt: number | null;
   modelEchoTopFt: number | null;
   freezingFt: number | null;
+};
+
+/**
+ * What a click on the release point at its own minute would have said, from
+ * `/candidate/point`.
+ *
+ * The same fields the operator panel prints under FLY or DON'T FLY. Null on a
+ * flare means the point sits outside the model's grid, which is the answer the
+ * map gives a click out there rather than an error.
+ */
+export type CellAtFlare = {
+  validTime: string | null;
+  radarTime: string | null;
+  /** "target" is the cell an operator is told to fly. */
+  target: string | null;
+  cloudBaseAglFt: number | null;
+  echoTopFt: number | null;
+  freezingFt: number | null;
+  dbz: number | null;
+  radarCovered: boolean;
+  slwGM2: number | null;
+};
+
+/**
+ * The modelled column over the release, from `/forecast/sounding` at the
+ * analysis the flare is charged to.
+ *
+ * `levels` is the profile whole, so the −15 °C height is interpolated here by
+ * the product's own `heightAtC` rather than by a second rule.
+ */
+export type ColumnAtFlare = {
+  validTime: string;
+  surfaceFt: number | null;
+  freezingFt: number | null;
+  bandBaseFt: number | null;
+  bandTopFt: number | null;
+  levels: SoundingLevel[];
+  diagnostics: Diagnostics | null;
 };
 
 export type PointMarks = {
@@ -239,6 +285,9 @@ export type Flare = {
   compared: [number, number];
   near: Record<string, Nearness | null>;
   storm?: StormAtFlare | null;
+  /** What a click on this release would have said. Absent on older files. */
+  cell?: CellAtFlare | null;
+  column?: ColumnAtFlare | null;
 };
 
 /** One analysis hour, and the releases charged to it. */
@@ -277,38 +326,11 @@ export type NearFinding = {
   rows: Array<{ date: string } & Proximity>;
 };
 
-/**
- * Texas turret features over every painted day — `GET /region/:id/storms`.
- *
- * Each test is scored at the release minute from the storm stored on the
- * painted flare. `scored` is how many of those flares carry a `storm` key.
- */
-export type StormTestScore = {
-  key: string;
-  label: string;
-  n: number;
-  yes: number;
-};
-
-export type StormDay = {
-  date: string;
-  flares: number;
-  scored: number;
-  tests: Record<string, StormTestScore>;
-};
-
-export type StormFinding = {
-  days: number;
-  flying: number;
-  flares: number;
-  scored: number;
-  tests: StormTestScore[];
-  rows: StormDay[];
-};
-
 export type Painted = {
   date: string;
   region: string;
+  /** Which Weatherman API drew these fills. */
+  server?: string;
   window: { west: number; east: number; south: number; north: number };
   /** Native cell size per layer, km. Older files carry a single number. */
   cellKm: number | Record<string, number>;
@@ -320,6 +342,9 @@ export type Painted = {
     cellKm?: number;
   }[];
   hours: string[];
+  /** The report's own sounding table for this day, where it printed one. */
+  soundings?: Record<string, Record<string, number>> | null;
+  observations?: Observation[];
   /** By hour, then by layer key. */
   frames: Record<string, Record<string, Frame>>;
   /** Cores, heading, and lightning at each analysis. Absent on older files. */

@@ -20,6 +20,13 @@
  * off something we do not have. So every release gets a distance to the nearest
  * edge of every layer, in kilometres, and being inside is simply distance zero.
  *
+ * **Every release also carries what a click on it would have said.** The
+ * operator map answers a click with FLY or DON'T FLY and the numbers behind
+ * the call, the modelled column over that point, and the storm the point sat
+ * in. All three are stored on the flare — `cell`, `column` and `storm` — from
+ * the same routes the panel calls, so the page can read out the release the
+ * way an operator would have read out that cell.
+ *
  * **Each release is measured against the analysis nearest its own minute**, by
  * the same rounding rule the server uses — 1843Z is charged to 19Z, seventeen
  * minutes away, not to 18Z which is forty-three. One frame per release, chosen
@@ -142,8 +149,7 @@ const LAYERS = [
   {
     key: "cloudTop",
     name: "CLOUD TOPS",
-    path: (at) =>
-      `/cloudtop/temperature?at=${encodeURIComponent(at)}&fine=1`,
+    path: (at) => `/cloudtop/temperature?at=${encodeURIComponent(at)}&fine=1`,
     property: "topColdnessC",
     unit: "°C below zero",
     shape: "disjoint",
@@ -152,8 +158,7 @@ const LAYERS = [
   {
     key: "liquid",
     name: "SUPERCOOLED LIQUID WATER",
-    path: (at) =>
-      `/forecast/liquid?hour=0&at=${encodeURIComponent(at)}&fine=1`,
+    path: (at) => `/forecast/liquid?hour=0&at=${encodeURIComponent(at)}&fine=1`,
     property: "slwPath",
     unit: "g/m²",
     shape: "nested",
@@ -162,8 +167,7 @@ const LAYERS = [
   {
     key: "radar",
     name: "RADAR REFLECTIVITY",
-    path: (at) =>
-      `/radar/reflectivity?at=${encodeURIComponent(at)}&fine=1`,
+    path: (at) => `/radar/reflectivity?at=${encodeURIComponent(at)}&fine=1`,
     property: "reflectivity",
     unit: "dBZ",
     shape: "nested",
@@ -172,8 +176,7 @@ const LAYERS = [
   {
     key: "candidate",
     name: "SEEDING OPPORTUNITY",
-    path: (at) =>
-      `/candidate/field?at=${encodeURIComponent(at)}&fine=1`,
+    path: (at) => `/candidate/field?at=${encodeURIComponent(at)}&fine=1`,
     property: "seedableSlwPath",
     unit: "g/m²",
     shape: "nested",
@@ -182,8 +185,7 @@ const LAYERS = [
   {
     key: "target",
     name: "TEXAS FLY FILL",
-    path: (at) =>
-      `/candidate/target?at=${encodeURIComponent(at)}&fine=1`,
+    path: (at) => `/candidate/target?at=${encodeURIComponent(at)}&fine=1`,
     property: "fly",
     unit: "pass",
     shape: "disjoint",
@@ -261,6 +263,25 @@ async function ask(path) {
   return res.json();
 }
 
+/**
+ * The same request, with a click off the edge of the model answered null.
+ *
+ * The point and column routes both refuse a point outside the grid with a 404,
+ * which the map treats as "not here" rather than as a failure. A release that
+ * far out is a fact about the record, not a broken run, so it is stored as
+ * nothing rather than as an error.
+ */
+async function askPoint(path) {
+  const res = await fetch(new URL(path, SERVER), {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`${res.status}: ${(await res.text()).slice(0, 160)}`);
+  }
+  return res.json();
+}
+
 const framesByPath = new Map();
 
 async function frameAt(layer, at) {
@@ -314,10 +335,13 @@ async function marksAt(at) {
   const q = (path) => withBox(`${path}?at=${encodeURIComponent(at)}&fine=1`);
   const emptyPoints = { validTime: at, points: [] };
   const emptyRings = { validTime: at, rings: [] };
-  const cores = await ask(q("/radar/objects/cores")).then(pointsOf, (failure) => ({
-    ...emptyPoints,
-    error: failure.message,
-  }));
+  const cores = await ask(q("/radar/objects/cores")).then(
+    pointsOf,
+    (failure) => ({
+      ...emptyPoints,
+      error: failure.message,
+    })
+  );
   const heading = await ask(q("/radar/objects/motion")).then(
     ringsOf,
     (failure) => ({ ...emptyRings, error: failure.message })
@@ -355,17 +379,59 @@ const KM_PER_DEGREE_LAT = 110.574;
 const KM_PER_DEGREE_LON = 111.32;
 
 /**
- * HRRR's 0–6 km storm motion over a release, sampled once at the analysis
- * the flare is charged to.
+ * The modelled column over a release, at the analysis the flare is charged to.
+ *
+ * The same answer `/map/candidate` prints after a click: the ground, the
+ * freezing level, the seeding band, and the wrfsfc diagnostics under them.
+ * `levels` is kept whole so the −15 °C height is read here the way the panel
+ * reads it, by interpolating the profile rather than by a second rule written
+ * in this file.
+ *
+ * The storm motion the drift is built from is two of those diagnostics, so one
+ * request answers both questions.
  */
-async function motionAt(release, hour) {
-  const sounding = await ask(
+async function columnAt(release, hour) {
+  const sounding = await askPoint(
     `/forecast/sounding?lat=${release.lat}&lon=${release.lon}` +
       `&hour=0&at=${encodeURIComponent(hour)}`
   );
+  if (!sounding) return null;
   return {
-    stormMotionKt: sounding.diagnostics?.stormMotionKt ?? null,
-    stormMotionTowardDeg: sounding.diagnostics?.stormMotionTowardDeg ?? null,
+    validTime: sounding.validTime ?? hour,
+    surfaceFt: sounding.surfaceFt ?? null,
+    freezingFt: sounding.freezingFt ?? null,
+    bandBaseFt: sounding.bandBaseFt ?? null,
+    bandTopFt: sounding.bandTopFt ?? null,
+    levels: sounding.levels ?? [],
+    diagnostics: sounding.diagnostics ?? null,
+  };
+}
+
+/**
+ * The join read over the 3 km cell the release landed in, at its own minute.
+ *
+ * `/candidate/point` is the route behind FLY and DON'T FLY, and it carries the
+ * numbers that made the call. The radar and the satellite in it answer about
+ * the release minute, so it is asked at the flare's own timestamp rather than
+ * at the analysis — the same split of clocks the fills are fetched on.
+ */
+async function cellAt(release) {
+  const point = await askPoint(
+    `/candidate/point?lat=${release.lat}&lon=${release.lon}` +
+      `&at=${encodeURIComponent(release.at)}`
+  );
+  if (!point) return null;
+  return {
+    validTime: point.validTime ?? null,
+    radarTime: point.radarTime ?? null,
+    /** "target" is the cell an operator is told to fly. */
+    target: point.target ?? null,
+    cloudBaseAglFt: point.cloudBaseAglFt ?? null,
+    echoTopFt: point.echoTopFt ?? null,
+    freezingFt: point.freezingFt ?? null,
+    dbz: point.dbz ?? null,
+    radarCovered: point.radarCovered ?? false,
+    slwGM2: point.slwGM2 ?? null,
   };
 }
 
@@ -539,34 +605,29 @@ for (const hour of hours) {
   const flares = [];
 
   for (const release of byHour.get(hour)) {
-    let motion = {
-      stormMotionKt: null,
-      stormMotionTowardDeg: null,
-    };
+    let column = null;
     try {
-      motion = await motionAt(release, hour);
+      column = await columnAt(release, hour);
     } catch (failure) {
-      console.log(`    ${release.timeZ}Z motion failed: ${failure.message}`);
+      console.log(`    ${release.timeZ}Z column failed: ${failure.message}`);
     }
+    const motion = {
+      stormMotionKt: column?.diagnostics?.stormMotionKt ?? null,
+      stormMotionTowardDeg: column?.diagnostics?.stormMotionTowardDeg ?? null,
+    };
 
     const drift = advect(release, motion, hour);
     const raw = [release.lon, release.lat];
     const at = drift?.to ?? raw;
     const near = {};
     for (const layer of LAYERS) {
-      const scored = await frameAt(layer, release.at).catch(() =>
-        frames[hour][layer.key]
+      const scored = await frameAt(layer, release.at).catch(
+        () => frames[hour][layer.key]
       );
       const when = scored?.validTime ?? hour;
       const shifted = advect(release, motion, when);
       const from = shifted.to ?? raw;
-      near[layer.key] = nearness(
-        scored,
-        layer,
-        from[0],
-        from[1],
-        raw
-      );
+      near[layer.key] = nearness(scored, layer, from[0], from[1], raw);
       if (near[layer.key]) {
         near[layer.key].validTime = scored?.validTime ?? null;
         near[layer.key].offsetMinutes = shifted.offsetMinutes;
@@ -580,6 +641,13 @@ for (const hour of hours) {
       );
     } catch (failure) {
       console.log(`    ${release.timeZ}Z storm failed: ${failure.message}`);
+    }
+
+    let cell = null;
+    try {
+      cell = await cellAt(release);
+    } catch (failure) {
+      console.log(`    ${release.timeZ}Z cell failed: ${failure.message}`);
     }
 
     flares.push({
@@ -607,15 +675,19 @@ for (const hour of hours) {
       compared: at,
       near,
       storm,
+      /** What a click on this point at this minute would have said. */
+      cell,
+      column,
     });
 
-    const liquid = near.liquid;
+    const fly = near.target;
     console.log(
       `    ${release.timeZ}Z  ${String(drift?.offsetMinutes ?? "?").padStart(3)}m  ` +
         `${String(drift?.stormMotionKt ?? "?").padStart(2)}kt  ` +
-        `liquid ${liquid ? (liquid.inside ? "inside" : `${liquid.km} km`) : "no frame"}` +
-        (liquid && !liquid.inside && liquid.kmAtRelease !== liquid.km
-          ? `  (${liquid.kmAtRelease} km undrifted)`
+        `${cell ? (cell.target === "target" ? "FLY      " : "DON'T FLY") : "no click "}  ` +
+        `fly fill ${fly ? (fly.inside ? "inside" : `${fly.km} km`) : "no frame"}` +
+        (fly && !fly.inside && fly.kmAtRelease !== fly.km
+          ? `  (${fly.kmAtRelease} km undrifted)`
           : "")
     );
   }
@@ -665,12 +737,14 @@ await writeFile(
 );
 
 const all = analyses.flatMap((entry) => entry.flares);
-const withLiquid = all.filter((flare) => flare.near.liquid);
-const inside = withLiquid.filter((flare) => flare.near.liquid.inside).length;
+const inside = all.filter((flare) => flare.near.target?.inside).length;
+const flown = all.filter((flare) => flare.cell?.target === "target").length;
+const clicked = all.filter((flare) => flare.cell).length;
 
 const bytes = (await readFile(file)).length;
 console.log(
   `\n${all.length} flares over ${hours.length} analyses\n` +
-    `  inside supercooled liquid water: ${inside}\n` +
+    `  inside the fly fill: ${inside}\n` +
+    `  a click would have said FLY: ${flown} of ${clicked} answered\n` +
     `written to ${file} (${(bytes / 1024 / 1024).toFixed(1)} MB)`
 );

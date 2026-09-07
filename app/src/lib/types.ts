@@ -104,7 +104,7 @@ export interface TargetStats {
   boxKm2: number;
   rejected: {
     noCloudBase: number;
-    baseOutsideWindow: number;
+    baseAboveCeiling: number;
     noFreezingLevel: number;
     topBelowFreezing: number;
     noStorm: number;
@@ -125,7 +125,7 @@ export type Verdict =
 export type TargetVerdict =
   | "target"
   | "noCloudBase"
-  | "baseOutsideWindow"
+  | "baseAboveCeiling"
   | "noFreezingLevel"
   | "topBelowFreezing"
   | "noStorm";

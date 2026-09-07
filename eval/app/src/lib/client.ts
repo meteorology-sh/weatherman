@@ -23,7 +23,6 @@ import type {
   NearFinding,
   Painted,
   Region,
-  StormFinding,
 } from "./types";
 
 /** A run that has not happened yet is a 404, and that is a fair answer. */
@@ -61,14 +60,6 @@ export async function GetDays(region: string): Promise<DaySummary[]> {
  */
 export async function GetNear(region: string): Promise<NearFinding> {
   return get<NearFinding>(`/region/${region}/near`);
-}
-
-/**
- * How the season's releases scored against the radar storm at each release.
- * A 404 means no day has been painted yet.
- */
-export async function GetStorms(region: string): Promise<StormFinding> {
-  return get<StormFinding>(`/region/${region}/storms`);
 }
 
 export async function GetDay(region: string, date: string): Promise<Day> {

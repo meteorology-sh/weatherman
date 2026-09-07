@@ -1,5 +1,5 @@
 /**
- * The five layers the map draws, wired to Weatherman's own definitions.
+ * The layers the map draws, wired to Weatherman's own definitions.
  *
  * **Nothing here describes a layer. Everything here points at the description
  * the product already has.** The levels, the colours, the alphas, the on-screen
@@ -7,36 +7,41 @@
  * product moves here, and a page built to find disagreements between the map and
  * an operator cannot introduce one between itself and the map it is inspecting.
  *
- * The order is the order `Map.tsx` stacks them on the replay route: cloud base
- * underneath, modelled liquid over observed tops, measured radar over both, the
- * join on top.
+ * **The list is the product's list, and nothing else.** Weatherman draws three
+ * fills with one gate under them: radar with echo past freezing under it, cloud
+ * base, and the Texas fly fill it names SEEDING OPPORTUNITY. A layer this page
+ * drew that the product does not draw would be a claim about a map nobody
+ * flies, so cloud tops, supercooled liquid water, the quiet-liquid join and the
+ * flyable window are not here — the product draws none of the four, and a
+ * painted file that still carries them is simply not read. The window is
+ * reported on a click and scored into `EVALUATION.md`; it is not a fill.
+ *
+ * A gate is one fill rather than a ramp: the test passed on that 3 km square or
+ * it did not, and shading it by a value would invent a quantity the route does
+ * not return.
  */
 
 // ArcGIS
 import {
-  CANDIDATE_BANDS,
-  CANDIDATE_LABELS,
-  CANDIDATE_RGB,
   CLOUD_BASE_BANDS,
   CLOUD_BASE_RGB,
-  CLOUD_TOP_BANDS,
-  CLOUD_TOP_RGB,
+  ECHO_FREEZE_ALPHA,
+  ECHO_FREEZE_RGB,
+  FLY_ALPHA,
+  FLY_RGB,
   RADAR_BANDS,
   RADAR_LABELS,
   RADAR_RGB,
-  SLW_BANDS,
-  SLW_LABELS,
-  SLW_RGB,
 } from "@/lib/arcgis/bands";
 import {
   CandidateLegend,
   CloudBaseLegend,
-  CloudTopLegend,
-  LiquidLegend,
+  EchoFreezeLegend,
   RadarLegend,
 } from "@/lib/arcgis/legends";
 
 // Types
+import type { Band } from "@/lib/arcgis/bands";
 import type { LayerLegend } from "@/lib/arcgis/legends";
 
 /**
@@ -50,11 +55,22 @@ import type { LayerLegend } from "@/lib/arcgis/legends";
  */
 export type BandShape = "nested" | "disjoint";
 
-export type EvalLayer = {
+type Common = {
   /** Matches the key `paint.mjs` writes each frame under. */
   key: string;
   legend: LayerLegend;
-  bands: readonly { value: number; alpha: number }[];
+  /**
+   * The switch this one hangs under in Weatherman's own panel, or null when it
+   * is a layer in its own right. A gate is drawn only while its parent is on,
+   * the same rule `Map.tsx` applies.
+   */
+  under: string | null;
+};
+
+/** A ramped field: several contour levels, each its own band. */
+export type BandedLayer = Common & {
+  kind: "bands";
+  bands: readonly Band[];
   rgb: readonly number[];
   shape: BandShape;
   /** One caption per band, in the operator's units. */
@@ -64,38 +80,35 @@ export type EvalLayer = {
   unit: string;
 };
 
+/** A pass/fail field: one fill wherever the test held. */
+export type GateLayer = Common & {
+  kind: "gate";
+  rgb: readonly number[];
+  alpha: number;
+};
+
+export type EvalLayer = BandedLayer | GateLayer;
+
+/**
+ * The layers, in the order Weatherman's own panel lists them.
+ *
+ * Tables read this order too, so a row on the programme page and a switch on
+ * the map name the same layers in the same sequence.
+ */
 export const LAYERS: readonly EvalLayer[] = [
   {
-    key: "cloudBase",
-    legend: CloudBaseLegend,
-    bands: CLOUD_BASE_BANDS,
-    rgb: CLOUD_BASE_RGB,
-    shape: "disjoint",
-    captions: CLOUD_BASE_BANDS.map((band) => band.label),
-    unit: "ft MSL",
-  },
-  {
-    key: "cloudTop",
-    legend: CloudTopLegend,
-    bands: CLOUD_TOP_BANDS,
-    rgb: CLOUD_TOP_RGB,
-    shape: "disjoint",
-    captions: CLOUD_TOP_BANDS.map((band) => band.label),
-    unit: "°C",
-  },
-  {
-    key: "liquid",
-    legend: LiquidLegend,
-    bands: SLW_BANDS,
-    rgb: SLW_RGB,
-    shape: "nested",
-    captions: SLW_BANDS.map((band) => String(band.value)),
-    titles: SLW_LABELS,
-    unit: "g/m²",
+    key: "target",
+    legend: CandidateLegend,
+    under: null,
+    kind: "gate",
+    rgb: FLY_RGB,
+    alpha: FLY_ALPHA,
   },
   {
     key: "radar",
     legend: RadarLegend,
+    under: null,
+    kind: "bands",
     bands: RADAR_BANDS,
     rgb: RADAR_RGB,
     shape: "nested",
@@ -104,32 +117,111 @@ export const LAYERS: readonly EvalLayer[] = [
     unit: "dBZ",
   },
   {
-    key: "candidate",
-    legend: CandidateLegend,
-    bands: CANDIDATE_BANDS,
-    rgb: CANDIDATE_RGB,
-    shape: "nested",
-    captions: CANDIDATE_BANDS.map((band) => String(band.value)),
-    titles: CANDIDATE_LABELS,
-    unit: "g/m²",
+    key: "echoFreeze",
+    legend: EchoFreezeLegend,
+    under: "radar",
+    kind: "gate",
+    rgb: ECHO_FREEZE_RGB,
+    alpha: ECHO_FREEZE_ALPHA,
+  },
+  {
+    key: "cloudBase",
+    legend: CloudBaseLegend,
+    under: null,
+    kind: "bands",
+    bands: CLOUD_BASE_BANDS,
+    rgb: CLOUD_BASE_RGB,
+    shape: "disjoint",
+    captions: CLOUD_BASE_BANDS.map((band) => band.label),
+    unit: "ft MSL",
   },
 ];
 
 export const layerFor = (key: string) =>
   LAYERS.find((layer) => layer.key === key);
 
+/** The layers with a switch of their own, each with the gates under it. */
+export const PANEL: readonly { layer: EvalLayer; gates: EvalLayer[] }[] =
+  LAYERS.filter((layer) => layer.under === null).map((layer) => ({
+    layer,
+    gates: LAYERS.filter((gate) => gate.under === layer.key),
+  }));
+
 /**
- * Which layers a fresh map opens with.
+ * Bottom to top, the order `Map.tsx` adds the fills to the view.
  *
- * The liquid field and the join, because those are the two the evaluation turns
- * on — the question is whether a flare fell in liquid we painted, and then what
- * the rest of the join did to it. Turning all five on at once opens to a map
- * with five fills over each other and no reading.
+ * Cloud base under the rain, echo past freezing over the rain it annotates,
+ * and the fly fill last — the same stack the operator's map composites, so a
+ * colour that comes out on top there comes out on top here.
+ */
+export const DRAW_ORDER: readonly string[] = [
+  "cloudBase",
+  "radar",
+  "echoFreeze",
+  "target",
+];
+
+/**
+ * The fill the storm marks are drawn under.
+ *
+ * Cores, heading ticks and lightning go into the view after echo past freezing
+ * and before the fly fill, so the fill an operator is being asked to click is
+ * the top thing on the map. Drawing the marks last would put a lightning dot
+ * over green that is painted over it in Weatherman.
+ */
+export const MARKS_UNDER = "target";
+
+/**
+ * Is this layer actually on the map?
+ *
+ * A gate needs its own switch and its parent's, because that is what the
+ * product does: echo past freezing is an annotation on the rain and is not
+ * drawn without it.
+ */
+export function isDrawn(
+  layer: EvalLayer,
+  visible: Record<string, boolean>
+): boolean {
+  if (!visible[layer.key]) return false;
+  return layer.under === null || Boolean(visible[layer.under]);
+}
+
+/**
+ * The layers whose answer is an hour rather than a minute.
+ *
+ * HRRR rounds a release to the nearer analysis, so the flare has to be carried
+ * over the gap before it can be measured against these; the radar and its echo
+ * top answer about the minute and need no arrow. The drift arrow is drawn only
+ * while one of these is on, for that reason.
+ */
+export const HOURLY: readonly string[] = ["cloudBase", "target"];
+
+/**
+ * Which layers a fresh map opens with — the fly fill, and nothing else.
+ *
+ * This page exists to ask one question: does the fill the operator map names
+ * SEEDING OPPORTUNITY sit where Texas flew? Opening on that fill alone is what
+ * puts the answer on screen unaccompanied. The rain, its echo past freezing and
+ * cloud base are the inputs behind the call rather than the call, so they are a
+ * switch away — drawn when a reader wants to know *why* the fill is where it
+ * is, not before the fill has been read.
  */
 export const OPEN_WITH: Record<string, boolean> = {
-  cloudBase: false,
-  cloudTop: false,
-  liquid: true,
   radar: false,
-  candidate: true,
+  echoFreeze: false,
+  cloudBase: false,
+  target: true,
 };
+
+/**
+ * The order the per-release table reads the layers in — the fly fill last.
+ *
+ * The panel lists the fill first, because that is the order Weatherman's own
+ * panel lists it and a switch is reached by eye. A table is read the other way:
+ * the inputs are the working, and SEEDING OPPORTUNITY is the answer they add up
+ * to, so it belongs in the rightmost column where a conclusion goes.
+ */
+export const RESULT_ORDER: readonly EvalLayer[] = [
+  ...LAYERS.filter((layer) => layer.key !== "target"),
+  ...LAYERS.filter((layer) => layer.key === "target"),
+];

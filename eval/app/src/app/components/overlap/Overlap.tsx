@@ -11,25 +11,17 @@ import { mapActions } from "~/lib/store/features/map";
 import { CountiesUrl } from "~/lib/client";
 
 // ArcGIS
-import {
-  HeadingLegend,
-  LightningLegend,
-} from "@/lib/arcgis/legends";
-import {
-  LIGHTNING_RGB,
-  RADAR_RGB,
-  soloColor,
-} from "@/lib/arcgis/bands";
+import { HeadingLegend, LightningLegend } from "@/lib/arcgis/legends";
+import { LIGHTNING_RGB, RADAR_RGB, soloColor } from "@/lib/arcgis/bands";
 
 // Components
 import { Status } from "../Status";
 import { Section } from "../Section";
 import { DayPicker } from "./DayPicker";
 import { FlareDistances } from "./FlareDistances";
-import { LayerCoverage } from "./LayerCoverage";
+import { FlareReadouts } from "./FlareReadouts";
 import { LayerPanel } from "./LayerPanel";
 import { PaintedMap } from "./PaintedMap";
-import { StormReadings } from "./StormReadings";
 
 // Layout
 import { fitExtent } from "./fit";
@@ -63,7 +55,7 @@ const MAX_HEIGHT = 640;
  * **Counts first, then how far, then where.** Whether a flare landed inside a
  * contour is one bit; how many did, per layer, is the picture that a few
  * releases in a raining cell ten cells away cannot steal. Distance still
- * matters — a flare can sit in painted liquid and miss the join — so each
+ * matters — a flare can sit in rain and still miss the fly fill — so each
  * release is listed against every layer. The maps show the two cells.
  *
  * **Nothing has to be selected to read the answer.** Each release is compared
@@ -192,12 +184,13 @@ export const Overlap = () => {
               Do operators seed near what we paint?
             </h1>
             <p className="text-sm max-w-2xl">
-              Every layer below is the one Weatherman itself draws. Each release
-              on this day is scored against all of them: whether it sat inside
-              the paint, and how far it was if it did not. A flare can sit in
-              cloud, echo and liquid and still miss the join — rain rules that
-              out, and they fly into rain on purpose. Season counts live on the
-              programme page.
+              Every layer below is one Weatherman itself draws — the rain and
+              its echo past freezing, cloud base, and the fill the operator map
+              names SEEDING OPPORTUNITY. Each release on this day is scored
+              against all of them: whether it sat inside the paint, and how far
+              it was if it did not. A flare can sit in rain under a reachable
+              cloud base and still miss the fly fill, because that fill wants
+              all three tests at once. Season counts live on the programme page.
             </p>
           </div>
 
@@ -220,15 +213,8 @@ export const Overlap = () => {
               {painted && extent && (
                 <>
                   <Section
-                    heading="This day"
-                    subtitle={`${painted.proximity.flares} releases on the maps below. The same count, and the typical miss, for this day alone.`}
-                  >
-                    <LayerCoverage layers={painted.proximity.layers} />
-                  </Section>
-
-                  <Section
                     heading="How close each release was"
-                    subtitle="Inside means the flare sat in that layer. A number is kilometres to the nearest edge, after drifting the remaining minutes to the analysis."
+                    subtitle={`${painted.proximity.flares} releases this day. Inside means the flare sat in that layer. A number is kilometres to the nearest edge, after drifting the remaining minutes to the analysis. SEEDING OPPORTUNITY is the last column: the ones before it are the tests that fill wants at once.`}
                   >
                     <FlareDistances
                       flares={flares}
@@ -237,15 +223,15 @@ export const Overlap = () => {
                   </Section>
 
                   <Section
-                    heading="The radar storm at each release"
-                    subtitle="Each column is one test we can score from radar at the analysis this release is charged to, including the lightning, cloud-top, and liquid readings hanging on that storm. Green is yes. Upwind uses the storm's heading from the previous mosaic, not the white flare arrows."
+                    heading="What a click on each release would have said"
+                    subtitle="The operator panel, one row per flare. FLY or DON'T FLY on that 3 km cell with the numbers behind the call, the modelled column over the point, and the convective numbers under it. The cell is read at the release minute; the column is the analysis the release is charged to."
                   >
-                    <StormReadings flares={flares} />
+                    <FlareReadouts flares={flares} />
                   </Section>
 
                   <Section
                     heading="Where they were"
-                    subtitle="One map per model hour. The white dot is the plane. When gold or green is on, the arrow points at where that air is on this hour's model field — the point we compare to that fill."
+                    subtitle="One map per model hour. The white dot is the plane. While a layer that answers by the hour is on — cloud base or the fly fill — the arrow points at where that air is on this hour's model field, which is the point we compare to that fill. The rain and its echo top answer about the release minute and need no arrow."
                   >
                     <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs items-center pb-1">
                       <span className="flex items-center gap-2">
@@ -299,8 +285,8 @@ export const Overlap = () => {
                         {LightningLegend.name} in the last five minutes
                       </span>
                       <span className="opacity-80">
-                        Hover a release for its distance to every layer and the
-                        storm it sat in.
+                        Hover a release for its distance to every layer, the
+                        storm it sat in, and what a click on it would have said.
                       </span>
                     </div>
 
@@ -336,9 +322,16 @@ export const Overlap = () => {
                   >
                     <ul className="text-sm list-disc pl-5 flex flex-col gap-1">
                       <li>
-                        A distance of zero means the release was inside the
-                        outermost contour, which is 10 g/m² — enough liquid to
-                        draw, not enough to call a target.
+                        A distance of zero on a banded layer means the release
+                        was inside that layer's outermost contour — 20 dBZ of
+                        rain, or any cloud base the model has at all. It is the
+                        edge of the field, not a good place to fly in it.
+                      </li>
+                      <li>
+                        The two gates — echo past freezing and the fly fill —
+                        are pass or fail on a 3 km square, so inside is the
+                        whole reading and there is no band under it to be nearer
+                        the middle of.
                       </li>
                       <li>
                         The white line carries one storm-motion reading at

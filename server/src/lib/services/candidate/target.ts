@@ -23,7 +23,7 @@
  */
 
 // Services
-import { BASE_WINDOW_FT } from "../hrrr/diagnostics";
+import { CEILING_FT } from "../shared/aircraft";
 import { BLOCK_NO_COVERAGE, RAIN_DBZ } from "../mrms/radar";
 import { CELL_KM2, inBox } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
@@ -40,8 +40,8 @@ import type { Geo } from "../shared/contour";
 export type TargetRejected = {
   /** The model has no cloud base — nothing to climb into. */
   noCloudBase: number;
-  /** Base AGL sits outside the 4,000–12,000 ft operational window. */
-  baseOutsideWindow: number;
+  /** Base sits above the aircraft's service ceiling — it cannot be reached. */
+  baseAboveCeiling: number;
   /** No column in the neighbourhood has a freezing level. */
   noFreezingLevel: number;
   /** No column in the neighbourhood has echo top at or above freezing. */
@@ -55,7 +55,7 @@ export type TargetVerdict = "target" | keyof TargetRejected;
 export type TargetInputs = {
   /** Cloud base, ft MSL. NaN where the model has no cloud. */
   cloudBaseFt: Float32Array;
-  /** Terrain, ft MSL. The window is applied in AGL. */
+  /** Terrain, ft MSL. Reported on a click; the ceiling test does not use it. */
   surfaceFt: Float32Array;
   /** 0 °C height, ft MSL. NaN where the column never crosses freezing. */
   freezingFt: Float32Array;
@@ -129,7 +129,19 @@ type TargetContext = {
   box?: LonLatBox;
 };
 
-const [WINDOW_LOW, WINDOW_HIGH] = BASE_WINDOW_FT;
+/**
+ * The only height test on a cell: is the cloud base under the aircraft's
+ * service ceiling.
+ *
+ * **There is no lower bound.** A low base is still cloud an aircraft can climb
+ * into, so subtracting one would reject ground that is flyable. The ceiling is
+ * a property of the airframe and is read in ft MSL, which is also what removes
+ * the MSL-against-AGL disagreement a fixed window has over high terrain.
+ *
+ * A programme with a minimum altitude of its own applies it in its own
+ * operations; it is not a property of the cloud and is not gated here.
+ */
+const CEILING = CEILING_FT;
 
 /**
  * 8-connected neighbourhood including the cell itself. No wrap: a cell on
@@ -160,8 +172,7 @@ export function verdict(inputs: TargetInputs, i: number): TargetVerdict {
   const base = inputs.cloudBaseFt[i];
   if (Number.isNaN(base)) return "noCloudBase";
 
-  const agl = base - inputs.surfaceFt[i];
-  if (!(agl >= WINDOW_LOW && agl < WINDOW_HIGH)) return "baseOutsideWindow";
+  if (!(base < CEILING)) return "baseAboveCeiling";
 
   const around = neighbourhood(i, inputs.nx, inputs.ny);
 
@@ -192,7 +203,7 @@ export function join(inputs: TargetInputs): TargetJoin {
   const values = new Float32Array(inputs.cloudBaseFt.length);
   const rejected: TargetRejected = {
     noCloudBase: 0,
-    baseOutsideWindow: 0,
+    baseAboveCeiling: 0,
     noFreezingLevel: 0,
     topBelowFreezing: 0,
     noStorm: 0,
@@ -258,7 +269,7 @@ export function summarize(
 
   const rejected: TargetRejected = {
     noCloudBase: 0,
-    baseOutsideWindow: 0,
+    baseAboveCeiling: 0,
     noFreezingLevel: 0,
     topBelowFreezing: 0,
     noStorm: 0,
@@ -290,7 +301,7 @@ export function summarize(
     boxKm2: asked * CELL_KM2,
     rejected: {
       noCloudBase: rejected.noCloudBase * CELL_KM2,
-      baseOutsideWindow: rejected.baseOutsideWindow * CELL_KM2,
+      baseAboveCeiling: rejected.baseAboveCeiling * CELL_KM2,
       noFreezingLevel: rejected.noFreezingLevel * CELL_KM2,
       topBelowFreezing: rejected.topBelowFreezing * CELL_KM2,
       noStorm: rejected.noStorm * CELL_KM2,

@@ -11,7 +11,7 @@ import {
   summarize,
   verdict,
 } from "../lib/services/candidate/target";
-import { BASE_WINDOW_FT } from "../lib/services/hrrr/diagnostics";
+import { CEILING_FT } from "../lib/services/shared/aircraft";
 import { CELL_KM2 } from "../lib/services/shared/grid";
 import { RAIN_DBZ } from "../lib/services/mrms/radar";
 
@@ -20,7 +20,6 @@ import type { TargetInputs } from "../lib/services/candidate/target";
 import type { Geo } from "../lib/services/shared/contour";
 
 const RUN = new Date("2025-05-15T18:00:00.000Z");
-const [WINDOW_LOW, WINDOW_HIGH] = BASE_WINDOW_FT;
 const NO_ECHO = -99;
 const NO_COVERAGE = -999;
 
@@ -105,33 +104,35 @@ describe("target join", () => {
     assert.equal(verdict(cell({ cloudBaseFt: Number.NaN }), 0), "noCloudBase");
   });
 
-  it("applies the operational window in AGL, not MSL", () => {
-    // 8,000 ft MSL over 5,000 ft terrain is 3,000 ft AGL — below the window
-    // even though the MSL height would pass.
+  it("reads the ceiling in MSL, so terrain does not move it", () => {
+    // The same 8,000 ft MSL base passes over 5,000 ft terrain and over 200 ft
+    // terrain. The ceiling is a property of the airframe, not of the ground.
     assert.equal(
       verdict(cell({ cloudBaseFt: 8000, surfaceFt: 5000 }), 0),
-      "baseOutsideWindow"
+      "target"
     );
-  });
-
-  it("keeps a base on the lower edge of the window", () => {
     assert.equal(
-      verdict(cell({ cloudBaseFt: WINDOW_LOW + 2000, surfaceFt: 2000 }), 0),
+      verdict(cell({ cloudBaseFt: 8000, surfaceFt: 200 }), 0),
       "target"
     );
   });
 
-  it("rejects a base at the top of the window — the interval is half-open", () => {
+  it("keeps a low base — there is no lower bound", () => {
+    // 575 ft above the ground is still cloud an aircraft can climb into.
     assert.equal(
-      verdict(cell({ cloudBaseFt: WINDOW_HIGH + 2000, surfaceFt: 2000 }), 0),
-      "baseOutsideWindow"
+      verdict(cell({ cloudBaseFt: 2575, surfaceFt: 2000 }), 0),
+      "target"
     );
   });
 
-  it("rejects a 3,000 ft AGL base even when the storm tests pass", () => {
+  it("rejects a base at the ceiling — the interval is half-open", () => {
     assert.equal(
-      verdict(cell({ cloudBaseFt: 5000, surfaceFt: 2000 }), 0),
-      "baseOutsideWindow"
+      verdict(cell({ cloudBaseFt: CEILING_FT, surfaceFt: 2000 }), 0),
+      "baseAboveCeiling"
+    );
+    assert.equal(
+      verdict(cell({ cloudBaseFt: CEILING_FT - 1, surfaceFt: 2000 }), 0),
+      "target"
     );
   });
 
@@ -164,7 +165,7 @@ describe("target join", () => {
     // echo. Adjacent cells on a real grid would leak those two tests.
     const cases = [
       cell({ cloudBaseFt: Number.NaN }),
-      cell({ cloudBaseFt: 5000, surfaceFt: 2000 }),
+      cell({ cloudBaseFt: CEILING_FT + 1000, surfaceFt: 2000 }),
       cell({ freezingFt: Number.NaN, echoTopFt: Number.NaN }),
       cell({ echoTopFt: Number.NaN }),
       cell({ dbz: NO_ECHO }),
@@ -183,14 +184,14 @@ describe("target join", () => {
 
     assert.equal(charged.target, 1);
     assert.equal(charged.noCloudBase, 1);
-    assert.equal(charged.baseOutsideWindow, 1);
+    assert.equal(charged.baseAboveCeiling, 1);
     assert.equal(charged.noFreezingLevel, 1);
     assert.equal(charged.topBelowFreezing, 1);
     assert.equal(charged.noStorm, 1);
     assert.equal(
       charged.target +
         charged.noCloudBase +
-        charged.baseOutsideWindow +
+        charged.baseAboveCeiling +
         charged.noFreezingLevel +
         charged.topBelowFreezing +
         charged.noStorm,
@@ -202,7 +203,7 @@ describe("target join", () => {
 function emptyCounts() {
   return {
     noCloudBase: 0,
-    baseOutsideWindow: 0,
+    baseAboveCeiling: 0,
     noFreezingLevel: 0,
     topBelowFreezing: 0,
     noStorm: 0,

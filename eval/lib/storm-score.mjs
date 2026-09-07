@@ -87,8 +87,7 @@ export function flagsOf(flare) {
           ? false
           : null;
 
-  const lightning =
-    storm.glmFlashes == null ? null : storm.glmFlashes > 0;
+  const lightning = storm.glmFlashes == null ? null : storm.glmFlashes > 0;
 
   const colderTop =
     storm.goesTopDeltaC == null
@@ -146,10 +145,8 @@ export function stormFromReading(reading) {
   if (!reading || reading.error) return null;
   return {
     inside: reading.inside ?? false,
-    inWorking: reading.inWorking ?? false,
     coreKm: reading.coreKm ?? null,
     edgeKm: reading.edgeKm ?? null,
-    upwindEdgeKm: reading.upwindEdgeKm ?? null,
     object: reading.object
       ? {
           id: reading.object.id,

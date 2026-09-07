@@ -6,22 +6,28 @@ import { useAppSelector } from "~/lib/store/hooks";
 
 // Components
 import { Status } from "./Status";
-import { Section } from "./Section";
-import { LayerCoverage } from "./overlap/LayerCoverage";
-import { LayerTable, TexasTable } from "./overlap/JoinTables";
-import { StormCoverage } from "./overlap/StormCoverage";
+import { LayerTable } from "./overlap/LayerTable";
 
 const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
 
+const share = (n: number, d: number) =>
+  d === 0 ? "—" : `${((100 * n) / d).toFixed(1)}%`;
+
 /**
- * The two questions and where each one landed.
+ * The two questions and where each one landed, summed over the season.
  *
  * The page states the answer before it states the method, because the answer is
  * what a reader came for and the method is one click away on either card.
+ *
+ * **Two cards, because there are two questions.** Is the band in the right
+ * place, and do the flares fall in the fill we tell an operator to fly? Both
+ * are totals over the whole season rather than a day — a single afternoon can
+ * flatter or damn either one, and the programme page is where the season is
+ * read. The day-by-day picture lives behind "Every release".
  */
 export const Findings = () => {
   const { region } = useParams();
-  const { band, near, storms, loading, missing, error } = useAppSelector(
+  const { band, near, loading, missing, error } = useAppSelector(
     (state) => state.findings
   );
   const open = useAppSelector((state) =>
@@ -34,6 +40,10 @@ export const Findings = () => {
         open.sounding.length > 1 ? "ascents" : "ascent"
       }`
     : "ascents";
+
+  // The fly fill is the season's headline: it is the call an operator acts on,
+  // and the other layers are the tests behind it.
+  const fly = near?.layers.target ?? null;
 
   if (loading || error) {
     return (
@@ -81,7 +91,7 @@ export const Findings = () => {
           <p className="text-base-content/90">
             Two questions, in order. Both are answered against{" "}
             {open ? `the ${open.name}'s` : "the programme's"} own daily reports
-            for the {open?.season ?? ""} season.
+            for the {open?.season ?? ""} season, summed over every day of it.
           </p>
         </div>
 
@@ -156,18 +166,53 @@ export const Findings = () => {
               QUESTION 2 — {near ? "MEASURED" : "NOT MEASURED HERE YET"}
             </div>
             <h2 className="card-title">
-              Do the flares fall inside the layers we draw?
+              Do the flares fall inside the fill we tell them to fly?
             </h2>
             {near ? (
               <>
+                <div className="stats bg-transparent">
+                  <div className="stat px-2">
+                    <div className="stat-title text-xs">
+                      Inside SEEDING OPPORTUNITY
+                    </div>
+                    <div
+                      className={`stat-value text-3xl ${
+                        fly && fly.n > 0 ? "text-success" : ""
+                      }`}
+                    >
+                      {fly && fly.n > 0 ? share(fly.inside, fly.n) : "—"}
+                    </div>
+                    <div className="stat-desc">
+                      {fly && fly.n > 0
+                        ? `${fly.inside} of ${fly.n} releases`
+                        : "no fly fill painted yet"}
+                    </div>
+                  </div>
+                  <div className="stat px-2">
+                    <div className="stat-title text-xs">Releases</div>
+                    <div className="stat-value text-3xl">{near.flares}</div>
+                    <div className="stat-desc">
+                      {near.located} located this season
+                    </div>
+                  </div>
+                  <div className="stat px-2">
+                    <div className="stat-title text-xs">Days</div>
+                    <div className="stat-value text-3xl">
+                      {near.days}/{near.flying}
+                    </div>
+                    <div className="stat-desc">painted of flying</div>
+                  </div>
+                </div>
                 <p className="text-sm">
-                  {near.flares} releases over {near.days} of {near.flying}{" "}
-                  flying days. Each row is this programme against one original
-                  Weatherman layer. Inside is inside the contour after
-                  storm-motion drift to that layer's own scan.
+                  Each row is this programme's whole season against one layer
+                  Weatherman draws — the rain and its echo past freezing, cloud
+                  base, and the fill the operator map names SEEDING OPPORTUNITY.
+                  Inside is inside the contour after storm-motion drift to that
+                  layer's own scan. A release can sit in rain under a reachable
+                  cloud base and still miss the fly fill, because that fill
+                  wants all three at once.
                 </p>
                 <LayerTable layers={near.layers} />
-                <LayerCoverage layers={near.layers} />
                 <Link
                   to={`/${region}/flares`}
                   className="btn btn-sm btn-outline self-start"
@@ -183,24 +228,6 @@ export const Findings = () => {
             )}
           </div>
         </div>
-
-        {storms && (
-          <Section
-            heading="The Texas selection features"
-            subtitle="Upwind of the heaviest rain, inside 20 dBZ, nearer the edge than the core, and an 18 dBZ echo top at or above freezing. Counted from the storm reading already stored on each painted flare."
-          >
-            <TexasTable storms={storms} />
-          </Section>
-        )}
-
-        {storms && (
-          <Section
-            heading="The radar storm this season"
-            subtitle={`${storms.scored} of ${storms.flares} painted releases carry a storm reading, over ${storms.days} of ${storms.flying} flying days. Each bar is one test at the analysis the flare is charged to. The table is every painted day of this programme.`}
-          >
-            <StormCoverage storms={storms} />
-          </Section>
-        )}
       </div>
     </div>
   );

@@ -103,9 +103,11 @@ export const LightningLegend: LayerLegend = {
 export const CandidateLegend: LayerLegend = {
   name: "SEEDING OPPORTUNITY",
   source: "HRRR + MRMS",
-  summary: `Where three tests pass at once: the cloud sits in the flyable base window, its radar echo reaches past freezing, and rain is falling nearby.`,
+  summary: `Where three tests pass at once: the cloud base is under the aircraft's ceiling, its radar echo reaches past freezing, and rain is falling nearby.`,
   detail: [
-    `Green marks a 3 km cell where three tests pass: cloud base ${FLIGHT_WINDOW_LABEL} above the ground; an 18 dBZ echo top at or above the freezing level nearby; and reflectivity of at least ${RADAR_BANDS[0].value} dBZ nearby.`,
+    `Green marks a 3 km cell where three tests pass: cloud base below the ${CEILING_LABEL} service ceiling; an 18 dBZ echo top at or above the freezing level nearby; and reflectivity of at least ${RADAR_BANDS[0].value} dBZ nearby.`
+,
+    `There is no lower bound on the base. A low cloud is still cloud an aircraft can climb into, and the ceiling is read in feet above sea level, so terrain does not move it.`,
     `Clicking a cell reports a judgement call with the value behind each test.`,
   ],
 };

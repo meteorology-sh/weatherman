@@ -8,7 +8,7 @@ import { useAppSelector } from "~/lib/store/hooks";
  * the bar at the top, where it is reachable without scrolling. A second picker
  * here would be two places to change one thing and two places to keep in step.
  *
- * **A day nobody has painted is not a day with no liquid**, and the two have to
+ * **A day nobody has painted is not a day with nothing on it**, and the two have to
  * stay distinguishable or a command not yet run reads as a finding. So the ones
  * that are missing are counted rather than hidden, with the command that builds
  * one.

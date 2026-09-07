@@ -5,7 +5,14 @@ import { useState } from "react";
 import { useAppSelector } from "~/lib/store/hooks";
 
 // Layers
-import { LAYERS } from "~/lib/layers";
+import {
+  DRAW_ORDER,
+  HOURLY,
+  LAYERS,
+  MARKS_UNDER,
+  isDrawn,
+  layerFor,
+} from "~/lib/layers";
 
 // ArcGIS
 import {
@@ -19,10 +26,12 @@ import {
 import type { Fitted } from "./fit";
 
 // Types
+import type { EvalLayer } from "~/lib/layers";
 import type { Analysis, Flare, Painted } from "~/lib/types";
 
 // Components
-import { stormLines } from "./StormReadings";
+import { stormLines } from "./storm";
+import { cellRows, columnRows, flew } from "./readout";
 
 /**
  * One analysis hour: the layers we painted, and the flares charged to it.
@@ -37,7 +46,13 @@ import { stormLines } from "./StormReadings";
  * **The colours are not chosen here.** Every fill is `soloColor` over the band
  * table in `@/lib/arcgis/bands`, which is the same table the product's renderers
  * are built from, so a band that moves in Weatherman moves on this map. Levels
- * are drawn low to high and left to composite exactly as they composite there.
+ * are drawn low to high and left to composite exactly as they composite there,
+ * and the layers themselves are stacked in `DRAW_ORDER` — the order `Map.tsx`
+ * adds them to the view.
+ *
+ * **A gate is one fill, not a ramp.** The Texas fills answer pass or fail on a
+ * 3 km square, so they are painted at the single alpha the product paints them
+ * at rather than shaded by a contour level that carries no quantity.
  *
  * **The releases carry no verdict in their colour.** They are white dots: what
  * the operator did, stated as a fact and left alone. Colouring them by distance
@@ -74,8 +89,7 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
     lightning,
     counties: showCounties,
   } = useAppSelector((state) => state.map);
-  const showDrift =
-    drift && (Boolean(visible.liquid) || Boolean(visible.candidate));
+  const showDrift = drift && HOURLY.some((key) => visible[key]);
   const [hover, setHover] = useState<string | null>(null);
 
   // Nothing to draw until the page has been measured. One render, at mount.
@@ -107,6 +121,50 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
 
   const hovered: Flare | undefined = analysis.flares.find(
     (f) => f.at === hover
+  );
+
+  /**
+   * One layer's levels, low to high, so the fills composite the way ArcGIS
+   * composites them.
+   */
+  const fillsOf = (layer: EvalLayer) => {
+    const frame = painted.frames[analysis.at]?.[layer.key];
+    if (!frame || frame.error) return null;
+    return frame.levels.map((level) => {
+      // A gate paints every level it has at one alpha; a ramped field paints
+      // only the levels its band table names, so a contour the product does
+      // not draw is not drawn here either.
+      const alpha =
+        layer.kind === "gate"
+          ? layer.alpha
+          : layer.bands.find((b) => b.value === level.level)?.alpha;
+      if (alpha === undefined) return null;
+      return level.polygons.map((polygon, index) => (
+        <path
+          key={`${layer.key}-${level.level}-${index}`}
+          d={polygon.map(draw).join(" ")}
+          fillRule="evenodd"
+          fill={soloColor(layer.rgb, alpha)}
+          stroke={soloColor(layer.rgb, 0.85)}
+          strokeWidth={1}
+        />
+      ));
+    });
+  };
+
+  /**
+   * The layers on, in the order the replay map stacks them, split where the
+   * storm marks go in — see `MARKS_UNDER`.
+   */
+  const stack = DRAW_ORDER.map(layerFor).filter(
+    (layer): layer is EvalLayer => !!layer && isDrawn(layer, visible)
+  );
+  const marksAt = DRAW_ORDER.indexOf(MARKS_UNDER);
+  const belowMarks = stack.filter(
+    (layer) => DRAW_ORDER.indexOf(layer.key) < marksAt
+  );
+  const aboveMarks = stack.filter(
+    (layer) => DRAW_ORDER.indexOf(layer.key) >= marksAt
   );
 
   return (
@@ -189,29 +247,9 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
                 </text>
               ))}
 
-          {/*
-           * The layers, in the order the replay map stacks them. A layer's
-           * levels are drawn low to high so the fills composite the way ArcGIS
-           * composites them.
-           */}
-          {LAYERS.filter((layer) => visible[layer.key]).map((layer) => {
-            const frame = painted.frames[analysis.at]?.[layer.key];
-            if (!frame || frame.error) return null;
-            return frame.levels.map((level) => {
-              const band = layer.bands.find((b) => b.value === level.level);
-              if (!band) return null;
-              return level.polygons.map((polygon, index) => (
-                <path
-                  key={`${layer.key}-${level.level}-${index}`}
-                  d={polygon.map(draw).join(" ")}
-                  fillRule="evenodd"
-                  fill={soloColor(layer.rgb, band.alpha)}
-                  stroke={soloColor(layer.rgb, 0.85)}
-                  strokeWidth={1}
-                />
-              ));
-            });
-          })}
+          {/* The layers under the storm marks — cloud base, the rain, and
+              the echo top over the rain it annotates. */}
+          {belowMarks.map(fillsOf)}
 
           {visible.radar &&
             heading &&
@@ -252,6 +290,9 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
                 />
               )
             )}
+
+          {/* The fly fill, over the marks, as the operator's map draws it. */}
+          {aboveMarks.map(fillsOf)}
 
           {/*
            * From where the flare was dropped to where that air is at the moment
@@ -346,7 +387,7 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
                 return (
                   <span
                     key={layer.key}
-                    className={visible[layer.key] ? "" : "opacity-60"}
+                    className={isDrawn(layer, visible) ? "" : "opacity-60"}
                   >
                     {layer.legend.name.toLowerCase()}{" "}
                     <span className="font-semibold">
@@ -360,6 +401,29 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
                 );
               })}
             </div>
+            {/*
+             * What a click on this release would have said. The same three
+             * blocks the operator panel prints — the verdict on the cell, the
+             * storm it sat in, and the column over it.
+             */}
+            {hovered.cell && (
+              <div className="pt-1">
+                <span
+                  className={
+                    flew(hovered.cell) ? "text-success" : "text-warning"
+                  }
+                >
+                  {flew(hovered.cell) ? "FLY" : "DON'T FLY"}
+                </span>
+                {cellRows(hovered.cell).map((row) => (
+                  <span key={row.label}>
+                    {" · "}
+                    {row.label.toLowerCase()}{" "}
+                    <span className="font-semibold">{row.value}</span>
+                  </span>
+                ))}
+              </div>
+            )}
             {hovered.storm && (
               <div className="flex flex-col gap-0.5 pt-1">
                 {stormLines(hovered.storm).map((line) => (
@@ -367,11 +431,21 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
                 ))}
               </div>
             )}
+            {hovered.column && (
+              <div className="pt-1 flex flex-wrap gap-x-4 gap-y-1">
+                {columnRows(hovered.column).map((row) => (
+                  <span key={row.label}>
+                    {row.label.toLowerCase()}{" "}
+                    <span className="font-semibold">{row.value}</span>
+                  </span>
+                ))}
+              </div>
+            )}
           </>
         ) : (
           <span className="opacity-70">
             Hover a release for how far it was from every layer, measured at the
-            arrowhead.
+            arrowhead, and for what a click on it would have said.
           </span>
         )}
       </div>

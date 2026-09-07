@@ -140,22 +140,23 @@ describe("RadarLegend", () => {
 });
 
 describe("CandidateLegend", () => {
-  // The window survives here and only here: it is one of the three tests the
-  // fill is built from, read from the same constant the server gates on.
+  // The height test is the ceiling and nothing under it, read from the same
+  // constant the server gates on.
   it("states the Texas tests it joins on", () => {
-    expect(FLIGHT_WINDOW_LABEL).toContain(
-      FLIGHT_WINDOW_FT[0].toLocaleString("en-US")
-    );
-    expect(FLIGHT_WINDOW_LABEL).toContain(
-      FLIGHT_WINDOW_FT[1].toLocaleString("en-US")
-    );
     expect(detailOf(CandidateLegend)).toContain(String(RADAR_BANDS[0].value));
     expect(detailOf(CandidateLegend)).toContain("18 dBZ");
-    expect(detailOf(CandidateLegend)).toContain(FLIGHT_WINDOW_LABEL);
+    expect(detailOf(CandidateLegend)).toContain(CEILING_LABEL);
+  });
+
+  // A lower bound would reject cloud an aircraft can climb into, so the prose
+  // has to say there is none rather than leave a reader to assume a window.
+  it("says the base has no lower bound", () => {
+    expect(detailOf(CandidateLegend)).toContain("no lower bound");
+    expect(detailOf(CandidateLegend)).not.toContain(FLIGHT_WINDOW_LABEL);
   });
 
   it("names every test it joins on, in the sentence under the switch", () => {
-    expect(CandidateLegend.summary).toContain("window");
+    expect(CandidateLegend.summary).toContain("ceiling");
     expect(CandidateLegend.summary).toContain("echo");
     expect(CandidateLegend.summary).toContain("rain");
   });
