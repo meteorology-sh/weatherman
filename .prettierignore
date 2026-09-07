@@ -7,3 +7,10 @@ coverage
 # Lockfiles are generated, and reformatting one produces a spurious diff.
 yarn.lock
 package-lock.json
+
+# MCP
+.mcp.json
+
+# Agents
+.claude
+.agents
