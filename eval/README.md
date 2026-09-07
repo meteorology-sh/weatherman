@@ -29,10 +29,10 @@ re-parse operations reports.** `releases.mjs`, `panhandle.mjs`,
 `records.mjs`, `counties.mjs`, and `positions.mjs` stay idle for this
 run.
 
-The files in `out/` today are the quiet-liquid season. This run replaces
-them: the same flares, native sampling, storm motion, and storm reading,
-plus the Texas fly fill, the Comptroller window, and echo past freezing,
-and a fresh balloon file per programme that briefs on a sonde.
+`out/` holds the complete Texas season: every located flare at native
+sampling with storm motion, the storm reading, the seeding opportunity, the
+cloud-base window, and echo past freezing, and a balloon file per programme
+that briefs on a sonde.
 
 ## What the eval app reads
 
@@ -88,10 +88,34 @@ node eval/days.mjs --region=wtwma
 node eval/days.mjs
 ```
 
-**Parallelism.** One Weatherman API plus one `paint.mjs` per day. Size the
-worker count from the box: about 4.5 GiB and 1.5–2 cores each. On 32 vCPU
-/ 123 GiB that is about sixteen days at once. The queue is every seeded
-day `days.mjs` prints, not a leftover list.
+**Parallelism.** One Weatherman API plus one `paint.mjs` per day. Each pair
+holds about 1.7 cores and 5 GiB under load, and the work is bound by cores,
+not by archive bandwidth. Given a pair per flying day the whole season runs
+in one wave and costs about as long as its slowest day. The queue is every
+seeded day `days.mjs` prints, not a leftover list.
+
+The API is one Node process. Painters sharing one address wait on one event
+loop, so give each painter its own API on its own port and pair the two by
+job slot. `{%}` is the slot number GNU `parallel` assigns:
+
+```bash
+DAYS=$(node eval/days.mjs | wc -l)
+for i in $(seq 1 $DAYS); do
+  docker run -d --name wm-$i -p $((3000 + i)):3000 \
+    -v /home/ubuntu/weatherman/server:/usr/src/server \
+    -v /usr/src/server/node_modules \
+    weatherman-weatherman-server-service:latest yarn docker
+done
+
+parallel -j $DAYS --colsep '\t' \
+  'WEATHERMAN_SERVER=http://localhost:$((3000 + {%})) \
+   node eval/paint.mjs {2} --region={1}' :::: <(node eval/days.mjs)
+```
+
+The bare `-v /usr/src/server/node_modules` gives each container the
+`node_modules` from its own image, so the bind mount over `/usr/src/server`
+does not hide it. Wait for `GET /healthcheck` on every port before the
+first painter starts.
 
 Copy `out/` back; the evaluation map stays local.
 
@@ -101,18 +125,34 @@ JSON.
 
 ## Where to run the season
 
-The season build belongs on a machine with good CPU, close to the NOAA
-archives (**us-east-1**). SSH into that box. The Weatherman server must
-be running there; `paint.mjs` and `balloons.mjs` fetch its routes.
+The season runs on an EC2 instance in **us-east-1**, the region holding the
+HRRR, MRMS and GOES-19 archives. **m7i.48xlarge** (192 vCPU, 768 GiB) carries
+a pair for every flying day of a 2025-sized season, which is what puts the
+season under ten minutes; it needs an on-demand quota of at least 192 vCPU.
+`~/aws/launch-eval-box.sh` starts one on
+Ubuntu 24.04 with Docker, Node and GNU `parallel` already installed and
+prints its address; the key is `~/aws/pixelbook.pem`. Terminate the instance
+when the season is done — it bills by the second while it runs.
 
 ```bash
-ssh <user>@<us-east-1-box>
-cd weatherman
-git fetch && git checkout texas && git pull
-docker compose up -d weatherman-server-service
-# wait until GET /healthcheck returns 200
-export WEATHERMAN_SERVER=http://localhost:3000
+TYPE=m7i.48xlarge ~/aws/launch-eval-box.sh
+ssh -i ~/aws/pixelbook.pem ubuntu@<address>
 ```
+
+`data/` and `cache/` are not in git, and the reports are not re-parsed for a
+season, so copy the tree up rather than cloning it:
+
+```bash
+rsync -az --exclude node_modules --exclude .git --exclude eval/out \
+  -e "ssh -i ~/aws/pixelbook.pem" ./ ubuntu@<address>:weatherman/
+ssh -i ~/aws/pixelbook.pem ubuntu@<address> \
+  "cd weatherman && docker compose build weatherman-server-service"
+```
+
+The APIs run that image. Each painter sets its own `WEATHERMAN_SERVER`, so
+nothing exports one. Cores set the worker count: a box that cannot hold a
+pair per day paints the season in waves, each wave as long as its slowest
+day.
 
 A stale container that cannot find `grib_get_data` needs
 `docker compose up --build`. A missing npm module after a dependency
@@ -120,22 +160,17 @@ change needs `docker compose up --build --renew-anon-volumes`.
 
 ### Paint every flying day
 
-Keep about sixteen `paint.mjs` processes at a time. GNU `parallel` or
-`xargs -P` is enough:
-
-```bash
-while IFS=$'\t' read -r region date; do
-  echo "$region $date"
-done < <(node eval/days.mjs) \
-  | xargs -P 16 -n 2 sh -c 'node eval/paint.mjs "$1" --region="$0"'
-```
+Start one API per painter and pair them by slot, as **Parallelism**
+above shows.
 
 Each process writes `eval/out/` under the name `regions.json` gives that
 programme (`painted-{date}.json`, `painted-transpecos-{date}.json`, …).
 Two programmes fly the same afternoon; those names must stay distinct.
 
-A day that fails (timeout, 500, archive miss) leaves no file or a file
-`verify.mjs` will refuse. Re-run that date alone.
+A painter whose API does not answer in time stores `null` for that layer
+and still writes the day, and a `null` layer reads the same as a layer
+that was empty. Size is the signal: a populated day is hundreds of
+kilobytes, a day of nulls is tens. Re-run that date alone.
 
 ### Redo the radiosondes
 
@@ -163,7 +198,8 @@ node eval/pack.mjs
 
 `verify.mjs` requires native cell sizes for every fill this run stores,
 storm motion, a storm reading and a click readout on every located flare,
-and a balloon file per sonde programme. `score-season.mjs` prints the EVALUATION.md
+and a balloon file per sonde programme. It asserts those fields are
+present, not that they carry a value. `score-season.mjs` prints the EVALUATION.md
 tables from `out/`. `pack.mjs` writes `eval/eval-snapshot.tar.gz` after
 verify passes.
 

@@ -29,11 +29,11 @@ const LAYERS = [
   ["cloudTop", "Cloud tops"],
   ["radar", "Radar reflectivity"],
   ["liquid", "Supercooled liquid water"],
-  ["candidate", "Quiet-liquid join"],
+  ["candidate", "Liquid with no rain"],
 ];
 
 const TEXAS_FILLS = [
-  ["target", "Texas fly fill"],
+  ["target", "Seeding opportunity"],
   ["baseWindow", "Base window"],
   ["echoFreeze", "Echo past freezing"],
 ];

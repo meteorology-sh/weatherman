@@ -5,20 +5,22 @@ against Weatherman's own layers at that minute, re-score the 12Z balloons
 against the modelled seeding band, and store JSON the eval app reads as
 regional maps and tables.
 
-Two analyses of every painted 2025 release, then one check of the seeding
-band against the balloons. The tables below are the quiet-liquid season
-already in `eval/out/`. The next complete `out/` adds the Texas fly fill,
-the Comptroller window, and echo past freezing on each flare, and a fresh
-balloon file per sonde programme. How to run that job is `eval/README.md`.
+Three analyses of every painted 2025 release, then one check of the seeding
+band against the balloons. The tables below are the complete Texas season in
+`eval/out/`: the original layers, the fills the operator map draws, and the
+Texas selection features, on every located flare. How to run that job is
+`eval/README.md`.
 
 1. **How many flares sat in each original Weatherman layer?** Cloud base,
    cloud tops, radar reflectivity, supercooled liquid water, and the
-   seeding-opportunity join, at the minute and place each flare left the
-   aircraft.
-2. **How many flares sat in each Texas selection feature?** Upwind of the
+   liquid-with-no-rain composite, at the minute and place each flare left
+   the aircraft.
+2. **How many flares sat in each fill the operator map draws?** The
+   seeding opportunity, the cloud-base window, and echo past freezing.
+3. **How many flares sat in each Texas selection feature?** Upwind of the
    heaviest rain, inside 20 dBZ, nearer the edge than the core, and an
    18 dBZ echo top at or above freezing.
-3. **Is the seeding band in the right place?** The layer we draw against
+4. **Is the seeding band in the right place?** The layer we draw against
    the radiosonde table in that day's report.
 
 The numbers below are the same counts the evaluation app already shows.
@@ -62,26 +64,51 @@ A layer that could not be built for an hour is dropped from that column
 only, so the percentages are of the releases that layer could be compared
 against.
 
-| Programme      | Releases |        Cloud base |       Cloud tops | Radar reflectivity | Supercooled liquid water | Seeding opportunity |
+| Programme      | Releases |        Cloud base |       Cloud tops | Radar reflectivity | Supercooled liquid water | Liquid with no rain |
 | -------------- | -------: | ----------------: | ---------------: | -----------------: | -----------------------: | ------------------: |
-| West Texas     |      497 | 344/497 (69.2%) |   5/497 (1.0%) |    302/497 (60.8%) |          31/497 (6.2%) |     12/497 (2.4%) |
-| Trans Pecos    |      465 | 354/465 (76.1%) |  11/464 (2.4%) |    320/462 (69.3%) |          25/456 (5.5%) |      6/444 (1.4%) |
-| Panhandle      |      255 | 186/255 (72.9%) |   2/252 (0.8%) |    132/255 (51.8%) |         27/248 (10.9%) |      7/253 (2.8%) |
-| South Texas    |       83 |   63/83 (75.9%) |    3/70 (4.3%) |     24/83 (28.9%) |            3/76 (3.9%) |      2/69 (2.9%) |
-| Rolling Plains |       53 |   40/53 (75.5%) |    3/48 (6.3%) |     21/48 (43.8%) |            6/53 (11.3%) |      3/48 (6.3%) |
-| Season         |    1,353 | 987/1,353 (72.9%) | 24/1,331 (1.8%) |  799/1,345 (59.4%) |        92/1,330 (6.9%) |    30/1,311 (2.3%) |
+| West Texas     |      497 |   344/497 (69.2%) |     6/497 (1.2%) |    302/497 (60.8%) |           31/497 (6.2%) |     12/497 (2.4%) |
+| Trans Pecos    |      465 |   354/465 (76.1%) |    11/464 (2.4%) |    320/462 (69.3%) |           25/456 (5.5%) |      6/444 (1.4%) |
+| Panhandle      |      255 |   186/255 (72.9%) |     2/252 (0.8%) |    132/255 (51.8%) |          27/248 (10.9%) |      7/253 (2.8%) |
+| South Texas    |       83 |     63/83 (75.9%) |      3/70 (4.3%) |      24/83 (28.9%) |             3/76 (3.9%) |      2/69 (2.9%) |
+| Rolling Plains |       53 |     40/53 (75.5%) |      3/48 (6.3%) |      21/48 (43.8%) |            6/53 (11.3%) |      3/48 (6.3%) |
+| Season         |    1,353 | 987/1,353 (72.9%) |  25/1,331 (1.9%) |  799/1,345 (59.4%) |         92/1,330 (6.9%) |  30/1,311 (2.3%) |
 
 **Cloud base holds. Cloud tops do not.** 72.9% of releases sit in modelled
-cloud; 1.8% sit in the −5 °C GOES tops. Radar splits the programmes:
+cloud; 1.9% sit in the −5 °C GOES tops. Radar splits the programmes:
 Trans Pecos 69.3%, West Texas 60.8%, the Panhandle 51.8%, South Texas
-28.9%. Supercooled liquid is low everywhere. The seeding-opportunity join
-is lower still, because it rules out rain and they fly into rain.
+28.9%. Supercooled liquid is low everywhere. The liquid-with-no-rain
+composite is lower still, because it rules out rain and they fly into rain.
 
 A denominator short of the release count is an hour that layer could not
 be built.
 
 The evaluation app shows this table on the programme page. Every release
 of a painted day lists the same inside-or-kilometres under THE FLARES.
+
+---
+
+## Flare overlap with each fill the operator map draws
+
+The operator map draws three fills: the seeding opportunity, the cloud-base
+window, and echo past freezing under the radar. The seeding opportunity is a
+composite of the Texas tests, drawn as one fill so the operator can see where
+to click. These are the layers a crew would have had in front of them.
+
+| Programme      | Releases | Seeding opportunity |     Base window | Echo past freezing |
+| -------------- | -------: | --------------: | --------------: | -----------------: |
+| West Texas     |      497 | 279/497 (56.1%) | 266/497 (53.5%) |    325/497 (65.4%) |
+| Trans Pecos    |      465 | 305/461 (66.2%) | 324/465 (69.7%) |    349/461 (75.7%) |
+| Panhandle      |      255 | 154/255 (60.4%) | 125/255 (49.0%) |    149/255 (58.4%) |
+| South Texas    |       83 |   32/71 (45.1%) |   28/83 (33.7%) |      24/83 (28.9%) |
+| Rolling Plains |       53 |   21/48 (43.8%) |   22/53 (41.5%) |      22/48 (45.8%) |
+| Season         |    1,353 | 791/1,332 (59.4%) | 765/1,353 (56.5%) | 869/1,344 (64.7%) |
+
+**The seeding opportunity covers 59.4% of releases**, against 2.3% for the
+liquid-with-no-rain composite in the first table. The fill Texas would
+actually have flown accepts the rain the other composite rules out.
+
+The evaluation app shows these three on the programme page and as columns
+on every release under THE FLARES.
 
 ---
 
@@ -98,22 +125,22 @@ level. Nearer the edge and upwind are distances and heading on that same
 object. A flare with no 20 dBZ echo within about 40 km is a no on radar
 and is dropped from the other columns rather than counted as a no there.
 
-| Programme      | Releases |         Upwind |      In 20 dBZ | Nearer the edge | Echo top past freezing |
-| -------------- | -------: | -------------: | -------------: | --------------: | ---------------------: |
-| West Texas     |      497 | 218/437 (49.9%) | 302/497 (60.8%) | 408/473 (86.3%) |        442/462 (95.7%) |
-| Trans Pecos    |      465 | 177/412 (43.0%) | 309/465 (66.5%) | 398/458 (86.9%) |        430/442 (97.3%) |
-| Panhandle      |      255 | 115/224 (51.3%) | 129/255 (50.6%) | 183/255 (71.8%) |        219/228 (96.1%) |
-| South Texas    |       83 |   30/69 (43.5%) |  24/83 (28.9%) |  59/83 (71.1%) |          62/74 (83.8%) |
-| Rolling Plains |       53 |   24/39 (61.5%) |  20/53 (37.7%) |  34/48 (70.8%) |          42/44 (95.5%) |
-| Season         |    1,353 | 564/1,181 (47.8%) | 784/1,353 (57.9%) | 1,082/1,317 (82.2%) |    1,195/1,250 (95.6%) |
+| Programme      | Releases |          Upwind |       In 20 dBZ |     Nearer the edge | Echo top past freezing |
+| -------------- | -------: | --------------: | --------------: | ------------------: | ---------------------: |
+| West Texas     |      497 | 229/442 (51.8%) | 303/497 (61.0%) |     447/470 (95.1%) |        463/467 (99.1%) |
+| Trans Pecos    |      465 | 167/421 (39.7%) | 310/465 (66.7%) |     429/458 (93.7%) |        453/454 (99.8%) |
+| Panhandle      |      255 | 119/234 (50.9%) | 129/255 (50.6%) |     242/255 (94.9%) |        244/246 (99.2%) |
+| South Texas    |       83 |   31/76 (40.8%) |   24/83 (28.9%) |      83/83 (100.0%) |          74/81 (91.4%) |
+| Rolling Plains |       53 |   25/40 (62.5%) |   20/53 (37.7%) |      45/48 (93.8%) |          45/47 (95.7%) |
+| Season         |    1,353 | 571/1,213 (47.1%) | 786/1,353 (58.1%) | 1,246/1,314 (94.8%) |    1,279/1,295 (98.8%) |
 
 **Just over half the releases sat inside 20 dBZ. Almost all of those
 storms had an 18 dBZ top at or above freezing.** The typical geometry is
-nearer the edge than the heaviest rain (82.2%). Upwind of the heaviest
-rain is about half (47.8%). South Texas is the programme that sits
+nearer the edge than the heaviest rain (94.8%). Upwind of the heaviest
+rain is about half (47.1%). South Texas is the programme that sits
 outside the rain: 24 of 83 inside 20 dBZ.
 
-That is the opposite of the seeding-opportunity column in the first
+That is the opposite of the liquid-with-no-rain composite in the first
 table. The join rules rain out and they fly into it. These four features
 are overlap with the object they already fly.
 
@@ -154,7 +181,7 @@ every edge, so the misses are scatter rather than a standing offset.
 **The four programmes are not four independent samples.** Midland serves
 West Texas, Trans Pecos and the Rolling Plains, so a morning all three
 flew is one balloon counted three times: 121 scored ascents, 101 distinct.
-The 101 distinct mornings have a median overlap of 95.9%. The
+The 101 distinct mornings have a mean overlap of 95.0%. The
 per-programme rows say the result is not an artefact of one target area.
 They should not be added together.
 
@@ -214,8 +241,8 @@ flare positions.
 
 ## Reproducing this
 
-SSH into the us-east-1 box, start the Weatherman server, and run one
-`paint.mjs` per flying day in parallel, then `balloons.mjs` for each
+SSH into the us-east-1 box, start one Weatherman API per painter, and run
+one `paint.mjs` per flying day in parallel, then `balloons.mjs` for each
 sonde programme. How to run that job, what JSON it writes, and how the
 eval app should drive from those files, is `eval/README.md`. The flight
 records are already in `eval/data/`.
