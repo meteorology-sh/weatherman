@@ -18,7 +18,7 @@ import { DayProvider } from "~/lib/context/DayProvider";
 import { App } from "./App";
 import { Regions } from "./components/Regions";
 import { Findings } from "./components/Findings";
-import { Band } from "./components/band/Band";
+import { Radiosonde } from "./components/radiosonde/Radiosonde";
 import { Overlap } from "./components/overlap/Overlap";
 
 // Styles
@@ -50,10 +50,10 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: ":region/band",
+        path: ":region/radiosonde",
         element: (
           <FindingsProvider>
-            <Band />
+            <Radiosonde />
           </FindingsProvider>
         ),
       },

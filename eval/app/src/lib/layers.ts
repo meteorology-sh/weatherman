@@ -7,14 +7,15 @@
  * product moves here, and a page built to find disagreements between the map and
  * an operator cannot introduce one between itself and the map it is inspecting.
  *
- * **The list is the product's list, and nothing else.** Weatherman draws three
- * fills with one gate under them: radar with echo past freezing under it, cloud
- * base, and the Texas fly fill it names SEEDING OPPORTUNITY. A layer this page
- * drew that the product does not draw would be a claim about a map nobody
- * flies, so cloud tops, supercooled liquid water, the liquid-with-no-rain composite and the
- * flyable window are not here — the product draws none of the four, and a
- * painted file that still carries them is simply not read. The window is
- * reported on a click and scored into `EVALUATION.md`; it is not a fill.
+ * **The list is the product's list, and nothing else.** Weatherman's panel has
+ * four switches: the Texas fly fill it names SEEDING OPPORTUNITY, radar with
+ * three gates under it, cloud base, and supercooled liquid water. This page
+ * carries the same four. A layer this page drew that the product does not draw
+ * would be a claim about a map nobody flies, so cloud tops, the candidate
+ * liquid composite and the flyable window are not here — the product draws
+ * none of the three, and a painted file that still carries them is simply not
+ * read. Those are reported on a click and scored into `EVALUATION.md`; they
+ * are not fills.
  *
  * A gate is one fill rather than a ramp: the test passed on that 3 km square or
  * it did not, and shading it by a value would invent a quantity the route does
@@ -32,11 +33,15 @@ import {
   RADAR_BANDS,
   RADAR_LABELS,
   RADAR_RGB,
+  SLW_BANDS,
+  SLW_LABELS,
+  SLW_RGB,
 } from "@/lib/arcgis/bands";
 import {
   CandidateLegend,
   CloudBaseLegend,
   EchoFreezeLegend,
+  LiquidLegend,
   RadarLegend,
 } from "@/lib/arcgis/legends";
 
@@ -135,6 +140,18 @@ export const LAYERS: readonly EvalLayer[] = [
     captions: CLOUD_BASE_BANDS.map((band) => band.label),
     unit: "ft MSL",
   },
+  {
+    key: "liquid",
+    legend: LiquidLegend,
+    under: null,
+    kind: "bands",
+    bands: SLW_BANDS,
+    rgb: SLW_RGB,
+    shape: "nested",
+    captions: SLW_BANDS.map((band) => String(band.value)),
+    titles: SLW_LABELS,
+    unit: "g/m²",
+  },
 ];
 
 export const layerFor = (key: string) =>
@@ -156,6 +173,7 @@ export const PANEL: readonly { layer: EvalLayer; gates: EvalLayer[] }[] =
  */
 export const DRAW_ORDER: readonly string[] = [
   "cloudBase",
+  "liquid",
   "radar",
   "echoFreeze",
   "target",
@@ -194,7 +212,7 @@ export function isDrawn(
  * top answer about the minute and need no arrow. The drift arrow is drawn only
  * while one of these is on, for that reason.
  */
-export const HOURLY: readonly string[] = ["cloudBase", "target"];
+export const HOURLY: readonly string[] = ["cloudBase", "liquid", "target"];
 
 /**
  * Which layers a fresh map opens with — the fly fill, and nothing else.
@@ -210,6 +228,7 @@ export const OPEN_WITH: Record<string, boolean> = {
   radar: false,
   echoFreeze: false,
   cloudBase: false,
+  liquid: false,
   target: true,
 };
 

@@ -41,7 +41,7 @@ export const Navigation = () => {
       ? [{ to: `/${region}`, label: "FINDINGS", end: true }]
       : [
           { to: `/${region}`, label: "FINDINGS", end: true },
-          { to: `/${region}/band`, label: "THE BAND" },
+          { to: `/${region}/radiosonde`, label: "RADIOSONDE" },
           { to: `/${region}/flares`, label: "THE FLARES" },
         ];
 

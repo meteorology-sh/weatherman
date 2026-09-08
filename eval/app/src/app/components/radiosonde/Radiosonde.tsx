@@ -9,13 +9,20 @@ import { BandOverlap } from "./BandOverlap";
 const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
 
 /**
- * Finding 1 — the seeding band against the balloons that fly through it.
+ * Finding 1 — the model against the balloons the crews brief on.
  *
  * The comparison the operator could make themselves: their own morning sounding
- * table against the layer we draw for the same place and hour.
+ * table against the heights we draw for the same place and hour. The seeding
+ * band is the headline of it; the CCL row underneath is the one that decides
+ * where the cloud-base layer gets its height when HRRR has no cloud.
+ *
+ * **Every measured number here is already on disk.** The reports print the
+ * ascent's own table and `releases.mjs` parsed it; `balloons.mjs` fetches only
+ * the model column to set beside it.
  */
-export const Band = () => {
+export const Radiosonde = () => {
   const { band, loading, error } = useAppSelector((state) => state.findings);
+  const ccl = band?.readings.find((reading) => reading.key === "ccl");
 
   if (loading || error) {
     return (
@@ -76,6 +83,52 @@ export const Band = () => {
               </div>
               <div className="stat-desc">of {band.overlap.n} ascents</div>
             </div>
+          </div>
+        )}
+
+        {ccl && (
+          <div className="flex flex-col gap-2">
+            <h2 className="text-xs tracking-widest">
+              CCL — THE CLOUD-BASE FALLBACK
+            </h2>
+            <div className="stats stats-vertical sm:stats-horizontal bg-base-200">
+              <div className="stat">
+                <div className="stat-title">Typical miss</div>
+                <div className="stat-value">
+                  {ccl.typical} {ccl.unit}
+                </div>
+                <div className="stat-desc">against {ccl.n} ascents</div>
+              </div>
+              <div className="stat">
+                <div className="stat-title">Bias</div>
+                <div className="stat-value">
+                  {ccl.bias > 0 ? "+" : ""}
+                  {ccl.bias} {ccl.unit}
+                </div>
+                <div className="stat-desc">
+                  {ccl.bias > 0 ? "we run high" : "we run low"}
+                </div>
+              </div>
+              <div className="stat">
+                <div className="stat-title">Worst</div>
+                <div className="stat-value">
+                  {ccl.worst} {ccl.unit}
+                </div>
+                <div className="stat-desc">
+                  spread {ccl.low} to {ccl.high} {ccl.unit}
+                </div>
+              </div>
+            </div>
+            <p className="text-sm max-w-2xl">
+              The one row where both sides are the same quantity: the report
+              prints the ascent&rsquo;s own convective condensation level, and
+              we compute ours from the model&rsquo;s surface moisture against
+              its temperature profile. It matters because the cloud-base layer
+              falls back to this height wherever the model diagnoses no cloud,
+              which is about half the domain. The cloud-base row in the table
+              below is not this check &mdash; it sets a 12Z deck against an
+              afternoon parcel height, and the two are not the same claim.
+            </p>
           </div>
         )}
 

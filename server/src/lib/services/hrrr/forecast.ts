@@ -70,7 +70,7 @@ import {
   diagnostics,
   recordsAt,
 } from "./diagnostics";
-import { cclFt } from "./ccl";
+import { cclFt, cclFtAt } from "./ccl";
 import { windowValues } from "./basewindow";
 import {
   BRIEFING_COLD_C,
@@ -200,6 +200,16 @@ export type Sounding = {
   lon: number;
   /** Terrain height at that cell, ft. Isotherms below it are underground. */
   surfaceFt: number;
+  /**
+   * Convective condensation level, ft MSL. Null where the column never
+   * saturates.
+   *
+   * A height and never a claim that cloud is there — see `ccl.ts`. It rides on
+   * this response because the daily reports print their own CCL beside their
+   * own cloud base, so this is the one number in the readout that can be
+   * scored against the instrument the crews brief on.
+   */
+  cclFt: number | null;
   /** 0 °C, ft MSL. Null when the column never crosses it. */
   freezingFt: number | null;
   /** Warm edge of the seeding band, −5 °C. */
@@ -689,6 +699,7 @@ export class ForecastService {
       .sort((a, b) => a.heightFt - b.heightFt);
 
     const bandBaseFt = isothermFt(levels, SEEDING.warmestC);
+    const round = (v: number) => (Number.isFinite(v) ? Math.round(v) : null);
 
     return {
       run: profile.run.toISOString(),
@@ -699,6 +710,7 @@ export class ForecastService {
       lat: Math.round(geo.lats[cell] * 100) / 100,
       lon: Math.round(geo.lons[cell] * 100) / 100,
       surfaceFt: Math.round(profile.surfaceFt[cell]),
+      cclFt: round(cclFtAt(profile, surface.fields.get("spfh2m")![cell], cell)),
       freezingFt: isothermFt(levels, 0),
       bandBaseFt,
       bandTopFt: isothermFt(levels, SEEDING.coldestC),

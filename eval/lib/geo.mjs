@@ -153,3 +153,56 @@ export function distanceToPolygonsKm(polygons, lon, lat) {
     edgeKm: Math.round(best * 10) / 10,
   };
 }
+
+/**
+ * How much ground a painted level covers, km².
+ *
+ * The coverage cost of a rule, which is the number that decides whether a
+ * change to the join selected better or just painted more. A fill that grows
+ * until it covers the whole target area has stopped selecting, and the flare
+ * counts alone cannot see that happen — every release is inside a fill that
+ * covers everything.
+ *
+ * Spherical rather than projected: the painted window is 10° of longitude and
+ * 8.5° of latitude, wide enough that a single flat projection would be several
+ * percent wrong at its edges. This is the exact area of the polygon on the
+ * sphere, so the figure does not depend on where in the window the paint sits.
+ *
+ * The first ring of a polygon is its outer boundary and the rest are holes,
+ * which are subtracted. `polygons` is the shape a painted level carries.
+ */
+export function polygonsAreaKm2(polygons) {
+  let total = 0;
+  for (const rings of polygons) {
+    rings.forEach((ring, index) => {
+      const area = ringAreaKm2(ring);
+      total += index === 0 ? area : -area;
+    });
+  }
+  return total;
+}
+
+/** Area enclosed by one ring on the sphere, km², always positive. */
+function ringAreaKm2(ring) {
+  if (ring.length < 3) return 0;
+  const rad = Math.PI / 180;
+  let sum = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [lonA, latA] = ring[j];
+    const [lonB, latB] = ring[i];
+    sum +=
+      (lonB - lonA) * rad * (2 + Math.sin(latA * rad) + Math.sin(latB * rad));
+  }
+  return Math.abs((sum * EARTH_KM * EARTH_KM) / 2);
+}
+
+/** Area of a lon/lat box on the sphere, km² — the ground a paint was asked about. */
+export function boxAreaKm2({ west, east, south, north }) {
+  return ringAreaKm2([
+    [west, south],
+    [east, south],
+    [east, north],
+    [west, north],
+    [west, south],
+  ]);
+}

@@ -222,14 +222,38 @@ export type StormAtFlare = {
 export type CellAtFlare = {
   validTime: string | null;
   radarTime: string | null;
+  /** Start of the satellite scan read over this cell. Absent on older files. */
+  sceneTime?: string | null;
+  /** Start of the phase scan. Null where no scene could be read. */
+  phaseTime?: string | null;
+  /** The 3 km cell the click snapped to, not the release point. */
+  lat?: number | null;
+  lon?: number | null;
+
   /** "target" is the cell an operator is told to fly. */
   target: string | null;
+  /** The seeding-opportunity verdict from the liquid join, on the same cell. */
+  verdict?: string | null;
+
+  /** Merged cloud base, ft MSL — HRRR's own, or the CCL where it has none. */
+  cloudBaseMslFt?: number | null;
+  /** Which model height answered: "model" or "ccl". */
+  baseSource?: "model" | "ccl" | null;
+  /** Does the cloud-base layer fill this cell? */
+  baseDrawn?: boolean;
   cloudBaseAglFt: number | null;
+  /** HRRR's own base, ft MSL, before the CCL fallback. */
+  cloudBaseFt?: number | null;
+
   echoTopFt: number | null;
   freezingFt: number | null;
   dbz: number | null;
   radarCovered: boolean;
   slwGM2: number | null;
+  /** Observed cloud-top temperature, °C. */
+  cloudTopC?: number | null;
+  /** Observed cloud-top phase. Reported, never a gate. */
+  topPhase?: string | null;
 };
 
 /**

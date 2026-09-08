@@ -86,6 +86,93 @@ export type CclProfile = {
 };
 
 /**
+ * The CCL over one cell, ft MSL, from a ladder already sorted bottom-up.
+ *
+ * The grid pass and the point readout both come through here, so the height a
+ * click prints and the height the base layer used cannot disagree about a cell.
+ */
+function cclOverCell(
+  profile: CclProfile,
+  ladder: readonly number[],
+  temps: readonly (Float32Array | undefined)[],
+  heights: readonly (Float32Array | undefined)[],
+  parcel: number,
+  i: number
+): number {
+  if (!Number.isFinite(parcel)) return Number.NaN;
+  const surface = profile.surfaceFt[i];
+
+  // The last level below the crossing, carried so the crossing can be
+  // interpolated rather than snapped to a 50 mb rung (~1,500 ft).
+  let belowWs = Number.NaN;
+  let belowFt = Number.NaN;
+
+  for (let k = 0; k < ladder.length; k++) {
+    const t = temps[k];
+    const h = heights[k];
+    if (!t || !h) continue;
+
+    const heightFt = h[i];
+    const tempC = t[i];
+    if (!Number.isFinite(heightFt) || !Number.isFinite(tempC)) continue;
+    // Underground, or the terrain height itself is unknown.
+    if (Number.isFinite(surface) && heightFt < surface) continue;
+
+    const ws = saturationMixingRatio(tempC, ladder[k]);
+    if (!Number.isFinite(ws)) continue;
+
+    if (ws <= parcel) {
+      // Saturated at the first level above the ground: the parcel is already
+      // at its condensation level, so the base is the ground.
+      if (!Number.isFinite(belowWs)) {
+        return Number.isFinite(surface) ? surface : heightFt;
+      }
+      // Linear in the saturation mixing ratio across the layer. ws falls
+      // monotonically here, so the denominator cannot be zero.
+      const span = belowWs - ws;
+      const fraction = span === 0 ? 0 : (belowWs - parcel) / span;
+      return belowFt + fraction * (heightFt - belowFt);
+    }
+
+    belowWs = ws;
+    belowFt = heightFt;
+  }
+
+  return Number.NaN;
+}
+
+/** Bottom up: descending pressure is ascending height. */
+function bottomUp(profile: CclProfile) {
+  const ladder = [...profile.levels].sort((a, b) => b - a);
+  return {
+    ladder,
+    temps: ladder.map((mb) => profile.tempC.get(levelKey(mb))),
+    heights: ladder.map((mb) => profile.heightFt.get(levelKey(mb))),
+  };
+}
+
+/**
+ * The CCL over one cell, ft MSL, from the surface specific humidity there.
+ *
+ * For the point readout, which needs one column rather than the domain.
+ */
+export function cclFtAt(
+  profile: CclProfile,
+  specificHumidity2m: number,
+  cell: number
+): number {
+  const { ladder, temps, heights } = bottomUp(profile);
+  return cclOverCell(
+    profile,
+    ladder,
+    temps,
+    heights,
+    mixingRatio(specificHumidity2m),
+    cell
+  );
+}
+
+/**
  * The CCL over every cell, ft MSL. NaN where the column never saturates.
  *
  * The search walks the column upward from the ground and stops at the first
@@ -108,57 +195,20 @@ export function cclFt(
   profile: CclProfile,
   specificHumidity2m: Float32Array
 ): Float32Array {
-  // Bottom up: descending pressure is ascending height.
-  const ladder = [...profile.levels].sort((a, b) => b - a);
+  const { ladder, temps, heights } = bottomUp(profile);
   const n = profile.surfaceFt.length;
   const out = new Float32Array(n);
   out.fill(Number.NaN);
 
-  const temps = ladder.map((mb) => profile.tempC.get(levelKey(mb)));
-  const heights = ladder.map((mb) => profile.heightFt.get(levelKey(mb)));
-
   for (let i = 0; i < n; i++) {
-    const parcel = mixingRatio(specificHumidity2m[i]);
-    if (!Number.isFinite(parcel)) continue;
-    const surface = profile.surfaceFt[i];
-
-    // The last level below the crossing, carried so the crossing can be
-    // interpolated rather than snapped to a 50 mb rung (~1,500 ft).
-    let belowWs = Number.NaN;
-    let belowFt = Number.NaN;
-
-    for (let k = 0; k < ladder.length; k++) {
-      const t = temps[k];
-      const h = heights[k];
-      if (!t || !h) continue;
-
-      const heightFt = h[i];
-      const tempC = t[i];
-      if (!Number.isFinite(heightFt) || !Number.isFinite(tempC)) continue;
-      // Underground, or the terrain height itself is unknown.
-      if (Number.isFinite(surface) && heightFt < surface) continue;
-
-      const ws = saturationMixingRatio(tempC, ladder[k]);
-      if (!Number.isFinite(ws)) continue;
-
-      if (ws <= parcel) {
-        // Saturated at the first level above the ground: the parcel is already
-        // at its condensation level, so the base is the ground.
-        if (!Number.isFinite(belowWs)) {
-          out[i] = Number.isFinite(surface) ? surface : heightFt;
-          break;
-        }
-        // Linear in the saturation mixing ratio across the layer. ws falls
-        // monotonically here, so the denominator cannot be zero.
-        const span = belowWs - ws;
-        const fraction = span === 0 ? 0 : (belowWs - parcel) / span;
-        out[i] = belowFt + fraction * (heightFt - belowFt);
-        break;
-      }
-
-      belowWs = ws;
-      belowFt = heightFt;
-    }
+    out[i] = cclOverCell(
+      profile,
+      ladder,
+      temps,
+      heights,
+      mixingRatio(specificHumidity2m[i]),
+      i
+    );
   }
 
   return out;

@@ -418,6 +418,7 @@ const sounding: Sounding = {
   lat: 39.8,
   lon: -98.54,
   surfaceFt: 1830,
+  cclFt: 5400,
   freezingFt: 16433,
   bandBaseFt: 18685,
   bandTopFt: 22066,

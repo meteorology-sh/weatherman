@@ -13,11 +13,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Local
-import {
-  bandOverlap,
-  spread,
-  summarizeOverlaps,
-} from "./lib/band-score.mjs";
+import { bandOverlap, spread, summarizeOverlaps } from "./lib/band-score.mjs";
+import { boxAreaKm2, polygonsAreaKm2 } from "./lib/geo.mjs";
 import { tallyFlags } from "./lib/storm-score.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -29,6 +26,7 @@ const LAYERS = [
   ["cloudTop", "Cloud tops"],
   ["radar", "Radar reflectivity"],
   ["liquid", "Supercooled liquid water"],
+  ["candidate", "Candidate supercooled liquid"],
 ];
 
 const TEXAS_FILLS = [
@@ -78,9 +76,26 @@ const emptyLayers = () =>
     [...LAYERS, ...TEXAS_FILLS].map(([key]) => [key, { n: 0, inside: 0 }])
   );
 
+/**
+ * The three fills whose painted area answers the coverage question.
+ *
+ * Each is a single-level mask, so the area of its polygons is the ground it
+ * covers. The banded layers are left out: their levels nest or partition, and
+ * one number over a ramp would not mean the same thing.
+ */
+const AREA_FILLS = TEXAS_FILLS;
+
 const stats = {};
 for (const region of evaluable) {
-  stats[region.id] = { days: 0, flares: [], layers: emptyLayers() };
+  stats[region.id] = {
+    days: 0,
+    flares: [],
+    layers: emptyLayers(),
+    /** Painted km² per analysis hour, per fill. */
+    areas: Object.fromEntries(AREA_FILLS.map(([key]) => [key, []])),
+    /** The ground each of those hours was asked about, km². */
+    windows: [],
+  };
 }
 
 const files = (await readdir(OUT)).filter(
@@ -93,6 +108,20 @@ for (const name of files) {
   const flares = (painted.analyses ?? []).flatMap((a) => a.flares);
   stats[id].days += 1;
   stats[id].flares.push(...flares);
+  const askedKm2 = painted.window ? boxAreaKm2(painted.window) : null;
+  for (const frame of Object.values(painted.frames ?? {})) {
+    if (askedKm2 != null) stats[id].windows.push(askedKm2);
+    for (const [key] of AREA_FILLS) {
+      const levels = frame[key]?.levels;
+      if (!levels) continue;
+      stats[id].areas[key].push(
+        levels.reduce(
+          (sum, level) => sum + polygonsAreaKm2(level.polygons ?? []),
+          0
+        )
+      );
+    }
+  }
   for (const flare of flares) {
     for (const [key] of [...LAYERS, ...TEXAS_FILLS]) {
       const near = flare.near?.[key];
@@ -163,6 +192,48 @@ console.log(
     " |"
 );
 
+console.log("\n## Ground each Texas fill painted\n");
+console.log(
+  "| Program | Hours | Ground asked | " +
+    AREA_FILLS.map(([, label]) => label).join(" | ") +
+    " |"
+);
+console.log(
+  "| --- | ---: | ---: | " + AREA_FILLS.map(() => "---:").join(" | ") + " |"
+);
+
+/** Median of an array of numbers, or null when it is empty. */
+function median(values) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const half = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? sorted[half]
+    : (sorted[half - 1] + sorted[half]) / 2;
+}
+
+const km2 = (n) => (n == null ? "—" : Math.round(n).toLocaleString("en-US"));
+
+/** Median painted area, and what share of the asked ground that is. */
+function areaCell(painted, asked) {
+  const mid = median(painted);
+  if (mid == null) return "—";
+  const whole = median(asked);
+  if (!whole) return km2(mid);
+  return `${km2(mid)} (${pct(mid, whole)})`;
+}
+
+for (const region of evaluable) {
+  const row = stats[region.id];
+  console.log(
+    `| ${region.short} | ${row.windows.length} | ${km2(median(row.windows))} | ` +
+      AREA_FILLS.map(([key]) => areaCell(row.areas[key], row.windows)).join(
+        " | "
+      ) +
+      " |"
+  );
+}
+
 console.log("\n## Flare overlap with each Texas selection feature\n");
 console.log(
   "| Program | Releases | " +
@@ -196,7 +267,13 @@ function bandRow(rows) {
   const summary = summarizeOverlaps(overlaps);
   const freeze = [];
   const top = [];
+  // The CCL is scored over every row that carries one, not only the rows with
+  // a usable band: it is the cloud-base layer's fallback height, not a band
+  // edge, so an ascent whose printed band is unusable can still say whether
+  // the fallback was right.
+  const ccl = [];
   for (const row of rows) {
+    if (row.compared?.ccl?.error != null) ccl.push(row.compared.ccl.error);
     if (!bandOverlap(row)) continue;
     if (row.compared?.freezingLevel?.error != null) {
       freeze.push(row.compared.freezingLevel.error);
@@ -205,7 +282,13 @@ function bandRow(rows) {
       top.push(row.compared.minus15Height.error);
     }
   }
-  return { summary, freeze: spread(freeze), top: spread(top) };
+  return {
+    summary,
+    freeze: spread(freeze),
+    top: spread(top),
+    ccl: spread(ccl),
+    cclN: ccl.length,
+  };
 }
 
 function edge(s) {
@@ -227,9 +310,12 @@ function cleared(summary) {
 
 console.log("\n## The seeding band against the balloons\n");
 console.log(
-  "| Program | Ascents | Freezing level | −15 °C height | Band overlap | Cleared 90% |"
+  "Each cell is bias / typical miss. The CCL column is the cloud-base layer's\nfallback height and is scored over every ascent that prints one, so its\ncount can exceed the band's.\n"
 );
-console.log("| --- | ---: | ---: | ---: | ---: | ---: |");
+console.log(
+  "| Program | Ascents | Freezing level | −15 °C height | CCL | Band overlap | Cleared 90% |"
+);
+console.log("| --- | ---: | ---: | ---: | ---: | ---: | ---: |");
 
 const byKey = new Map();
 for (const region of evaluable) {
@@ -241,9 +327,9 @@ for (const region of evaluable) {
   } catch {
     continue;
   }
-  const { summary, freeze, top } = bandRow(data.rows ?? []);
+  const { summary, freeze, top, ccl } = bandRow(data.rows ?? []);
   console.log(
-    `| ${region.short} | ${summary?.n ?? 0} | ${edge(freeze)} | ${edge(top)} | ${overlapCell(summary)} | ${cleared(summary)} |`
+    `| ${region.short} | ${summary?.n ?? 0} | ${edge(freeze)} | ${edge(top)} | ${edge(ccl)} | ${overlapCell(summary)} | ${cleared(summary)} |`
   );
   for (const row of data.rows ?? []) {
     const key = `${row.date} ${row.site}`;
@@ -254,7 +340,10 @@ for (const region of evaluable) {
 const distinct = bandRow([...byKey.values()]);
 if (distinct.summary) {
   console.log(
-    `\n${distinct.summary.n} distinct scored ascents · median depth ${distinct.summary.medianDepth} m · mean overlap ${(distinct.summary.mean * 100).toFixed(1)}% · worst ${(distinct.summary.worst * 100).toFixed(1)}% · cleared 80% ${distinct.summary.over80} of ${distinct.summary.n}`
+    `\n${distinct.summary.n} distinct scored ascents · median depth ${distinct.summary.medianDepth} m · mean overlap ${(distinct.summary.mean * 100).toFixed(1)}% · worst ${(distinct.summary.worst * 100).toFixed(1)}% · cleared 80% ${distinct.summary.over80} of ${distinct.summary.n}` +
+      (distinct.ccl
+        ? `\nCCL over ${distinct.cclN} distinct ascents · ${edge(distinct.ccl)} · the cloud-base layer's fallback height, against the instrument`
+        : "")
   );
 } else {
   console.log("no balloon comparison on disk");

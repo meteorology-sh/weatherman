@@ -73,6 +73,7 @@ const CELL_KM = {
   cloudBase: 3,
   cloudTop: 2,
   liquid: 3,
+  candidate: 3,
   radar: 1,
   target: 3,
   baseWindow: 3,
@@ -137,8 +138,11 @@ const LAYERS = [
   {
     key: "cloudBase",
     name: "CLOUD BASE",
-    path: (at) =>
-      `/forecast/cloudbase?hour=0&at=${encodeURIComponent(at)}&fine=1`,
+    // The merged base: HRRR's own where the model has a cloud, the CCL where
+    // it does not, drawn wherever a measured echo top stands over it. No
+    // `hour` — the echo top is an observation and cannot be forecast, which is
+    // why this moved off `/forecast/cloudbase` onto the candidate build.
+    path: (at) => `/candidate/cloudbase?at=${encodeURIComponent(at)}&fine=1`,
     property: "cloudBaseFt",
     unit: "ft MSL",
     shape: "disjoint",
@@ -161,6 +165,20 @@ const LAYERS = [
     unit: "g/m²",
     shape: "nested",
     cellKm: CELL_KM.liquid,
+  },
+  {
+    // Supercooled liquid with every other candidate test already applied —
+    // the satellite sees cloud whose top reaches the band, the base is under
+    // the band top, and the radar is not watching the cell rain itself out.
+    // `liquid` above is the unfiltered field; this is the join over it, and
+    // the two are stored side by side so the difference is legible.
+    key: "candidate",
+    name: "CANDIDATE SUPERCOOLED LIQUID",
+    path: (at) => `/candidate/field?at=${encodeURIComponent(at)}&fine=1`,
+    property: "seedableSlwPath",
+    unit: "g/m²",
+    shape: "nested",
+    cellKm: CELL_KM.candidate,
   },
   {
     key: "radar",
@@ -205,6 +223,7 @@ const LAYERS = [
 /** Warms the join first; every other fill reads that same cached scene. */
 const FETCH_ORDER = [
   "target",
+  "candidate",
   "liquid",
   "cloudBase",
   "baseWindow",
@@ -412,14 +431,49 @@ async function cellAt(release) {
   return {
     validTime: point.validTime ?? null,
     radarTime: point.radarTime ?? null,
+    /** Start of the satellite scan read over this cell. */
+    sceneTime: point.sceneTime ?? null,
+    /** Start of the phase scan. Null where no scene could be read. */
+    phaseTime: point.phaseTime ?? null,
+    /** The 3 km cell the click snapped to, not the release point. */
+    lat: point.lat ?? null,
+    lon: point.lon ?? null,
+
     /** "target" is the cell an operator is told to fly. */
     target: point.target ?? null,
+    /**
+     * The seeding-opportunity verdict from the liquid join — a different
+     * question from `target`, on the same cell. Stored so a flare can be read
+     * against both without a second run.
+     */
+    verdict: point.verdict ?? null,
+
+    /**
+     * Merged cloud base, ft MSL, and which model height gave it: HRRR's own
+     * (`model`) or the convective condensation level (`ccl`). `baseDrawn` is
+     * whether the cloud-base layer fills this cell.
+     */
+    cloudBaseMslFt: point.cloudBaseMslFt ?? null,
+    baseSource: point.baseSource ?? null,
+    baseDrawn: point.baseDrawn ?? false,
+    /** The same base above the terrain. */
     cloudBaseAglFt: point.cloudBaseAglFt ?? null,
+    /** HRRR's own base, ft MSL, before the CCL fallback. */
+    cloudBaseFt: point.cloudBaseFt ?? null,
+
     echoTopFt: point.echoTopFt ?? null,
     freezingFt: point.freezingFt ?? null,
     dbz: point.dbz ?? null,
     radarCovered: point.radarCovered ?? false,
     slwGM2: point.slwGM2 ?? null,
+    /** Observed cloud-top temperature, °C. */
+    cloudTopC: point.cloudTopC ?? null,
+    /**
+     * Observed cloud-top phase — the one measurement of phase this product
+     * has. Reported, never a gate: it classifies the top of whatever deck the
+     * satellite can see, which under multi-layer cloud is not the storm.
+     */
+    topPhase: point.topPhase ?? null,
   };
 }
 

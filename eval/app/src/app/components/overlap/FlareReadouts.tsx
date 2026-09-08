@@ -1,6 +1,12 @@
 // Components
 import { MATCH, MISS, NEUTRAL } from "./storm";
-import { cellRows, columnRows, environmentRows, flew } from "./readout";
+import {
+  cellRows,
+  clickExtraRows,
+  columnRows,
+  environmentRows,
+  flew,
+} from "./readout";
 
 // Types
 import type { Flare } from "~/lib/types";
@@ -112,6 +118,17 @@ export const FlareReadouts = ({ flares }: PropsT) => {
               ),
             };
           })}
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <h4 className="text-sm font-semibold">The rest of the click</h4>
+        <Table
+          labels={clickExtraRows(null).map((row) => row.label)}
+          rows={sorted.map((flare) => ({
+            flare,
+            cells: clickExtraRows(flare.cell),
+          }))}
         />
       </div>
 

@@ -46,6 +46,33 @@ function echoVersusFreezing(cell: CellAtFlare): string {
     : `${num.format(cell.freezingFt - cell.echoTopFt)} ft below freezing`;
 }
 
+/**
+ * The satellite's phase classes, spelled the way `CloudHere` spells them.
+ *
+ * "Supercooled" is written out rather than abbreviated: it is liquid water
+ * below freezing, which is what seeding works on.
+ */
+const PHASE_LABELS: Record<string, string> = {
+  clear: "Clear",
+  liquid: "Liquid",
+  supercooled: "Supercooled liquid",
+  mixed: "Mixed phase",
+  ice: "Ice",
+  unknown: "Unknown",
+};
+
+/**
+ * The merged cloud base and which model height gave it.
+ *
+ * Both halves are model output, so the source is named rather than left for a
+ * reader to assume it was HRRR's own diagnosis.
+ */
+function mergedBase(cell: CellAtFlare): string {
+  if (cell.cloudBaseMslFt == null) return "—";
+  const source = cell.baseSource === "ccl" ? " (CCL)" : " (model)";
+  return `${num.format(cell.cloudBaseMslFt)} ft MSL${source}`;
+}
+
 /** No radar looking at the cell is a different answer from no echo in it. */
 function rain(cell: CellAtFlare): string {
   if (!cell.radarCovered) return "no radar";
@@ -61,6 +88,7 @@ function rain(cell: CellAtFlare): string {
  */
 export function cellRows(cell: CellAtFlare | null | undefined): Row[] {
   return [
+    { label: "Cloud Base", value: cell ? mergedBase(cell) : "—" },
     {
       label: "Base Above Ground",
       value: cell ? feet(cell.cloudBaseAglFt) : "—",
@@ -69,6 +97,10 @@ export function cellRows(cell: CellAtFlare | null | undefined): Row[] {
       label: "18 dBZ Echo Top",
       value: cell ? echoVersusFreezing(cell) : "—",
     },
+    {
+      label: "Observed Cloud-Top Phase",
+      value: cell?.topPhase ? (PHASE_LABELS[cell.topPhase] ?? "—") : "—",
+    },
     { label: "Rain", value: cell ? rain(cell) : "—" },
     {
       label: "Supercooled Liquid Water",
@@ -76,6 +108,47 @@ export function cellRows(cell: CellAtFlare | null | undefined): Row[] {
         !cell || cell.slwGM2 === null ? "—" : `${num.format(cell.slwGM2)} g/m²`,
     },
   ];
+}
+
+/**
+ * The rest of what `/candidate/point` returns, which the operator panel does
+ * not print.
+ *
+ * `cellRows` above is the panel and has to stay the panel — a figure there
+ * reads as the figure an operator saw. This block is the evaluation's own
+ * question: everything else the click carries, so a flare can be read against
+ * the whole answer without a second run. Nothing here is a verdict.
+ */
+export function clickExtraRows(cell: CellAtFlare | null | undefined): Row[] {
+  const drawn =
+    !cell || cell.cloudBaseMslFt == null ? "—" : cell.baseDrawn ? "yes" : "no";
+  return [
+    { label: "Seeding Opportunity", value: cell?.target ?? "—" },
+    { label: "Liquid Verdict", value: cell?.verdict ?? "—" },
+    {
+      label: "HRRR Base (MSL)",
+      value: cell ? feet(cell.cloudBaseFt) : "—",
+    },
+    { label: "Base Drawn", value: drawn },
+    { label: "Freezing Level", value: cell ? feet(cell.freezingFt) : "—" },
+    {
+      label: "Cloud-Top Temperature",
+      value: !cell || cell.cloudTopC == null ? "—" : `${cell.cloudTopC} °C`,
+    },
+    { label: "Radar Scan", value: clock(cell?.radarTime) },
+    { label: "Satellite Scan", value: clock(cell?.sceneTime) },
+    { label: "Phase Scan", value: clock(cell?.phaseTime) },
+  ];
+}
+
+/** A scan time as HH:MMZ — the minute is the point, the date is the day. */
+function clock(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return "—";
+  return `${String(at.getUTCHours()).padStart(2, "0")}:${String(
+    at.getUTCMinutes()
+  ).padStart(2, "0")}Z`;
 }
 
 /** Heights on this column, as `Sounding` prints them. */

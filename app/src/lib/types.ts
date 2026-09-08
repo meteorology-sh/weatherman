@@ -277,6 +277,11 @@ export interface Sounding {
   lon: number;
   /** Terrain height at that cell, ft. Isotherms below it are underground. */
   surfaceFt: number;
+  /**
+   * Convective condensation level, ft MSL. Null where the column never
+   * saturates. A height, never a claim that cloud is there.
+   */
+  cclFt: number | null;
   /** 0 °C, ft MSL. Null when the column never crosses it. */
   freezingFt: number | null;
   /** Warm edge of the seeding band, −5 °C. */

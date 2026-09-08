@@ -39,24 +39,24 @@ that briefs on a sonde.
 The app does not re-score against a live Weatherman API. `server.mjs`
 reads `out/` on every request.
 
-| Result                      | File                                                     | Field                                                                                                                           |
-| --------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Band overlap                | `out/balloons-*.json` (`regions.json` → `runs.balloons`) | radiosonde vs model column; **the page calculates overlap from those rows**                                                     |
-| The layers Weatherman draws | `out/painted-*.json` (`runs.painted`)                    | `near.radar`, `near.echoFreeze`, `near.cloudBase`, `near.target`                                                                |
-| Texas storm features        | the same painted files                                   | `storm` on each flare: in 20 dBZ, nearer the edge, upwind, echo top past freezing                                               |
+| Result                      | File                                                     | Field                                                                                                                          |
+| --------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Band overlap                | `out/balloons-*.json` (`regions.json` → `runs.balloons`) | radiosonde vs model column; **the page calculates overlap from those rows**                                                    |
+| The layers Weatherman draws | `out/painted-*.json` (`runs.painted`)                    | `near.radar`, `near.echoFreeze`, `near.cloudBase`, `near.target`                                                               |
+| Texas storm features        | the same painted files                                   | `storm` on each flare: in 20 dBZ, nearer the edge, upwind, echo top past freezing                                              |
 | The click on each release   | the same painted files                                   | `cell` and `column` on each flare: FLY or DON'T FLY with the numbers behind it, the modeled column, and the convective numbers |
 
 `near.target` is the Texas fly fill (`GET /candidate/target`, property
 `fly`) — the fill the operator map names SEEDING OPPORTUNITY.
 
 **The app draws the product's layers and nothing else.** Weatherman's own
-panel has three fills with one gate under them: radar with echo past
-freezing under it, cloud base, and the fly fill. A layer this page drew
-that the product does not draw would be a claim about a map nobody flies,
-so `near.cloudTop`, `near.liquid` and `near.baseWindow`
-are scored into `EVALUATION.md` by `score-season.mjs` and are not read by
-the app. The flyable window is reported on a click and is not a fill —
-see `docs/INVESTIGATION.md`.
+panel has four switches: the fly fill, radar with three gates under it,
+cloud base, and supercooled liquid water. This page carries the same four.
+A layer this page drew that the product does not draw would be a claim
+about a map nobody flies, so `near.cloudTop`, `near.candidate` and
+`near.baseWindow` are scored into `EVALUATION.md` by `score-season.mjs`
+and are not read by the app. The flyable window is reported on a click and
+is not a fill — see `docs/INVESTIGATION.md`.
 
 The Panhandle has no balloon file. It briefs on a NAM column, not a sonde.
 
@@ -100,17 +100,44 @@ job slot. `{%}` is the slot number GNU `parallel` assigns:
 
 ```bash
 DAYS=$(node eval/days.mjs | wc -l)
-for i in $(seq 1 $DAYS); do
+PAIRS=${PAIRS:-$DAYS}          # fewer than DAYS paints in waves
+
+echo "start   $(date -u +%FT%TZ) UTC / $(TZ=America/Chicago date +'%F %T %Z')"
+echo "box     $(nproc) vCPU, $(free -g | awk '/^Mem:/{print $2}') GiB, \
+$(curl -s http://169.254.169.254/latest/meta-data/instance-type)"
+echo "queued  $DAYS days, $PAIRS at a time = $(( (DAYS + PAIRS - 1) / PAIRS )) waves"
+
+for i in $(seq 1 $PAIRS); do
   docker run -d --name wm-$i -p $((3000 + i)):3000 \
     -v /home/ubuntu/weatherman/server:/usr/src/server \
     -v /usr/src/server/node_modules \
     weatherman-weatherman-server-service:latest yarn docker
 done
+for i in $(seq 1 $PAIRS); do
+  until curl -sf -o /dev/null http://localhost:$((3000 + i))/healthcheck; do sleep 2; done
+done
 
-parallel -j $DAYS --colsep '\t' \
+# Every five minutes: days done, painters up, load, and the estimate re-derived.
+( started=$(date +%s)
+  while sleep 300; do
+    done_n=$(tail -n +2 season.joblog 2>/dev/null | wc -l)
+    mins=$(( ($(date +%s) - started) / 60 ))
+    [ "$done_n" -gt 0 ] &&
+      echo "[+${mins}m] $done_n/$DAYS done, $(pgrep -fc paint.mjs) painters,\
+ load $(cut -d' ' -f1 /proc/loadavg), ~$(( (DAYS - done_n) * mins / done_n ))m left"
+    [ "$done_n" -ge "$DAYS" ] && break
+  done ) &
+
+parallel -j $PAIRS --colsep '\t' --joblog season.joblog \
   'WEATHERMAN_SERVER=http://localhost:$((3000 + {%})) \
-   node eval/paint.mjs {2} --region={1}' :::: <(node eval/days.mjs)
+   node eval/paint.mjs {2} --region={1} > logs/{1}-{2}.log 2>&1' \
+  :::: <(node eval/days.mjs)
+
+echo "finished $(TZ=America/Chicago date +'%F %T %Z'), $(ls eval/out | wc -l) files"
 ```
+
+Per-layer lines go to `logs/`, one file per painter, so the console
+carries the season and not 116 days of ring counts.
 
 The bare `-v /usr/src/server/node_modules` gives each container the
 `node_modules` from its own image, so the bind mount over `/usr/src/server`
@@ -172,17 +199,51 @@ and still writes the day, and a `null` layer reads the same as a layer
 that was empty. Size is the signal: a populated day is hundreds of
 kilobytes, a day of nulls is tens. Re-run that date alone.
 
+### What a season run prints
+
+A season is long enough that silence is indistinguishable from a hang, so
+the run reports on itself. Four things, all one line each:
+
+- **Start time**, UTC and US Central, on the first line.
+- **The box**: vCPU count, total RAM, instance type. What the run was
+  given decides how many waves it takes, so it is recorded next to the
+  result rather than remembered.
+- **An estimated run time**, from the day count and the pair count: days
+  divided by pairs, rounded up, times the slowest day seen so far. It is
+  a wave count times a wave, not a promise.
+- **Progress every five minutes** until the last day lands: days done of
+  days queued, painters still running, load average, and the estimate
+  re-derived from the rate actually observed.
+
+Nothing else. A per-layer line per painter belongs in that painter's own
+log, not on the console watching the season.
+
 ### Redo the radiosondes
 
 Four programs brief on a balloon. The Panhandle briefs on NAM and is
 refused here. One process per program is enough; each ascent is one
 HRRR column at 12Z.
 
+Each ascent is its own HRRR run, so nothing is shared between them and the
+work parallelises exactly. `WEATHERMAN_SERVERS` takes a comma-separated
+list and the script runs one worker per address — one, because an API is a
+single event loop and a second request to it only queues. Point it at the
+same containers the paint used:
+
+```bash
+APIS=$(seq 1 $PAIRS | sed 's|^|http://localhost:30|' | paste -sd,)
+for r in wtwma transpecos stwma plains; do
+  WEATHERMAN_SERVERS=$APIS node eval/balloons.mjs --region=$r &
+done
+wait
+```
+
+Rows are sorted before the file is written, so a run over one API and a run
+over thirty produce the same output. With a single address the script is
+unchanged:
+
 ```bash
 node eval/balloons.mjs --region=wtwma
-node eval/balloons.mjs --region=transpecos
-node eval/balloons.mjs --region=stwma
-node eval/balloons.mjs --region=plains
 ```
 
 `--resume` keeps rows already on disk. `--score` reprints from the file
@@ -211,32 +272,53 @@ local work.
 One file per program per flying day. Compact JSON. The eval app and
 `score-season.mjs` read these fields:
 
-| Key                                  | What it is                                              |
-| ------------------------------------ | ------------------------------------------------------- |
+| Key                                  | What it is                                            |
+| ------------------------------------ | ----------------------------------------------------- |
 | `date`, `region`, `window`, `cellKm` | which day, which program, the box, native km per fill |
-| `layers[]`                           | key, name, property, unit, cellKm for each fill         |
-| `frames[hour][key]`                  | contour levels at that analysis, native stairs          |
-| `marks[hour]`                        | cores, heading ticks, lightning at that hour            |
-| `analyses[].flares[]`                | each located flare                                      |
+| `layers[]`                           | key, name, property, unit, cellKm for each fill       |
+| `frames[hour][key]`                  | contour levels at that analysis, native stairs        |
+| `marks[hour]`                        | cores, heading ticks, lightning at that hour          |
+| `analyses[].flares[]`                | each located flare                                    |
 
 On each flare:
 
-| Field                       | What it is                                                                                                                                                 |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `at`, `timeZ`, `lon`, `lat` | the release                                                                                                                                                |
-| `drift`, `compared`         | storm-motion offset and the drifted point                                                                                                                  |
-| `near.<key>`                | `inside`, `km`, `kmAtRelease`, `validTime` for that fill                                                                                                   |
-| `storm`                     | `/candidate/storm` at the release, or `null`                                                                                                               |
-| `cell`                      | `/candidate/point` at the release minute — `target`, base above ground, 18 dBZ echo top, freezing level, rain, liquid — or `null` outside the grid         |
-| `column`                    | `/forecast/sounding` at the analysis — ground, freezing level, seeding band, the profile levels, and the `wrfsfc` diagnostics — or `null` outside the grid |
+| Field                       | What it is                                                                                                                                                                                                                                           |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `at`, `timeZ`, `lon`, `lat` | the release                                                                                                                                                                                                                                          |
+| `drift`, `compared`         | storm-motion offset and the drifted point                                                                                                                                                                                                            |
+| `near.<key>`                | `inside`, `km`, `kmAtRelease`, `validTime` for that fill                                                                                                                                                                                             |
+| `storm`                     | `/candidate/storm` at the release, or `null`                                                                                                                                                                                                         |
+| `cell`                      | `/candidate/point` at the release minute, whole — `target` and `verdict`, merged cloud base with its source, base above ground, 18 dBZ echo top, freezing level, rain, liquid, observed cloud-top temperature and phase — or `null` outside the grid |
+| `column`                    | `/forecast/sounding` at the analysis — ground, freezing level, seeding band, the profile levels, and the `wrfsfc` diagnostics — or `null` outside the grid                                                                                           |
+
+**Every reading a click returns is stored on the flare and shown in a
+table.** `/candidate/point` is the operator's own panel; whatever it
+answers about a 3 km cell is what the evaluation gets to ask about a
+release. So when a field is added to that route, it is added to `cellAt`
+in `paint.mjs` and to a column in the flare tables in the same change —
+a reading the map shows an operator and the evaluation quietly drops is
+a reading nobody can check.
+
+Which table it goes in follows what it is. `cellRows` in `readout.ts` is
+the operator's panel and mirrors it exactly, so a figure there reads as
+the figure a crew saw; anything the panel does not print goes in the
+block beside it, which is the evaluation's own and holds no verdicts.
+The same rule covers `/forecast/sounding` and the column tables under it.
+
+**A field added to a route after a season is painted is not in that
+season.** The painted files hold what the server answered on the day they
+were written, so a new reading means a repaint before it can be quoted —
+`verify.mjs` counts days and readouts, not columns, and will not catch
+it. Either repaint or say plainly that the column is empty for that run.
 
 Fills `paint.mjs` stores, all `fine=1`:
 
 | `near` key   | Route                          | Property          | Cell |
 | ------------ | ------------------------------ | ----------------- | ---- |
-| `cloudBase`  | `/forecast/cloudbase`          | `cloudBaseFt`     | 3 km |
+| `cloudBase`  | `/candidate/cloudbase`         | `cloudBaseFt`     | 3 km |
 | `cloudTop`   | `/cloudtop/temperature`        | `topColdnessC`    | 2 km |
 | `liquid`     | `/forecast/liquid`             | `slwPath`         | 3 km |
+| `candidate`  | `/candidate/field`             | `seedableSlwPath` | 3 km |
 | `radar`      | `/radar/reflectivity`          | `reflectivity`    | 1 km |
 | `target`     | `/candidate/target`            | `fly`             | 3 km |
 | `baseWindow` | `/forecast/cloudbase/window`   | `inWindow`        | 3 km |
@@ -251,9 +333,9 @@ The app reads the files `server.mjs` serves out of `out/`. It never
 re-scores against a live Weatherman API.
 
 **The layer list is the product's list.** `eval/app/src/lib/layers.ts`
-names four fills, each pointing at the legend, band table and color in
-`@/lib/arcgis` — radar, echo past freezing under it, cloud base, and the
-fly fill. The nesting is the product's nesting: a gate is drawn only
+names five fills, each pointing at the legend, band table and color in
+`@/lib/arcgis` — radar, echo past freezing under it, cloud base,
+supercooled liquid water, and the fly fill. The nesting is the product's nesting: a gate is drawn only
 while the layer it annotates is on, and the storm marks go in under the
 fly fill because that is where `Map.tsx` adds them. A fill the product
 stops drawing comes out of that file.
@@ -273,19 +355,30 @@ quantity.
 in blocks 1 and 3 are the arithmetic `score-season.mjs` prints:
 
 1. The layers Weatherman draws — radar, echo past freezing, cloud base,
-   the fly fill.
+   supercooled liquid water, the fly fill.
 2. THE FLARES — each release, inside-or-kilometers per fill.
 3. Texas storm features — upwind, in 20 dBZ, nearer the edge, echo top
    past freezing, from `storm` on each flare.
 4. What a click would have said — FLY or DON'T FLY with the numbers
-   behind it, the column, and the convective numbers, from `cell` and
-   `column` on each flare. Formatted by the product's own rules in
-   `readout.ts`, so a figure here reads as the figure an operator would
-   have read.
+   behind it, then everything else the click returns, then the column and
+   the convective numbers, from `cell` and `column` on each flare. The
+   first block is the operator's panel, formatted by the product's own
+   rules in `readout.ts` so a figure there reads as the figure an operator
+   would have read. The second is the evaluation's own: the seeding
+   opportunity and liquid verdicts, HRRR's own base against the merged
+   one, cloud-top temperature and observed phase, and each source's scan
+   minute. Nothing in it is a verdict.
 
-**THE BAND.** Every scored ascent from `balloons-*.json`. Overlap is
+**RADIOSONDE.** Every scored ascent from `balloons-*.json`. Overlap is
 calculated in `server.mjs` from those rows, the same function
-`score-season.mjs` calls.
+`score-season.mjs` calls. The page leads with the seeding band and calls
+out the CCL separately, because that row is the cloud-base layer's
+fallback height rather than a band edge.
+
+Every measured number on that page is already on disk: the reports print
+the ascent's own table and `releases.mjs` parsed it into
+`data/releases-*.json` as `day.soundings[<station>]`. `balloons.mjs`
+fetches only the model column to set beside it.
 
 **Findings.** The season tables `EVALUATION.md` reprints. A subset of
 days is not a season.
@@ -306,7 +399,7 @@ on the storm they flew.
 | `server.mjs`       | HTTP for the eval app (port 3100). Re-reads `out/` per request.                                                                |
 | `releases.mjs`     | Download and parse daily reports into a flight record.                                                                         |
 | `panhandle.mjs`    | Same, for the Panhandle's monthly files.                                                                                       |
-| `records.mjs`      | Download a program's PDFs into `cache/` without parsing.                                                                     |
+| `records.mjs`      | Download a program's PDFs into `cache/` without parsing.                                                                       |
 | `counties.mjs`     | Pull county polygons from TIGERweb into `data/counties-tx.geojson`.                                                            |
 | `positions.mjs`    | Share of releases that land in the county their own row names.                                                                 |
 | `score-season.mjs` | Print the EVALUATION.md tables from `out/`. No network.                                                                        |

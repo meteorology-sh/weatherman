@@ -98,7 +98,7 @@ export const Findings = () => {
         <Status loading={false} missing={missing} error={null} />
 
         <Link
-          to={`/${region}/band`}
+          to={`/${region}/radiosonde`}
           className="card bg-base-200 hover:bg-base-300 transition-colors"
         >
           <div className="card-body">

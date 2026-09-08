@@ -53,7 +53,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Local
-import { SERVER } from "./lib/weatherman.mjs";
+import { SERVER, SERVERS } from "./lib/weatherman.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, "out");
@@ -74,8 +74,8 @@ const STATIONS = {
 /** The ascent the reports quote. Also an HRRR analysis hour, which is the point. */
 const SOUNDING_HOUR = 12;
 
-async function sounding(lat, lon, at) {
-  const url = new URL("/forecast/sounding", SERVER);
+async function sounding(lat, lon, at, server = SERVER) {
+  const url = new URL("/forecast/sounding", server);
   url.searchParams.set("lat", lat);
   url.searchParams.set("lon", lon);
   url.searchParams.set("hour", "0");
@@ -171,6 +171,23 @@ const PAIRS = [
         : h.diagnostics.cloudBaseFt * M_PER_FT,
   },
   {
+    key: "ccl",
+    label: "CCL",
+    unit: "m",
+    // The one row where both sides are the same quantity. The report prints the
+    // ascent's own convective condensation level, and `ccl.ts` computes ours
+    // from HRRR's surface moisture against its temperature profile — same
+    // definition, same 12Z column, so this is scored rather than reported.
+    //
+    // It matters because the cloud-base layer falls back to this height
+    // wherever HRRR diagnoses no cloud, which is about half the domain. The
+    // `cloudBase` row above cannot check that fallback: it compares HRRR's 12Z
+    // deck against an afternoon parcel height and the two are not the same
+    // claim. This row is the fallback's own accuracy, against the instrument.
+    reported: (s) => s.cclM,
+    ours: (h) => (h.cclFt == null ? null : h.cclFt * M_PER_FT),
+  },
+  {
     key: "temp700Mb",
     label: "700 mb temperature",
     unit: "°C",
@@ -253,26 +270,48 @@ console.log(
         `${RESUME && rows.length ? `\n${rows.length} ascents already on disk, kept.` : ""}\n`
 );
 
+/**
+ * Every ascent still to fetch, flattened out of the day list.
+ *
+ * Flat because the work is one (day, site) pair per model column and the day
+ * loop was only ever a way to reach them. `--resume` has already removed the
+ * ones on disk.
+ */
+const queue = [];
 for (const day of seeded) {
   const at = `${day.date}T${String(SOUNDING_HOUR).padStart(2, "0")}:00:00.000Z`;
-
   for (const code of sites) {
-    const site = STATIONS[code];
     const reported = day.soundings?.[code];
     if (!reported) continue;
     if (done.has(`${day.date} ${code}`)) continue;
+    queue.push({ date: day.date, code, at, reported });
+  }
+}
+
+/**
+ * One worker per API, each taking the next ascent off the queue.
+ *
+ * Every column is a separate HRRR run, so nothing is shared between them and
+ * the only limit is how many APIs there are to ask. See `SERVERS` for why the
+ * pool is sized by addresses rather than by a concurrency number.
+ */
+let next = 0;
+async function worker(server) {
+  while (next < queue.length) {
+    const task = queue[next++];
+    const site = STATIONS[task.code];
 
     let ours = null;
     let error = null;
     try {
-      ours = await sounding(site.lat, site.lon, at);
+      ours = await sounding(site.lat, site.lon, task.at, server);
     } catch (failure) {
       error = failure.message;
     }
 
     const compared = {};
     for (const pair of PAIRS) {
-      const theirs = pair.reported(reported);
+      const theirs = pair.reported(task.reported);
       const mine = ours ? pair.ours(ours) : null;
       compared[pair.key] =
         theirs == null || mine == null
@@ -284,7 +323,13 @@ for (const day of seeded) {
             };
     }
 
-    rows.push({ date: day.date, site: code, at, error, compared });
+    rows.push({
+      date: task.date,
+      site: task.code,
+      at: task.at,
+      error,
+      compared,
+    });
 
     const summary = PAIRS.map((pair) => {
       const cell = compared[pair.key];
@@ -294,25 +339,38 @@ for (const day of seeded) {
     }).join("  ");
 
     console.log(
-      `  ${day.date} ${code}  ${error ? `error: ${error}` : summary}`
+      `  ${task.date} ${task.code}  ${error ? `error: ${error}` : summary}`
     );
   }
-
-  await mkdir(OUT, { recursive: true });
-  await writeFile(
-    OUTFILE,
-    `${JSON.stringify(
-      {
-        server: SERVER,
-        region: region.id,
-        sites: Object.fromEntries(sites.map((code) => [code, STATIONS[code]])),
-        rows,
-      },
-      null,
-      2
-    )}\n`
-  );
 }
+
+if (SERVERS.length > 1) {
+  console.log(`  ${queue.length} ascents over ${SERVERS.length} APIs\n`);
+}
+
+await Promise.all(SERVERS.map((server) => worker(server)));
+
+// Sorted before writing, so a run over one API and a run over thirty produce
+// the same file. Workers finish out of order and the output is a record, not
+// a log of what happened to land first.
+rows.sort(
+  (a, b) => a.date.localeCompare(b.date) || a.site.localeCompare(b.site)
+);
+
+await mkdir(OUT, { recursive: true });
+await writeFile(
+  OUTFILE,
+  `${JSON.stringify(
+    {
+      server: SERVERS.length > 1 ? SERVERS : SERVER,
+      region: region.id,
+      sites: Object.fromEntries(sites.map((code) => [code, STATIONS[code]])),
+      rows,
+    },
+    null,
+    2
+  )}\n`
+);
 
 /**
  * An ascent whose printed band cannot be a measured band.

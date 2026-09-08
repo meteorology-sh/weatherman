@@ -8,6 +8,23 @@
 export const SERVER = process.env.WEATHERMAN_SERVER ?? "http://localhost:3000";
 
 /**
+ * Every API this process may talk to, from `WEATHERMAN_SERVERS`.
+ *
+ * **One address is one event loop.** A Weatherman API is a single Node process
+ * and a cold build occupies it for 40-60 s, so two requests to one address
+ * queue rather than overlap and concurrency there buys nothing. Work is spread
+ * by handing each task its own address instead, which is why a season starts
+ * one container per painter.
+ *
+ * Comma-separated. Falls back to the single `SERVER`, so a script that reads
+ * this runs unchanged against one API.
+ */
+export const SERVERS = (process.env.WEATHERMAN_SERVERS ?? SERVER)
+  .split(",")
+  .map((address) => address.trim())
+  .filter(Boolean);
+
+/**
  * How long to wait for one answer.
  *
  * A cold build of five sources off the archive runs 40–60 s, so this is
