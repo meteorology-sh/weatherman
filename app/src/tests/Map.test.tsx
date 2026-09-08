@@ -117,7 +117,6 @@ describe("ArcGIS", () => {
     );
   });
 
-
   // Draw order is array order, and rain has to sit over the cloud it falls from.
   it("draws precipitation above the cloud it falls from", () => {
     renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
@@ -183,7 +182,7 @@ describe("ArcGIS in candidate mode", () => {
     expect(radarLayer.url).toContain("/radar/reflectivity");
     expect(stormCoreLayer.url).toContain("/radar/objects/cores");
     expect(stormMotionLayer.url).toContain("/radar/objects/motion");
-    expect(cloudBaseLayer.url).toContain("/forecast/cloudbase");
+    expect(cloudBaseLayer.url).toContain("/candidate/cloudbase");
     expect(liquidLayer.url).toContain("/forecast/liquid");
     expect(lightningLayer.url).toContain("/cloudtop/lightning");
     expect(echoFreezeLayer.url).toContain("/radar/echotop/past-freezing");
@@ -197,8 +196,7 @@ describe("ArcGIS in candidate mode", () => {
     const v = view();
     v.extent = { xmin: -102, ymin: 28, xmax: -98, ymax: 32 };
     const onStationary = watch.mock.calls[0]?.[1] as
-      | ((stationary: boolean) => void)
-      | undefined;
+      ((stationary: boolean) => void) | undefined;
     act(() => {
       onStationary?.(true);
     });
@@ -217,8 +215,7 @@ describe("ArcGIS in candidate mode", () => {
     v.zoom = 4;
     v.extent = { xmin: -125, ymin: 24, xmax: -70, ymax: 50 };
     const onStationary = watch.mock.calls[0]?.[1] as
-      | ((stationary: boolean) => void)
-      | undefined;
+      ((stationary: boolean) => void) | undefined;
     act(() => {
       onStationary?.(true);
     });
@@ -369,8 +366,6 @@ describe("ArcGIS in candidate mode", () => {
 
     expect(liquidLayer.visible).toBe(false);
   });
-
-
 });
 
 describe("ArcGIS radar", () => {
@@ -416,7 +411,6 @@ describe("ArcGIS in forecast mode", () => {
 
     expect(forecastLayer.visible).toBe(true);
   });
-
 
   // The liquid layer is pinned to the analysis, so it would contradict the
   // slider the moment the operator moved it.

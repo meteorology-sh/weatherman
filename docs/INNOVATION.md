@@ -16,7 +16,7 @@ app will not become.
 ## The object is a storm
 
 Texas programs select a convective cell on TITAN: still growing, first
-half of its lifetime, cloud base 4,000–12,000 ft above the ground, depth
+half of its lifetime, cloud base under 12,000 ft above the ground, depth
 past the freezing level, enough cloud-base inflow, not severe. They
 release silver iodide at cloud base into that updraft. Rain in the core
 is how they find the flank, not how they cross the cell off.
@@ -41,7 +41,7 @@ computes that never lands on the storm in view.
 
 | On the storm | What it is | What it is not |
 | --- | --- | --- |
-| Cloud base, ft above the ground | Can the aircraft climb in. The 4,000–12,000 ft window is the Comptroller gate. | A national height ramp used as a mask. |
+| Cloud base, ft above the ground | Can the aircraft climb in, and does rain from this base reach the ground. Under 12,000 ft is the West Texas criterion. | A national height ramp used as a mask. |
 | Freezing level and −15 °C | The morning sounding, on this column. Median overlap with the balloons they brief is 95.3–97.7%. | A forecast of where to fly in hours. |
 | 18 dBZ echo top versus freezing | The glaciogenic cue, measured. | A second rain fill. |
 | Upwind raining edge | The flank of the object they fly. Heading from the previous mosaic, not inflow. | Climb rate in ft/min. Pilots measure that with the aircraft. |

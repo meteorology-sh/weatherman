@@ -20,6 +20,7 @@ import type {
   CandidateFrame,
   CandidatePoint,
   CandidateStats,
+  MergedBaseStats,
   TargetStats,
 } from "../lib/services/candidate/field";
 
@@ -69,7 +70,7 @@ const stats: CandidateStats = {
   },
   blindKm2: 2880,
   medianBaseFt: 5800,
-  windowPct: 61.4,
+  seedableBasePct: 61.4,
   medianBandBaseFt: 17100,
   ceilingFt: 18000,
   reachablePct: 72.9,
@@ -95,8 +96,8 @@ const targetStats: TargetStats = {
   targetKm2: 18900,
   boxKm2: 450000,
   rejected: {
-    noCloudBase: 120000,
-    baseAboveCeiling: 81000,
+    noCloudBase: 81000,
+    baseTooHigh: 36000,
     noFreezingLevel: 9000,
     topBelowFreezing: 162000,
     noStorm: 59100,
@@ -120,8 +121,22 @@ const point: CandidatePoint = {
   cloudBaseFt: 5800,
   cloudTopC: -14,
   topPhase: "supercooled",
+  cloudBaseMslFt: 5800,
+  baseSource: "model",
+  baseDrawn: true,
   dbz: null,
   radarCovered: true,
+};
+
+const baseStats: MergedBaseStats = {
+  run: "2025-05-15T18:00:00.000Z",
+  validTime: "2025-05-15T18:00:00.000Z",
+  radarTime: "2025-05-15T18:00:39.000Z",
+  drawnKm2: 182304,
+  drawnPct: 4.21,
+  modelKm2: 121536,
+  cclKm2: 60768,
+  medianFt: 5800,
 };
 
 describe("candidate router", () => {
@@ -292,6 +307,65 @@ describe("candidate router", () => {
     );
 
     await fetch(`${origin}/candidate/target/stats`);
+
+    assert.equal(seen, undefined);
+  });
+
+  it("responds with the cloud-base fill as GeoJSON", async (t) => {
+    t.mock.method(Seedability, "baseField", async () => frame);
+
+    const res = await fetch(`${origin}/candidate/cloudbase`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), frame);
+  });
+
+  it("responds with the cloud-base summary as JSON", async (t) => {
+    t.mock.method(Seedability, "baseStats", async () => baseStats);
+
+    const res = await fetch(`${origin}/candidate/cloudbase/stats`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), baseStats);
+  });
+
+  // The layer is gated on a measured echo top, so it has no `hour` — an
+  // observation cannot be forecast. A box still narrows what is counted.
+  it("passes a box through to the cloud-base summary", async (t) => {
+    let seen: unknown = null;
+    t.mock.method(
+      Seedability,
+      "baseStats",
+      async (_at?: Date, box?: unknown) => {
+        seen = box;
+        return baseStats;
+      }
+    );
+
+    await fetch(
+      `${origin}/candidate/cloudbase/stats?west=-106&east=-96&south=27.5&north=36`
+    );
+
+    assert.deepEqual(seen, {
+      west: -106,
+      east: -96,
+      south: 27.5,
+      north: 36,
+    });
+  });
+
+  it("reads an absent box as the whole domain for cloud base", async (t) => {
+    let seen: unknown = Symbol("unset");
+    t.mock.method(
+      Seedability,
+      "baseStats",
+      async (_at?: Date, box?: unknown) => {
+        seen = box;
+        return baseStats;
+      }
+    );
+
+    await fetch(`${origin}/candidate/cloudbase/stats`);
 
     assert.equal(seen, undefined);
   });

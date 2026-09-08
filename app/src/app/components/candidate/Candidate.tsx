@@ -23,8 +23,8 @@ export const Candidate = () => {
                 <p>A seeding opportunity has all three criteria:</p>
                 <ul>
                   <li>
-                    The cloud base is between 4,000–12,000 ft above ground
-                    level.
+                    The cloud base is under 12,000 ft above ground level, and
+                    under the aircraft&apos;s ceiling.
                   </li>
                   <li>Radar echo-top reaches beyond freezing.</li>
                   <li>Rain is already falling nearby.</li>

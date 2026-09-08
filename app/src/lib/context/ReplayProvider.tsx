@@ -55,7 +55,7 @@ export function ReplayProvider({ children }: { children: React.ReactNode }) {
           await Promise.all([
             // Hour 0 throughout — the analysis of the cycle being replayed,
             // matching the candidate map's reading of "the sky at this moment".
-            GetCloudBaseStats(0, hour),
+            GetCloudBaseStats(hour),
             GetCloudTopStats(hour),
             GetLiquidStats(0, hour),
             GetRadarStats(hour),

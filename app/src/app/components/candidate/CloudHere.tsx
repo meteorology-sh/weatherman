@@ -1,11 +1,30 @@
 // Store
 import { useAppSelector } from "@/lib/store/hooks";
 
+// Types
+import type { CloudPhase } from "@/lib/types";
+
 // Components
 import { MeasurementGrid } from "@/app/components/panel/Measurements";
 import { dash, latLon } from "@/lib/format";
 
 const num = new Intl.NumberFormat("en-US");
+
+/**
+ * The satellite's phase classes as an operator reads them.
+ *
+ * "Supercooled" is the one that matters and is spelled out rather than
+ * abbreviated: it is liquid water below freezing, which is what seeding works
+ * on, and a reader skimming the panel should not have to decode it.
+ */
+const PHASE_LABELS: Record<CloudPhase, string> = {
+  clear: "Clear",
+  liquid: "Liquid",
+  supercooled: "Supercooled liquid",
+  mixed: "Mixed phase",
+  ice: "Ice",
+  unknown: "Unknown",
+};
 
 /**
  * FLY on this 3 km cell, and the numbers that made the call.
@@ -43,6 +62,28 @@ export const CloudHere = () => {
       ? "—"
       : `${here.dbz} dBZ`;
 
+  // A cell can be a target with no modeled base. The row says so rather than
+  // showing a dash a reader could take for a missing reading.
+  const base =
+    here.cloudBaseAglFt === null
+      ? "not modeled"
+      : `${num.format(here.cloudBaseAglFt)} ft`;
+
+  // The height the cloud-base layer drew here, and which of its two model
+  // heights answered. Both are model output, so the source is named rather
+  // than left for the reader to assume it was HRRR's own diagnosis.
+  const baseMsl =
+    here.cloudBaseMslFt === null
+      ? "—"
+      : `${num.format(here.cloudBaseMslFt)} ft MSL${
+          here.baseSource === "ccl" ? " (CCL)" : " (model)"
+        }`;
+
+  // Observed, unlike everything else about phase in this app. The satellite
+  // classifies the top of whatever deck it can see, which under multi-layer
+  // cloud is the highest one and not necessarily the storm underneath.
+  const phase = here.topPhase === null ? "—" : PHASE_LABELS[here.topPhase];
+
   return (
     <div className="flex flex-col gap-3">
       <h3 className="flex items-center justify-between gap-2 font-semibold">
@@ -61,15 +102,10 @@ export const CloudHere = () => {
       </h3>
       <MeasurementGrid
         rows={[
-          {
-            label: "Base Above Ground",
-            value: dash(
-              here.cloudBaseAglFt === null
-                ? null
-                : `${num.format(here.cloudBaseAglFt)} ft`
-            ),
-          },
+          { label: "Cloud Base", value: baseMsl },
+          { label: "Base Above Ground", value: base },
           { label: "18 dBZ Echo Top", value: echo },
+          { label: "Observed Cloud-Top Phase", value: phase },
           { label: "Rain", value: rain },
           {
             label: "Supercooled Liquid Water",

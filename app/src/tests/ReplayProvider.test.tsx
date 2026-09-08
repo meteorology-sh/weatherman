@@ -15,7 +15,7 @@ function mockStats() {
   return vi.fn(async (url: string) => {
     const body = url.startsWith("/cloudtop")
       ? cloudTop
-      : url.startsWith("/forecast/cloudbase")
+      : url.startsWith("/candidate/cloudbase")
         ? cloudBase
         : url.startsWith("/forecast")
           ? liquid
@@ -49,7 +49,7 @@ describe("ReplayProvider", () => {
     expect(asked).toContain(`/cloudtop/temperature/stats?at=${at}`);
     expect(asked).toContain(`/forecast/liquid/stats?hour=0&at=${at}`);
     expect(asked).toContain(`/radar/reflectivity/stats?at=${at}`);
-    expect(asked).toContain(`/forecast/cloudbase/stats?hour=0&at=${at}`);
+    expect(asked).toContain(`/candidate/cloudbase/stats?at=${at}`);
   });
 
   // Awaiting every one of them is what makes the layers appear together: the stats
@@ -66,7 +66,7 @@ describe("ReplayProvider", () => {
         }
         const body = url.startsWith("/cloudtop")
           ? cloudTop
-          : url.startsWith("/forecast/cloudbase")
+          : url.startsWith("/candidate/cloudbase")
             ? cloudBase
             : liquid;
         return { ok: true, json: async () => body } as Response;

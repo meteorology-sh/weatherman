@@ -1,9 +1,8 @@
 // ArcGIS
-import { BAND_LABEL, CEILING_FT, RADAR_BANDS } from "@/lib/arcgis/bands";
+import { BAND_LABEL, BASE_CEILING_FT, RADAR_BANDS } from "@/lib/arcgis/bands";
 import {
   ALL_LEGENDS,
-  FLIGHT_WINDOW_LABEL,
-  CEILING_LABEL,
+  BASE_CEILING_LABEL,
   CandidateLegend,
   CloudBaseLegend,
   EchoFreezeLegend,
@@ -57,19 +56,20 @@ describe("layer legends", () => {
 });
 
 describe("CloudBaseLegend", () => {
-  // The ceiling is the aircraft's design figure, and the prose has to read it
-  // from the same constant the server bands on rather than restating it — a
-  // hardcoded copy goes stale silently when the airframe changes.
+  // The prose has to read the top of the map from the same constant the server
+  // bands on rather than restating it — a hardcoded copy goes stale silently.
   it("takes the ceiling from the constant the bands are built on", () => {
-    expect(CEILING_LABEL).toContain(CEILING_FT.toLocaleString("en-US"));
-    expect(detailOf(CloudBaseLegend)).toContain(CEILING_LABEL);
+    expect(BASE_CEILING_LABEL).toContain(
+      BASE_CEILING_FT.toLocaleString("en-US")
+    );
+    expect(detailOf(CloudBaseLegend)).toContain(BASE_CEILING_LABEL);
   });
 
-  // The window is a test the candidate fill runs. This layer draws a height
-  // and offers no switch, so the window must not appear on it at all.
-  it("keeps the Texas window out of the layer entirely", () => {
-    expect(CloudBaseLegend.summary).not.toContain(FLIGHT_WINDOW_LABEL);
-    expect(detailOf(CloudBaseLegend)).not.toContain(FLIGHT_WINDOW_LABEL);
+  // The seeding criterion is a test the candidate fill runs. This layer draws
+  // a height and offers no switch, so the criterion must not appear on it.
+  it("keeps the seeding criterion out of the layer entirely", () => {
+    expect(CloudBaseLegend.summary).not.toContain("above the ground");
+    expect(detailOf(CloudBaseLegend)).not.toContain("above the ground");
   });
 
   // Modeled data on a map of measurements, so the detail has to say which
@@ -131,27 +131,39 @@ describe("RadarLegend", () => {
     expect(EchoFreezeLegend.summary).toContain("freezing");
     expect(detailOf(EchoFreezeLegend)).toContain("18 dBZ");
   });
-
 });
 
 describe("CandidateLegend", () => {
-  // The height test is the ceiling and nothing under it, read from the same
-  // constant the server gates on.
+  // The height test is the top of the map and nothing under it, read from the
+  // same constant the server gates on.
   it("states the Texas tests it joins on", () => {
     expect(detailOf(CandidateLegend)).toContain(String(RADAR_BANDS[0].value));
     expect(detailOf(CandidateLegend)).toContain("18 dBZ");
-    expect(detailOf(CandidateLegend)).toContain(CEILING_LABEL);
+    expect(detailOf(CandidateLegend)).toContain(BASE_CEILING_LABEL);
   });
 
   // A lower bound would reject cloud an aircraft can climb into, so the prose
   // has to say there is none rather than leave a reader to assume a window.
   it("says the base has no lower bound", () => {
     expect(detailOf(CandidateLegend)).toContain("no lower bound");
-    expect(detailOf(CandidateLegend)).not.toContain(FLIGHT_WINDOW_LABEL);
+  });
+
+  // The base this layer tests is the one the cloud-base layer draws, and a
+  // reader has to be told that rather than left to assume a second opinion.
+  it("points the base at the layer that draws it", () => {
+    expect(detailOf(CandidateLegend)).toContain("CLOUD BASE");
+    expect(detailOf(CandidateLegend)).toContain("condensation level");
+  });
+
+  // The base test used to be waived where the model grew no cloud. It is
+  // asked now, and the prose has to say so rather than leave the old claim.
+  it("says a column with no base fails on it", () => {
+    expect(detailOf(CandidateLegend)).toContain("fails on that");
+    expect(detailOf(CandidateLegend)).not.toContain("unanswered");
   });
 
   it("names every test it joins on, in the sentence under the switch", () => {
-    expect(CandidateLegend.summary).toContain("ceiling");
+    expect(CandidateLegend.summary).toContain("cloud base");
     expect(CandidateLegend.summary).toContain("echo");
     expect(CandidateLegend.summary).toContain("rain");
   });

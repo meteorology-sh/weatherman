@@ -36,10 +36,7 @@ describe("storms slice", () => {
         },
       })
     );
-    const cleared = reducer(
-      filled,
-      soundingActions.setPoint([-101.4, 32.1])
-    );
+    const cleared = reducer(filled, soundingActions.setPoint([-101.4, 32.1]));
     expect(cleared.here).toBeUndefined();
   });
 });

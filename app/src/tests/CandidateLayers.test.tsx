@@ -20,6 +20,7 @@ import {
 } from "@/lib/arcgis/bands";
 import {
   CEILING_FT,
+  BASE_CEILING_FT,
   CLOUD_BASE_BANDS,
   CLOUD_BASE_RGB,
 } from "@/lib/arcgis/bands";
@@ -76,14 +77,11 @@ describe("CandidateLayers", () => {
     );
   });
 
-
   it("offers the modeled liquid as a switch", () => {
     renderWithStore(<CandidateLayers />, createTestStore());
 
     expect(screen.getByLabelText(LIQUID)).toBeTruthy();
   });
-
-
 });
 
 describe("CandidateLayers cloud base", () => {
@@ -139,9 +137,9 @@ describe("CandidateLayers cloud base", () => {
     expect(reachable).toBeGreaterThan(unreachable);
   });
 
-  it("bands on thirds of the aircraft's ceiling", () => {
+  it("bands on thirds of the workable bound, open above it", () => {
     expect(CLOUD_BASE_BANDS.map((b) => b.value)).toEqual(
-      [0, 1, 2, 3].map((n) => (n * CEILING_FT) / 3)
+      [0, 1, 2, 3].map((n) => (n * BASE_CEILING_FT) / 3)
     );
   });
 
@@ -174,9 +172,9 @@ describe("CandidateLayers cloud base", () => {
   it("says what the layer gives you under its switch", () => {
     withLayer();
 
-    expect(
-      screen.getAllByText(CloudBaseLegend.summary).length
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(CloudBaseLegend.summary).length).toBeGreaterThan(
+      0
+    );
   });
 });
 

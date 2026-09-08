@@ -233,15 +233,19 @@ export const soloColor = (rgb: readonly number[], alpha: number) =>
   `rgba(${rgb.join(",")},${alpha.toFixed(3)})`;
 
 /**
- * The window Texas operations select cloud bases in. Mirrors
- * FLIGHT_WINDOW_FT in server/src/lib/services/hrrr/diagnostics.ts.
+ * The highest cloud base Texas operations will seed, ft above the ground.
+ * Mirrors SEEDABLE_BASE_FT in server/src/lib/services/hrrr/diagnostics.ts.
  *
- * Drawn as height above the ground, not above the sea. Read as MSL a
- * fixed window means a different thing over every cell — it is
- * 3,997–11,997 ft above ground at Galveston and underground to 1,827 ft
- * above ground at Leadville — so the fill is AGL.
+ * An upper bound and nothing else: rain falling from a higher base
+ * evaporates before it reaches the ground, and no base is too low to be
+ * worth climbing into.
+ *
+ * Read as height above the ground, not above the sea. As MSL a fixed
+ * bound means a different thing over every cell — it is 11,997 ft above
+ * ground at Galveston and 1,827 ft above ground at Leadville — so the
+ * fill is AGL.
  */
-export const FLIGHT_WINDOW_FT = [4000, 12000] as const;
+export const SEEDABLE_BASE_FT = 12000;
 
 /**
  * The drone's service ceiling, ft MSL. Mirrors CEILING_FT in
@@ -253,6 +257,17 @@ export const FLIGHT_WINDOW_FT = [4000, 12000] as const;
  * this map can draw across the whole domain.
  */
 export const CEILING_FT = 18000;
+
+/**
+ * The highest workable cloud base, ft MSL. Mirrors BASE_CEILING_FT in
+ * server/src/lib/services/candidate/cloudbase.ts.
+ *
+ * A judgement rather than a cutoff: it decides fly / don't fly on the seeding
+ * opportunity, and on the cloud-base ramp it is only the edge where the last
+ * band opens. A base above it is still drawn. It shares a number with the
+ * service ceiling above and is not derived from it — different claims.
+ */
+export const BASE_CEILING_FT = 18000;
 
 /**
  * One cloud-base band: its lower edge in ft MSL, and the fill painted for it.
@@ -274,44 +289,46 @@ export type CloudBaseBand = {
 export const CLOUD_BASE_RGB = [167, 139, 250] as const;
 
 /**
- * Mirrors CLOUD_BASE.edges in server/src/lib/services/hrrr/diagnostics.ts —
- * thirds of the service ceiling, so every edge traces to that one cited number.
+ * Mirrors MERGED_BASE.edges in
+ * server/src/lib/services/candidate/cloudbase.ts — thirds of the top of the
+ * map, so every edge traces to that one number.
  *
- * **The ramp runs loud-to-quiet, like the cloud tops and for the same reason.**
- * Brightness is not the height, it is how much of a climb there is before there
- * is cloud to work with: the lowest base is the least of it, so it is the
- * loudest. Reading brightness as the magnitude of the number would put the ramp
- * exactly the wrong way round, which is why this note exists.
+ * **The ramp runs loud-to-quiet.** Brightness is not the height, it is how much
+ * of a climb there is before there is cloud to work with: the lowest base is
+ * the least of it, so it is the loudest. Reading brightness as the magnitude of
+ * the number would put the ramp exactly the wrong way round, which is why this
+ * note exists.
  *
- * The last band is open above the ceiling and still drawn. A base too high to
- * reach and no cloud at all are different answers, and leaving the first blank
- * would make them the same.
+ * **The last band is open above the bound and still drawn.** A base too high to
+ * work and no cloud at all are different answers, and blanking the first would
+ * make them the same. Whether that base can be flown is the seeding
+ * opportunity's judgement, not this layer's.
  *
  * The steps are wide because these bands do not composite — see the cloud-top
  * note above for why a disjoint band has to carry its whole separation in the
  * alpha written here.
  */
-const THIRD_OF_CEILING = CEILING_FT / 3;
+const THIRD_OF_BASE_CEILING = BASE_CEILING_FT / 3;
 
 export const CLOUD_BASE_BANDS: readonly CloudBaseBand[] = [
   {
     value: 0,
-    label: `under ${THIRD_OF_CEILING / 1000}k`,
+    label: `under ${THIRD_OF_BASE_CEILING / 1000}k`,
     alpha: 0.6,
   },
   {
-    value: THIRD_OF_CEILING,
-    label: `${THIRD_OF_CEILING / 1000}–${(2 * THIRD_OF_CEILING) / 1000}k`,
-    alpha: 0.42,
+    value: THIRD_OF_BASE_CEILING,
+    label: `${THIRD_OF_BASE_CEILING / 1000}–${(2 * THIRD_OF_BASE_CEILING) / 1000}k`,
+    alpha: 0.4,
   },
   {
-    value: 2 * THIRD_OF_CEILING,
-    label: `${(2 * THIRD_OF_CEILING) / 1000}–${CEILING_FT / 1000}k`,
+    value: 2 * THIRD_OF_BASE_CEILING,
+    label: `${(2 * THIRD_OF_BASE_CEILING) / 1000}–${BASE_CEILING_FT / 1000}k`,
     alpha: 0.26,
   },
   {
-    value: CEILING_FT,
-    label: `over ${CEILING_FT / 1000}k`,
+    value: BASE_CEILING_FT,
+    label: `over ${BASE_CEILING_FT / 1000}k`,
     alpha: 0.12,
   },
 ];

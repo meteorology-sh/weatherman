@@ -70,8 +70,11 @@ export interface CandidateStats {
   blindKm2: number;
   /** Median cloud base over candidate ground, ft MSL. */
   medianBaseFt: number | null;
-  /** Percent of candidate ground whose base is inside the operational window. */
-  windowPct: number;
+  /**
+   * Percent of candidate ground whose base is under 12,000 ft above the
+   * ground — low enough that rain from it reaches the ground.
+   */
+  seedableBasePct: number;
   /** Median height of the band's warm edge over candidate ground, ft MSL. */
   medianBandBaseFt: number | null;
   /** The ceiling reachability is reported against, ft MSL. */
@@ -104,7 +107,7 @@ export interface TargetStats {
   boxKm2: number;
   rejected: {
     noCloudBase: number;
-    baseAboveCeiling: number;
+    baseTooHigh: number;
     noFreezingLevel: number;
     topBelowFreezing: number;
     noStorm: number;
@@ -125,7 +128,7 @@ export type Verdict =
 export type TargetVerdict =
   | "target"
   | "noCloudBase"
-  | "baseAboveCeiling"
+  | "baseTooHigh"
   | "noFreezingLevel"
   | "topBelowFreezing"
   | "noStorm";
@@ -150,7 +153,7 @@ export interface CandidatePoint {
    * Independent of `verdict` — rain and missing liquid do not reject it.
    */
   target: TargetVerdict;
-  /** Cloud base above the terrain, ft. Null where there is no base. */
+  /** Cloud base above the terrain, ft. Null where the model has no cloud. */
   cloudBaseAglFt: number | null;
   /** Freezing level, ft MSL. Null where the column never crosses 0 °C. */
   freezingFt: number | null;
@@ -164,6 +167,15 @@ export interface CandidatePoint {
   cloudTopC: number | null;
   /** Observed phase at the cloud top. Null where no phase scene could be read. */
   topPhase: CloudPhase | null;
+  /**
+   * Merged cloud base, ft MSL — HRRR's own where it has one, the CCL where it
+   * does not. Reported even where the layer draws nothing.
+   */
+  cloudBaseMslFt: number | null;
+  /** Which height answered. Null where neither did. */
+  baseSource: BaseSource | null;
+  /** Does the cloud-base layer fill this cell? */
+  baseDrawn: boolean;
   /** Measured reflectivity, dBZ. Null where the radars see no echo, or nothing. */
   dbz: number | null;
   /** Is any radar looking at this cell at all? */
@@ -186,22 +198,33 @@ export interface SlwStats {
   bandBaseMb: number | null;
 }
 
-/** Mirrors CloudBaseStats in server/src/lib/services/hrrr/diagnostics.ts */
+/**
+ * Which of the two model heights answered for a cell. Mirrors BaseSource in
+ * server/src/lib/services/candidate/cloudbase.ts.
+ */
+export type BaseSource = "model" | "ccl";
+
+/**
+ * Mirrors MergedBaseStats in
+ * server/src/lib/services/candidate/cloudbase.ts.
+ *
+ * No `hour`: the layer is gated on a measured echo top and an observation
+ * cannot be forecast, so it exists at the analysis hour only.
+ */
 export interface CloudBaseStats {
   run: string;
-  hour: number;
   validTime: string;
-  /** Percent of the HRRR domain with a cloud base at all. */
-  basePct: number;
-  /**
-   * Percent of the domain whose base is below the aircraft's ceiling — cloud a
-   * sortie could enter. Not `CandidateStats.reachablePct`, which asks the same
-   * question of the seeding band's base over candidate ground only.
-   */
-  reachablePct: number;
-  /** Ground with a base below the ceiling, km². */
-  reachableKm2: number;
-  /** Median base where there is one, ft MSL. Null when there is no cloud. */
+  /** Start of the radar scan the echo top came from. */
+  radarTime: string;
+  /** Ground the layer draws, km². */
+  drawnKm2: number;
+  /** Percent of the asked ground the layer draws. */
+  drawnPct: number;
+  /** Of the drawn ground, how much took HRRR's own base, km². */
+  modelKm2: number;
+  /** Of the drawn ground, how much fell back to the CCL, km². */
+  cclKm2: number;
+  /** Median drawn base, ft MSL. Null where the layer draws nothing. */
   medianFt: number | null;
 }
 

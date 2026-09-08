@@ -26,7 +26,6 @@ describe("cloudtop reducer", () => {
     expect(initialState.stats).toBeUndefined();
   });
 
-
   it("stores the stats", () => {
     const state = cloudTopReducer(
       initialState,
@@ -35,7 +34,6 @@ describe("cloudtop reducer", () => {
 
     expect(state.stats).toEqual(stats);
   });
-
 
   it("tracks loading", () => {
     const state = cloudTopReducer(

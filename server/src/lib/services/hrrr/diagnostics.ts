@@ -43,18 +43,27 @@ const NO_ECHO = -999;
 const KNOTS = 1.94384;
 
 /**
- * The window Texas operations select cloud bases in, ft above the ground.
+ * The highest cloud base Texas operations will seed, ft above the ground.
  *
- * **Cited, not derived.** The state's published description of its permitted
- * programs targets convective clouds with bases between 4,000 and 12,000 ft;
- * this is that number, not a cutoff chosen from a coverage table.
+ * **Cited, not derived.** The West Central Texas Rainfall Enhancement Program
+ * operations manual lists this as a launch criterion: "Clouds with bases less
+ * than 12,000 ft AGL are deemed seedable." The reason it gives is not liquid
+ * water and not the airframe — it is that rain falling from a higher base
+ * evaporates in the dry air underneath before it reaches the ground.
  *
- * **Drawn in AGL wherever the model has a base in the window**, as its own
- * fill, not as the national MSL ramp. MSL would move the window with the
- * ground; AGL is what transfers from the Gulf coast to high terrain. The
- * fill is a picture of that gate. It does not hide a storm.
+ * **An upper bound and nothing else.** The manual sets no lower bound, and a
+ * low base is cloud an aircraft can still climb into. The state's published
+ * 4,000–12,000 ft figure describes where Texas convective bases usually sit;
+ * it is a description of the season, not a test a cell has to pass, so the
+ * floor is not applied anywhere.
+ *
+ * **Read in AGL.** The manual's targeting section repeats the number as MSL,
+ * which over 2,600 ft of West Texas ground is a different height; the launch
+ * criterion says AGL, and the reason the manual gives — how far rain falls
+ * through subsaturated air below the base — is a depth above the ground. AGL
+ * is also what transfers from the Gulf coast to the Llano Estacado.
  */
-export const BASE_WINDOW_FT = [4000, 12000] as const;
+export const SEEDABLE_BASE_FT = 12000;
 
 /**
  * Cloud base, contoured into **disjoint bands** rather than nested contours.
@@ -164,6 +173,23 @@ export const DIAGNOSTICS = {
     id: "3:5:adiabaticCondensation",
     scale: METERS_TO_FEET,
     missing: SFC_MISSING,
+    firstHour: 0,
+  },
+  /**
+   * Specific humidity at 2 m, kg/kg — the moisture a surface parcel carries.
+   *
+   * Read for the convective condensation level, which needs the parcel's own
+   * mixing ratio to find where the environment saturates. HRRR publishes no
+   * CCL of its own, so it is computed from this and the pressure-level
+   * temperatures. `ccl.ts` is the arithmetic and the reason for it.
+   *
+   * No missing value: specific humidity is defined everywhere the surface is.
+   */
+  spfh2m: {
+    grib: { name: "SPFH", level: "2 m above ground" },
+    id: "1:0:heightAboveGround",
+    scale: 1,
+    missing: null,
     firstHour: 0,
   },
   /**

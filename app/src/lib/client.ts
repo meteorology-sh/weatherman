@@ -30,21 +30,30 @@ export async function GetForecastMeta(): Promise<ForecastMeta> {
  * GeoJSONLayer fetches these itself rather than routing them through Redux —
  * the same reasoning that keeps GIBS tiles out of the store.
  */
-export function ForecastCloudsUrl(hour: number, box: MapBox = INITIAL_BOX): string {
+export function ForecastCloudsUrl(
+  hour: number,
+  box: MapBox = INITIAL_BOX
+): string {
   return `/forecast/clouds?${new URLSearchParams({
     hour: String(hour),
     ...boxParams(box),
   })}`;
 }
 
-export function ForecastPrecipUrl(hour: number, box: MapBox = INITIAL_BOX): string {
+export function ForecastPrecipUrl(
+  hour: number,
+  box: MapBox = INITIAL_BOX
+): string {
   return `/forecast/precip?${new URLSearchParams({
     hour: String(hour),
     ...boxParams(box),
   })}`;
 }
 
-export function ForecastLiquidUrl(hour: number, box: MapBox = INITIAL_BOX): string {
+export function ForecastLiquidUrl(
+  hour: number,
+  box: MapBox = INITIAL_BOX
+): string {
   return `/forecast/liquid?${new URLSearchParams({
     hour: String(hour),
     ...boxParams(box),
@@ -52,27 +61,24 @@ export function ForecastLiquidUrl(hour: number, box: MapBox = INITIAL_BOX): stri
 }
 
 /**
- * Cloud base, banded server-side. Pinned to the analysis hour on the candidate
- * map, like the liquid-water layer, so nothing repoints this url.
+ * Cloud base, banded server-side: HRRR's own base where it has one, the CCL
+ * where it does not, under a measured echo top and below 18,000 ft MSL.
+ *
+ * No `hour`. The echo top that gates it is an observation and an observation
+ * cannot be forecast, so the layer exists at the analysis hour only — the same
+ * reason the candidate field has no hour either.
  */
-export function ForecastCloudBaseUrl(
-  hour: number,
-  box: MapBox = INITIAL_BOX
-): string {
-  return `/forecast/cloudbase?${new URLSearchParams({
-    hour: String(hour),
+export function CloudBaseUrl(box: MapBox = INITIAL_BOX): string {
+  return `/candidate/cloudbase?${new URLSearchParams({
     ...boxParams(box),
   })}`;
 }
 
 /** The same build's summary. Asking for it also warms the server's build. */
-export async function GetCloudBaseStats(
-  hour: number,
-  at?: string
-): Promise<CloudBaseStats> {
-  const query = new URLSearchParams({ hour: String(hour) });
+export async function GetCloudBaseStats(at?: string): Promise<CloudBaseStats> {
+  const query = new URLSearchParams();
   if (at) query.set("at", at);
-  const res = await fetch(`/forecast/cloudbase/stats?${query}`);
+  const res = await fetch(`/candidate/cloudbase/stats?${query}`);
   if (!res.ok) {
     throw new Error(`Failed to fetch cloud base stats: ${res.status}`);
   }
@@ -274,20 +280,15 @@ export function ReplayLiquidUrl(
 
 export function ReplayCloudBaseUrl(
   at: string,
-  hour = 0,
   box: MapBox = INITIAL_BOX
 ): string {
-  return `/forecast/cloudbase?${new URLSearchParams({
-    hour: String(hour),
+  return `/candidate/cloudbase?${new URLSearchParams({
     at,
     ...boxParams(box),
   })}`;
 }
 
-export function ReplayRadarUrl(
-  at: string,
-  box: MapBox = INITIAL_BOX
-): string {
+export function ReplayRadarUrl(at: string, box: MapBox = INITIAL_BOX): string {
   return `/radar/reflectivity?${new URLSearchParams({
     at,
     ...boxParams(box),

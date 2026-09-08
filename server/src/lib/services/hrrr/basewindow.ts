@@ -1,25 +1,27 @@
 /**
- * Cloud base in the 4,000–12,000 ft AGL window.
+ * Cloud base low enough to seed: under 12,000 ft above the ground.
  *
- * The Comptroller figure is a height above the ground, not above the sea.
- * MSL would move the window with the terrain; AGL is what transfers from
- * the Gulf coast to high ground. Drawn wherever the model has a base in
- * that window — a national fill, not a Texas-only mask.
+ * The criterion is `SEEDABLE_BASE_FT`, and the manual it comes from gives an
+ * upper bound only. Rain falling from a higher base evaporates before it
+ * reaches the ground; there is no height too low to be worth climbing into.
+ *
+ * The figure is above the ground, not above the sea. MSL would move the
+ * bound with the terrain; AGL is what transfers from the Gulf coast to high
+ * ground. Drawn wherever the model has a base under it — a national fill,
+ * not a Texas-only mask.
  *
  * Pure, so it can be tested on hand-built columns without eccodes.
  */
 
-import { BASE_WINDOW_FT } from "./diagnostics";
+import { SEEDABLE_BASE_FT } from "./diagnostics";
 
-const [WINDOW_LOW, WINDOW_HIGH] = BASE_WINDOW_FT;
-
-/** True if the base sits in the Comptroller window, half-open at the top. */
-export function inBaseWindow(aglFt: number): boolean {
-  return aglFt >= WINDOW_LOW && aglFt < WINDOW_HIGH;
+/** True if the base is low enough that its rain reaches the ground. */
+export function baseLowEnough(aglFt: number): boolean {
+  return aglFt < SEEDABLE_BASE_FT;
 }
 
 /**
- * 1 where the column has a base in the window. NaN everywhere else, so
+ * 1 where the column has a base under the bound. NaN everywhere else, so
  * the contourer draws nothing there.
  */
 export function windowValues(
@@ -32,7 +34,7 @@ export function windowValues(
     const base = cloudBaseFt[i];
     if (!Number.isFinite(base) || !Number.isFinite(surfaceFt[i])) continue;
     const agl = base - surfaceFt[i];
-    if (inBaseWindow(agl)) out[i] = 1;
+    if (baseLowEnough(agl)) out[i] = 1;
   }
   return out;
 }

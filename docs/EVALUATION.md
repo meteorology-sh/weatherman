@@ -15,8 +15,11 @@ Texas selection features, on every located flare. How to run that job is
    cloud tops, radar reflectivity, supercooled liquid water, and the
    supercooled liquid water, at the minute and place each flare left the
    aircraft.
-2. **How many flares sat in each fill the operator map draws?** The
-   seeding opportunity, the cloud-base window, and echo past freezing.
+2. **How many flares sat in each fill the operator map draws, and how
+   much ground did each one paint?** The seeding opportunity, the
+   cloud-base fill, and echo past freezing. Overlap without area cannot
+   tell selecting from painting: a fill that covers the target area
+   contains every release.
 3. **How many flares sat in each Texas selection feature?** Upwind of the
    heaviest rain, inside 20 dBZ, nearer the edge than the core, and an
    18 dBZ echo top at or above freezing.
@@ -25,6 +28,15 @@ Texas selection features, on every located flare. How to run that job is
 
 The numbers below are the same counts the evaluation app already shows.
 This file is those tables written out.
+
+**These tables were painted before the seeding opportunity took its
+current form.** They score a fill whose base test was the service ceiling
+alone, which rejected a cell the model had no cloud base in and had no
+12,000 ft AGL criterion, and a base fill drawn on a 4,000–12,000 ft
+window rather than an upper bound. `INVESTIGATION.md` Finding 9 is what
+those numbers showed and what changed because of it. Reprint this file
+from a repainted `eval/out/` before quoting any figure here as the
+current fill's score.
 
 `WEATHERMAN.md` says what the app claims. `MEASUREMENTS.md` says what the
 free feeds can answer. The comparison itself is the harness in `eval/`.
@@ -52,40 +64,6 @@ painted frames.
 
 ---
 
-## Flare overlap with each original Weatherman layer
-
-Each release is compared to the analysis nearest its own minute. HRRR's
-0–6 km storm motion carries the release point to where that air is at the
-moment of the frame. **Inside is inside the contour** after that drift.
-Native sampling: cloud base and supercooled liquid on HRRR's 3 km cells,
-cloud tops on GOES 2 km, radar on MRMS 1 km.
-
-A layer that could not be built for an hour is dropped from that column
-only, so the percentages are of the releases that layer could be compared
-against.
-
-| Program        | Releases |        Cloud base |       Cloud tops | Radar reflectivity | Supercooled liquid water |
-| -------------- | -------: | ----------------: | ---------------: | -----------------: | -----------------------: |
-| West Texas     |      497 |   344/497 (69.2%) |     6/497 (1.2%) |    302/497 (60.8%) |            31/497 (6.2%) |
-| Trans Pecos    |      465 |   354/465 (76.1%) |    11/464 (2.4%) |    320/462 (69.3%) |            25/456 (5.5%) |
-| Panhandle      |      255 |   186/255 (72.9%) |     2/252 (0.8%) |    132/255 (51.8%) |           27/248 (10.9%) |
-| South Texas    |       83 |     63/83 (75.9%) |      3/70 (4.3%) |      24/83 (28.9%) |              3/76 (3.9%) |
-| Rolling Plains |       53 |     40/53 (75.5%) |      3/48 (6.3%) |      21/48 (43.8%) |             6/53 (11.3%) |
-| Season         |    1,353 | 987/1,353 (72.9%) |  25/1,331 (1.9%) |  799/1,345 (59.4%) |          92/1,330 (6.9%) |
-
-**Cloud base holds. Cloud tops do not.** 72.9% of releases sit in modeled
-cloud; 1.9% sit in the −5 °C GOES tops. Radar splits the programs:
-Trans Pecos 69.3%, West Texas 60.8%, the Panhandle 51.8%, South Texas
-28.9%. Supercooled liquid is low everywhere.
-
-A denominator short of the release count is an hour that layer could not
-be built.
-
-The evaluation app shows this table on the program page. Every release
-of a painted day lists the same inside-or-kilometers under THE FLARES.
-
----
-
 ## Flare overlap with each fill the operator map draws
 
 The operator map draws three fills: the seeding opportunity, the cloud-base
@@ -93,14 +71,14 @@ window, and echo past freezing under the radar. The seeding opportunity is a
 composite of the Texas tests, drawn as one fill so the operator can see where
 to click. These are the layers a crew would have had in front of them.
 
-| Program      | Releases | Seeding opportunity |     Base window | Echo past freezing |
-| -------------- | -------: | --------------: | --------------: | -----------------: |
-| West Texas     |      497 | 279/497 (56.1%) | 266/497 (53.5%) |    325/497 (65.4%) |
-| Trans Pecos    |      465 | 305/461 (66.2%) | 324/465 (69.7%) |    349/461 (75.7%) |
-| Panhandle      |      255 | 154/255 (60.4%) | 125/255 (49.0%) |    149/255 (58.4%) |
-| South Texas    |       83 |   32/71 (45.1%) |   28/83 (33.7%) |      24/83 (28.9%) |
-| Rolling Plains |       53 |   21/48 (43.8%) |   22/53 (41.5%) |      22/48 (45.8%) |
-| Season         |    1,353 | 791/1,332 (59.4%) | 765/1,353 (56.5%) | 869/1,344 (64.7%) |
+| Program        | Releases | Seeding opportunity |       Base window | Echo past freezing |
+| -------------- | -------: | ------------------: | ----------------: | -----------------: |
+| West Texas     |      497 |     279/497 (56.1%) |   266/497 (53.5%) |    325/497 (65.4%) |
+| Trans Pecos    |      465 |     305/461 (66.2%) |   324/465 (69.7%) |    349/461 (75.7%) |
+| Panhandle      |      255 |     154/255 (60.4%) |   125/255 (49.0%) |    149/255 (58.4%) |
+| South Texas    |       83 |       32/71 (45.1%) |     28/83 (33.7%) |      24/83 (28.9%) |
+| Rolling Plains |       53 |       21/48 (43.8%) |     22/53 (41.5%) |      22/48 (45.8%) |
+| Season         |    1,353 |   791/1,332 (59.4%) | 765/1,353 (56.5%) |  869/1,344 (64.7%) |
 
 **The seeding opportunity covers 59.4% of releases**, against 6.9% for
 supercooled liquid water in the first table. The fill Texas would actually
@@ -108,6 +86,31 @@ have flown accepts the rain a liquid test rules out.
 
 The evaluation app shows these three on the program page and as columns
 on every release under THE FLARES.
+
+## Ground each of those fills painted
+
+An overlap figure alone cannot tell a fill that selects from a fill that
+covers everything. This is the median ground each fill drew per analysis
+hour, against the ground that hour was asked about — the same window the
+painter used. Each of these three is a single-level mask, so the area of
+its polygons is the ground it covers; the banded layers are left out
+because one number over a ramp would not mean the same thing.
+
+| Program        | Hours | Ground asked | Seeding opportunity |     Base window | Echo past freezing |
+| -------------- | ----: | -----------: | ------------------: | --------------: | -----------------: |
+| West Texas     |    82 |      892,872 |       45,880 (5.1%) | 246,193 (27.6%) |      39,964 (4.5%) |
+| Trans Pecos    |    88 |      199,195 |       16,229 (8.1%) |  87,082 (43.7%) |      11,661 (5.9%) |
+| Panhandle      |    51 |       51,430 |       7,160 (13.9%) |  16,787 (32.6%) |      6,205 (12.1%) |
+| South Texas    |    22 |       78,429 |      12,448 (15.9%) |  29,313 (37.4%) |      9,605 (12.2%) |
+| Rolling Plains |    10 |       65,362 |       7,610 (11.6%) |  23,465 (35.9%) |      7,383 (11.3%) |
+
+Square kilometers. The programs are not comparable across rows: each
+paints its own window, and West Texas's is more than four times the size
+of Trans Pecos's, so the share is the column to read.
+
+**The seeding opportunity found 59.4% of the releases on 5–16% of the
+ground.** That ratio, not the overlap on its own, is what a change to the
+join has to hold or improve.
 
 ---
 
@@ -124,13 +127,13 @@ level. Nearer the edge and upwind are distances and heading on that same
 object. A flare with no 20 dBZ echo within about 40 km is a no on radar
 and is dropped from the other columns rather than counted as a no there.
 
-| Program      | Releases |          Upwind |       In 20 dBZ |     Nearer the edge | Echo top past freezing |
-| -------------- | -------: | --------------: | --------------: | ------------------: | ---------------------: |
-| West Texas     |      497 | 229/442 (51.8%) | 303/497 (61.0%) |     447/470 (95.1%) |        463/467 (99.1%) |
-| Trans Pecos    |      465 | 167/421 (39.7%) | 310/465 (66.7%) |     429/458 (93.7%) |        453/454 (99.8%) |
-| Panhandle      |      255 | 119/234 (50.9%) | 129/255 (50.6%) |     242/255 (94.9%) |        244/246 (99.2%) |
-| South Texas    |       83 |   31/76 (40.8%) |   24/83 (28.9%) |      83/83 (100.0%) |          74/81 (91.4%) |
-| Rolling Plains |       53 |   25/40 (62.5%) |   20/53 (37.7%) |      45/48 (93.8%) |          45/47 (95.7%) |
+| Program        | Releases |            Upwind |         In 20 dBZ |     Nearer the edge | Echo top past freezing |
+| -------------- | -------: | ----------------: | ----------------: | ------------------: | ---------------------: |
+| West Texas     |      497 |   229/442 (51.8%) |   303/497 (61.0%) |     447/470 (95.1%) |        463/467 (99.1%) |
+| Trans Pecos    |      465 |   167/421 (39.7%) |   310/465 (66.7%) |     429/458 (93.7%) |        453/454 (99.8%) |
+| Panhandle      |      255 |   119/234 (50.9%) |   129/255 (50.6%) |     242/255 (94.9%) |        244/246 (99.2%) |
+| South Texas    |       83 |     31/76 (40.8%) |     24/83 (28.9%) |      83/83 (100.0%) |          74/81 (91.4%) |
+| Rolling Plains |       53 |     25/40 (62.5%) |     20/53 (37.7%) |       45/48 (93.8%) |          45/47 (95.7%) |
 | Season         |    1,353 | 571/1,213 (47.1%) | 786/1,353 (58.1%) | 1,246/1,314 (94.8%) |    1,279/1,295 (98.8%) |
 
 **Just over half the releases sat inside 20 dBZ. Almost all of those
@@ -165,7 +168,7 @@ is the mean share of the combined layer both sides agree on, so a band
 drawn far too deep is penalized rather than rewarded for covering
 everything.
 
-| Program      | Ascents | Freezing level | −15 °C height | Band overlap | Cleared 90% |
+| Program        | Ascents | Freezing level | −15 °C height | Band overlap | Cleared 90% |
 | -------------- | ------: | -------------: | ------------: | -----------: | ----------: |
 | West Texas     |      64 |   −31 m / 45 m |  −26 m / 57 m |    **94.7%** |    56 of 64 |
 | Trans Pecos    |      39 |   −25 m / 32 m |  −10 m / 48 m |    **95.5%** |    36 of 39 |

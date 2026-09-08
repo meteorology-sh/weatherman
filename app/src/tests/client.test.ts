@@ -8,7 +8,7 @@ import {
   GetCandidateStats,
   ReplayCandidateUrl,
   ReplayConfirmedUrl,
-  ForecastCloudBaseUrl,
+  CloudBaseUrl,
   GetCloudBaseStats,
   GetCloudTopStats,
   GetForecastMeta,
@@ -117,22 +117,24 @@ describe("ForecastPrecipUrl", () => {
 });
 
 describe("GetCloudBaseStats", () => {
-  it("fetches the relative server route with the hour", async () => {
-    await GetCloudBaseStats(0);
-    expect(fetch).toHaveBeenCalledWith("/forecast/cloudbase/stats?hour=0");
+  // The candidate build, not the forecast ladder: the layer is gated on a
+  // measured echo top, and an observation cannot be forecast to an hour.
+  it("fetches the candidate route, with no hour", async () => {
+    await GetCloudBaseStats();
+    expect(fetch).toHaveBeenCalledWith("/candidate/cloudbase/stats?");
   });
 
   // Every route takes `at`, and its absence means live rather than a default
   // date — so the parameter must not be sent when there is none.
   it("omits `at` when no hour is being replayed", async () => {
-    await GetCloudBaseStats(0);
-    expect(fetch).toHaveBeenCalledWith("/forecast/cloudbase/stats?hour=0");
+    await GetCloudBaseStats();
+    expect(fetch).toHaveBeenCalledWith("/candidate/cloudbase/stats?");
   });
 
   it("passes a replayed hour through", async () => {
-    await GetCloudBaseStats(0, "2025-05-15T18:00:00.000Z");
+    await GetCloudBaseStats("2025-05-15T18:00:00.000Z");
     expect(fetch).toHaveBeenCalledWith(
-      "/forecast/cloudbase/stats?hour=0&at=2025-05-15T18%3A00%3A00.000Z"
+      "/candidate/cloudbase/stats?at=2025-05-15T18%3A00%3A00.000Z"
     );
   });
 
@@ -141,25 +143,23 @@ describe("GetCloudBaseStats", () => {
       "fetch",
       vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) }))
     );
-    await expect(GetCloudBaseStats(0)).rejects.toThrow(
+    await expect(GetCloudBaseStats()).rejects.toThrow(
       "Failed to fetch cloud base stats: 500"
     );
   });
 });
 
-describe("ForecastCloudBaseUrl", () => {
+describe("CloudBaseUrl", () => {
   it("builds a relative url so the proxy routes it", () => {
-    expect(ForecastCloudBaseUrl(0)).toBe(
-      "/forecast/cloudbase?hour=0&west=-107&east=-93&south=25.5&north=37"
+    expect(CloudBaseUrl()).toBe(
+      "/candidate/cloudbase?west=-107&east=-93&south=25.5&north=37"
     );
   });
 
   // One cached server build serves both, but they are separate routes: the
   // geometry never enters the store.
   it("asks a different route than the stats", () => {
-    expect(ForecastCloudBaseUrl(0)).not.toBe(
-      "/forecast/cloudbase/stats?hour=0"
-    );
+    expect(CloudBaseUrl()).not.toBe("/candidate/cloudbase/stats?");
   });
 });
 
@@ -317,7 +317,6 @@ describe("GetDomain", () => {
 });
 
 describe("cloud tops", () => {
-
   it("fetches the summary from its own route", async () => {
     await GetCloudTopStats();
 

@@ -1,13 +1,17 @@
 /**
- * The Texas-target join: a cloud-base column next to a storm, not a quiet
- * supercooled-liquid column under a cold top.
+ * The seeding opportunity: a workable cloud base next to a storm whose echo
+ * reaches past freezing.
  *
- * Texas programs select convective cloud with a base in the 4,000–12,000 ft
- * window, depth past the freezing level, and a raining cell to work the flank
- * of. They do not gate on modeled liquid in the seeding band, and they do not
- * cross a cell off for rain. That arithmetic lives here, on the same grids the
- * seeding-opportunity join already reads, plus terrain, the freezing level and
- * the measured 18 dBZ echo top the map draws.
+ * Three tests on one 3 km cell — a cloud base under 18,000 ft MSL, a measured
+ * 18 dBZ echo top at or above the freezing level nearby, and rain nearby. Not
+ * a quiet supercooled-liquid column under a cold top: this does not gate on
+ * modeled liquid in the seeding band, and it does not cross a cell off for
+ * rain.
+ *
+ * **The base is the one the cloud-base layer draws** — HRRR's own where the
+ * model has a cloud, the convective condensation level where it does not, under
+ * the same 18,000 ft MSL bound. So the base behind a green cell here is the
+ * base painted over it there, and both come from `cloudbase.ts`.
  *
  * Pure, and tested on hand-built grids, for the same reason `join.ts` is:
  * reaching this through the service is five network builds and eccodes.
@@ -23,7 +27,7 @@
  */
 
 // Services
-import { CEILING_FT } from "../shared/aircraft";
+import { BASE_CEILING_FT } from "./cloudbase";
 import { BLOCK_NO_COVERAGE, RAIN_DBZ } from "../mrms/radar";
 import { CELL_KM2, inBox } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
@@ -38,10 +42,10 @@ import type { Geo } from "../shared/contour";
  * order below, so rejected ground cannot add up to more than the cells asked.
  */
 export type TargetRejected = {
-  /** The model has no cloud base — nothing to climb into. */
+  /** Neither the model nor the CCL gives this column a cloud base. */
   noCloudBase: number;
-  /** Base sits above the aircraft's service ceiling — it cannot be reached. */
-  baseAboveCeiling: number;
+  /** The base sits at or above 18,000 ft MSL. */
+  baseTooHigh: number;
   /** No column in the neighborhood has a freezing level. */
   noFreezingLevel: number;
   /** No column in the neighborhood has echo top at or above freezing. */
@@ -53,9 +57,11 @@ export type TargetRejected = {
 export type TargetVerdict = "target" | keyof TargetRejected;
 
 export type TargetInputs = {
-  /** Cloud base, ft MSL. NaN where the model has no cloud. */
+  /** HRRR's own cloud base, ft MSL. NaN where the model has no cloud. */
   cloudBaseFt: Float32Array;
-  /** Terrain, ft MSL. Reported on a click; the ceiling test does not use it. */
+  /** Convective condensation level, ft MSL. The base where HRRR has none. */
+  cclFt: Float32Array;
+  /** Terrain, ft MSL. Carried for the AGL readout, not for any test. */
   surfaceFt: Float32Array;
   /** 0 °C height, ft MSL. NaN where the column never crosses freezing. */
   freezingFt: Float32Array;
@@ -77,7 +83,7 @@ export type TargetJoin = {
 
 /**
  * 1 where the Texas tests pass. NaN everywhere else, so the contourer
- * draws nothing there — the same shape as the Comptroller window and
+ * draws nothing there — the same shape as the cloud-base fill and
  * echo past freezing.
  */
 export function flyValues(joined: TargetJoin): Float32Array {
@@ -130,18 +136,16 @@ type TargetContext = {
 };
 
 /**
- * The only height test on a cell: is the cloud base under the aircraft's
- * service ceiling.
+ * The highest workable cloud base, ft MSL.
  *
- * **There is no lower bound.** A low base is still cloud an aircraft can climb
- * into, so subtracting one would reject ground that is flyable. The ceiling is
- * a property of the airframe and is read in ft MSL, which is also what removes
- * the MSL-against-AGL disagreement a fixed window has over high terrain.
+ * The same bound the cloud-base layer draws to, read from the same constant, so
+ * a cell this layer calls seedable is a cell that layer paints a base for.
  *
- * A program with a minimum altitude of its own applies it in its own
- * operations; it is not a property of the cloud and is not gated here.
+ * **There is no lower bound.** A low base is still cloud worth working. A
+ * program with a minimum altitude of its own applies it in its own operations;
+ * it is not a property of the cloud and is not gated here.
  */
-const CEILING = CEILING_FT;
+const CEILING = BASE_CEILING_FT;
 
 /**
  * 8-connected neighborhood including the cell itself. No wrap: a cell on
@@ -163,16 +167,33 @@ function neighborhood(i: number, nx: number, ny: number): number[] {
 }
 
 /**
+ * The base this layer tests, ft MSL: HRRR's own where the model has one, the
+ * convective condensation level where it does not.
+ *
+ * The same two heights, in the same order of preference, that the cloud-base
+ * layer merges — so the base behind a seeding-opportunity cell is the base that
+ * layer draws over it. NaN only where neither is available.
+ */
+export function workableBaseFt(inputs: TargetInputs, i: number): number {
+  const modeled = inputs.cloudBaseFt[i];
+  return Number.isFinite(modeled) ? modeled : inputs.cclFt[i];
+}
+
+/**
  * The whole decision for one cell.
  *
  * The loop and the point readout both go through here, so a target on the
  * map and the answer in the panel cannot disagree about a cell.
  */
 export function verdict(inputs: TargetInputs, i: number): TargetVerdict {
-  const base = inputs.cloudBaseFt[i];
-  if (Number.isNaN(base)) return "noCloudBase";
-
-  if (!(base < CEILING)) return "baseAboveCeiling";
+  // One height test on one workable base: HRRR's own where it has one, the CCL
+  // where it does not. The base test used to be skipped wherever the model grew
+  // no cloud — which is most cells under convection — so a column with no
+  // modeled base passed it by default. It is now answerable almost everywhere,
+  // so it is asked rather than waived.
+  const base = workableBaseFt(inputs, i);
+  if (!Number.isFinite(base)) return "noCloudBase";
+  if (!(base < CEILING)) return "baseTooHigh";
 
   const around = neighborhood(i, inputs.nx, inputs.ny);
 
@@ -203,7 +224,7 @@ export function join(inputs: TargetInputs): TargetJoin {
   const values = new Float32Array(inputs.cloudBaseFt.length);
   const rejected: TargetRejected = {
     noCloudBase: 0,
-    baseAboveCeiling: 0,
+    baseTooHigh: 0,
     noFreezingLevel: 0,
     topBelowFreezing: 0,
     noStorm: 0,
@@ -225,15 +246,17 @@ export function join(inputs: TargetInputs): TargetJoin {
 
 /** The four Texas readings over one cell. */
 export function readTarget(inputs: TargetInputs, i: number): TargetPoint {
-  const base = inputs.cloudBaseFt[i];
+  const base = workableBaseFt(inputs, i);
   const surface = inputs.surfaceFt[i];
   const freezing = inputs.freezingFt[i];
   const echoTop = inputs.echoTopFt[i];
 
   return {
     target: verdict(inputs, i),
+    // Above the ground, off whichever height answered. Null only where neither
+    // did, which is "this column has no cloud base" rather than a missing read.
     cloudBaseAglFt:
-      Number.isNaN(base) || Number.isNaN(surface)
+      !Number.isFinite(base) || !Number.isFinite(surface)
         ? null
         : Math.round(base - surface),
     freezingFt: Number.isNaN(freezing) ? null : Math.round(freezing),
@@ -260,7 +283,7 @@ export function summarize(
 
   const rejected: TargetRejected = {
     noCloudBase: 0,
-    baseAboveCeiling: 0,
+    baseTooHigh: 0,
     noFreezingLevel: 0,
     topBelowFreezing: 0,
     noStorm: 0,
@@ -292,7 +315,7 @@ export function summarize(
     boxKm2: asked * CELL_KM2,
     rejected: {
       noCloudBase: rejected.noCloudBase * CELL_KM2,
-      baseAboveCeiling: rejected.baseAboveCeiling * CELL_KM2,
+      baseTooHigh: rejected.baseTooHigh * CELL_KM2,
       noFreezingLevel: rejected.noFreezingLevel * CELL_KM2,
       topBelowFreezing: rejected.topBelowFreezing * CELL_KM2,
       noStorm: rejected.noStorm * CELL_KM2,

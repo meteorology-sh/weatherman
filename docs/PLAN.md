@@ -53,8 +53,8 @@ visibility in `layers.test.ts` and `Map.test.tsx`. Legend summary pins
 
 `CloudHere` stops treating rain as a veto. It reports, in order:
 
-1. The Texas tests already on `CandidatePoint.target` — base in the
-   4,000–12,000 ft AGL window, echo top at or above freezing in the
+1. The Texas tests already on `CandidatePoint.target` — base under
+   12,000 ft above the ground, echo top at or above freezing in the
    neighborhood, rain in that neighborhood.
 2. Supercooled liquid, base, top, reflectivity, and observed phase as
    readings. Rain is "the radar sees rain here," not "raining itself
@@ -67,17 +67,23 @@ echo top past freezing, liquid over the storm.
 raining cell is not captioned as ruled out of a sortie. Existing
 phase and coverage distinctions stay.
 
-## 4. Cloud base as the Comptroller window
+## 4. Cloud base against the seeding criterion
 
-The 4,000–12,000 ft AGL window is drawn as its own fill, nationally, not
-as a Texas-only mask. MSL would move the window with the ground; AGL is
-what transfers from the Gulf coast to high terrain.
+The 12,000 ft AGL bound is drawn as its own fill, nationally, not as a
+Texas-only mask. MSL would move the bound with the ground; AGL is what
+transfers from the Gulf coast to high terrain, and the reason the bound
+exists — the depth of dry air rain falls through under the base — is a
+height above the ground.
+
+It is an upper bound only. The state's published 4,000–12,000 ft figure
+describes where Texas bases usually sit and is not a test.
 
 The existing height ramp stays a switch. Nothing new gates the storm
 off the map.
 
-**Tests.** AGL versus the named `BASE_WINDOW_FT` constants, not
-literals. A column in the window outside Texas still draws.
+**Tests.** AGL versus the named `SEEDABLE_BASE_FT` constant, not
+literals. A column under the bound outside Texas still draws, and a base
+below 4,000 ft above the ground draws.
 
 ## 5. Echo at freezing, as a picture
 
@@ -176,3 +182,89 @@ After 1–3, run the app tests those files touch, then the full suite in
 both packages before calling the pivot done. Drive `/map/candidate` and
 `/map/replay` in the browser: radar and flank on, the Texas fly fill
 on, a click reads FLY and the column.
+
+---
+
+## Session handoff — cloud-base and measured-cloud work
+
+Picks up mid-thread. What is decided, what is done, what is next.
+
+### Done and in the working tree (server + app tests green: 432 / 460)
+
+- **Seeding opportunity no longer rejects a cell for a missing modeled
+  cloud base.** In `candidate/target.ts`, the two height tests run only
+  when HRRR has a base; where it has none the cell rests on the two
+  measured radar tests. The LCL fallback that was here briefly is gone —
+  it never rejected anything and printed a base ~5,000 ft low.
+- **Base test is an upper bound only: `SEEDABLE_BASE_FT = 12000` ft AGL.**
+  The 4,000 ft floor is deleted (cited: WCTREP operations manual). The
+  MSL/AGL sidebar bug is fixed (`seedableBasePct`).
+- **Painted-area table** in `score-season.mjs` (`polygonsAreaKm2`,
+  `boxAreaKm2` in `eval/lib/geo.mjs`) so coverage cost is scored beside
+  overlap. `INVESTIGATION.md` Finding 9 records the diagnosis.
+- Docs reconciled (WEATHERMAN, INNOVATION, PLAN, PROXY, EVALUATION,
+  INVESTIGATION). `eval/out/` is still painted under the OLD rules —
+  reprint before quoting any figure.
+
+### Decided this session (not yet built)
+
+- **Service ceiling → 18,000 ft, period.** Operator's call. Over most
+  Texas terrain 18,000 ft AGL sits above the 18,000 ft MSL airframe
+  ceiling, so the airframe ceiling becomes the only height limit that
+  fires. Set it and drop the separate AGL cutoff.
+- **CCL is the base proxy where HRRR has no cloud base**, not the LCL.
+  Offline vs the operators' own printed cloud base (104–127 balloon
+  mornings, all three numbers off the same balloon):
+  - CCL: +961 ft bias, 1,385 ft typical miss, 61% within 2,000 ft.
+  - LCL: −2,566 ft bias, 2,749 ft typical miss, 35% within 2,000 ft.
+  - CCL is closer than LCL on 68% of mornings, and never exceeded
+    18,000 ft AGL in the whole sample (max 14,639 ft). So under an
+    18,000 ft ceiling the base is barely a gate — its job is "supply a
+    plausible workable base," and the radar+GOES gate does the existence
+    work.
+  - CCL is not in HRRR (checked the record list). Compute it from TMP on
+    pressure levels (already downloaded) + a surface moisture field
+    (`SPFH:2 m`, in `wrfsfc`). CCL exists over clear ground too, so it is
+    only ever a height — the measured gate decides whether a cloud is
+    there.
+- **Measured cloud existence = GOES ABI cloud top**, read UNFILTERED
+  (today it is filtered to <= -5 C for display). It confirms cloud +
+  top nationally. Over the 2025-05-26 Irion storms it measures -21 to
+  -36 C tops with 32,000-39,000 ft radar echo tops — a real glaciating
+  cloud. GOES is top-only; no free feed measures the base (the C4 gap).
+- **Top-anchored parcel base** (infer base by finding the parcel whose
+  moist adiabat tops out at the GOES-observed cloud top, read its LCL) is
+  the "clever" option. Physically sound, entrainment-biased high, works
+  best on the young warm-topped feeders we care about. NOT validated —
+  needs HRRR profiles at KMAF/KDRT + GOES top, which the reports do not
+  carry. Given CCL is already good under an 18,000 ft ceiling, treat
+  top-anchoring as optional; only build it if CCL proves too scattered
+  in practice.
+
+### Irion, settled
+
+The ten 2025-05-26 Irion flares (1934-1947Z) are NOT recovered by any
+base work: they sit 3.5-13 km outside 20 dBZ, so they fail the measured
+radar gate, not the base test. They were charged to `noCloudBase` only
+because that was the first test in order. Do not tune the base to chase
+them.
+
+### Next work, in order
+
+1. Set `CEILING_FT = 18000` as the sole height limit; remove the AGL
+   cutoff from the target join. (Already 18000; the change is making it
+   the only gate and dropping `SEEDABLE_BASE_FT` from `verdict`.)
+2. Add the "X% of flares within Y km of the nearest fill" table to
+   `score-season.mjs` + EVALUATION.md. Distances are already in the
+   painted files (`near.<layer>.km`); no repaint needed. Season figure
+   for the seeding opportunity today: 59.5% inside, 73.7% within 3 km,
+   87.9% within 10 km.
+3. Compute CCL server-side (TMP levels + `SPFH:2 m`), expose it on the
+   column readout labelled as CCL — never as "cloud base" — and use it
+   as the base height in `target.ts` where HRRR has no diagnosed base.
+4. Read GOES ABI cloud top unfiltered as a measured cloud-presence gate;
+   re-score the season and check the painted-area cost.
+5. Optional: prototype top-anchored parcel base, validate against the
+   balloon mornings, keep only if it beats CCL.
+
+Repaint `eval/out/` and reprint EVALUATION.md after 3-4.

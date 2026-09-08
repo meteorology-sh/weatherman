@@ -156,7 +156,7 @@ describe("ArcGIS in replay mode", () => {
       `/radar/echotop/past-freezing?at=${at}&${box}`
     );
     expect(replayCloudBaseLayer.url).toBe(
-      `/forecast/cloudbase?hour=0&at=${at}&${box}`
+      `/candidate/cloudbase?at=${at}&${box}`
     );
     // The replayed hour's own analysis, not a step off it — the same hour 0
     // the live map pins to, asked for at the date the operator picked.
@@ -294,7 +294,6 @@ describe("ArcGIS in replay mode", () => {
 
     expect(replayCloudBaseLayer.visible).toBe(true);
   });
-
 
   it("points the core and heading at the hour with the mosaic", () => {
     const store = createTestStore();

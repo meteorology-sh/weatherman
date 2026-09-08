@@ -28,17 +28,15 @@ const BOX = {
   north: "37",
 };
 
-describe("HRRR cloud-base layer", () => {
-  // Pinned to the analysis hour, like the liquid-water layer: a cloud base is
-  // a state the analysis holds, not a flux needing a timestep. ArcGIS splits
-  // the query string off into `customParameters`, so the hour is asserted where
-  // it lands rather than on the url it was written on.
-  it("reads the analysis hour from our own server", () => {
-    expect(CandidateCloudBaseLayer.url).toBe("/forecast/cloudbase");
-    expect(CandidateCloudBaseLayer.customParameters).toEqual({
-      hour: "0",
-      ...BOX,
-    });
+describe("cloud-base layer", () => {
+  // The candidate build, not the forecast ladder: the layer is gated on a
+  // measured echo top and an observation cannot be forecast to an hour, so
+  // there is no `hour` to send. ArcGIS splits the query string off into
+  // `customParameters`, so the box is asserted where it lands rather than on
+  // the url it was written on.
+  it("reads the analysis scene from our own server", () => {
+    expect(CandidateCloudBaseLayer.url).toBe("/candidate/cloudbase");
+    expect(CandidateCloudBaseLayer.customParameters).toEqual({ ...BOX });
   });
 
   // The field has real nodata — most of the domain has no cloud — so the

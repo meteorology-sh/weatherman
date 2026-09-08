@@ -517,18 +517,22 @@ it, of the same 3 km cell, and scored before anything is painted.
 
 The tests, in order, each cited:
 
-1. **Cloud base exists.** HRRR `HGT:cloud base`.
-2. **Base in 4,000–12,000 ft AGL.** The Comptroller window, already in
-   `BASE_WINDOW_FT`, applied above the terrain rather than as MSL. MSL
-   would move the window with the ground; AGL is what transfers across
-   South Texas and Trans-Pecos.
-3. **Echo top at or above the freezing level**, in this cell or an
+1. **Base under 12,000 ft AGL, and under the service ceiling.** The West
+   Central Texas operations manual's launch criterion, in
+   `SEEDABLE_BASE_FT`, applied above the terrain rather than as MSL. MSL
+   would move the bound with the ground; AGL is what transfers across
+   South Texas and Trans-Pecos, and the reason the bound exists is the
+   depth of dry air under the base. An upper bound only — the manual sets
+   no floor. Where HRRR has no cloud base in the column, both height
+   tests are unanswered rather than failed and the cell rests on tests 2
+   and 3. Finding 9 is why.
+2. **Echo top at or above the freezing level**, in this cell or an
    8-connected 3 km neighbor. Freezing height is `isothermFieldFt(profile,
    0)`, the same function Finding 1 already trusts. Echo top is HRRR
    `RETOP` — modeled height, labeled as such, not a volume scan. The
    aircraft is not under the cold GOES top, so cloud-top temperature at
    this cell is not this test.
-4. **Measured echo at 20 dBZ** in that same neighborhood. `RAIN_DBZ`, the
+3. **Measured echo at 20 dBZ** in that same neighborhood. `RAIN_DBZ`, the
    lowest contour we already draw. South Texas's typical release sits
    1.4 km outside 20 dBZ, which is inside one HRRR cell. The neighborhood
    is the grid's own spacing, not a radius chosen to swallow the 23 km
@@ -547,6 +551,77 @@ covering most of the box has not worked.
 What this still cannot ask — remaining hypotheses if 2025 still misses,
 not a looser window: growth and first half-lifetime, inflow in ft/min,
 upwind flank versus core, TDLR severe-weather suspension.
+
+### Finding 9 — the binding test is the model's cloud, not the geometry
+
+The 2025 score charges each release to the first test its own 3 km cell
+fails. Of 1,341 releases the join could answer, 920 pass. Of the 541 that
+land outside the drawn fill:
+
+| Charged to | Releases |
+| --- | ---: |
+| the cell passes; the drifted point is outside the contour | 197 |
+| no modeled cloud base | 234 |
+| echo top below freezing in the neighborhood | 71 |
+| base above the service ceiling | 27 |
+| no 20 dBZ in the neighborhood | 12 |
+
+**Twelve releases are the rain test.** Widening the neighborhood past one
+HRRR cell buys almost nothing, so it stays at one cell. What binds is the
+model having no cloud in a column a crew was working. On 2025-05-26 the
+ten Irion releases between 1934Z and 1947Z sit in columns with no modeled
+cloud base and no modeled cloud top, over 1,970–2,360 J/kg of CAPE, 13–31
+J/kg of inhibition, 3–13 km from an echo six to ten minutes old whose
+satellite top cooled 8.4 °C in five minutes. HRRR at 3 km does not
+resolve scattered congestus. The crews were flying the manual's preferred
+target.
+
+**Two changes follow, and one deliberately does not.**
+
+A base the model does not have is unanswered, not failed. The two height
+tests are questions about a modeled cloud; where there is none the cell
+rests on the two measured radar tests, which no missing field can pass on
+its behalf, and the click reports no base rather than a height. The cost
+is stated rather than hidden: where the model has no cloud, a base
+genuinely above 12,000 ft is no longer rejected. The manual has the pilot
+confirm the base visually before seeding, which is the check this test
+was standing in for.
+
+**The condensation level is not that height, and is not read.** It is the
+obvious substitute — HRRR publishes an LCL in every column and a cloud
+base in barely half — and it does not survive measurement. Over the 1,074
+flare columns where HRRR has both, its own diagnosed base sits a median
+5,069 ft above its own LCL, and the two land within 500 ft of each other
+1.1% of the time. The reports say the same of the balloon: printed cloud
+base is a median 782 m above printed LCL, and above it on 103 of 127
+mornings. The reason is the parcel — HRRR's field is `HGT:level of
+adiabatic condensation from sfc`, and in a deeply mixed West Texas
+afternoon the surface parcel saturates far below the layer a turret grows
+out of. The number that tracks the reports' cloud base is the convective
+condensation level, a record we do not download; the profile grid carries
+no moisture, so we cannot compute one either. Adding it is the open
+option if the base test needs an answer rather than a silence.
+
+The 4,000 ft floor comes off. The operations manual's launch criterion is
+"Clouds with bases less than 12,000 ft AGL are deemed seedable" — an
+upper bound whose stated reason is that rain from a higher base
+evaporates before it lands. The state's 4,000–12,000 ft figure describes
+where Texas bases usually sit; a description is not a test. 144 of the
+1,074 releases whose cell had a modeled base sat below 4,000 ft.
+
+The 12,000 ft bound is now applied to the seeding opportunity, which
+until now tested only the service ceiling. This **removes** ground and
+costs overlap: 108 of those 1,074 releases sat at or above 12,000 ft
+above the ground, including 2025-05-17 at 2306Z, at 13,128 ft, which the
+fill accepted. Applying a cited criterion that lowers the score is the
+sign the criterion was not chosen for the score.
+
+**The cost of all this is painted area, and it is what decides whether it
+worked.** `score-season.mjs` prints the median ground each fill covered
+per analysis hour beside the flare counts. Under the previous rules the
+seeding opportunity covered 5.1% of the West Texas window and the base
+fill 27.6%. A repaint that moves the opportunity toward the cloud-base
+fill's 57% has stopped selecting, whatever the flare counts say.
 
 ---
 
@@ -602,6 +677,7 @@ verdict on supercooled liquid, and it must not pretend to be.
 - Bates, R. and Ruiz-Columbie, A. (2002). *Weather Modification Scientific Management in Texas.* J. Wea. Mod. https://journalofweathermodification.scholasticahq.com/
 - Woodley, W. L. and Rosenfeld, D. (2004). *The Development and Testing of a New Method to Evaluate the Operational Cloud-Seeding Programs in Texas.* J. Appl. Meteor. 43, 249. https://journals.ametsoc.org/view/journals/apme/43/2/1520-0450_2004_043_0249_tdatoa_2.0.co_2.xml
 - Johnson, J. T. et al. (2004). *A hydrometeorological decision support system to support weather modification operations in Texas and Oklahoma.* 14th Conf. on Planned and Inadvertent Weather Modification, AMS. https://ams.confex.com/ams/pdfpapers/88272.pdf
+- Weather Modification Inc. *West Central Texas Rainfall Enhancement Program — Operations Manual*, filed with the West Central Texas Weather Modification Association, 2002. Launch criteria, targeting, and seeding rates. https://library.oarcloud.noaa.gov/noaa_documents.lib/OAR/OWAQ/Weather_Modification_Project/West%20Central%20Texas%20Weather%20Modification%20Assoc._02-1135_05.01.2002-09.30.2002.pdf
 - Texas Comptroller of Public Accounts (2022). *Seeding Snap.* https://comptroller.texas.gov/economy/economic-data/water/2022/seeding-snap.php
 - Texas Department of Licensing and Regulation — Weather Modification. https://www.tdlr.texas.gov/weather/summary.htm
 - Texas Department of Licensing and Regulation. *Weather Modification Knowledge Base.* https://www.tdlr.texas.gov/weather/weatherfaq.htm

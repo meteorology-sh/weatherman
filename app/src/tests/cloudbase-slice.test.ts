@@ -10,11 +10,12 @@ const initialState = cloudBaseReducer(undefined, { type: "@@INIT" });
 
 const stats: CloudBaseStats = {
   run: "2025-05-15T18:00:00.000Z",
-  hour: 0,
   validTime: "2025-05-15T18:00:00.000Z",
-  basePct: 55.88,
-  reachablePct: 17.14,
-  reachableKm2: 2925792,
+  radarTime: "2025-05-15T18:02:00.000Z",
+  drawnKm2: 182304,
+  drawnPct: 4.21,
+  modelKm2: 121536,
+  cclKm2: 60768,
   medianFt: 3719,
 };
 
@@ -25,7 +26,6 @@ describe("cloudbase reducer", () => {
   it("starts hidden", () => {
     expect(initialState.visible).toBe(false);
   });
-
 
   it("starts with no stats", () => {
     expect(initialState.stats).toBeUndefined();
@@ -89,14 +89,15 @@ describe("cloudbase reducer", () => {
     expect(state.error).toBeNull();
   });
 
-  // A domain with no cloud in it is a real answer, and its median base is
-  // nothing rather than zero feet.
+  // A domain the layer draws nothing in is a real answer, and its median base
+  // is nothing rather than zero feet.
   it("stores a domain with no cloud at all", () => {
     const empty: CloudBaseStats = {
       ...stats,
-      basePct: 0,
-      reachablePct: 0,
-      reachableKm2: 0,
+      drawnKm2: 0,
+      drawnPct: 0,
+      modelKm2: 0,
+      cclKm2: 0,
       medianFt: null,
     };
 
@@ -106,6 +107,6 @@ describe("cloudbase reducer", () => {
     );
 
     expect(state.stats?.medianFt).toBeNull();
-    expect(state.stats?.basePct).toBe(0);
+    expect(state.stats?.drawnPct).toBe(0);
   });
 });

@@ -1,10 +1,5 @@
 // ArcGIS
-import {
-  BAND_LABEL,
-  FLIGHT_WINDOW_FT,
-  CEILING_FT,
-  RADAR_BANDS,
-} from "./bands";
+import { BAND_LABEL, BASE_CEILING_FT, RADAR_BANDS } from "./bands";
 
 /**
  * The prose half of a layer's legend: its name, where it comes from, the one
@@ -36,20 +31,18 @@ export type LayerLegend = {
   detail: readonly string[];
 };
 
-/** The window's edges as an operator reads them, e.g. "4,000–12,000 ft". */
-export const FLIGHT_WINDOW_LABEL = `${FLIGHT_WINDOW_FT[0].toLocaleString(
+/** The top of the cloud-base map as an operator reads it, e.g. "18,000 ft". */
+export const BASE_CEILING_LABEL = `${BASE_CEILING_FT.toLocaleString(
   "en-US"
-)}–${FLIGHT_WINDOW_FT[1].toLocaleString("en-US")} ft`;
-
-/** The ceiling as an operator reads it, e.g. "18,000 ft". */
-export const CEILING_LABEL = `${CEILING_FT.toLocaleString("en-US")} ft`;
+)} ft`;
 
 export const CloudBaseLegend: LayerLegend = {
   name: "CLOUD BASE",
-  source: "HRRR",
-  summary: "The height of the lowest cloud deck, in feet above sea level (MSL).",
+  source: "HRRR + MRMS",
+  summary: `The height of the cloud base, in feet above sea level (MSL), wherever measured echo stands over it.`,
   detail: [
-    `Modeled at 3 km resolution. The bands are thirds of the ${CEILING_LABEL} service ceiling.`,
+    `Modeled at 3 km resolution. Where HRRR diagnoses a cloud base the layer draws it. Where HRRR has none — which is common under convection — it draws the convective condensation level (CCL) computed from the model's surface moisture and temperature profile. Both are model heights; a click says which one answered.`,
+    `The fill is drawn only where the MRMS 18 dBZ echo top sits above the base. That measurement is what says there is a cloud: the CCL is defined over clear ground too, and HRRR reports a base for thin high deck no radar sees. The bands are thirds of ${BASE_CEILING_LABEL}, and the last one is open above it — no measured height is cut, and whether a base that high can be flown is the SEEDING OPPORTUNITY layer's judgement.`,
   ],
 };
 
@@ -88,7 +81,7 @@ export const EchoFreezeLegend: LayerLegend = {
   source: "MRMS + HRRR",
   summary: `Storms whose 18 dBZ echo top reaches freezing altitudes.`,
   detail: [
-    `The echo top is the highest altitude at which radar detects raindrops, read here at 18 dBZ. It is measured. Joined with HRRR for the modeled freezing level 0 °C.`
+    `The echo top is the highest altitude at which radar detects raindrops, read here at 18 dBZ. It is measured. Joined with HRRR for the modeled freezing level 0 °C.`,
   ],
 };
 
@@ -96,20 +89,17 @@ export const LightningLegend: LayerLegend = {
   name: "LIGHTNING",
   source: "GOES-East GLM",
   summary: "Lightning flashes seen from orbit in the last five minutes.",
-  detail: [
-    `Each point is one flash detected in the last five minutes.`,
-  ],
+  detail: [`Each point is one flash detected in the last five minutes.`],
 };
 
 export const CandidateLegend: LayerLegend = {
   name: "SEEDING OPPORTUNITY",
   source: "HRRR + MRMS",
-  summary: `Where three tests pass at once: the cloud base is under the aircraft's ceiling, its radar echo reaches past freezing, and rain is falling nearby.`,
+  summary: `Where three tests pass at once: there is a workable cloud base, its radar echo reaches past freezing, and rain is falling nearby.`,
   detail: [
-    `Green marks a 3 km cell where three tests pass: cloud base below the ${CEILING_LABEL} service ceiling; an 18 dBZ echo top at or above the freezing level nearby; and reflectivity of at least ${RADAR_BANDS[0].value} dBZ nearby.`
-,
-    `There is no lower bound on the base. A low cloud is still cloud an aircraft can climb into, and the ceiling is read in feet above sea level, so terrain does not move it.`,
-    `Clicking a cell reports a judgment call with the value behind each test.`,
+    `Green marks a 3 km cell where three tests pass: a cloud base under ${BASE_CEILING_LABEL} MSL; an 18 dBZ echo top at or above the freezing level nearby; and reflectivity of at least ${RADAR_BANDS[0].value} dBZ nearby.`,
+    `The base is the one the CLOUD BASE layer draws — HRRR's own where the model has a cloud, the convective condensation level where it does not — so the base behind a green cell is the base painted over it. There is no lower bound: a low cloud is still cloud worth working.`,
+    `A cell with no base from either height fails on that, rather than resting on the two radar tests. A click reports which test ruled the cell out and the value behind each one.`,
   ],
 };
 
@@ -118,14 +108,15 @@ export const CloudCoverLegend: LayerLegend = {
   source: "HRRR",
   summary: "How much of the sky is covered by cloud, as a percentage.",
   detail: [
-    `Hourly modeled forecast at 3 km resolution, for the present hour and each of the next 18 hours.`
+    `Hourly modeled forecast at 3 km resolution, for the present hour and each of the next 18 hours.`,
   ],
 };
 
 export const PrecipLegend: LayerLegend = {
   name: "PRECIPITATION",
   source: "HRRR",
-  summary: "How much rain the model expects to fall in an hour, in millimeters.",
+  summary:
+    "How much rain the model expects to fall in an hour, in millimeters.",
   detail: [
     `Forecast by the same hourly model as cloud cover. The four bands are the National Weather Service intensity classes: trace, light, moderate and heavy.`,
     `The present hour is empty. The value accumulates over a forecast step, so it does not exist at the analysis.`,

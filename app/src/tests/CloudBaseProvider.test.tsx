@@ -10,11 +10,12 @@ import type { CloudBaseStats } from "@/lib/types";
 
 const stats: CloudBaseStats = {
   run: "2025-05-15T18:00:00.000Z",
-  hour: 0,
   validTime: "2025-05-15T18:00:00.000Z",
-  basePct: 55.88,
-  reachablePct: 17.14,
-  reachableKm2: 2925792,
+  radarTime: "2025-05-15T18:02:00.000Z",
+  drawnKm2: 182304,
+  drawnPct: 4.21,
+  modelKm2: 121536,
+  cclKm2: 60768,
   medianFt: 3719,
 };
 
@@ -67,7 +68,7 @@ describe("CloudBaseProvider", () => {
     );
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith("/forecast/cloudbase/stats?hour=0");
+      expect(fetch).toHaveBeenCalledWith("/candidate/cloudbase/stats?");
     });
   });
 

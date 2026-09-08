@@ -22,7 +22,7 @@ import {
   mosaicIndex,
 } from "../mrms/radar";
 import { CELL_KM2 } from "../shared/grid";
-import { BASE_WINDOW_FT, bearing } from "../hrrr/diagnostics";
+import { SEEDABLE_BASE_FT, bearing } from "../hrrr/diagnostics";
 import { CEILING_FT } from "../shared/aircraft";
 
 // Types
@@ -179,8 +179,11 @@ export type CandidateStats = {
 
   /** Median cloud base over candidate ground, ft MSL. Null when there is none. */
   medianBaseFt: number | null;
-  /** Percent of candidate ground whose base is inside the operational window. */
-  windowPct: number;
+  /**
+   * Percent of candidate ground whose base is under 12,000 ft above the
+   * ground — low enough that rain from it reaches the ground.
+   */
+  seedableBasePct: number;
   /** Median height of the band's warm edge over candidate ground, ft MSL. */
   medianBandBaseFt: number | null;
   /** The ceiling those two are reported against. */
@@ -487,6 +490,8 @@ type Context = {
   radarTime: string;
   phaseTime: string | null;
   cloudBaseFt: Float32Array;
+  /** Terrain, ft MSL. The seedable-base bound is a height above the ground. */
+  surfaceFt: Float32Array;
   bandBaseFt: Float32Array;
   mixedCape: Float32Array | undefined;
   vil: Float32Array | undefined;
@@ -503,12 +508,11 @@ type Context = {
  */
 export function summarize(joined: Join, context: Context): CandidateStats {
   const { values, liquid, rejected, blind } = joined;
-  const [low, high] = BASE_WINDOW_FT;
 
   const bases: number[] = [];
   const bandBases: number[] = [];
   let candidates = 0;
-  let inWindow = 0;
+  let lowEnough = 0;
   let reachable = 0;
   let peak = 0;
   let peakCell = -1;
@@ -527,7 +531,15 @@ export function summarize(joined: Join, context: Context): CandidateStats {
     const base = context.cloudBaseFt[i];
     if (!Number.isNaN(base)) {
       bases.push(base);
-      if (base >= low && base < high) inWindow++;
+      // Above the ground, because that is what the criterion is. The median
+      // beside it stays MSL: it is a flight-planning height.
+      const surface = context.surfaceFt[i];
+      if (
+        Number.isFinite(surface) &&
+        base - surface < SEEDABLE_BASE_FT
+      ) {
+        lowEnough++;
+      }
     }
 
     const bandBase = context.bandBaseFt[i];
@@ -571,7 +583,7 @@ export function summarize(joined: Join, context: Context): CandidateStats {
     blindKm2: blind * CELL_KM2,
 
     medianBaseFt: median(bases),
-    windowPct: pct(inWindow, candidates),
+    seedableBasePct: pct(lowEnough, candidates),
     medianBandBaseFt: median(bandBases),
     ceilingFt: CEILING_FT,
     reachablePct: pct(reachable, candidates),
@@ -625,7 +637,7 @@ export function emptyStats(
     },
     blindKm2: 0,
     medianBaseFt: null,
-    windowPct: 0,
+    seedableBasePct: 0,
     medianBandBaseFt: null,
     ceilingFt: CEILING_FT,
     reachablePct: 0,

@@ -19,7 +19,7 @@ import {
   CandidateConfirmedUrl,
   CandidateFieldUrl,
   ForecastCloudsUrl,
-  ForecastCloudBaseUrl,
+  CloudBaseUrl,
   ForecastPrecipUrl,
   ForecastLiquidUrl,
   RadarReflectivityUrl,
@@ -147,9 +147,8 @@ export const ReplayEchoFreezeLayer = new GeoJSONLayer({
 });
 
 /**
- * Texas fly: base in the Comptroller window, 18 dBZ echo top past
- * freezing nearby, rain nearby. One fill. The same cells a click
- * names FLY.
+ * Texas fly: base low enough to seed, 18 dBZ echo top past freezing
+ * nearby, rain nearby. One fill. The same cells a click names FLY.
  */
 export const CandidateFieldLayer = new GeoJSONLayer({
   title: "Seeding opportunity",
@@ -238,7 +237,7 @@ export const ReplayConfirmedLayer = new GeoJSONLayer({
  */
 export const CandidateCloudBaseLayer = new GeoJSONLayer({
   title: "HRRR cloud base",
-  url: ForecastCloudBaseUrl(0),
+  url: CloudBaseUrl(),
   copyright: "NOAA HRRR",
   renderer: candidateCloudBaseRenderer,
   geometryType: "polygon",

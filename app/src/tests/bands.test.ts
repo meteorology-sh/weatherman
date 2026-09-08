@@ -1,9 +1,8 @@
 // ArcGIS
+import { candidateCloudBaseRenderer } from "@/lib/arcgis/renderers";
 import {
-  candidateCloudBaseRenderer,
-} from "@/lib/arcgis/renderers";
-import {
-  FLIGHT_WINDOW_FT,
+  SEEDABLE_BASE_FT,
+  BASE_CEILING_FT,
   CANDIDATE_BANDS,
   CEILING_FT,
   CLOUD_BASE_BANDS,
@@ -208,16 +207,16 @@ describe("soloColor", () => {
 });
 
 describe("CLOUD_BASE_BANDS", () => {
-  const third = CEILING_FT / 3;
+  const third = BASE_CEILING_FT / 3;
 
-  // The server bands on thirds of the ceiling. If these drift apart the
+  // The server bands on thirds of the top of the map. If these drift apart the
   // renderer matches nothing and the layer paints as invisible.
   it("keys each band on the lower edge the server emits", () => {
     expect(CLOUD_BASE_BANDS.map((band) => band.value)).toEqual([
       0,
       third,
       2 * third,
-      CEILING_FT,
+      BASE_CEILING_FT,
     ]);
   });
 
@@ -234,13 +233,15 @@ describe("CLOUD_BASE_BANDS", () => {
     expect(alphas).toEqual([...alphas].sort((a, b) => b - a));
   });
 
-  // A base too high to reach and no cloud at all are different answers, and
-  // dropping the top band would make them the same blank cell.
-  it("still draws the cloud above the ceiling", () => {
+  // A base too high to work and no cloud at all are different answers, and
+  // dropping the top band would make them the same blank cell. Whether that
+  // base can be flown is the seeding opportunity's judgement, not this ramp's.
+  it("stays open above the workable bound", () => {
     const top = CLOUD_BASE_BANDS[CLOUD_BASE_BANDS.length - 1];
 
-    expect(top.value).toBe(CEILING_FT);
+    expect(top.value).toBe(BASE_CEILING_FT);
     expect(top.alpha).toBeGreaterThan(0);
+    expect(top.label).toContain("over");
   });
 
   // Two fills on one map, and a third that must not read as either of them.
@@ -272,17 +273,16 @@ describe("CLOUD_BASE_BANDS", () => {
     }
   });
 
-  // The edges come from the aircraft, not from Texas practice — which matters
-  // because two thirds of the ceiling happens to land on 12,000 ft, the top of
-  // the window. Assert the derivation rather than the absence of the number, or
-  // the coincidence reads as a citation the layer does not have.
-  it("derives every edge from the ceiling, not from the Texas window", () => {
+  // The edges come from the top of the map, not from Texas practice — which
+  // matters because two thirds of it happens to land on 12,000 ft, the same
+  // number as the seeding criterion. Assert the derivation rather than the
+  // presence of the number, or the coincidence reads as a citation the layer
+  // does not have. The bands are MSL and the criterion is AGL, so they are not
+  // the same claim even where they print the same figure.
+  it("derives every edge from the top of the map, not the seeding criterion", () => {
     expect(CLOUD_BASE_BANDS.map((band) => band.value)).toEqual(
-      [0, 1, 2, 3].map((n) => (n * CEILING_FT) / 3)
+      [0, 1, 2, 3].map((n) => (n * BASE_CEILING_FT) / 3)
     );
-    expect(CLOUD_BASE_BANDS[2].value).toBe(FLIGHT_WINDOW_FT[1]); // the coincidence
-    expect(CLOUD_BASE_BANDS.map((b) => b.value)).not.toContain(
-      FLIGHT_WINDOW_FT[0]
-    );
+    expect(2 * third).toBe(SEEDABLE_BASE_FT); // the coincidence
   });
 });

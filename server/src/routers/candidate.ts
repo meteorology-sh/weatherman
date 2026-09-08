@@ -4,7 +4,11 @@ import express, { Request, Response } from "express";
 // Services
 import { Seedability } from "../lib/services/candidate/field";
 import { Storms } from "../lib/services/candidate/storm";
-import { OutsideDomain, parseBox, parseFine } from "../lib/services/shared/grid";
+import {
+  OutsideDomain,
+  parseBox,
+  parseFine,
+} from "../lib/services/shared/grid";
 import { parseAt } from "../lib/services/shared/replay";
 
 export const candidate = express.Router();
@@ -82,6 +86,41 @@ candidate.get("/target", async (req: Request, res: Response) => {
 candidate.get("/target/stats", async (req: Request, res: Response) => {
   try {
     const stats = await Seedability.targetStats(
+      parseAt(req.query.at),
+      req.query.west === undefined ? undefined : parseBox(req.query)
+    );
+    res.send(stats);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+// Cloud base as one fill: HRRR's own base where it has one, the CCL where it
+// does not, under a measured echo top and below 18,000 ft MSL. It lives here
+// rather than on /forecast/cloudbase because the echo top is an observation and
+// an observation cannot be forecast — same reason /field has no `hour`.
+candidate.get("/cloudbase", async (req: Request, res: Response) => {
+  try {
+    const frame = await Seedability.baseField(
+      parseAt(req.query.at),
+      parseBox(req.query),
+      parseFine(req.query)
+    );
+    res.send(frame);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+// How much ground the cloud-base layer draws, and how much of it rests on the
+// CCL rather than on HRRR's own diagnosis. A box is optional.
+candidate.get("/cloudbase/stats", async (req: Request, res: Response) => {
+  try {
+    const stats = await Seedability.baseStats(
       parseAt(req.query.at),
       req.query.west === undefined ? undefined : parseBox(req.query)
     );

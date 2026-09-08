@@ -89,8 +89,9 @@ description, TWMA operations papers, and the 2025 daily reports:
 2. Watch on TITAN. Cells get numeric IDs. The log is written in those
    IDs.
 3. Select a **cell**: convective, still growing, first half of its
-   lifetime, cloud base 4,000–12,000 ft, depth past the freezing level,
-   enough cloud-base inflow, not severe under the TDLR permit.
+   lifetime, cloud base under 12,000 ft above the ground, depth past the
+   freezing level, enough cloud-base inflow, not severe under the TDLR
+   permit.
    Glaciogenic targeting looks for a reflectivity core at or above
    freezing.
 4. Direct the aircraft onto the inflow. The pilot reports climb rate in
@@ -187,9 +188,9 @@ weight on modeled liquid:
 2. **Inflow**, which the free feeds do not have. Climb rate is a
    pilot call. Storm-motion upwind is the wrong substitute to keep
    tightening.
-3. **Cloud base in the 4,000–12,000 ft window, in AGL**, as a test on
-   the cell. 987 of 1,353 releases sat in modeled cloud base; that is
-   "a base exists," not the Comptroller window.
+3. **Cloud base under 12,000 ft above the ground**, as a test on the
+   cell. 987 of 1,353 releases sat in modeled cloud base; that is "a
+   base exists," not the seeding criterion.
 4. **A neighborhood on rain**, one HRRR cell, so a pass 1–3 km
    outside 20 dBZ is the flank rather than a no. South Texas's typical
    release already sits in that gap.

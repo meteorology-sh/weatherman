@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 
 // Services
 import {
-  BASE_WINDOW_FT,
+  SEEDABLE_BASE_FT,
   baseStats,
   bearing,
   diagnostics,
@@ -72,13 +72,15 @@ describe("baseStats", () => {
     assert.equal(stats.reachablePct, 50);
   });
 
-  // The Texas window is reported elsewhere and drawn nowhere; this figure is
-  // the aircraft's limit, so a base inside that window but above the ceiling is
-  // still out of reach. (The two cannot overlap today, which is the point: the
-  // window sits entirely below the ceiling and says nothing about reaching it.)
-  it("measures against the ceiling, not the Texas window", () => {
-    const [, high] = BASE_WINDOW_FT;
-    const stats = baseStats(RUN, 0, grid([high + 1000, high + 2000]));
+  // The seeding criterion is reported elsewhere; this figure is the
+  // aircraft's limit. A base above the 12,000 ft seeding bound but under the
+  // ceiling is still reachable, which is what this measures and all it does.
+  it("measures against the ceiling, not the seeding criterion", () => {
+    const stats = baseStats(
+      RUN,
+      0,
+      grid([SEEDABLE_BASE_FT + 1000, SEEDABLE_BASE_FT + 2000])
+    );
 
     assert.equal(stats.reachablePct, 100);
   });

@@ -70,6 +70,7 @@ import {
   diagnostics,
   recordsAt,
 } from "./diagnostics";
+import { cclFt } from "./ccl";
 import { windowValues } from "./basewindow";
 import {
   BRIEFING_COLD_C,
@@ -406,7 +407,7 @@ export class ForecastService {
    * Cloud base, banded — the selection variable Texas practice uses.
    *
    * A height above the sea, drawn everywhere the model has a deck. The
-   * 4,000–12,000 ft AGL window is not applied here: it is a test the
+   * 12,000 ft AGL seeding criterion is not applied here: it is a test the
    * candidate join runs, and {@link cloudBaseWindow} serves it on its own
    * for the evaluation harness.
    */
@@ -437,8 +438,8 @@ export class ForecastService {
   }
 
   /**
-   * The window on its own: 1 where the base sits in the 4,000–12,000 ft AGL
-   * window and nothing elsewhere. What the evaluation harness scores.
+   * The criterion on its own: 1 where the base sits under 12,000 ft above
+   * the ground and nothing elsewhere. What the evaluation harness scores.
    */
   async cloudBaseWindow(
     hour: number,
@@ -483,8 +484,7 @@ export class ForecastService {
 
     if (field === "cape" || field === "cin" || field === "lcl") {
       const built = await this.surface(hour, at);
-      const spec =
-        field === "cape" ? CAPE : field === "cin" ? CIN : LCL;
+      const spec = field === "cape" ? CAPE : field === "cin" ? CIN : LCL;
       const raw =
         field === "cape"
           ? built.fields.get("mixedCape")
@@ -629,6 +629,29 @@ export class ForecastService {
       topFt: isothermFieldFt(profile, SEEDING.coldestC),
       freezingFt: isothermFieldFt(profile, 0),
       surfaceFt: profile.surfaceFt,
+    };
+  }
+
+  /**
+   * The convective condensation level over every cell, ft MSL.
+   *
+   * Two builds off two products — the pressure-level profile and the surface
+   * moisture — so the first caller pays for the slower rather than for the sum.
+   * `ccl.ts` carries the arithmetic and the validation behind it.
+   *
+   * This is a height and not a cloud. It exists over clear ground, so a caller
+   * that draws it has to establish separately that there is a cloud there.
+   */
+  async cclField(hour: number, at?: Date): Promise<Field> {
+    const [profile, surface] = await Promise.all([
+      this.profile(hour, at),
+      this.surface(hour, at),
+    ]);
+    return {
+      run: profile.run,
+      hour,
+      geo: this.geo!,
+      values: cclFt(profile, surface.fields.get("spfh2m")!),
     };
   }
 

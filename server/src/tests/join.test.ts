@@ -401,20 +401,29 @@ describe("sampleRadar", () => {
 });
 
 describe("summarize", () => {
-  const context = (over: Partial<Parameters<typeof summarize>[1]> = {}) => ({
-    run: RUN,
-    validTime: "2025-05-15T18:00:00.000Z",
-    sceneTime: "2025-05-15T18:01:17.900Z",
-    radarTime: "2025-05-15T18:00:39.000Z",
-    phaseTime: "2025-05-15T18:01:17.900Z",
-    cloudBaseFt: new Float32Array([6000]),
-    bandBaseFt: new Float32Array([16000]),
-    mixedCape: new Float32Array([1800]),
-    vil: new Float32Array([2.5]),
-    stormU: new Float32Array([10]),
-    stormV: new Float32Array([0]),
-    ...over,
-  });
+  // Terrain defaults to sea level, so a base in MSL and the same base above
+  // the ground are the same number and these cases read straight.
+  const context = (over: Partial<Parameters<typeof summarize>[1]> = {}) => {
+    const built = {
+      run: RUN,
+      validTime: "2025-05-15T18:00:00.000Z",
+      sceneTime: "2025-05-15T18:01:17.900Z",
+      radarTime: "2025-05-15T18:00:39.000Z",
+      phaseTime: "2025-05-15T18:01:17.900Z",
+      cloudBaseFt: new Float32Array([6000]),
+      bandBaseFt: new Float32Array([16000]),
+      mixedCape: new Float32Array([1800]),
+      vil: new Float32Array([2.5]),
+      stormU: new Float32Array([10]),
+      stormV: new Float32Array([0]),
+      ...over,
+    };
+    return {
+      ...built,
+      surfaceFt:
+        over.surfaceFt ?? new Float32Array(built.cloudBaseFt.length),
+    };
+  };
 
   const joined = (over: Partial<Join> = {}): Join => ({
     values: new Float32Array([120]),
@@ -508,7 +517,7 @@ describe("summarize", () => {
     assert.equal(stats.peakVilKgM2, 2.5);
   });
 
-  it("reports the operational window as a share of candidate ground", () => {
+  it("reports seedable bases as a share of candidate ground", () => {
     const stats = summarize(
       joined({ values: new Float32Array([120, 120]) }),
       context({
@@ -521,8 +530,44 @@ describe("summarize", () => {
       })
     );
 
-    assert.equal(stats.windowPct, 50);
+    assert.equal(stats.seedableBasePct, 50);
     assert.equal(stats.medianBaseFt, 6000);
+  });
+
+  it("counts a base under 4,000 ft above the ground as seedable", () => {
+    // The bound is an upper one. A 1,500 ft base is cloud an aircraft can
+    // still climb into, and its rain reaches the ground.
+    const stats = summarize(
+      joined({ values: new Float32Array([120, 120]) }),
+      context({
+        cloudBaseFt: new Float32Array([1500, 30000]),
+        bandBaseFt: new Float32Array([16000, 16000]),
+        mixedCape: new Float32Array([0, 0]),
+        vil: new Float32Array([0, 0]),
+        stormU: new Float32Array([0, 0]),
+        stormV: new Float32Array([0, 0]),
+      })
+    );
+
+    assert.equal(stats.seedableBasePct, 50);
+  });
+
+  it("reads the seedable bound above the ground, not above the sea", () => {
+    // The same 13,000 ft MSL base over 2,000 ft ground and over the sea.
+    const stats = summarize(
+      joined({ values: new Float32Array([120, 120]) }),
+      context({
+        cloudBaseFt: new Float32Array([13000, 13000]),
+        surfaceFt: new Float32Array([2000, 0]),
+        bandBaseFt: new Float32Array([16000, 16000]),
+        mixedCape: new Float32Array([0, 0]),
+        vil: new Float32Array([0, 0]),
+        stormU: new Float32Array([0, 0]),
+        stormV: new Float32Array([0, 0]),
+      })
+    );
+
+    assert.equal(stats.seedableBasePct, 50);
   });
 
   // Reachability is reported, never a filter — a band above the ceiling in July

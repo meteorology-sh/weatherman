@@ -30,11 +30,7 @@ import { Hrrr } from "../hrrr/forecast";
 import { SEEDING } from "../hrrr/slw";
 import { Goes } from "../goes/cloudtop";
 import { GoesPhase } from "../goes/phase";
-import {
-  EchoTops,
-  echoTopFtValues,
-  sampleEchoTopKm,
-} from "../mrms/echotop";
+import { EchoTops, echoTopFtValues, sampleEchoTopKm } from "../mrms/echotop";
 import { Mrms } from "../mrms/radar";
 import {
   assertInDomain,
@@ -61,6 +57,17 @@ import {
   readTarget,
   summarize as summarizeTarget,
 } from "./target";
+import {
+  MERGED_BASE,
+  mergedBaseValues,
+  readMergedBase,
+  summarizeMergedBase,
+} from "./cloudbase";
+import type {
+  MergedBaseInputs,
+  MergedBasePoint,
+  MergedBaseStats,
+} from "./cloudbase";
 import type {
   TargetInputs,
   TargetJoin,
@@ -125,7 +132,9 @@ const CONFIRMED = {
 // point is both products: seeding-opportunity verdict plus the Texas target.
 export type { CandidateStats, Rejected, Verdict } from "./join";
 export type { TargetStats, TargetVerdict } from "./target";
-export type CandidatePoint = SeedabilityPoint & TargetPoint;
+export type { BaseSource, MergedBasePoint, MergedBaseStats } from "./cloudbase";
+export { BASE_CEILING_FT } from "./cloudbase";
+export type CandidatePoint = SeedabilityPoint & TargetPoint & MergedBasePoint;
 export { CEILING_FT } from "../shared/aircraft";
 
 export type CandidateFrame = {
@@ -157,7 +166,13 @@ export type CandidateFrame = {
  * lands on a cell and the readout still says which one. The Texas target does
  * not need the liquid grid, so `target` is always present.
  */
-type Cells = { geo: Geo; inputs: Inputs | null; target: TargetInputs };
+type Cells = {
+  geo: Geo;
+  inputs: Inputs | null;
+  target: TargetInputs;
+  /** The merged cloud-base layer's three grids, for the fill and the click. */
+  base: MergedBaseInputs;
+};
 
 type Scene = {
   frame: CandidateFrame;
@@ -166,6 +181,7 @@ type Scene = {
   stats: CandidateStats;
   targetStats: TargetStats;
   targetJoined: TargetJoin;
+  baseStats: MergedBaseStats;
   cells: Cells;
   values: Float32Array | null;
   confirmedValues: Float32Array | null;
@@ -204,9 +220,9 @@ export class CandidateService {
   }
 
   /**
-   * Cells that pass the Texas tests: base in the Comptroller window,
-   * 18 dBZ echo top past freezing nearby, rain nearby. One fill, the
-   * same answer as FLY on a click.
+   * Cells that pass the Texas tests: base low enough to seed, 18 dBZ
+   * echo top past freezing nearby, rain nearby. One fill, the same
+   * answer as FLY on a click.
    */
   async targetField(
     at?: Date,
@@ -236,6 +252,59 @@ export class CandidateService {
         styleFor(fine)
       ),
     };
+  }
+
+  /**
+   * Cloud base as one fill: the model's base where it has one, the CCL where it
+   * does not, under a measured echo top, below 18,000 ft MSL.
+   *
+   * `cloudbase.ts` carries what the merge means and why the echo top gates it.
+   * This replaces the HRRR-only cloud-base layer on `/forecast/cloudbase`,
+   * which is why it is here and not there: the echo top is an observation, and
+   * an observation cannot be forecast to f06.
+   */
+  async baseField(
+    at?: Date,
+    box: LonLatBox = DRAWN,
+    fine = false
+  ): Promise<CandidateFrame> {
+    const scene = await this.scene(at);
+    const geo = scene.cells.geo;
+    const values = mergedBaseValues(scene.cells.base);
+    const drawn = prepareDraw(
+      { nx: geo.nx, ny: geo.ny, values },
+      geo,
+      box,
+      fine
+    );
+    return {
+      ...scene.frame,
+      features: features(
+        drawn.grid,
+        drawn.geo,
+        MERGED_BASE.property,
+        MERGED_BASE.edges,
+        smoothFor(fine)
+      ),
+    };
+  }
+
+  /**
+   * The cloud-base layer's summary, off the same build the fill came from.
+   *
+   * A box counts only those cells. The merge itself is per cell and reads no
+   * neighbors, so unlike the target join there is nothing a box can cut off.
+   */
+  async baseStats(at?: Date, box?: LonLatBox): Promise<MergedBaseStats> {
+    const scene = await this.scene(at);
+    if (!box) return scene.baseStats;
+    return summarizeMergedBase(scene.cells.base, {
+      run: new Date(scene.frame.run),
+      validTime: scene.frame.validTime,
+      radarTime: scene.frame.radarTime,
+      geo: scene.cells.geo,
+      box,
+    });
   }
 
   /** The same build's summary. Asking for either warms both. */
@@ -332,6 +401,7 @@ export class CandidateService {
     return {
       ...(inputs ? readPoint(inputs, cell, where) : emptyPoint(where)),
       ...readTarget(cells.target, cell),
+      ...readMergedBase(cells.base, cell),
     };
   }
 
@@ -401,15 +471,17 @@ export class CandidateService {
     // the mosaic nearest 18:43, rather than putting all three on 18:00.
     const cycle = at && nearestHour(at);
 
-    const [liquid, base, band, tops, radar, phase, echo] = await Promise.all([
-      Hrrr.liquidField(ANALYSIS_HOUR, cycle),
-      Hrrr.diagnosticField("cloudBase", ANALYSIS_HOUR, cycle),
-      Hrrr.bandField(ANALYSIS_HOUR, cycle),
-      Goes.topField(at),
-      Mrms.reflectivityField(at),
-      observedPhase(at),
-      EchoTops.mosaic(at).catch(() => null),
-    ]);
+    const [liquid, base, ccl, band, tops, radar, phase, echo] =
+      await Promise.all([
+        Hrrr.liquidField(ANALYSIS_HOUR, cycle),
+        Hrrr.diagnosticField("cloudBase", ANALYSIS_HOUR, cycle),
+        Hrrr.cclField(ANALYSIS_HOUR, cycle),
+        Hrrr.bandField(ANALYSIS_HOUR, cycle),
+        Goes.topField(at),
+        Mrms.reflectivityField(at),
+        observedPhase(at),
+        EchoTops.mosaic(at).catch(() => null),
+      ]);
 
     const run = liquid.run;
     const validTime = new Date(
@@ -428,6 +500,7 @@ export class CandidateService {
     // domain holds no seeding band, because that is a different question.
     const target: TargetInputs = {
       cloudBaseFt: base.values!,
+      cclFt: ccl.values,
       surfaceFt: band.surfaceFt,
       freezingFt: band.freezingFt,
       echoTopFt,
@@ -440,6 +513,21 @@ export class CandidateService {
       run,
       validTime,
       sceneTime: tops.validTime,
+      radarTime: radar.validTime,
+      geo,
+    });
+
+    // The cloud-base layer: HRRR's own base where it has one, the CCL where it
+    // does not, under a measured echo top. Independent of the seeding band, so
+    // it is built here and not inside either join.
+    const baseCells: MergedBaseInputs = {
+      cloudBaseFt: base.values!,
+      cclFt: ccl.values,
+      echoTopFt,
+    };
+    const baseStats = summarizeMergedBase(baseCells, {
+      run,
+      validTime,
       radarTime: radar.validTime,
       geo,
     });
@@ -469,7 +557,8 @@ export class CandidateService {
         ),
         targetStats,
         targetJoined,
-        cells: { geo, inputs: null, target },
+        baseStats,
+        cells: { geo, inputs: null, target, base: baseCells },
         values: null,
         confirmedValues: null,
       };
@@ -534,6 +623,7 @@ export class CandidateService {
         radarTime: radar.validTime,
         phaseTime: phase.validTime,
         cloudBaseFt: base.values!,
+        surfaceFt: band.surfaceFt,
         bandBaseFt: band.baseFt,
         mixedCape: mixedCape.values,
         vil: vil.values,
@@ -542,7 +632,8 @@ export class CandidateService {
       }),
       targetStats,
       targetJoined,
-      cells: { geo, inputs, target },
+      baseStats,
+      cells: { geo, inputs, target, base: baseCells },
     };
   }
 }

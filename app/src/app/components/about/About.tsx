@@ -1,5 +1,5 @@
 // ArcGIS
-import { ALL_LEGENDS, FLIGHT_WINDOW_LABEL } from "@/lib/arcgis/legends";
+import { ALL_LEGENDS, BASE_CEILING_LABEL } from "@/lib/arcgis/legends";
 
 // Components
 import { LayerAbout } from "./LayerAbout";
@@ -54,7 +54,7 @@ const APPROXIMATIONS: readonly { name: string; text: string }[] = [
   },
   {
     name: "Estimates against measurements",
-    text: `Cloud base, freezing level, CAPE, CIN, LCL and liquid water are model estimates. Reflectivity, echo top and lightning flashes are measurements. A cell can be green because the model is wrong.`,
+    text: `Cloud base, the convective condensation level, freezing level, CAPE, CIN, LCL and liquid water are model estimates. Reflectivity, echo top, lightning flashes and cloud-top phase are measurements. A cell can be green because the model is wrong.`,
   },
 ];
 
@@ -69,8 +69,8 @@ export const About = () => (
         <p className="text-sm">
           Weatherman is a decision science platform for rain-enhancement flight
           operations over Texas. A marked candidate is any cloud formation where
-          three tests pass: cloud base {FLIGHT_WINDOW_LABEL} above the ground;
-          an 18 dBZ radar echo top at or above freezing; and adjacent to nearby
+          three tests pass: a cloud base under {BASE_CEILING_LABEL} MSL; an 18
+          dBZ radar echo top at or above freezing; and adjacent to nearby
           rainfall.
         </p>
       </header>

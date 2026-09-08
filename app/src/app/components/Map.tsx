@@ -14,7 +14,7 @@ import {
   ForecastCloudsUrl,
   ForecastPrecipUrl,
   ForecastLiquidUrl,
-  ForecastCloudBaseUrl,
+  CloudBaseUrl,
   RadarReflectivityUrl,
   RadarStormCoresUrl,
   RadarStormMotionUrl,
@@ -330,7 +330,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     CandidateStormCoreLayer.refresh();
     CandidateStormMotionLayer.url = RadarStormMotionUrl(viewBox);
     CandidateStormMotionLayer.refresh();
-    CandidateCloudBaseLayer.url = ForecastCloudBaseUrl(0, viewBox);
+    CandidateCloudBaseLayer.url = CloudBaseUrl(viewBox);
     CandidateCloudBaseLayer.refresh();
     CandidateLiquidLayer.url = ForecastLiquidUrl(0, viewBox);
     CandidateLiquidLayer.refresh();
@@ -392,7 +392,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayRadarLayer.url = ReplayRadarUrl(at, viewBox);
     ReplayStormCoreLayer.url = ReplayRadarStormCoresUrl(at, viewBox);
     ReplayStormMotionLayer.url = ReplayRadarStormMotionUrl(at, viewBox);
-    ReplayCloudBaseLayer.url = ReplayCloudBaseUrl(at, 0, viewBox);
+    ReplayCloudBaseLayer.url = ReplayCloudBaseUrl(at, viewBox);
     ReplayLiquidLayer.url = ReplayLiquidUrl(at, 0, viewBox);
     ReplayLightningLayer.url = ReplayLightningUrl(at, viewBox);
     ReplayConfirmedLayer.url = ReplayConfirmedUrl(at, viewBox);

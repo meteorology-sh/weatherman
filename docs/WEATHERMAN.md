@@ -51,11 +51,11 @@ here. This map is entirely model output.
 
 The fills on this map, bottom to top:
 
-| Layer                 | Claim    | Source                |
-| --------------------- | -------- | --------------------- |
-| Cloud base            | modeled | HRRR `wrfsfc`         |
-| Radar                 | measured | MRMS mosaic, GOES GLM |
-| Seeding opportunity   | join     | HRRR + MRMS           |
+| Layer               | Claim    | Source                |
+| ------------------- | -------- | --------------------- |
+| Cloud base          | modeled  | HRRR `wrfsfc` + MRMS  |
+| Radar               | measured | MRMS mosaic, GOES GLM |
+| Seeding opportunity | join     | HRRR + MRMS           |
 
 The radar mosaic is the measurement on this map. Supercooled liquid, freezing
 level, −15 °C, CAPE, CIN, LCL, and warm-cloud depth are numbers on a click.
@@ -92,12 +92,12 @@ the storm map does not draw cloud-top temperature as a fill. Freezing
 level stays modeled.
 
 **Clicking is how the panel is read.** A click answers whether to fly that
-column. The Texas tests already on the cell — base in the 4,000–12,000 ft
-window above the ground, echo top at or above freezing nearby, rain in
-the neighborhood — become fly or don't fly, with the numbers that made
-the call: base above the ground, 18 dBZ echo top against freezing, rain,
-modeled liquid, freezing level, −15 °C, the seeding band, CAPE, CIN,
-LCL, and warm-cloud depth.
+column. The Texas tests already on the cell — a workable base under 18,000 ft
+MSL, echo top at or above freezing nearby, rain in the
+neighborhood — become fly or don't fly, with the numbers that made the
+call: base above the ground and which height that is, 18 dBZ echo top
+against freezing, rain, modeled liquid, freezing level, −15 °C, the
+seeding band, CAPE, CIN, LCL, and warm-cloud depth.
 
 **A click outside the model does nothing.** The grid is a Lambert quadrilateral
 and every readout answers by snapping a click to the nearest cell, so a click on
@@ -127,25 +127,26 @@ reports them, where the question really is what a whole hour looked like.
 
 **The map opens on storms and the Texas fly fill.** Radar starts on,
 with the core, the heading, and the upwind raining flank. SEEDING
-OPPORTUNITY starts on: cells whose base is in the 4,000–12,000 ft AGL
-window, whose measured 18 dBZ echo top is at or above freezing nearby,
+OPPORTUNITY starts on: cells with a workable cloud base under 18,000 ft
+MSL, whose measured 18 dBZ echo top is at or above freezing nearby,
 and that have rain nearby. That fill is where to click. Cloud base
 starts off.
 
-**A click on the fly fill is FLY.** The panel names the base above the
-ground, the 18 dBZ echo top against freezing, the rain on that cell,
-modeled liquid, and where on the storm the click landed. The echo top
-is the measured 18 dBZ height, the same sample the echo-past-freezing
-fill is drawn from.
+**A click on the fly fill is FLY.** The panel names the cloud base in MSL and
+which model height gave it, the base above the ground, the 18 dBZ echo top
+against freezing, the rain on that cell, the observed cloud-top phase, modeled
+liquid, and where on the storm the click landed. The echo top is the measured
+18 dBZ height, the same sample the echo-past-freezing fill is drawn from. Phase
+is the satellite's classification of the top of whatever deck it can see; it is
+reported and never gates a cell.
 
 **Cloud base sits at the bottom of the stack because it is the question asked
-first** — can an aircraft climb into this cloud at all — and the layers above
-are answers about a cloud you can reach.
+first** — how high is the bottom of this cloud — and the layers above are
+answers about the cloud standing on it.
 
 **The 12Z table hangs on the click.** Freezing level, −15 °C, warm-cloud
 depth (freezing minus cloud base), CAPE, CIN, and LCL are labeled
-numbers after a click. Cloud base carries the Comptroller window
-underneath it. GOES cloud-top temperature is a reading on the click.
+numbers after a click. GOES cloud-top temperature is a reading on the click.
 
 **The product this map is** lives in `docs/INNOVATION.md`. Mosaic storms are
 not TITAN cells and are not labeled as such.
@@ -235,43 +236,64 @@ Both edges live in `SEEDING` in `server/src/lib/services/hrrr/slw.ts`, mirrored 
 `BAND_WARMEST_C`/`BAND_COLDEST_C` in the app. **Every caption, legend bracket and
 readout reads the band from one of those two places.**
 
-### Cloud base and the convective diagnostics — HRRR `wrfsfc`
+### Cloud base and the convective diagnostics — HRRR `wrfsfc` + MRMS
 
-The file the cloud-cover and precipitation layers already download.
-`HGT:cloud base` says how high the bottom of the cloud sits. **The layer is a
-height ramp in ft MSL and makes no other claim** — how far there is to climb
-before there is cloud to work with, and nothing about what kind of cloud it is.
+`HGT:cloud base` says how high the bottom of the cloud sits, and HRRR reports it
+only where it has modeled a cloud. Under convection it frequently has none, so
+the layer merges two model heights: **HRRR's own base where it has one, and the
+convective condensation level where it does not.** The CCL is computed from
+`SPFH:2 m` against the pressure-level temperatures — `ccl.ts` — and validated
+against the operators' own printed cloud base on 104-127 balloon mornings:
++961 ft bias, 1,385 ft typical miss, 61% within 2,000 ft, where the LCL runs
+-2,566 ft and 35%. Both halves are model output. A click says which one
+answered; the fill never distinguishes them by colour.
 
-Its four bands are **thirds of the aircraft's 18,000 ft service ceiling**, so
-every edge traces to one cited number — `CEILING_FT` in
-`server/src/lib/services/shared/aircraft.ts`, mirrored in the app's `bands.ts` —
-rather than to a coverage table. Two thirds of the ceiling lands on 12,000 ft,
-which is also the top of the Texas window; that is a coincidence, and
-`bands.test.ts` pins the derivation so it cannot be mistaken for a citation.
+**The measured echo top is what makes it a cloud.** A CCL is defined over clear
+ground, and HRRR reports a base for thin high deck no radar sees, so the fill is
+drawn only where the MRMS 18 dBZ echo top sits **above** the base. That is the
+statement "there is a column of cloud from this height upward", and it is a
+measurement rather than a second model opinion. It gates HRRR's own base for the
+same reason it gates the CCL. Because an observation cannot be forecast, the
+layer exists at the analysis hour only and is served from `/candidate/cloudbase`
+rather than the forecast ladder.
+
+**No measured height is cut.** `BASE_CEILING_FT` in
+`server/src/lib/services/candidate/cloudbase.ts`, mirrored in the app's
+`bands.ts`, is the highest _workable_ base — a judgement the seeding-opportunity
+layer makes, not a bound on what this one draws. Its four bands are **thirds of
+that height with the last one open above it**, so every edge traces to the one
+number rather than to a coverage table. It shares a number with the service
+ceiling and is not derived from it. Two thirds of it lands on 12,000 ft, which is also the highest base Texas
+seeds; that is a coincidence — the bands are MSL and the criterion is above the
+ground — and `bands.test.ts` pins the derivation so it cannot be mistaken for a
+citation.
 
 It has **real nodata**, and its bands are **disjoint**: a height is a position,
 not an accumulation, so exactly one applies to a cell. **The ramp runs
 loud-to-quiet**, like the cloud tops — brightness is how short the climb is, not
-how big the number is. The last band is open above the ceiling and still drawn,
-because a base too high to reach and no cloud at all are different answers.
+how big the number is. The last band is open above the bound and still drawn,
+because a base too high to work and no cloud at all are different answers.
 
-**MSL because the aircraft is**: a service ceiling, air density and climb
-performance all refer to sea level, so this is the datum a sortie is planned in.
-The cost is that it says nothing about cloud type — 6,000 ft is a low convective
-base at the Gulf coast and near-surface fog on the Llano Estacado. The point
-readout carries `cloudBaseAglFt` alongside for that.
+**MSL because the height is**: the base is a position above sea level, and both
+halves of the merge produce it in that datum. The cost is that it says nothing
+about cloud type — 6,000 ft is a low convective base at the Gulf coast and
+near-surface fog on the Llano Estacado. The point readout carries
+`cloudBaseAglFt` alongside for that.
 
 **This is the bottom of the cloud, not the bottom of the seeding band.** Where
 the column first reaches seeding temperature is a different altitude, often
 thousands of feet higher; the candidate summary reports it as
 `medianBandBaseFt`.
 
-The **4,000–12,000 ft window** the state's published description names is a
-switch under cloud base. It shows that gate instead of the height ramp,
-in height above the ground, and it is drawn over the rain so the switch
-is visible on the storm. MSL would move the window with the terrain;
-AGL is what transfers from the Gulf coast to high ground. It does not
-hide a storm. The height ramp stays feet MSL.
+The **12,000 ft above the ground** bound West Texas operations name is served
+at `/forecast/cloudbase/window` and read by `eval`. It is not a layer on either
+map: the cloud-base fill is one MSL height ramp with no switch under it.
+
+**It is an upper bound, and there is no lower one.** The criterion is
+that rain from a higher base evaporates in the dry air underneath before
+it reaches the ground. The state's published 4,000–12,000 ft figure
+describes where Texas convective bases usually sit; a description of the
+season is not a test, so no floor is applied anywhere.
 
 **Depth is not drawn.** `HGT:cloud top` is diagnosed over far less ground than the
 base is, so a depth layer would vanish over most of the cloud the base layer
@@ -286,14 +308,31 @@ click's 18 dBZ echo-top is the measured height from MRMS, not this field.
 
 Three tests on one 3 km cell:
 
-- modeled cloud base sits **4,000–12,000 ft above the ground**
+- there is a **workable cloud base under 18,000 ft MSL**
 - a measured 18 dBZ echo top sits **at or above the modeled freezing
   level** in this cell or the ones next to it
 - rain at **20 dBZ** in this cell or next to it
 
+**The base is the one the cloud-base layer draws** — HRRR's own where the model
+has a cloud, the convective condensation level where it does not, under the same
+`BASE_CEILING_FT` bound. So the base behind a green cell here is the base painted
+over it there, and a column with no base from either height fails on that test
+rather than resting on the two radar tests. That waiver used to be the layer's
+weakest point: HRRR grows no cloud in most cells under convection, so the base
+test was skipped exactly where it mattered.
+
 The fill is those cells. A click on it is FLY. Modeled liquid, freezing
 level, −15 °C, CAPE, CIN, LCL, and warm-cloud depth are numbers on that
 click.
+
+**Where the model grew no cloud, the height tests are unanswered rather
+than failed.** HRRR at 3 km does not resolve scattered convective towers
+and reports no cloud base in columns a crew is working, so reading that
+silence as "too high to seed" would make a gap in the model into a
+verdict about the sky. The cell rests on the two measured radar tests,
+which no missing field can pass on its behalf, and the click reports no
+base rather than a height. The cost is that a base genuinely too high is
+not caught there; the pilot confirms the base visually before seeding.
 
 **The band-inside-cloud test is an interval overlap.** Cloud spans base to top;
 the band spans its warm edge (−5 °C, lower) to its cold edge (−18 °C, higher).
@@ -410,9 +449,9 @@ instrument (`MEASUREMENTS.md` §4).
 
 #### Two seeding strategies, and which one this map serves
 
-Texas seeds **growing convective turrets**: cloud base 4,000–12,000 ft, a top
-normally between −5 and −10 °C, seeded through cloud-base inflow, with severe
-storms excluded under TDLR permit. That is glaciogenic seeding of young cloud
+Texas seeds **growing convective turrets**: cloud base under 12,000 ft above
+the ground, a top normally between −5 and −10 °C, seeded through cloud-base
+inflow, with severe storms excluded under TDLR permit. That is glaciogenic seeding of young cloud
 that has not yet frozen on its own — silver iodide does nothing in a cloud that
 already has ice, because the process seeding exists to trigger is the one that
 has already run there.
@@ -562,8 +601,9 @@ out of the same nine `wrfsfc` records:
 NOMADS HRRR .idx → byte-range subset of the 2D diagnostics (~10 MB, 9 records)
              → grib_filter with a sentinel outside the physical range
              → native 3 km, NaN where unsampled
-             → disjoint bands on the operational window
-             → GET /forecast/cloudbase?hour=N → CandidateCloudBaseLayer.url
+             → merged with the CCL, gated on the MRMS 18 dBZ echo top
+             → disjoint bands in ft MSL, last one open above 18,000
+             → GET /candidate/cloudbase → CandidateCloudBaseLayer.url
 
 GET /forecast/sounding?lat&lon&hour → the same cached grid, read at one cell
                                     → Sounding.diagnostics → Convective panel
@@ -609,13 +649,13 @@ age rather than implying it is live.
 
 One hue per claim, and they cannot be swapped without the map lying:
 
-| Hue     | Layer                      |
-| ------- | -------------------------- |
-| Slate   | cloud top — context        |
-| Violet  | cloud base                 |
+| Hue     | Layer                     |
+| ------- | ------------------------- |
+| Slate   | cloud top — context       |
+| Violet  | cloud base                |
 | Amber   | modeled liquid water      |
 | Cyan    | rain, modeled or measured |
-| Emerald | seeding opportunity        |
+| Emerald | seeding opportunity       |
 
 Cyan is the same on both maps deliberately: it is the same quantity, and the two
 never share a map. On `/map/forecast` it is what the model says will fall; on

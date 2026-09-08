@@ -10,7 +10,7 @@ import {
   summarize,
   verdict,
 } from "../lib/services/candidate/target";
-import { CEILING_FT } from "../lib/services/shared/aircraft";
+import { BASE_CEILING_FT } from "../lib/services/candidate/cloudbase";
 import { CELL_KM2 } from "../lib/services/shared/grid";
 import { RAIN_DBZ } from "../lib/services/mrms/radar";
 
@@ -27,7 +27,7 @@ const NO_COVERAGE = -999;
  *
  * Base 8,000 ft MSL over 2,000 ft terrain (6,000 ft AGL), freezing at
  * 16,000 ft, 18 dBZ echo top at 18,000 ft, 35 dBZ: a raining convective
- * column with the aircraft in the operational window.
+ * column with a base low enough to seed.
  */
 function cell(
   over: Partial<Record<keyof Omit<TargetInputs, "nx" | "ny">, number>> = {}
@@ -35,6 +35,7 @@ function cell(
   const one = (v: number) => new Float32Array([v]);
   return {
     cloudBaseFt: one(over.cloudBaseFt ?? 8000),
+    cclFt: one(over.cclFt ?? 9000),
     surfaceFt: one(over.surfaceFt ?? 2000),
     freezingFt: one(over.freezingFt ?? 16000),
     echoTopFt: one(over.echoTopFt ?? 18000),
@@ -44,11 +45,12 @@ function cell(
   };
 }
 
-/** A 3×3 of in-window bases with no echo and no echo top. Center is 4. */
+/** A 3×3 of seedable bases with no echo and no echo top. Center is 4. */
 function quiet3(): TargetInputs {
   const fill = (v: number) => new Float32Array(9).fill(v);
   return {
     cloudBaseFt: fill(8000),
+    cclFt: fill(9000),
     surfaceFt: fill(2000),
     freezingFt: fill(16000),
     echoTopFt: fill(Number.NaN),
@@ -81,13 +83,13 @@ describe("flyValues", () => {
   it("is 1 on passing cells and missing elsewhere", () => {
     const out = flyValues(join(cell()));
     assert.equal(out[0], 1);
-    const empty = flyValues(join(cell({ cloudBaseFt: Number.NaN })));
+    const empty = flyValues(join(cell({ dbz: NO_ECHO })));
     assert.ok(Number.isNaN(empty[0]));
   });
 });
 
 describe("target join", () => {
-  it("keeps a raining column whose base is in the window and whose echo top is above freezing", () => {
+  it("keeps a raining column whose base is low enough and whose echo top is above freezing", () => {
     const out = join(cell());
 
     assert.equal(out.values[0], 1);
@@ -99,8 +101,24 @@ describe("target join", () => {
     assert.equal(verdict(cell({ dbz: RAIN_DBZ }), 0), "target");
   });
 
-  it("rejects a cell with no cloud base before anything else", () => {
-    assert.equal(verdict(cell({ cloudBaseFt: Number.NaN }), 0), "noCloudBase");
+  it("leaves the height tests unanswered where the model has no cloud", () => {
+    // HRRR reports no base in columns a crew is working. Reading that
+    // silence as "too high to seed" would turn a gap in the model into a
+    // verdict about the sky, so the cell rests on the radar tests.
+    assert.equal(verdict(cell({ cloudBaseFt: Number.NaN }), 0), "target");
+  });
+
+  it("still requires both radar tests where the model has no cloud", () => {
+    // The measured tests are what put a cell on the map, so a missing base
+    // adds no ground of its own.
+    assert.equal(
+      verdict(cell({ cloudBaseFt: Number.NaN, dbz: NO_ECHO }), 0),
+      "noStorm"
+    );
+    assert.equal(
+      verdict(cell({ cloudBaseFt: Number.NaN, echoTopFt: Number.NaN }), 0),
+      "topBelowFreezing"
+    );
   });
 
   it("reads the ceiling in MSL, so terrain does not move it", () => {
@@ -126,12 +144,58 @@ describe("target join", () => {
 
   it("rejects a base at the ceiling — the interval is half-open", () => {
     assert.equal(
-      verdict(cell({ cloudBaseFt: CEILING_FT, surfaceFt: 2000 }), 0),
-      "baseAboveCeiling"
+      verdict(cell({ cloudBaseFt: BASE_CEILING_FT }), 0),
+      "baseTooHigh"
     );
     assert.equal(
-      verdict(cell({ cloudBaseFt: CEILING_FT - 1, surfaceFt: 2000 }), 0),
+      verdict(cell({ cloudBaseFt: BASE_CEILING_FT - 1 }), 0),
       "target"
+    );
+  });
+
+  // The bound is MSL, so terrain does not move it. The old criterion was a
+  // depth above the ground and did, which is the difference this pins.
+  it("reads the bound in MSL, so terrain does not move it", () => {
+    for (const surfaceFt of [500, 2000, 7000]) {
+      assert.equal(
+        verdict(cell({ cloudBaseFt: 13000, surfaceFt }), 0),
+        "target"
+      );
+    }
+  });
+
+  // The whole reason the CCL is here: HRRR grows no cloud in most cells under
+  // convection, and the base test used to be waived there. It is answerable
+  // now, so it is asked.
+  it("falls back to the CCL where the model has no base", () => {
+    assert.equal(
+      verdict(cell({ cloudBaseFt: Number.NaN, cclFt: 9000 }), 0),
+      "target"
+    );
+    assert.equal(
+      verdict(cell({ cloudBaseFt: Number.NaN, cclFt: 19000 }), 0),
+      "baseTooHigh"
+    );
+  });
+
+  it("prefers the model's own base to the CCL where it has one", () => {
+    // The model is workable and the CCL is not. The model wins, so the cell
+    // is a target.
+    assert.equal(
+      verdict(cell({ cloudBaseFt: 8000, cclFt: 19000 }), 0),
+      "target"
+    );
+    // And the other way round.
+    assert.equal(
+      verdict(cell({ cloudBaseFt: 19000, cclFt: 8000 }), 0),
+      "baseTooHigh"
+    );
+  });
+
+  it("rejects a column with no base from either height", () => {
+    assert.equal(
+      verdict(cell({ cloudBaseFt: Number.NaN, cclFt: Number.NaN }), 0),
+      "noCloudBase"
     );
   });
 
@@ -163,8 +227,8 @@ describe("target join", () => {
     // One-cell grids, so a neighborhood test cannot borrow a neighbor's
     // echo. Adjacent cells on a real grid would leak those two tests.
     const cases = [
-      cell({ cloudBaseFt: Number.NaN }),
-      cell({ cloudBaseFt: CEILING_FT + 1000, surfaceFt: 2000 }),
+      cell({ cloudBaseFt: BASE_CEILING_FT + 1000, cclFt: Number.NaN }),
+      cell({ cloudBaseFt: Number.NaN, cclFt: Number.NaN }),
       cell({ freezingFt: Number.NaN, echoTopFt: Number.NaN }),
       cell({ echoTopFt: Number.NaN }),
       cell({ dbz: NO_ECHO }),
@@ -182,15 +246,15 @@ describe("target join", () => {
     }
 
     assert.equal(charged.target, 1);
+    assert.equal(charged.baseTooHigh, 1);
     assert.equal(charged.noCloudBase, 1);
-    assert.equal(charged.baseAboveCeiling, 1);
     assert.equal(charged.noFreezingLevel, 1);
     assert.equal(charged.topBelowFreezing, 1);
     assert.equal(charged.noStorm, 1);
     assert.equal(
       charged.target +
+        charged.baseTooHigh +
         charged.noCloudBase +
-        charged.baseAboveCeiling +
         charged.noFreezingLevel +
         charged.topBelowFreezing +
         charged.noStorm,
@@ -202,7 +266,7 @@ describe("target join", () => {
 function emptyCounts() {
   return {
     noCloudBase: 0,
-    baseAboveCeiling: 0,
+    baseTooHigh: 0,
     noFreezingLevel: 0,
     topBelowFreezing: 0,
     noStorm: 0,
@@ -263,17 +327,29 @@ describe("readTarget", () => {
 
   it("names the test that ruled the cell out", () => {
     assert.equal(
-      readTarget(cell({ cloudBaseFt: Number.NaN }), 0).target,
-      "noCloudBase"
+      readTarget(cell({ cloudBaseFt: 40000 }), 0).target,
+      "baseTooHigh"
     );
     assert.equal(readTarget(cell({ dbz: NO_ECHO }), 0).target, "noStorm");
   });
 
-  it("reports no base AGL where there is no cloud", () => {
-    assert.equal(
-      readTarget(cell({ cloudBaseFt: Number.NaN }), 0).cloudBaseAglFt,
-      null
+  it("reads the AGL height off the CCL where the model has no cloud", () => {
+    // 9,000 ft MSL over 2,000 ft terrain. The height comes from whichever of
+    // the two answered, so the panel prints a number rather than a dash.
+    const point = readTarget(cell({ cloudBaseFt: Number.NaN }), 0);
+    assert.equal(point.cloudBaseAglFt, 7000);
+    assert.equal(point.target, "target");
+  });
+
+  it("reports no base AGL where neither height answered", () => {
+    // Null is "this column has no cloud base", which the panel says in words.
+    // It must not become a height.
+    const point = readTarget(
+      cell({ cloudBaseFt: Number.NaN, cclFt: Number.NaN }),
+      0
     );
+    assert.equal(point.cloudBaseAglFt, null);
+    assert.equal(point.target, "noCloudBase");
   });
 
   it("reports no echo top where there is no 18 dBZ", () => {
@@ -295,7 +371,8 @@ describe("summarize", () => {
 
   it("reports target ground against the ground it was asked", () => {
     const inputs: TargetInputs = {
-      cloudBaseFt: new Float32Array([8000, 8000, NaN, NaN]),
+      cloudBaseFt: new Float32Array([8000, 8000, 40000, 40000]),
+      cclFt: new Float32Array(4).fill(9000),
       surfaceFt: new Float32Array([2000, 2000, 2000, 2000]),
       freezingFt: new Float32Array([16000, 16000, 16000, 16000]),
       echoTopFt: new Float32Array([18000, 18000, 18000, 18000]),
@@ -316,7 +393,8 @@ describe("summarize", () => {
 
   it("charges boxed rejections only to cells inside the box", () => {
     const inputs: TargetInputs = {
-      cloudBaseFt: new Float32Array([NaN, 8000]),
+      cloudBaseFt: new Float32Array([40000, 8000]),
+      cclFt: new Float32Array(2).fill(9000),
       surfaceFt: new Float32Array([2000, 2000]),
       freezingFt: new Float32Array([16000, 16000]),
       echoTopFt: new Float32Array([18000, 18000]),
@@ -331,7 +409,7 @@ describe("summarize", () => {
 
     assert.equal(stats.boxKm2, CELL_KM2);
     assert.equal(stats.targetKm2, CELL_KM2);
-    assert.equal(stats.rejected.noCloudBase, 0);
+    assert.equal(stats.rejected.baseTooHigh, 0);
   });
 
   it("still sees a neighbor that sits just outside the box", () => {
@@ -339,6 +417,7 @@ describe("summarize", () => {
     // storm. A crop-then-join would miss it.
     const inputs: TargetInputs = {
       cloudBaseFt: new Float32Array([8000, 8000]),
+      cclFt: new Float32Array(2).fill(9000),
       surfaceFt: new Float32Array([2000, 2000]),
       freezingFt: new Float32Array([16000, 16000]),
       echoTopFt: new Float32Array([Number.NaN, 18000]),
