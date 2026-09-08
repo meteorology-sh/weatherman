@@ -34,9 +34,19 @@
  * **The remaining minutes are closed with the storm motion.** Each layer is
  * fetched at the flare's own timestamp — GOES and radar already answer about
  * that minute, HRRR still rounds to the nearer hour — and the release is
- * carried along HRRR's 0–6 km storm motion over that layer's own valid-time
- * gap. The offset is signed: a release after the half hour is charged to the
- * next analysis and drifts forward, one before it drifts back.
+ * carried along HRRR's 0–6 km storm motion over that layer's own gap. The
+ * offset is signed: a release after the half hour is charged to the next
+ * analysis and drifts forward, one before it drifts back.
+ *
+ * **A layer is drifted against the clock that sets its edge, not against the
+ * model hour.** Several of these fills are built from HRRR and from an
+ * observation together, and where an observation decides whether the fill is
+ * drawn at all, the edge has already moved with the storm before anything is
+ * carried anywhere. Drifting such a layer applies a correction it has already
+ * made and measures the release against ground it never stood over. So every
+ * layer names its `clock` — which of the frame's timestamps places its
+ * boundary — and the drift is taken to that timestamp. `near.<layer>.clock`
+ * and `clockTime` record which one answered.
  */
 
 // Node
@@ -134,6 +144,25 @@ function withBox(path) {
  * `target` is fetched first: building it warms every source the other HRRR
  * fields read.
  */
+/**
+ * Which of a frame's timestamps places the layer's edge.
+ *
+ * `model` is the HRRR analysis hour: the fill is model output and is as old as
+ * the analysis. `radar` and `scene` are the MRMS scan and the GOES scan, and a
+ * layer names one of those when an observation valid at the asked-for minute
+ * decides where it is drawn — the fill has already followed the storm, so the
+ * release does not have to be carried to meet it.
+ *
+ * Naming the clock is not the same as naming what the layer is made of. A
+ * hybrid fill still ramps on a model height; what the clock answers is the
+ * narrower question of what put its boundary where it is.
+ */
+const CLOCKS = {
+  model: "validTime",
+  radar: "radarTime",
+  scene: "sceneTime",
+};
+
 const LAYERS = [
   {
     key: "cloudBase",
@@ -147,6 +176,9 @@ const LAYERS = [
     unit: "ft MSL",
     shape: "disjoint",
     cellKm: CELL_KM.cloudBase,
+    // The echo top decides where this draws — a modeled base with no measured
+    // cloud over it is not drawn at all — so the radar scan places the edge.
+    clock: "radar",
   },
   {
     key: "cloudTop",
@@ -156,6 +188,8 @@ const LAYERS = [
     unit: "°C below zero",
     shape: "disjoint",
     cellKm: CELL_KM.cloudTop,
+    // Wholly a satellite product; the scene is both its value and its edge.
+    clock: "scene",
   },
   {
     key: "liquid",
@@ -165,6 +199,8 @@ const LAYERS = [
     unit: "g/m²",
     shape: "nested",
     cellKm: CELL_KM.liquid,
+    // HRRR alone. Nothing measured touches it, so it is as old as the hour.
+    clock: "model",
   },
   {
     // Supercooled liquid with every other candidate test already applied —
@@ -179,6 +215,9 @@ const LAYERS = [
     unit: "g/m²",
     shape: "nested",
     cellKm: CELL_KM.candidate,
+    // Hybrid, but the contour that bounds it is the model's own 10 g/m² line;
+    // the measured tests erase area inside that line rather than place it.
+    clock: "model",
   },
   {
     key: "radar",
@@ -188,6 +227,7 @@ const LAYERS = [
     unit: "dBZ",
     shape: "nested",
     cellKm: CELL_KM.radar,
+    clock: "radar",
   },
   {
     key: "target",
@@ -197,6 +237,9 @@ const LAYERS = [
     unit: "pass",
     shape: "disjoint",
     cellKm: CELL_KM.target,
+    // Rain nearby and an echo top past freezing nearby are what switch this
+    // fill on, and both are measured at the asked-for minute.
+    clock: "radar",
   },
   {
     key: "baseWindow",
@@ -207,6 +250,8 @@ const LAYERS = [
     unit: "pass",
     shape: "disjoint",
     cellKm: CELL_KM.baseWindow,
+    // HRRR's own base against a height bound. No observation in it.
+    clock: "model",
   },
   {
     key: "echoFreeze",
@@ -217,6 +262,8 @@ const LAYERS = [
     unit: "pass",
     shape: "disjoint",
     cellKm: CELL_KM.echoFreeze,
+    // A measured echo top against a modeled height; the echo places the edge.
+    clock: "radar",
   },
 ];
 
@@ -308,7 +355,16 @@ async function frameAt(layer, at) {
       }
       if (polygons.length) levels.push({ level, polygons });
     }
-    return { validTime: frame.validTime ?? at, levels };
+    // Every timestamp the route reported, not only the model hour. A fill
+    // built from HRRR and an observation carries both, and which one places
+    // its edge is the layer's own `clock`.
+    return {
+      validTime: frame.validTime ?? at,
+      radarTime: frame.radarTime ?? null,
+      sceneTime: frame.sceneTime ?? null,
+      phaseTime: frame.phaseTime ?? null,
+      levels,
+    };
   })();
 
   framesByPath.set(path, work);
@@ -409,6 +465,8 @@ async function columnAt(release, hour) {
     freezingFt: sounding.freezingFt ?? null,
     bandBaseFt: sounding.bandBaseFt ?? null,
     bandTopFt: sounding.bandTopFt ?? null,
+    /** The CCL off the same column, ft MSL. Null where it never saturates. */
+    cclFt: sounding.cclFt ?? null,
     levels: sounding.levels ?? [],
     diagnostics: sounding.diagnostics ?? null,
   };
@@ -460,6 +518,12 @@ async function cellAt(release) {
     cloudBaseAglFt: point.cloudBaseAglFt ?? null,
     /** HRRR's own base, ft MSL, before the CCL fallback. */
     cloudBaseFt: point.cloudBaseFt ?? null,
+    /**
+     * The convective condensation level, ft MSL, whether or not it was the
+     * height the merged base took. Stored beside `baseSource` so a fallback
+     * that agreed with HRRR can be told from one that did not.
+     */
+    cclFt: point.cclFt ?? null,
 
     echoTopFt: point.echoTopFt ?? null,
     freezingFt: point.freezingFt ?? null,
@@ -537,6 +601,19 @@ function coverage(frame, shape) {
   return shape === "nested"
     ? levels[0].polygons
     : levels.flatMap((level) => level.polygons);
+}
+
+/**
+ * The timestamp a layer's edge is set by, off the frame that answered.
+ *
+ * A frame that did not report the clock a layer named falls back to its valid
+ * time, which is the model hour. That is the conservative direction: it drifts
+ * a layer that may not have needed it rather than leaving a genuinely stale
+ * fill uncorrected.
+ */
+function clockTimeOf(layer, frame, fallback) {
+  const field = CLOCKS[layer.clock] ?? "validTime";
+  return frame?.[field] ?? frame?.validTime ?? fallback;
 }
 
 /**
@@ -618,6 +695,9 @@ for (const hour of hours) {
     } catch (failure) {
       frames[hour][key] = {
         validTime: hour,
+        radarTime: null,
+        sceneTime: null,
+        phaseTime: null,
         levels: [],
         error: failure.message,
       };
@@ -666,12 +746,15 @@ for (const hour of hours) {
       const scored = await frameAt(layer, release.at).catch(
         () => frames[hour][layer.key]
       );
-      const when = scored?.validTime ?? hour;
+      const when = clockTimeOf(layer, scored, hour);
       const shifted = advect(release, motion, when);
       const from = shifted.to ?? raw;
       near[layer.key] = nearness(scored, layer, from[0], from[1], raw);
       if (near[layer.key]) {
         near[layer.key].validTime = scored?.validTime ?? null;
+        /** Which timestamp placed this layer's edge, and what it read. */
+        near[layer.key].clock = layer.clock;
+        near[layer.key].clockTime = when;
         near[layer.key].offsetMinutes = shifted.offsetMinutes;
       }
     }

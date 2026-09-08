@@ -244,6 +244,11 @@ export type CellAtFlare = {
   cloudBaseAglFt: number | null;
   /** HRRR's own base, ft MSL, before the CCL fallback. */
   cloudBaseFt?: number | null;
+  /**
+   * The convective condensation level, ft MSL, whether or not the merged base
+   * took it. Absent on files painted before the click reported it.
+   */
+  cclFt?: number | null;
 
   echoTopFt: number | null;
   freezingFt: number | null;

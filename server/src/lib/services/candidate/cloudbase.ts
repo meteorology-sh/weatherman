@@ -127,6 +127,17 @@ export type MergedBasePoint = {
   baseSource: BaseSource | null;
   /** Does the cloud-base layer fill this cell? */
   baseDrawn: boolean;
+  /**
+   * The convective condensation level itself, ft MSL, whether or not it was
+   * the height that answered. Null where the column never saturates.
+   *
+   * It is reported beside the merged base rather than folded into it because
+   * the two are different claims: the merged base says how high the cloud
+   * starts, the CCL says how high a surface parcel would have to rise to
+   * condense. Naming the source without printing the height leaves a reader
+   * unable to tell a fallback that agreed with HRRR from one that did not.
+   */
+  cclFt: number | null;
 };
 
 /** The merged base over one cell, whether or not the layer draws it. */
@@ -139,10 +150,13 @@ export function readMergedBase(
   const base = modelHasBase ? modeled : inputs.cclFt[i];
   const has = Number.isFinite(base);
 
+  const ccl = inputs.cclFt[i];
+
   return {
     cloudBaseMslFt: has ? Math.round(base) : null,
     baseSource: has ? (modelHasBase ? "model" : "ccl") : null,
     baseDrawn: mergedBaseAt(inputs, i).baseFt !== null,
+    cclFt: Number.isFinite(ccl) ? Math.round(ccl) : null,
   };
 }
 

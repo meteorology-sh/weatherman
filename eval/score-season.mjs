@@ -35,6 +35,37 @@ const TEXAS_FILLS = [
   ["echoFreeze", "Echo past freezing"],
 ];
 
+/**
+ * Layers whose edge is placed by an observation valid at the release minute.
+ *
+ * These fills have already followed the storm before anything is carried to
+ * meet them, so the release is scored where it happened. `paint.mjs` records
+ * this on each flare as `near.<layer>.clock`; the set is repeated here so days
+ * painted before that field existed score by the same rule as days painted
+ * after, rather than the tables mixing two conventions.
+ */
+const MEASURED_EDGE = new Set([
+  "cloudBase",
+  "cloudTop",
+  "radar",
+  "target",
+  "echoFreeze",
+]);
+
+/**
+ * Was the release in the layer, measured against the clock that layer answers?
+ *
+ * A newer painted file already drifted to the right clock and its `inside` is
+ * the answer. An older one drifted everything to the model hour, so for a
+ * measured-edge layer the undrifted distance is the one that meant something —
+ * and it is on the file, which is why no repaint is owed for these tables.
+ */
+function insideByClock(near, key) {
+  if (near.clock) return near.inside;
+  if (!MEASURED_EDGE.has(key)) return near.inside;
+  return near.kmAtRelease === 0;
+}
+
 const TEXAS_KEYS = [
   ["upwind", "Upwind"],
   ["inRain", "In 20 dBZ"],
@@ -127,7 +158,7 @@ for (const name of files) {
       const near = flare.near?.[key];
       if (!near || near.km == null) continue;
       stats[id].layers[key].n += 1;
-      if (near.inside) stats[id].layers[key].inside += 1;
+      if (insideByClock(near, key)) stats[id].layers[key].inside += 1;
     }
   }
 }

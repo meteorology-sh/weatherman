@@ -144,6 +144,22 @@ describe("readMergedBase", () => {
 
     assert.equal(point.baseSource, "ccl");
   });
+
+  // Naming the source without the height leaves a reader unable to tell a
+  // fallback that agreed with HRRR from one that did not, so the CCL is
+  // reported whether or not it was the height that answered.
+  it("reports the CCL even where HRRR's own base answered", () => {
+    const point = readMergedBase(cell(), 0);
+
+    assert.equal(point.baseSource, "model");
+    assert.equal(point.cclFt, 7000);
+  });
+
+  it("reports no CCL where the column never saturates", () => {
+    const point = readMergedBase(cell({ cclFt: Number.NaN }), 0);
+
+    assert.equal(point.cclFt, null);
+  });
 });
 
 describe("summarizeMergedBase", () => {

@@ -77,6 +77,15 @@ storm-motion drift, and stores on the flare what a click on it would have
 answered: the radar storm, the cell's FLY or DON'T FLY, and the modeled
 column.
 
+**A layer is drifted to the clock that places its edge.** Every entry in
+`LAYERS` names a `clock` — `model` for the HRRR analysis hour, `radar` or
+`scene` for an observation valid at the minute asked for. A fill built
+from the model alone is as old as its analysis and the release is carried
+to meet it; a fill whose edge is decided by an observation has already
+followed the storm, and drifting it applies a correction twice. A new
+layer states which it is, and a layer that gains a measured gate changes
+its answer in the same edit.
+
 ```bash
 node eval/paint.mjs 2025-08-04 --region=wtwma
 ```
@@ -286,7 +295,7 @@ On each flare:
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `at`, `timeZ`, `lon`, `lat` | the release                                                                                                                                                                                                                                          |
 | `drift`, `compared`         | storm-motion offset and the drifted point                                                                                                                                                                                                            |
-| `near.<key>`                | `inside`, `km`, `kmAtRelease`, `validTime` for that fill                                                                                                                                                                                             |
+| `near.<key>`                | `inside`, `km`, `kmAtRelease`, `validTime`, and `clock` / `clockTime` — which of the frame's timestamps placed that fill's edge, and what it read                                                                                                    |
 | `storm`                     | `/candidate/storm` at the release, or `null`                                                                                                                                                                                                         |
 | `cell`                      | `/candidate/point` at the release minute, whole — `target` and `verdict`, merged cloud base with its source, base above ground, 18 dBZ echo top, freezing level, rain, liquid, observed cloud-top temperature and phase — or `null` outside the grid |
 | `column`                    | `/forecast/sounding` at the analysis — ground, freezing level, seeding band, the profile levels, and the `wrfsfc` diagnostics — or `null` outside the grid                                                                                           |

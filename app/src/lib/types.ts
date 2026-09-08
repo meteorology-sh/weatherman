@@ -176,6 +176,11 @@ export interface CandidatePoint {
   baseSource: BaseSource | null;
   /** Does the cloud-base layer fill this cell? */
   baseDrawn: boolean;
+  /**
+   * The convective condensation level, ft MSL, whether or not it was the
+   * height the merged base took. Null where the column never saturates.
+   */
+  cclFt: number | null;
   /** Measured reflectivity, dBZ. Null where the radars see no echo, or nothing. */
   dbz: number | null;
   /** Is any radar looking at this cell at all? */

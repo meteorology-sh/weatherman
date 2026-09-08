@@ -124,6 +124,7 @@ const point: CandidatePoint = {
   cloudBaseMslFt: 5800,
   baseSource: "model",
   baseDrawn: true,
+  cclFt: 6400,
   dbz: null,
   radarCovered: true,
 };

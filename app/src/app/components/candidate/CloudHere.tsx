@@ -79,6 +79,14 @@ export const CloudHere = () => {
           here.baseSource === "ccl" ? " (CCL)" : " (model)"
         }`;
 
+  // Printed beside the base rather than only named as its source. A CCL well
+  // above a modeled base is a column that would need lifting to condense from
+  // the surface, which is a different cloud from one whose base is already
+  // there — and where the CCL is what answered, this is that height.
+  const ccl = Number.isFinite(here.cclFt)
+    ? `${num.format(here.cclFt as number)} ft MSL`
+    : "—";
+
   // Observed, unlike everything else about phase in this app. The satellite
   // classifies the top of whatever deck it can see, which under multi-layer
   // cloud is the highest one and not necessarily the storm underneath.
@@ -104,6 +112,7 @@ export const CloudHere = () => {
         rows={[
           { label: "Cloud Base", value: baseMsl },
           { label: "Base Above Ground", value: base },
+          { label: "CCL", value: ccl },
           { label: "18 dBZ Echo Top", value: echo },
           { label: "Observed Cloud-Top Phase", value: phase },
           { label: "Rain", value: rain },

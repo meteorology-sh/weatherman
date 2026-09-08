@@ -29,6 +29,7 @@ const point: CandidatePoint = {
   cloudBaseMslFt: 5800,
   baseSource: "model",
   baseDrawn: true,
+  cclFt: 6400,
   topPhase: "supercooled",
   cloudTopC: -14,
   dbz: null,
@@ -102,8 +103,10 @@ describe("CloudHere", () => {
   });
 
   it("separates a quiet radar from no radar over the cell", () => {
-    withPoint({ dbz: null, radarCovered: true });
-    expect(screen.getByText("—")).toBeTruthy();
+    // Several rows can be empty at once, so the dash is read off the Rain row
+    // rather than off the panel.
+    const { container } = withPoint({ dbz: null, radarCovered: true });
+    expect(container.textContent).toContain("Rain—");
 
     withPoint({ dbz: null, radarCovered: false });
     expect(screen.getByText("no radar")).toBeTruthy();
@@ -129,15 +132,30 @@ describe("CloudHere", () => {
     expect(container.textContent).toContain("(CCL)");
   });
 
+  // The height behind the source name. A CCL well above a modeled base is a
+  // different cloud from one whose base is already there, and the panel cannot
+  // say so while printing only which of the two answered.
+  it("prints the CCL beside the base the layer took", () => {
+    const { container } = withPoint();
+
+    expect(container.textContent).toContain("CCL6,400 ft MSL");
+  });
+
+  it("dashes the CCL where the column never saturates", () => {
+    const { container } = withPoint({ cclFt: null });
+
+    expect(container.textContent).toContain("CCL—");
+  });
+
   it("dashes the cloud base where neither height answered", () => {
     const { container } = withPoint({
       cloudBaseMslFt: null,
       baseSource: null,
       baseDrawn: false,
+      cclFt: null,
     });
 
-    expect(container.textContent).toContain("Cloud Base");
-    expect(container.textContent).not.toContain("ft MSL");
+    expect(container.textContent).toContain("Cloud Base—");
   });
 
   // The one observation of phase this app has. It is reported and never allowed

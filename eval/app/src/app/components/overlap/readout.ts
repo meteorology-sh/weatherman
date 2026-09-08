@@ -93,6 +93,7 @@ export function cellRows(cell: CellAtFlare | null | undefined): Row[] {
       label: "Base Above Ground",
       value: cell ? feet(cell.cloudBaseAglFt) : "—",
     },
+    { label: "CCL", value: cell ? feet(cell.cclFt) : "—" },
     {
       label: "18 dBZ Echo Top",
       value: cell ? echoVersusFreezing(cell) : "—",
