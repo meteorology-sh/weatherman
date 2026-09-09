@@ -500,6 +500,13 @@ async function cellAt(release) {
     /** "target" is the cell an operator is told to fly. */
     target: point.target ?? null,
     /**
+     * Which flare the column supports — ice, salt, or both. Independent of the
+     * verdict: the fill says where to go and this says what to drop.
+     */
+    payload: point.payload ?? null,
+    /** Base to freezing level, ft. The layer a salt flare works in. */
+    warmCloudDepthFt: point.warmCloudDepthFt ?? null,
+    /**
      * The seeding-opportunity verdict from the liquid join — a different
      * question from `target`, on the same cell. Stored so a flare can be read
      * against both without a second run.

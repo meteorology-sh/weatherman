@@ -109,7 +109,7 @@ export interface TargetStats {
     noCloudBase: number;
     baseTooHigh: number;
     noFreezingLevel: number;
-    topBelowFreezing: number;
+    noIceNoWarmLayer: number;
     noStorm: number;
   };
 }
@@ -130,8 +130,16 @@ export type TargetVerdict =
   | "noCloudBase"
   | "baseTooHigh"
   | "noFreezingLevel"
-  | "topBelowFreezing"
+  | "noIceNoWarmLayer"
   | "noStorm";
+
+/**
+ * Mirrors SeedingPayload in server/src/lib/services/candidate/target.ts —
+ * which flare the column supports. Silver iodide needs cloud reaching the
+ * freezing level; salt needs a warm layer under the base and does not care
+ * what the top did, so a cell can support both.
+ */
+export type SeedingPayload = "ice" | "salt" | "both";
 
 /** Mirrors CandidatePoint in server/src/lib/services/candidate/join.ts */
 export interface CandidatePoint {
@@ -176,6 +184,10 @@ export interface CandidatePoint {
   baseSource: BaseSource | null;
   /** Does the cloud-base layer fill this cell? */
   baseDrawn: boolean;
+  /** Which flare this column supports. Null where it supports neither. */
+  payload: SeedingPayload | null;
+  /** Base to freezing level, ft — the layer a salt flare works in. */
+  warmCloudDepthFt: number | null;
   /**
    * The convective condensation level, ft MSL, whether or not it was the
    * height the merged base took. Null where the column never saturates.

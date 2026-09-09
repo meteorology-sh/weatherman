@@ -265,7 +265,9 @@ console.log(
     " |"
 );
 
-console.log("\n## Seeding opportunity, split by whether the report placed the flare\n");
+console.log(
+  "\n## Seeding opportunity, split by whether the report placed the flare\n"
+);
 console.log(
   "A release that missed the county its own row named is a release we cannot" +
     " place, not a release the layer missed. Where the two columns agree, the" +

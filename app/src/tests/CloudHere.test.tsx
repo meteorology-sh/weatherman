@@ -30,6 +30,8 @@ const point: CandidatePoint = {
   baseSource: "model",
   baseDrawn: true,
   cclFt: 6400,
+  payload: "both",
+  warmCloudDepthFt: 8000,
   topPhase: "supercooled",
   cloudTopC: -14,
   dbz: null,
@@ -130,6 +132,42 @@ describe("CloudHere", () => {
 
     expect(container.textContent).toContain("7,200 ft MSL");
     expect(container.textContent).toContain("(CCL)");
+  });
+
+  // The fill answers where to go; the badge answers what to drop. The two are
+  // independent — a deep warm layer says nothing about whether the top froze —
+  // so the payload is its own badge rather than part of the verdict.
+  it("badges which flare the column supports beside FLY", () => {
+    const { container } = withPoint();
+
+    expect(container.textContent).toContain("FLY");
+    expect(container.textContent).toContain("ICE + SALT");
+  });
+
+  it("names salt alone on a cloud whose top never froze", () => {
+    const { container } = withPoint({ payload: "salt" });
+
+    expect(container.textContent).toContain("SALT");
+    expect(container.textContent).not.toContain("ICE");
+  });
+
+  it("does not name a flare for a cell nobody is flying to", () => {
+    const { container } = withPoint({ target: "noStorm", payload: "salt" });
+
+    expect(container.textContent).toContain("DON'T FLY");
+    expect(container.textContent).not.toContain("SALT");
+  });
+
+  it("prints the warm layer a salt flare would work in", () => {
+    const { container } = withPoint();
+
+    expect(container.textContent).toContain("Warm-Cloud Depth8,000 ft");
+  });
+
+  it("says there is no warm layer rather than dashing it", () => {
+    const { container } = withPoint({ warmCloudDepthFt: null });
+
+    expect(container.textContent).toContain("Warm-Cloud Depthnone");
   });
 
   // The height behind the source name. A CCL well above a modeled base is a

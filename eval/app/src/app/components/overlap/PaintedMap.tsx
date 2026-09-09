@@ -60,11 +60,13 @@ import { cellRows, columnRows, flew } from "./readout";
  * judged, which is the wrong way round for a page asking whether the bands are
  * right. Every layer's distance is in the readout instead.
  *
- * **The white arrow is the clock, drawn.** A release at 1843Z is being compared
- * against a 19Z field, seventeen minutes later, and at twenty knots the air has
- * moved ten kilometers in between — most of a grid cell. It runs from where the
- * flare was dropped to where that air is at the moment of the frame underneath,
- * and the arrowhead is where every distance is measured from.
+ * **The white arrow points to where the air went.** It runs from the release to
+ * where that air sits at the model's analysis hour — a release at 1843Z against
+ * a 19Z field is seventeen minutes of drift, ten kilometers at twenty knots.
+ * That is where the model-only layers are measured from. The radar and
+ * satellite layers are measured at the release itself: their edges are already
+ * current to the minute, so the arrow does not describe them and is drawn only
+ * while a model layer is on.
  */
 
 type CountyShape = {
@@ -326,9 +328,10 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
            * thing being judged. The distance is in the readout instead, for
            * every layer at once.
            *
-           * The arrowhead marks where that air is at the analysis time, and that
-           * is where the distances are measured from. Two glyphs, one each: a
-           * dot for what the operator did, a head for what we compared it to.
+           * The arrowhead marks where that air is at the analysis hour, which
+           * is where the model-only layers are measured from. Two glyphs, one
+           * each: a dot for what the operator did, a head for what a model
+           * layer was compared against.
            */}
           {analysis.flares.map((flare) => (
             <g
@@ -444,8 +447,9 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
           </>
         ) : (
           <span className="opacity-70">
-            Hover a release for how far it was from every layer, measured at the
-            arrowhead, and for what a click on it would have said.
+            Hover a release for how far it was from every layer — at the release
+            for the radar and satellite layers, at the arrowhead for the model
+            ones — and for what a click on it would have said.
           </span>
         )}
       </div>

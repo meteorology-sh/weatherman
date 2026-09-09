@@ -205,14 +205,16 @@ export function isDrawn(
 }
 
 /**
- * The layers whose answer is an hour rather than a minute.
+ * The layers made of model alone, whose answer is an hour rather than a minute.
  *
- * HRRR rounds a release to the nearer analysis, so the flare has to be carried
- * over the gap before it can be measured against these; the radar and its echo
- * top answer about the minute and need no arrow. The drift arrow is drawn only
- * while one of these is on, for that reason.
+ * These are as old as their analysis, so a release is carried over the gap on
+ * storm motion before it is measured against them. Every other layer here has
+ * its edge placed by radar or satellite valid at the release minute — the fill
+ * has already followed the storm — and is measured where the flare fell. The
+ * drift arrow is drawn only while one of these is on, because it describes only
+ * these.
  */
-export const HOURLY: readonly string[] = ["cloudBase", "liquid", "target"];
+export const HOURLY: readonly string[] = ["liquid"];
 
 /**
  * Which layers a fresh map opens with — the fly fill, and nothing else.

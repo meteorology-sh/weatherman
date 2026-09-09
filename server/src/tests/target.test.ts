@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import {
   flyValues,
   join,
+  payloadAt,
   readTarget,
   summarize,
   verdict,
@@ -108,16 +109,18 @@ describe("target join", () => {
     assert.equal(verdict(cell({ cloudBaseFt: Number.NaN }), 0), "target");
   });
 
-  it("still requires both radar tests where the model has no cloud", () => {
+  it("still requires the radar to see a storm where the model has no cloud", () => {
     // The measured tests are what put a cell on the map, so a missing base
     // adds no ground of its own.
     assert.equal(
       verdict(cell({ cloudBaseFt: Number.NaN, dbz: NO_ECHO }), 0),
       "noStorm"
     );
+    // No ice, but the CCL puts a base under the freezing level, so a salt
+    // flare has a warm layer to work in and the cell still passes.
     assert.equal(
       verdict(cell({ cloudBaseFt: Number.NaN, echoTopFt: Number.NaN }), 0),
-      "topBelowFreezing"
+      "target"
     );
   });
 
@@ -199,20 +202,47 @@ describe("target join", () => {
     );
   });
 
-  it("charges a neighborhood with no freezing level separately from one whose top sits below it", () => {
+  it("charges a neighborhood with no freezing level separately from a cloud neither payload can use", () => {
     assert.equal(
       verdict(cell({ freezingFt: Number.NaN, echoTopFt: Number.NaN }), 0),
       "noFreezingLevel"
     );
+    // Top never reached freezing and the base is above the freezing level, so
+    // there is no ice to make and no warm layer to grow rain in.
     assert.equal(
-      verdict(cell({ echoTopFt: Number.NaN }), 0),
-      "topBelowFreezing"
+      verdict(
+        cell({ echoTopFt: Number.NaN, cloudBaseFt: 17000, cclFt: 17000 }),
+        0
+      ),
+      "noIceNoWarmLayer"
     );
   });
 
-  it("requires a measured 18 dBZ echo top at or above freezing in the same column", () => {
-    assert.equal(verdict(cell({ echoTopFt: 15000 }), 0), "topBelowFreezing");
+  // Silver iodide needs the top at or above freezing. A salt flare does not,
+  // and a warm layer under the base is what it needs instead, so a cloud that
+  // fails the ice test is still a cloud one payload can work.
+  it("passes a cloud whose top never froze when it has a warm layer", () => {
+    assert.equal(verdict(cell({ echoTopFt: 15000 }), 0), "target");
+    assert.equal(payloadAt(cell({ echoTopFt: 15000 }), 0), "salt");
     assert.equal(verdict(cell({ echoTopFt: 16000 }), 0), "target");
+    assert.equal(payloadAt(cell({ echoTopFt: 16000 }), 0), "both");
+  });
+
+  it("names ice alone where the base sits at the freezing level", () => {
+    const inputs = cell({ cloudBaseFt: 16000, cclFt: 16000 });
+
+    assert.equal(payloadAt(inputs, 0), "ice");
+    assert.equal(verdict(inputs, 0), "target");
+  });
+
+  it("names no payload where the cloud offers neither", () => {
+    const inputs = cell({
+      echoTopFt: Number.NaN,
+      cloudBaseFt: 17000,
+      cclFt: 17000,
+    });
+
+    assert.equal(payloadAt(inputs, 0), null);
   });
 
   it("rejects modeled echo above freezing when the radar sees no storm", () => {
@@ -230,7 +260,7 @@ describe("target join", () => {
       cell({ cloudBaseFt: BASE_CEILING_FT + 1000, cclFt: Number.NaN }),
       cell({ cloudBaseFt: Number.NaN, cclFt: Number.NaN }),
       cell({ freezingFt: Number.NaN, echoTopFt: Number.NaN }),
-      cell({ echoTopFt: Number.NaN }),
+      cell({ echoTopFt: Number.NaN, cloudBaseFt: 17000, cclFt: 17000 }),
       cell({ dbz: NO_ECHO }),
       cell(),
     ];
@@ -249,14 +279,14 @@ describe("target join", () => {
     assert.equal(charged.baseTooHigh, 1);
     assert.equal(charged.noCloudBase, 1);
     assert.equal(charged.noFreezingLevel, 1);
-    assert.equal(charged.topBelowFreezing, 1);
+    assert.equal(charged.noIceNoWarmLayer, 1);
     assert.equal(charged.noStorm, 1);
     assert.equal(
       charged.target +
         charged.baseTooHigh +
         charged.noCloudBase +
         charged.noFreezingLevel +
-        charged.topBelowFreezing +
+        charged.noIceNoWarmLayer +
         charged.noStorm,
       6
     );
@@ -268,7 +298,7 @@ function emptyCounts() {
     noCloudBase: 0,
     baseTooHigh: 0,
     noFreezingLevel: 0,
-    topBelowFreezing: 0,
+    noIceNoWarmLayer: 0,
     noStorm: 0,
   };
 }
@@ -286,14 +316,14 @@ describe("neighborhood", () => {
     const inputs = quiet3();
     put(inputs, 2, { echoTopFt: 18000, dbz: 35 });
 
-    assert.equal(verdict(inputs, 0), "topBelowFreezing");
+    assert.equal(verdict(inputs, 0), "noStorm");
   });
 
   it("does not treat a diagonal-opposite corner as a neighbor", () => {
     const inputs = quiet3();
     put(inputs, 8, { echoTopFt: 18000, dbz: 35 });
 
-    assert.equal(verdict(inputs, 0), "topBelowFreezing");
+    assert.equal(verdict(inputs, 0), "noStorm");
   });
 
   it("sees a diagonal neighbor of the center", () => {
@@ -331,6 +361,23 @@ describe("readTarget", () => {
       "baseTooHigh"
     );
     assert.equal(readTarget(cell({ dbz: NO_ECHO }), 0).target, "noStorm");
+  });
+
+  // The panel prints the payload beside FLY, and the depth beside it, because
+  // how much warm layer is enough is the operator's call and not a constant in
+  // this file.
+  it("reports the payload and the warm layer under it", () => {
+    const point = readTarget(cell(), 0);
+
+    assert.equal(point.payload, "both");
+    assert.equal(point.warmCloudDepthFt, 8000);
+  });
+
+  it("reports no warm layer where the base is above the freezing level", () => {
+    const point = readTarget(cell({ cloudBaseFt: 17000, cclFt: 17000 }), 0);
+
+    assert.equal(point.warmCloudDepthFt, null);
+    assert.equal(point.payload, "ice");
   });
 
   it("reads the AGL height off the CCL where the model has no cloud", () => {

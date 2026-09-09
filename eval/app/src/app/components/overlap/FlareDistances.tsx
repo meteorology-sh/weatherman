@@ -13,9 +13,9 @@ import { cellSize, distanceLabel, toneFor } from "./distance";
  * **The row is one flare.** A release can sit in rain, under a cloud base the
  * model has at all, and still miss the fly fill that wants a reachable base
  * and an echo top past freezing as well; this is where those facts are visible
- * together, without hovering a map. Kilometers are to the nearest edge after
- * drifting to the analysis — the same number the maps measure at the
- * arrowhead.
+ * together, without hovering a map. Kilometers are to the nearest edge, from
+ * the release for the radar and satellite layers and from the arrowhead for the
+ * model ones — each layer measured against the clock that places its edge.
  *
  * **SEEDING OPPORTUNITY is the last column.** Every column left of it is one of
  * the tests that fill wants at once, so the row reads as the working and then

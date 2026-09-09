@@ -232,6 +232,13 @@ export type CellAtFlare = {
 
   /** "target" is the cell an operator is told to fly. */
   target: string | null;
+  /**
+   * Which flare the column supports: "ice", "salt" or "both". Absent on files
+   * painted before the click reported it.
+   */
+  payload?: "ice" | "salt" | "both" | null;
+  /** Base to freezing level, ft — the layer a salt flare works in. */
+  warmCloudDepthFt?: number | null;
   /** The seeding-opportunity verdict from the liquid join, on the same cell. */
   verdict?: string | null;
 

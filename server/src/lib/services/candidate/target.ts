@@ -48,13 +48,28 @@ export type TargetRejected = {
   baseTooHigh: number;
   /** No column in the neighborhood has a freezing level. */
   noFreezingLevel: number;
-  /** No column in the neighborhood has echo top at or above freezing. */
-  topBelowFreezing: number;
+  /**
+   * Neither payload has anything to work with: no column in the neighborhood
+   * has an echo top at or above freezing, and this column's base is already at
+   * or above the freezing level, so there is no warm layer either.
+   */
+  noIceNoWarmLayer: number;
   /** No column in the neighborhood has measured echo at 20 dBZ. */
   noStorm: number;
 };
 
 export type TargetVerdict = "target" | keyof TargetRejected;
+
+/**
+ * Which flare the column supports.
+ *
+ * Silver iodide needs cloud that reaches the freezing level; a salt flare
+ * needs a warm layer under it and does not care what the top did. The two are
+ * independent over a season — a deep warm layer says nothing about whether the
+ * top glaciated — so this is reported rather than folded into the verdict, and
+ * a cell can support both. `docs/HYGROSCOPIC.md` is the reasoning.
+ */
+export type SeedingPayload = "ice" | "salt" | "both";
 
 export type TargetInputs = {
   /** HRRR's own cloud base, ft MSL. NaN where the model has no cloud. */
@@ -103,6 +118,17 @@ export function flyValues(joined: TargetJoin): Float32Array {
  */
 export type TargetPoint = {
   target: TargetVerdict;
+  /**
+   * Which flare this column supports: ice, salt, or both. Null where it
+   * supports neither.
+   */
+  payload: SeedingPayload | null;
+  /**
+   * Base to freezing level, ft — the layer a salt flare works in. Null where
+   * either height is missing, and negative is not reported: a base at or above
+   * the freezing level has no warm layer at all.
+   */
+  warmCloudDepthFt: number | null;
   /** Cloud base above the terrain, ft. Null where there is no base. */
   cloudBaseAglFt: number | null;
   /** Freezing level, ft MSL. Null where the column never crosses 0 °C. */
@@ -214,9 +240,56 @@ export function verdict(inputs: TargetInputs, i: number): TargetVerdict {
   }
 
   if (!sawFreezing) return "noFreezingLevel";
-  if (!pastFreezing) return "topBelowFreezing";
   if (!storm) return "noStorm";
+  // Ice needs a top that reached freezing. Salt needs only a warm layer, which
+  // is what a base below the freezing level is. A cell passes on either, and
+  // fails only when the cloud offers neither.
+  if (!pastFreezing && !hasWarmLayer(inputs, i)) return "noIceNoWarmLayer";
   return "target";
+}
+
+/**
+ * Is there a warm layer between the base and the freezing level?
+ *
+ * A base below the freezing level is a base warmer than 0 °C, which is the
+ * whole condition — the warm-rain process a salt flare speeds up runs between
+ * those two heights. Reading it as two heights rather than as a temperature
+ * keeps it on the fields the join already carries, and it is a physical
+ * statement rather than a tuned depth: how much warm layer is enough is a
+ * question for the operator, and `warmCloudDepthFt` on the point is the number
+ * to answer it with.
+ */
+function hasWarmLayer(inputs: TargetInputs, i: number): boolean {
+  const base = workableBaseFt(inputs, i);
+  const freezing = inputs.freezingFt[i];
+  return Number.isFinite(base) && Number.isFinite(freezing) && base < freezing;
+}
+
+/**
+ * Which payload this cell supports, whether or not the cell is a target.
+ *
+ * The ice half is the neighborhood test the fill itself runs, so a cell the
+ * map lights for ice reads "ice" here. Null where the cloud offers neither,
+ * which is the same condition as `noIceNoWarmLayer`.
+ */
+export function payloadAt(
+  inputs: TargetInputs,
+  i: number
+): SeedingPayload | null {
+  const salt = hasWarmLayer(inputs, i);
+  let ice = false;
+  for (const k of neighborhood(i, inputs.nx, inputs.ny)) {
+    const freezing = inputs.freezingFt[k];
+    const top = inputs.echoTopFt[k];
+    if (Number.isFinite(freezing) && Number.isFinite(top) && top >= freezing) {
+      ice = true;
+      break;
+    }
+  }
+  if (ice && salt) return "both";
+  if (ice) return "ice";
+  if (salt) return "salt";
+  return null;
 }
 
 /** Which cells are targets, and what removed the rest. */
@@ -226,7 +299,7 @@ export function join(inputs: TargetInputs): TargetJoin {
     noCloudBase: 0,
     baseTooHigh: 0,
     noFreezingLevel: 0,
-    topBelowFreezing: 0,
+    noIceNoWarmLayer: 0,
     noStorm: 0,
   };
   let target = 0;
@@ -251,8 +324,15 @@ export function readTarget(inputs: TargetInputs, i: number): TargetPoint {
   const freezing = inputs.freezingFt[i];
   const echoTop = inputs.echoTopFt[i];
 
+  const warm =
+    Number.isFinite(base) && Number.isFinite(freezing) && base < freezing
+      ? Math.round(freezing - base)
+      : null;
+
   return {
     target: verdict(inputs, i),
+    payload: payloadAt(inputs, i),
+    warmCloudDepthFt: warm,
     // Above the ground, off whichever height answered. Null only where neither
     // did, which is "this column has no cloud base" rather than a missing read.
     cloudBaseAglFt:
@@ -285,7 +365,7 @@ export function summarize(
     noCloudBase: 0,
     baseTooHigh: 0,
     noFreezingLevel: 0,
-    topBelowFreezing: 0,
+    noIceNoWarmLayer: 0,
     noStorm: 0,
   };
   let asked = 0;
@@ -317,7 +397,7 @@ export function summarize(
       noCloudBase: rejected.noCloudBase * CELL_KM2,
       baseTooHigh: rejected.baseTooHigh * CELL_KM2,
       noFreezingLevel: rejected.noFreezingLevel * CELL_KM2,
-      topBelowFreezing: rejected.topBelowFreezing * CELL_KM2,
+      noIceNoWarmLayer: rejected.noIceNoWarmLayer * CELL_KM2,
       noStorm: rejected.noStorm * CELL_KM2,
     },
   };

@@ -95,9 +95,25 @@ Yes — 180 releases, 13.4% of the season, sat in a deep warm layer with a
 warm base and no measured top past freezing. That is a cloud a
 silver-iodide flare has little to work with and a salt flare does.
 
-The seeding opportunity refuses 72 of them for a top below freezing, so
-**about 5% of all 2025 releases are cells the app says don't fly and a
-hygroscopic rule would say fly.** That is the size of the hole.
+The seeding opportunity refused 185 releases for a top below freezing over
+the season, and 178 of those had a warm layer under the base. But a
+refusal is not a flare the salt rule recovers: **171 of those 178 had no
+measured echo in their own cell at all**, and the fill requires rain in the
+neighborhood whatever is being dropped. Charged in the new order they fail
+the storm test rather than the payload test.
+
+Five South Texas releases bear that out — four that read "top below
+freezing" now read "no storm", same verdict, truer reason; the fifth reads
+FLY with an 11,154 ft warm layer and both payloads. Only one release in the
+whole season sat at 20 dBZ in its own cell and was refused for its top, so
+it is the one certain flip.
+
+**So the salt rule is not a way to recover refused flares.** What it
+changes is the map: a cell with rain nearby, a workable base and a warm
+layer now paints whether or not anything glaciated, and the badge names
+which flare it is asking for. How much ground that adds is a repaint away,
+and on a Trans-Pecos day where every base sat above the freezing level it
+added none at all.
 
 Two cautions against reading it as a recommendation:
 

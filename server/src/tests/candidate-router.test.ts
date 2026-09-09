@@ -99,7 +99,7 @@ const targetStats: TargetStats = {
     noCloudBase: 81000,
     baseTooHigh: 36000,
     noFreezingLevel: 9000,
-    topBelowFreezing: 162000,
+    noIceNoWarmLayer: 162000,
     noStorm: 59100,
   },
 };
@@ -125,6 +125,8 @@ const point: CandidatePoint = {
   baseSource: "model",
   baseDrawn: true,
   cclFt: 6400,
+  payload: "both",
+  warmCloudDepthFt: 10200,
   dbz: null,
   radarCovered: true,
 };

@@ -95,6 +95,14 @@ export function cellRows(cell: CellAtFlare | null | undefined): Row[] {
     },
     { label: "CCL", value: cell ? feet(cell.cclFt) : "—" },
     {
+      label: "Warm-Cloud Depth",
+      value: !cell
+        ? "—"
+        : cell.warmCloudDepthFt == null
+          ? "none"
+          : feet(cell.warmCloudDepthFt),
+    },
+    {
       label: "18 dBZ Echo Top",
       value: cell ? echoVersusFreezing(cell) : "—",
     },
@@ -125,6 +133,7 @@ export function clickExtraRows(cell: CellAtFlare | null | undefined): Row[] {
     !cell || cell.cloudBaseMslFt == null ? "—" : cell.baseDrawn ? "yes" : "no";
   return [
     { label: "Seeding Opportunity", value: cell?.target ?? "—" },
+    { label: "Payload Supported", value: cell?.payload ?? "—" },
     { label: "Liquid Verdict", value: cell?.verdict ?? "—" },
     {
       label: "HRRR Base (MSL)",

@@ -207,10 +207,12 @@ export const Findings = () => {
                   Each row is this program's whole season against one layer
                   Weatherman draws — the rain and its echo past freezing, cloud
                   base, and the fill the operator map names SEEDING OPPORTUNITY.
-                  Inside is inside the contour after storm-motion drift to that
-                  layer's own scan. A release can sit in rain under a reachable
-                  cloud base and still miss the fly fill, because that fill
-                  wants all three at once.
+                  Inside is inside the contour, measured against the clock that
+                  places that layer&rsquo;s edge: model-only layers are carried
+                  to their analysis on storm motion, and layers a radar or
+                  satellite scan bounds are measured where the flare fell. A
+                  release can sit in rain under a reachable cloud base and still
+                  miss the fly fill, because that fill wants all three at once.
                 </p>
                 <LayerTable layers={near.layers} />
                 <Link

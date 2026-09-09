@@ -2,7 +2,7 @@
 import { useAppSelector } from "@/lib/store/hooks";
 
 // Types
-import type { CloudPhase } from "@/lib/types";
+import type { CloudPhase, SeedingPayload } from "@/lib/types";
 
 // Components
 import { MeasurementGrid } from "@/app/components/panel/Measurements";
@@ -24,6 +24,24 @@ const PHASE_LABELS: Record<CloudPhase, string> = {
   mixed: "Mixed phase",
   ice: "Ice",
   unknown: "Unknown",
+};
+
+/**
+ * Which flare the column supports, as the badge beside FLY reads it.
+ *
+ * Silver iodide needs cloud that reaches the freezing level; a salt flare
+ * needs a warm layer under the base and does not care what the top did. A cell
+ * can support both, and over a season one says nothing about the other — so
+ * the fill answers where to go and this answers what to drop.
+ *
+ * It rides beside FLY and not beside DON'T FLY: on a cell nobody is flying to,
+ * naming a flare for it reads as an instruction rather than as a reading. The
+ * warm-cloud depth row carries the same information either way.
+ */
+const PAYLOAD_LABELS: Record<SeedingPayload, string> = {
+  ice: "ICE",
+  salt: "SALT",
+  both: "ICE + SALT",
 };
 
 /**
@@ -87,6 +105,14 @@ export const CloudHere = () => {
     ? `${num.format(here.cclFt as number)} ft MSL`
     : "—";
 
+  // The layer between the base and the freezing level, which is where a salt
+  // flare's rain grows. How much is enough is the operator's call, so the depth
+  // is printed rather than tested against a number chosen here.
+  const warm =
+    here.warmCloudDepthFt === null
+      ? "none"
+      : `${num.format(here.warmCloudDepthFt)} ft`;
+
   // Observed, unlike everything else about phase in this app. The satellite
   // classifies the top of whatever deck it can see, which under multi-layer
   // cloud is the highest one and not necessarily the storm underneath.
@@ -104,7 +130,12 @@ export const CloudHere = () => {
             DON'T FLY
           </span>
         )}
-        <span className="font-mono text-xs font-normal">
+        {fly && here.payload && (
+          <span className="badge badge-sm badge-outline badge-info">
+            {PAYLOAD_LABELS[here.payload]}
+          </span>
+        )}
+        <span className="ml-auto font-mono text-xs font-normal">
           {latLon(lon, lat)}
         </span>
       </h3>
@@ -113,6 +144,7 @@ export const CloudHere = () => {
           { label: "Cloud Base", value: baseMsl },
           { label: "Base Above Ground", value: base },
           { label: "CCL", value: ccl },
+          { label: "Warm-Cloud Depth", value: warm },
           { label: "18 dBZ Echo Top", value: echo },
           { label: "Observed Cloud-Top Phase", value: phase },
           { label: "Rain", value: rain },

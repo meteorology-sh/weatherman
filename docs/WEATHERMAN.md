@@ -93,11 +93,19 @@ level stays modeled.
 
 **Clicking is how the panel is read.** A click answers whether to fly that
 column. The Texas tests already on the cell — a workable base under 18,000 ft
-MSL, echo top at or above freezing nearby, rain in the
-neighborhood — become fly or don't fly, with the numbers that made the
-call: base above the ground and which height that is, 18 dBZ echo top
-against freezing, rain, modeled liquid, freezing level, −15 °C, the
-seeding band, CAPE, CIN, LCL, and warm-cloud depth.
+MSL, rain in the neighborhood, and cloud one payload can work: an echo top at
+or above freezing nearby for silver iodide, or a warm layer under the base for
+salt — become fly or don't fly, with the numbers that made the call: base above
+the ground and which height that is, the CCL, 18 dBZ echo top against freezing,
+rain, modeled liquid, freezing level, −15 °C, the seeding band, CAPE, CIN, LCL,
+and warm-cloud depth.
+
+**A badge beside fly names the flare.** ICE, SALT, or both. Silver iodide needs
+cloud that reaches the freezing level; a salt flare needs a warm layer under
+the base and does not care what the top did, and over a season one says nothing
+about the other. So the fill answers where to go and the badge answers what to
+drop; the warm-cloud depth beside it is how much layer a salt flare would have,
+because how much is enough is the operator's call.
 
 **A click outside the model does nothing.** The grid is a Lambert quadrilateral
 and every readout answers by snapping a click to the nearest cell, so a click on
