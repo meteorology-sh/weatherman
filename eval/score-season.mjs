@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 
 // Local
 import { bandOverlap, spread, summarizeOverlaps } from "./lib/band-score.mjs";
-import { boxAreaKm2, polygonsAreaKm2 } from "./lib/geo.mjs";
+import { boxAreaKm2, inFeature, polygonsAreaKm2 } from "./lib/geo.mjs";
 import { tallyFlags } from "./lib/storm-score.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -77,6 +77,30 @@ const { regions } = JSON.parse(
   await readFile(join(DATA, "regions.json"), "utf8")
 );
 
+/**
+ * County boundaries, for the one check in this file that asks nothing of
+ * Weatherman: did the release land in the county its own row named?
+ *
+ * `positions.mjs` prints that share per program. Here it splits the fill
+ * overlap by it, which separates a program the layers disagree with from a
+ * program whose positions we cannot place — the two look identical in a
+ * pooled percentage and are not the same finding. A miss is not a parse
+ * error: a release two kilometers over the line is a pilot naming the county
+ * they were working.
+ */
+const counties = new Map(
+  JSON.parse(
+    await readFile(join(DATA, "counties-tx.geojson"), "utf8")
+  ).features.map((feature) => [feature.properties.BASENAME, feature])
+);
+
+/** Null where the row names no county, or one outside the boundary file. */
+function inNamedCounty(flare) {
+  const shape = counties.get(flare.county);
+  if (!shape) return null;
+  return inFeature(shape, flare.lon, flare.lat);
+}
+
 function pct(n, d) {
   if (!d) return "—";
   return `${((100 * n) / d).toFixed(1)}%`;
@@ -126,6 +150,14 @@ for (const region of evaluable) {
     areas: Object.fromEntries(AREA_FILLS.map(([key]) => [key, []])),
     /** The ground each of those hours was asked about, km². */
     windows: [],
+    /**
+     * Seeding-opportunity overlap split by whether the release landed in the
+     * county its row named. `unplaced` is a row whose county the boundary file
+     * does not carry.
+     */
+    placed: { n: 0, inside: 0 },
+    misplaced: { n: 0, inside: 0 },
+    unplaced: 0,
   };
 }
 
@@ -154,6 +186,16 @@ for (const name of files) {
     }
   }
   for (const flare of flares) {
+    const near = flare.near?.target;
+    if (near && near.km != null) {
+      const placed = inNamedCounty(flare);
+      if (placed === null) stats[id].unplaced += 1;
+      else {
+        const bucket = placed ? stats[id].placed : stats[id].misplaced;
+        bucket.n += 1;
+        if (insideByClock(near, "target")) bucket.inside += 1;
+      }
+    }
     for (const [key] of [...LAYERS, ...TEXAS_FILLS]) {
       const near = flare.near?.[key];
       if (!near || near.km == null) continue;
@@ -222,6 +264,24 @@ console.log(
     ).join(" | ") +
     " |"
 );
+
+console.log("\n## Seeding opportunity, split by whether the report placed the flare\n");
+console.log(
+  "A release that missed the county its own row named is a release we cannot" +
+    " place, not a release the layer missed. Where the two columns agree, the" +
+    " overlap is about the weather; where they do not, it is about the report."
+);
+console.log(
+  "\n| Program | In its named county | Somewhere else | County not in the file |"
+);
+console.log("| --- | ---: | ---: | ---: |");
+for (const region of evaluable) {
+  const row = stats[region.id];
+  console.log(
+    `| ${region.short} | ${cell(row.placed.inside, row.placed.n)} | ` +
+      `${cell(row.misplaced.inside, row.misplaced.n)} | ${row.unplaced} |`
+  );
+}
 
 console.log("\n## Ground each Texas fill painted\n");
 console.log(

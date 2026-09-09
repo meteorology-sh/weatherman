@@ -22,6 +22,9 @@ import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// Local
+import { inFeature } from "./lib/geo.mjs";
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA = join(HERE, "data");
 
@@ -35,29 +38,6 @@ const boundaries = JSON.parse(
 const county = new Map(
   boundaries.features.map((feature) => [feature.properties.BASENAME, feature])
 );
-
-/** Ray casting. The rings are Census county boundaries, so they are simple. */
-function inRing(ring, x, y) {
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [xi, yi] = ring[i];
-    const [xj, yj] = ring[j];
-    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
-      inside = !inside;
-    }
-  }
-  return inside;
-}
-
-function contains(feature, lon, lat) {
-  const { type, coordinates } = feature.geometry;
-  const polygons = type === "Polygon" ? [coordinates] : coordinates;
-  return polygons.some(
-    (polygon) =>
-      inRing(polygon[0], lon, lat) &&
-      !polygon.slice(1).some((hole) => inRing(hole, lon, lat))
-  );
-}
 
 for (const region of regions.filter((entry) => entry.releases)) {
   const { days } = JSON.parse(
@@ -76,7 +56,7 @@ for (const region of regions.filter((entry) => entry.releases)) {
         unknown += 1;
         continue;
       }
-      if (contains(shape, release.lon, release.lat)) inside += 1;
+      if (inFeature(shape, release.lon, release.lat)) inside += 1;
       else outside += 1;
     }
   }

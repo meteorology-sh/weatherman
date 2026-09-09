@@ -99,6 +99,19 @@ function inPolygon(rings, lon, lat) {
   return true;
 }
 
+/**
+ * Is a point inside a GeoJSON Polygon or MultiPolygon feature?
+ *
+ * The county boundaries are the only features asked this, and the question
+ * they answer is whether a release landed in the county its own row named —
+ * a check on the report's position that involves none of Weatherman's layers.
+ */
+export function inFeature(feature, lon, lat) {
+  const { type, coordinates } = feature.geometry;
+  const polygons = type === "Polygon" ? [coordinates] : coordinates;
+  return polygons.some((rings) => inPolygon(rings, lon, lat));
+}
+
 /** Shortest distance from a point to a segment, all in kilometers. */
 function toSegment(px, py, ax, ay, bx, by) {
   const dx = bx - ax;
