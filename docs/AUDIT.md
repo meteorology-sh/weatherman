@@ -12,7 +12,11 @@ parsed reports in `eval/data/`.
 The seeding opportunity contains 81.8% of the season's flares while
 painting 7.6% of the ground asked. Three things sit under that.
 
-**There is no negative class.** 117 of 128 filed report-days were seeded,
+**There is no negative class.** This does not weaken the claim the
+evaluation actually makes — whether Weatherman agrees with crews about
+where the workable cloud is — which needs only the days they flew. It
+bounds a second claim: how often the fill lights up over ground nobody
+would work. 117 of 128 filed report-days were seeded,
 and a day nobody filed a report for is not in the record at all. So the
 evaluation scores the fill only over days and hours when a crew already
 decided the sky was worth flying. It has never been asked to be quiet on
@@ -80,13 +84,20 @@ each flare was released into:
 Median supercooled liquid water path at a release is zero. Either HRRR's
 supercooled liquid is not usable at this scale, or Texas glaciogenic
 flares are routinely released into cloud with no resolved supercooled
-water in it. This season cannot tell those apart, and until it can, the
-candidate supercooled-liquid layer should not be presented as a targeting
-product. It is currently the least supported thing on the map.
+water in it. This season cannot tell those apart.
+
+Nothing gates on it: supercooled liquid is a reference layer, the Texas
+fills do not consult it, and no verdict in this evaluation turns on it.
+The number is a model check rather than a finding against the product —
+but it is the one place where Weatherman's physics and 1,341 operational
+decisions disagree outright, and it should be labeled as unvalidated
+wherever it is shown.
 
 ## 3. How close is this to flying a program?
 
-Close as situational awareness. Not close as dispatch authority.
+Close as situational awareness, and the layers do paint the ground crews
+actually fly. What is not established is whether they would have painted
+it early enough, and whether the choice was a good one.
 
 | What is missing       | Why it blocks flying on this                                                                                                                                                                                                                |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -215,4 +226,6 @@ claim about effect: nothing in these documents says whether it rained.
 - `docs/EVALUATION.md` — the season tables this reads against
 - `docs/PLAN.md` — the open work, in the order it should be done
 - `eval/README.md` — how the season is painted and what each field means
+- `docs/UNCERTAINTY.md` — drawing precision, the HRRR time delta, and the
+  South Texas and Rolling Plains question
 - `eval/data/regions.json` — the position provenance for each programme
