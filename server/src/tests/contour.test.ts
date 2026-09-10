@@ -95,10 +95,7 @@ describe("polygons (simplify)", () => {
       minArea: 0,
     });
     const maxLon = Math.max(...out[0][0].map((p) => p[0]));
-    assert.ok(
-      maxLon >= 13,
-      `protrusion flattened: maxLon ${maxLon}`
-    );
+    assert.ok(maxLon >= 13, `protrusion flattened: maxLon ${maxLon}`);
   });
 
   it("drops that protrusion when epsilon is larger than a cell", () => {
@@ -225,18 +222,29 @@ describe("downsample", () => {
       nx: 4,
       ny: 4,
       values: Float32Array.from([
-        1, 1, 10, 10, 1, 1, 10, 10, 0, 0, NaN, NaN, 0, 0, NaN, NaN,
+        1,
+        1,
+        10,
+        10,
+        1,
+        1,
+        10,
+        10,
+        0,
+        0,
+        NaN,
+        NaN,
+        0,
+        0,
+        NaN,
+        NaN,
       ]),
     };
     const geo: Geo = {
       nx: 4,
       ny: 4,
-      lats: Float32Array.from([
-        0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3,
-      ]),
-      lons: Float32Array.from([
-        0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3,
-      ]),
+      lats: Float32Array.from([0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3]),
+      lons: Float32Array.from([0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3]),
     };
     const out = downsample(grid, geo, 2);
     assert.equal(out.grid.nx, 2);
@@ -259,13 +267,7 @@ describe("downsample", () => {
     };
     const painted = downsample(grid, geo, 4);
     assert.equal(painted.grid.values[0], 1);
-    const majority = downsample(
-      grid,
-      geo,
-      4,
-      (v) => !Number.isFinite(v),
-      true
-    );
+    const majority = downsample(grid, geo, 4, (v) => !Number.isFinite(v), true);
     assert.ok(Number.isNaN(majority.grid.values[0]));
   });
 });
@@ -384,6 +386,103 @@ describe("bandFeatures", () => {
         (rings) => rings.length > 0
       )
     );
+  });
+
+  /**
+   * A field that climbs a whole band inside one cell, ringed by nodata — the
+   * shape a cloud base takes at the edge of a storm, and the one that used to
+   * come out as a hole crossing the ring it was cut from.
+   */
+  const cliff = () => {
+    const values = new Float32Array(NX * NY).fill(Number.NaN);
+    for (let j = 3; j < NY - 3; j++) {
+      for (let i = 3; i < NX - 3; i++) {
+        const wobble = Math.sin(i * 0.9) * 1.5 + Math.cos(j * 0.7) * 1.5;
+        if (i + wobble < 4 || i + wobble > NX - 5) continue;
+        const low =
+          Math.hypot(i - 10, j - 10) < 3.5 ||
+          Math.hypot(i - 5, j - 15) < 2.5 ||
+          Math.hypot(i - 15, j - 4) < 2.5;
+        values[j * NX + i] = low ? 20 : 90 + wobble * 3;
+      }
+    }
+    return asGrid(values);
+  };
+
+  /** Distance from a point to a ring, so "on it" can be told from "outside". */
+  const distToRing = (ring: number[][], p: number[]) => {
+    let best = Infinity;
+    for (let i = 0; i < ring.length - 1; i++) {
+      const [ax, ay] = ring[i];
+      const [bx, by] = ring[i + 1];
+      const dx = bx - ax;
+      const dy = by - ay;
+      const l2 = dx * dx + dy * dy;
+      const t = l2
+        ? Math.max(0, Math.min(1, ((p[0] - ax) * dx + (p[1] - ay) * dy) / l2))
+        : 0;
+      best = Math.min(
+        best,
+        Math.hypot(p[0] - (ax + t * dx), p[1] - (ay + t * dy))
+      );
+    }
+    return best;
+  };
+
+  // A hole that crosses the ring it is cut from is not a polygon, and the
+  // tessellator's answer for one changes with the zoom: pieces of a band came
+  // and went as the map zoomed out. Thinning and rounding were what walked the
+  // inner ring across the outer one, so the ring a band is cut on keeps every
+  // vertex the trace gave it.
+  it("keeps every hole inside the ring it is cut from", () => {
+    const { grid, geo } = cliff();
+    const bands = bandFeatures(grid, geo, "v", EDGES, SMOOTH_STYLE);
+
+    for (const band of bands) {
+      for (const [exterior, ...holes] of band.geometry.coordinates) {
+        for (const hole of holes) {
+          // Past the grid the coordinates are rounded to. Two levels of one
+          // field share a line wherever the higher one reaches the edge of the
+          // data, and rounding each vertex of a shared line to the nearest
+          // thousandth of a degree leaves it zigzagging across itself by half
+          // a step. That much they are allowed; a crossing is kilometers.
+          const escaped = hole.filter(
+            (p) =>
+              !inRing(exterior, p[0], p[1]) && distToRing(exterior, p) > 1.5e-3
+          );
+
+          assert.deepEqual(escaped, [], `band ${band.properties.v}`);
+        }
+      }
+    }
+  });
+
+  // The other half of "exactly one band". Painting a cell twice doubles the
+  // fill; leaving it bare is a hole in the map, and a hole lost to a coin toss
+  // on a shared boundary is how one used to appear.
+  it("leaves no drawn ground unpainted", () => {
+    const { grid, geo } = cliff();
+    const bands = bandFeatures(grid, geo, "v", EDGES, SMOOTH_STYLE);
+    const drawn = (x: number, y: number) => {
+      const i = Math.round(x);
+      const j = Math.round(y);
+      for (let dj = -1; dj <= 1; dj++) {
+        for (let di = -1; di <= 1; di++) {
+          if (!Number.isFinite(grid.values[(j + dj) * NX + (i + di)]))
+            return false;
+        }
+      }
+      return true;
+    };
+
+    for (let x = 4; x < NX - 4; x += 0.5) {
+      for (let y = 4; y < NY - 4; y += 0.5) {
+        if (!drawn(x, y)) continue;
+        const hits = bands.filter((band) => covers(band, x, y)).length;
+
+        assert.equal(hits, 1, `${hits} bands cover ${x},${y}`);
+      }
+    }
   });
 
   it("still puts a cell in exactly one band", () => {

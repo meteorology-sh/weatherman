@@ -3,6 +3,7 @@ import {
   covers,
   heldBox,
   requestFromExtent,
+  tracesNative,
   viewFromExtent,
 } from "@/lib/bbox";
 
@@ -76,5 +77,50 @@ describe("requestFromExtent", () => {
     expect(box.east).toBeGreaterThanOrEqual(-97);
     expect(Number.isInteger(box.west)).toBe(true);
     expect(Number.isInteger(box.east)).toBe(true);
+  });
+});
+
+describe("tracesNative", () => {
+  // Texas plus padding on a normal window: a 3 km cell is about three
+  // pixels across, so the native rings are structure the screen can show.
+  it("traces native at the zoom a program works at", () => {
+    expect(
+      tracesNative({ xmin: -107, ymin: 25.5, xmax: -93, ymax: 37 }, 1200)
+    ).toBe(true);
+  });
+
+  // The whole country in the same window is about 4.5 km to the pixel. A
+  // native cell is smaller than a pixel there, so the average is the finest
+  // thing that can be drawn and the extra rings would never be seen.
+  it("falls back to the average when a cell is under a pixel", () => {
+    expect(
+      tracesNative({ xmin: -125, ymin: 24, xmax: -66, ymax: 50 }, 1200)
+    ).toBe(false);
+  });
+
+  // The same ground on a wider screen resolves more, so the same box can
+  // want native rings. The rule is pixels, not degrees.
+  it("follows the screen, not the box", () => {
+    const conus = { xmin: -125, ymin: 24, xmax: -66, ymax: 50 };
+    expect(tracesNative(conus, 1200)).toBe(false);
+    expect(tracesNative(conus, 2400)).toBe(true);
+  });
+
+  // Web Mercator extents arrive in meters, and the shared converter has to
+  // run before the width means anything.
+  it("reads a Mercator extent", () => {
+    expect(
+      tracesNative(
+        { xmin: -11900000, ymin: 2900000, xmax: -10350000, ymax: 4450000 },
+        1200
+      )
+    ).toBe(true);
+  });
+
+  // A view with no width yet is not a reason to ask for the heavier fill.
+  it("is false before the view has been laid out", () => {
+    expect(
+      tracesNative({ xmin: -107, ymin: 25.5, xmax: -93, ymax: 37 }, 0)
+    ).toBe(false);
   });
 });

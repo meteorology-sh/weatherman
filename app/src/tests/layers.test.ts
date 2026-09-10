@@ -3,6 +3,7 @@ import {
   CandidateFieldLayer,
   ReplayFieldLayer,
   CandidateCloudBaseLayer,
+  ReplayCloudBaseLayer,
   ForecastCloudsLayer,
   ForecastPrecipLayer,
   ForecastLiquidLayer,
@@ -55,6 +56,14 @@ describe("cloud-base layer", () => {
       "field",
       "cloudBaseFt"
     );
+  });
+
+  // Disjoint bands, so exactly one is drawn over a cell and the order they are
+  // drawn in decides nothing. Pinning one would say the opposite.
+  it("leaves drawing order to the geometry", () => {
+    for (const layer of [CandidateCloudBaseLayer, ReplayCloudBaseLayer]) {
+      expect(layer.orderBy).toBeFalsy();
+    }
   });
 
   it("credits the model it comes from", () => {

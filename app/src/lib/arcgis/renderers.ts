@@ -15,8 +15,8 @@ import SimpleLineSymbol from "@arcgis/core/symbols/SimpleLineSymbol";
 import {
   CLOUD_BANDS,
   CLOUD_RGB,
+  CLOUD_BASE_ALPHA,
   CLOUD_BASE_BANDS,
-  CLOUD_BASE_RGB,
   FLY_ALPHA,
   FLY_RGB,
   CONFIRMED_RGB,
@@ -145,15 +145,21 @@ export const lightningRenderer = new SimpleRenderer({
   }),
 });
 
-
+/**
+ * Cloud base: one violet per band at one opacity.
+ *
+ * The bands are disjoint, so nothing composites and each fill is the color the
+ * legend shows. The height is in the color for that reason — an opacity ramp
+ * reads as "how much basemap shows through", and two of those overlapping make
+ * a shade that is not on the ramp at all.
+ */
 export const candidateCloudBaseRenderer = new UniqueValueRenderer({
   field: "cloudBaseFt",
-  uniqueValueInfos: CLOUD_BASE_BANDS.map(({ value, alpha }) => ({
+  uniqueValueInfos: CLOUD_BASE_BANDS.map(({ value, rgb }) => ({
     value,
     symbol: new SimpleFillSymbol({
-      color: [...CLOUD_BASE_RGB, alpha],
+      color: [...rgb, CLOUD_BASE_ALPHA],
       outline: { width: 0 },
     }),
   })),
 });
-

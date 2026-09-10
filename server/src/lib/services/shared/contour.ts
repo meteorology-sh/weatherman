@@ -115,8 +115,23 @@ export const MAP_STYLE: RingStyle = {
  */
 export const SMOOTH_STYLE: RingStyle = { ...MAP_STYLE, interpolate: true };
 
-export function styleFor(fine: boolean): RingStyle {
-  return fine ? FINE_STYLE : MAP_STYLE;
+/**
+ * The drawn style for a gate — a fill whose grid is 0 or 1.
+ *
+ * A gate keeps cell-edge midpoints at every resolution, because there is no
+ * gradient to interpolate a vertex along. That leaves a staircase, so the map
+ * rounds the corners off it and the evaluation does not: the evaluation
+ * measures how far a release is from the edge of the qualifying cells, and a
+ * rounded corner is a few hundred meters of styling in that answer.
+ *
+ * `round` is therefore a separate question from `fine`. Native cells with
+ * square corners is the evaluation's tracing, and it reads as pixels on a map;
+ * native cells with the corners taken off is the same ground drawn to be
+ * looked at.
+ */
+export function styleFor(fine: boolean, round = false): RingStyle {
+  if (!fine) return MAP_STYLE;
+  return round ? { ...FINE_STYLE, round: MAP_ROUND } : FINE_STYLE;
 }
 
 /** {@link styleFor} for a continuous field. Evaluation is unchanged. */
@@ -182,7 +197,7 @@ export function bandFeatures(
   // evaluation harness keeps the mask trace it has always been checked on.
   const rings =
     style.interpolate || (style.round ?? 0) > 0
-      ? edges.map((level) => levelRings(grid, geo, level, style))
+      ? nest(edges.map((level) => levelRings(grid, geo, level, style)))
       : null;
 
   return edges
@@ -194,11 +209,172 @@ export function bandFeatures(
         coordinates: rings
           ? // {value >= lo} minus {value >= edges[i + 1]}, which is exactly
             // the half-open band.
-            assemble(band(rings[i], rings[i + 1] ?? []))
+            tuck(assemble(band(rings[i], rings[i + 1] ?? [])))
           : maskPolygons(grid, geo, lo, edges[i + 1] ?? Infinity, style),
       },
     }))
     .filter((f) => f.geometry.coordinates.length > 0);
+}
+
+/**
+ * Push each level's rings inside the level below them.
+ *
+ * A band is one level's ring with the next level's ring cut out of it as a
+ * hole, so the two have to nest: the hole has to lie inside the exterior it is
+ * cut from. As traced they do — a crossing is placed where the field reaches
+ * the level, and on any one cell edge those positions run in level order. It
+ * is the thinning and the rounding that break it, and they are what the fill
+ * is shaped by: `epsilon` lets a vertex move by up to its tolerance and
+ * Chaikin cuts every corner, either of which can walk the inner ring across
+ * the outer one where the two run close — which they do wherever the field
+ * climbs a whole band inside one cell.
+ *
+ * A hole crossing its exterior is not a polygon. The tessellator still draws
+ * something for one, and what it draws changes with the zoom, because the
+ * vertices it is handed are generalized for the scale: whole pieces of a band
+ * came and went as the map zoomed out.
+ *
+ * So the smoothing stays and the crossings are taken out of it afterwards.
+ * Each level is fitted inside the level under it, outermost first, by pulling
+ * the handful of vertices that have escaped just inside the ring they escaped
+ * — tens of meters, against a tolerance of kilometers. Levels are fitted in
+ * order so that a ring already moved is what the next one is fitted to, and
+ * the moved ring is the one both of its bands are built from, so the boundary
+ * they share is still a single line.
+ */
+function nest(levels: SignedRing[][]): SignedRing[][] {
+  const out: SignedRing[][] = [];
+  for (const rings of levels) {
+    const under = (out[out.length - 1] ?? []).filter((r) => r.exterior);
+    out.push(under.length ? rings.map((r) => fit(r, under)) : rings);
+  }
+  return out;
+}
+
+/** One ring pulled inside whichever of `under` contains it. */
+function fit(r: SignedRing, under: readonly SignedRing[]): SignedRing {
+  let parent: SignedRing | null = null;
+  const probe = inside(r.ring);
+  for (const candidate of under) {
+    if (!contains(candidate.ring, probe)) continue;
+    if (!parent || candidate.area < parent.area) parent = candidate;
+  }
+  if (!parent) return r;
+
+  const held = parent.ring;
+  let moved = false;
+  const ring = r.ring.map((p) => {
+    if (!escaped(held, p)) return p;
+    moved = true;
+    return justInside(held, p);
+  });
+  if (!moved) return r;
+  // Closed rings only: the first vertex is the last, and both were moved the
+  // same way, so the ring is still closed.
+  return { ...r, ring };
+}
+
+/** How far inside the ring an escaped vertex is put, degrees. */
+const TUCK_DEGREES = 1e-4;
+
+/**
+ * How far outside a ring a vertex has to be to count as having left it.
+ *
+ * Wider than the grid `project` rounds coordinates to, and for that reason: two
+ * rings of the same field at different levels run along the same ground
+ * wherever the higher one reaches the edge of the data, and rounding each
+ * vertex to the nearest thousandth of a degree leaves that shared line
+ * zigzagging across itself by half a step. Reading those as escapes would move
+ * them, and moving them would tell `band` that a ring shared by two levels is
+ * two different rings — which is how a band with no area at all gets drawn as
+ * a sliver around one that has some.
+ *
+ * What is left over is a hundred meters of overlap on a fill traced on cells
+ * twelve kilometers wide, on a line the two bands were always going to share.
+ */
+const COINCIDENT_DEGREES = 1.5e-3;
+
+/** Whether `p` has left `ring` by more than they can share. */
+function escaped(ring: ContourRing, p: [number, number]): boolean {
+  if (contains(ring, p)) return false;
+  return nearest(ring, p).distance > COINCIDENT_DEGREES;
+}
+
+/**
+ * The point of `ring` closest to `p`, stepped inside the ring.
+ *
+ * The step is a hair — a few tens of meters, well under the cell the ring was
+ * traced on — and it is there so the vertex lands inside the ring rather than
+ * exactly on it: a hole that shares a line with the exterior it sits in is a
+ * pinch, and a tessellator is as free to misread that as it is a crossing.
+ *
+ * Which way is in is asked of the ring rather than read off its winding, so a
+ * ring traced either way round is stepped into and not out of.
+ */
+function justInside(ring: ContourRing, p: [number, number]): [number, number] {
+  const { point, normal } = nearest(ring, p);
+  for (const side of [1, -1]) {
+    const q: [number, number] = [
+      point[0] + normal[0] * side * TUCK_DEGREES,
+      point[1] + normal[1] * side * TUCK_DEGREES,
+    ];
+    if (contains(ring, q)) return q;
+  }
+  // Pinched to nothing at that vertex: its own boundary is the best answer
+  // left, and it is at least not across anything.
+  return point;
+}
+
+/** Closest point on a ring, the unit normal of the segment it fell on, and how far. */
+function nearest(
+  ring: ContourRing,
+  p: [number, number]
+): { point: [number, number]; normal: [number, number]; distance: number } {
+  let point: [number, number] = ring[0];
+  let normal: [number, number] = [0, 0];
+  let squared = Infinity;
+  for (let i = 0; i < ring.length - 1; i++) {
+    const [ax, ay] = ring[i];
+    const [bx, by] = ring[i + 1];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const length = dx * dx + dy * dy;
+    const t = length
+      ? Math.max(0, Math.min(1, ((p[0] - ax) * dx + (p[1] - ay) * dy) / length))
+      : 0;
+    const q: [number, number] = [ax + t * dx, ay + t * dy];
+    const d = (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2;
+    if (d >= squared) continue;
+    squared = d;
+    point = q;
+    const run = Math.hypot(dx, dy) || 1;
+    normal = [-dy / run, dx / run];
+  }
+  return { point, normal, distance: Math.sqrt(squared) };
+}
+
+/**
+ * The last check that no hole leaves the exterior it is cut from.
+ *
+ * `nest` fits each level inside the one under it, which is where a crossing
+ * comes from. What is left is the ring pairs it could not fit — a ring whose
+ * parent it could not name, or a crossing opened up by a level being moved —
+ * and the cases with no gradient to read a crossing from at all: a corner
+ * sitting exactly on a level, an edge with nodata on one side, a ring traced
+ * on the padding and clamped onto the domain edge. Those fall back to the
+ * middle of the cell edge, which is not in level order with the interpolated
+ * crossings around it.
+ *
+ * A handful of vertices on a national frame, and the same remedy as `fit`
+ * uses: a hair inside the ring they escaped.
+ */
+function tuck(polys: ContourRing[][]): ContourRing[][] {
+  return polys.map(([exterior, ...holes]) => [
+    exterior,
+    ...holes.map((hole) =>
+      hole.map((p) => (escaped(exterior, p) ? justInside(exterior, p) : p))
+    ),
+  ]);
 }
 
 /** One band traced from its own 0/1 mask, each band on its own. */
@@ -307,15 +483,106 @@ function assemble(rings: readonly SignedRing[]): ContourRing[][] {
   }
 
   for (const hole of holes) {
-    let best: (typeof exteriors)[number] | null = null;
-    for (const ext of exteriors) {
-      if (!contains(ext.ring, hole[0])) continue;
-      if (!best || ext.area < best.area) best = ext;
-    }
+    const best = parent(exteriors, hole);
     if (best) best.holes.push(hole);
   }
 
   return exteriors.map((e) => [e.ring, ...e.holes]);
+}
+
+/**
+ * Which exterior a hole belongs in: the smallest one that contains it.
+ *
+ * **Read from inside the hole, not off its outline.** A band's hole is the next
+ * level's ring, and the two run along the same ground wherever the higher band
+ * reaches the edge of the data. A vertex there sits *on* the exterior, where a
+ * crossing count is a coin toss.
+ *
+ * **And never nothing.** A hole with no home is a band painted over the band
+ * above it — two fills on one cell, which is the thing disjoint bands exist to
+ * prevent, and it is worse than a hole cut from a ring that is only nearly the
+ * right one. So an inside reading that names nobody falls back to the vertices,
+ * and those to the widest ring on offer, which for a band is the one the whole
+ * fill is cut from.
+ */
+function parent<T extends { ring: ContourRing; area: number }>(
+  exteriors: readonly T[],
+  hole: ContourRing
+): T | null {
+  if (!exteriors.length) return null;
+
+  const smallest = (holds: (ext: T) => boolean) => {
+    let best: T | null = null;
+    for (const ext of exteriors) {
+      if (!holds(ext)) continue;
+      if (!best || ext.area < best.area) best = ext;
+    }
+    return best;
+  };
+
+  const probe = inside(hole);
+  const held = smallest((ext) => contains(ext.ring, probe));
+  if (held) return held;
+
+  const step = Math.max(1, Math.floor((hole.length - 1) / VOTES));
+  const anywhere = smallest((ext) => {
+    for (let i = 0; i < hole.length - 1; i += step) {
+      if (contains(ext.ring, hole[i])) return true;
+    }
+    return false;
+  });
+  if (anywhere) return anywhere;
+
+  let widest = exteriors[0];
+  for (const ext of exteriors) if (ext.area > widest.area) widest = ext;
+  return widest;
+}
+
+/** Vertices tried, at most, before {@link parent} gives up on reading them. */
+const VOTES = 9;
+
+/**
+ * A point strictly inside a ring.
+ *
+ * The lowest vertex of a ring is a convex corner, so a horizontal line a hair
+ * above it cuts the ring at least twice and the ground between the two
+ * crossings that bracket that corner is inside. Every ring here is closed and
+ * has area — `levelRings` drops the ones that do not — so the pair exists.
+ *
+ * Used to decide which exterior a hole belongs in. Anything inside the hole is
+ * inside the exterior that contains it, which a point *on* the hole's outline
+ * is not reliably: two rings of the same field at different levels share their
+ * ground wherever the higher one reaches the edge of the data.
+ */
+function inside(ring: ContourRing): [number, number] {
+  let k = 0;
+  for (let i = 1; i < ring.length - 1; i++) {
+    const [x, y] = ring[i];
+    const [bx, by] = ring[k];
+    if (y < by || (y === by && x < bx)) k = i;
+  }
+
+  const [cx, cy] = ring[k];
+  let span = 0;
+  for (const [, y] of ring) span = Math.max(span, y - cy);
+  const y = cy + span * 1e-3;
+
+  const xs: number[] = [];
+  for (let i = 0; i < ring.length - 1; i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[i + 1];
+    if (yi > y === yj > y) continue;
+    xs.push(((xj - xi) * (y - yi)) / (yj - yi) + xi);
+  }
+  xs.sort((a, b) => a - b);
+
+  for (let i = 0; i + 1 < xs.length; i += 2) {
+    if (xs[i + 1] < cx || xs[i] > cx) continue;
+    return [(xs[i] + xs[i + 1]) / 2, y];
+  }
+  // Degenerate to the point of having no interior at that height: the corner
+  // itself is the best answer left, and it is the old behaviour.
+  return [cx, cy];
 }
 
 /** Grid coords (in the 1-cell padded space) -> lat/lon, bilinear on eccodes' own arrays. */
@@ -513,8 +780,9 @@ function same(a: Pt, b: Pt): boolean {
 
 function collapseCollinear(ring: Pt[]): Pt[] {
   if (ring.length < 4) return ring;
-  const pts =
-    same(ring[0], ring[ring.length - 1]) ? ring.slice(0, -1) : ring.slice();
+  const pts = same(ring[0], ring[ring.length - 1])
+    ? ring.slice(0, -1)
+    : ring.slice();
   const n = pts.length;
   if (n < 3) return ring;
   const out: Pt[] = [];
@@ -522,8 +790,7 @@ function collapseCollinear(ring: Pt[]): Pt[] {
     const a = pts[(i - 1 + n) % n];
     const b = pts[i];
     const c = pts[(i + 1) % n];
-    const cross =
-      (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+    const cross = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
     if (cross !== 0) out.push(b);
   }
   if (out.length < 3) return ring;

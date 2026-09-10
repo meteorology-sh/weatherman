@@ -20,6 +20,7 @@ import {
   ForecastPrecipUrl,
   ForecastLiquidUrl,
 } from "@/lib/client";
+import { INITIAL_BOX } from "@/lib/bbox";
 
 // Types
 import type { SlwStats } from "@/lib/types";
@@ -383,6 +384,23 @@ describe("candidate field urls", () => {
     expect(ReplayCandidateUrl("2025-05-15T18:00:00.000Z")).toBe(
       "/candidate/target?at=2025-05-15T18%3A00%3A00.000Z&west=-107&east=-93&south=25.5&north=37"
     );
+  });
+
+  // The gate is the one layer a zoom repoints: close in it is traced on the
+  // native cells, so the fill agrees with what a click on it will say.
+  it("asks for native cells when the zoom can show them", () => {
+    expect(CandidateFieldUrl(INITIAL_BOX, true)).toBe(
+      "/candidate/target?west=-107&east=-93&south=25.5&north=37&fine=1&round=1"
+    );
+    expect(ReplayCandidateUrl("2025-05-15T18:00:00.000Z", INITIAL_BOX, true)).toBe(
+      "/candidate/target?at=2025-05-15T18%3A00%3A00.000Z&west=-107&east=-93&south=25.5&north=37&fine=1&round=1"
+    );
+  });
+
+  // Zoomed out the parameter is absent rather than sent as a zero, so the
+  // coarse fill stays one cacheable url.
+  it("leaves the parameter off when it is not asked for", () => {
+    expect(CandidateFieldUrl(INITIAL_BOX, false)).not.toContain("fine");
   });
 
   // A second trace of the same build, not a subset of the field's route — the

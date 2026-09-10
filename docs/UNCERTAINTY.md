@@ -7,24 +7,59 @@ resolve, and how to quantify the model's age when it matters.
 
 ---
 
-## 1. The map is drawn four times coarser than the score
+## 1. How finely each fill is drawn
 
 Every fill starts as a grid and is traced into rings. The evaluation asks
-for `fine=1` and gets the grid at its native cell. The candidate map does
-not, and `prepareDraw` averages 4×4 blocks before tracing.
+for `fine=1` and gets the grid at its native cell. The map asks for the
+native cell too, but only while the screen can show it; otherwise
+`prepareDraw` averages 4×4 blocks before tracing.
 
-| Source                                      | Native cell | Evaluation traces | Candidate map traces |
-| ------------------------------------------- | ----------- | ----------------- | -------------------- |
-| HRRR — base, CCL, liquid                    | 3 km        | 3 km              | **12 km**            |
-| MRMS — reflectivity                         | 1 km        | 1 km              | 4 km                 |
-| GOES ABI — cloud top, phase                 | 2 km nadir  | 2 km              | 8 km                 |
-| The joins — seeding opportunity, cloud base | 3 km        | 3 km              | **12 km**            |
+| Source                      | Native cell | Evaluation traces | Map traces       |
+| --------------------------- | ----------- | ----------------- | ---------------- |
+| HRRR — base, CCL, liquid    | 3 km        | 3 km              | **12 km**        |
+| MRMS — reflectivity         | 1 km        | 1 km              | 4 km             |
+| GOES ABI — cloud top, phase | 2 km nadir  | 2 km              | 8 km             |
+| Cloud base join             | 3 km        | 3 km              | **12 km**        |
+| Seeding opportunity         | 3 km        | 3 km              | 3 km, then 12 km |
 
-An operator looking at the seeding opportunity is looking at 12 km blocks.
-The evaluation scored the same field at 3 km. A boundary can therefore sit
-up to about half a drawn block — some 6 km — from the boundary a flare was
-scored against, in either direction, with nothing wrong anywhere. **A
-distance read off the operator map is not the distance in the table.**
+**The seeding opportunity is the exception, because it is a gate.** Every
+other fill is a continuous field with an edge to interpolate along, and
+averaging one removes structure without inventing any — the right
+operation at any zoom. The opportunity is 0 or 1. Averaging it does not
+smooth an edge, it takes a vote: a 4×4 block is drawn only where nine of
+its sixteen native cells qualify, so up to seven cells of ground under a
+drawn block can refuse, and a qualifying cell with eight qualifying
+neighbours is not drawn at all. A click always reads the native cell, so
+the two disagree wherever the vote went against the cell under the cursor.
+
+Measured over one 1.5° × 1.2° window against the same field traced native:
+**20.1% of the drawn fill refuses on a click, and 50.6% of the ground that
+qualifies is not drawn.** Both directions, and neither is visible from the
+map alone.
+
+**The rule the map follows.** A native cell earns its own ring while it
+covers at least one screen pixel; wider than that the average is not a
+compromise but the finest thing the display can resolve, and native rings
+would be structure below a pixel, fetched on every pan and never seen. The
+crossover is 3 km to the pixel. A program-sized view is about 1.1 km to
+the pixel and traces native; the whole country in the same window is about
+4.5 km and takes the average. Every zoom an operator decides from is on
+the native side of it, and `tracesNative` is asked on every settle, so the
+resolution follows the zoom rather than the held request window.
+
+**What the native trace costs.** The count that grows is polygons, not
+bytes — the field fragments into the islands the average had merged.
+
+| Window        | Coverage | Traced | Payload | Polygons | Vertices | Response |
+| ------------- | -------- | ------ | ------- | -------- | -------- | -------- |
+| Texas         | —        | 12 km  | 23 KB   | 27       | 1,310    | ~48 ms   |
+| Texas         | —        | 3 km   | 43 KB   | 131      | 2,433    | ~60 ms   |
+| Whole country | 3.3%     | 12 km  | 107 KB  | 106      | 6,254    | ~166 ms  |
+| Whole country | 3.3%     | 3 km   | 192 KB  | 590      | 11,075   | ~190 ms  |
+
+Over a program-sized window the native fill stays small on the days that
+matter: across the season's painted analysis hours it is a median of 23
+polygons, 82 at the ninetieth percentile, and 166 at its worst.
 
 Three more things shape a ring after the grid is chosen:
 
@@ -35,11 +70,10 @@ Three more things shape a ring after the grid is chosen:
 | Corner rounding      | Two Chaikin passes on the map only; the evaluation keeps the stairs                                                                                      | map only                  |
 | Vertex placement     | Continuous fields put the vertex where the value reaches the level; the gate fills (seeding opportunity, echo past freezing) keep the cell-edge midpoint | ±½ cell on the gate fills |
 
-The gate fills are the ones that matter for a verdict, and they are the
-ones that keep midpoints — deliberately, because interpolating a 0/1 mask
-collapses a one-cell feature to a point. The consequence is that the
-seeding opportunity's edge is known to about half a 3 km cell in the
-evaluation and half a 12 km block on the map.
+The gate fills keep midpoints deliberately: interpolating a 0/1 mask
+collapses a one-cell feature to a point. So the seeding opportunity's edge
+is known to about half a 3 km cell wherever it is traced native, and half
+a 12 km block on the country view.
 
 Painted rings are also rounded to three decimal places of longitude and
 latitude when stored, about 110 m. That is well inside every number above
@@ -47,8 +81,8 @@ and can be ignored.
 
 **How to say this on the map.** The honest phrasing for the legend is that
 a fill marks cells, not a coastline: the edge is where a 3 km cell stopped
-qualifying, drawn at 12 km. A release within a block of the edge is not
-outside the layer in any meaningful sense.
+qualifying. On the country view it is drawn at 12 km, and a release within
+a block of the edge is not outside the layer in any meaningful sense.
 
 ## 2. The HRRR time delta
 

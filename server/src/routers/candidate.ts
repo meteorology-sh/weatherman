@@ -8,6 +8,7 @@ import {
   OutsideDomain,
   parseBox,
   parseFine,
+  parseFlag,
 } from "../lib/services/shared/grid";
 import { parseAt } from "../lib/services/shared/replay";
 
@@ -70,7 +71,11 @@ candidate.get("/target", async (req: Request, res: Response) => {
     const frame = await Seedability.targetField(
       parseAt(req.query.at),
       parseBox(req.query),
-      parseFine(req.query)
+      parseFine(req.query),
+      // `round` takes the corners off the cell staircase. The map asks for it;
+      // eval leaves it off so a distance is measured against the cell edge
+      // rather than against a smoother.
+      parseFlag(req.query.round)
     );
     res.send(frame);
   } catch (error) {

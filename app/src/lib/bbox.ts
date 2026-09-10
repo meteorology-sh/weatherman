@@ -2,9 +2,11 @@
  * The map window a GeoJSON layer asks the server to contour.
  *
  * The server still builds the national grid; each request names the
- * window to trace. The field stays native. The map holds a padded
- * covering window and does not replace it while the view sits inside,
- * so zooming does not refetch or restyle the rings.
+ * window to trace. The map holds a padded covering window and does not
+ * replace it while the view sits inside, so zooming does not refetch.
+ *
+ * How finely that window is traced is a separate question from how much
+ * of it is asked for, and `tracesNative` answers it.
  */
 
 export type MapBox = {
@@ -112,6 +114,39 @@ export function heldBox(
 ): MapBox {
   if (covers(held, viewFromExtent(extent))) return held;
   return requestFromExtent(extent);
+}
+
+/** HRRR's native cell, km. The finest ring there is to trace. */
+export const CELL_KM = 3;
+
+/** Ground a degree of longitude covers at the equator, km. */
+const KM_PER_DEGREE_LON = 111.32;
+
+/**
+ * Whether this view is zoomed in far enough for native rings to be worth
+ * tracing.
+ *
+ * A native cell earns its own ring only while it covers at least a screen
+ * pixel. Wider than that the 4×4 average is not a compromise — it is the
+ * finest thing the display can resolve, and native rings would be structure
+ * below one pixel, fetched on every pan and never seen.
+ *
+ * The seeding opportunity is the layer that needs this. It is a gate, so
+ * averaging it changes the decision rather than smoothing a gradient, and a
+ * click reads the native cell whatever the map drew. Every zoom a program
+ * actually works at sits well inside the native side of this; the coarse side
+ * is the whole-country view, which is for finding weather rather than for
+ * deciding where to fly.
+ */
+export function tracesNative(
+  extent: { xmin: number; ymin: number; xmax: number; ymax: number },
+  widthPixels: number
+): boolean {
+  if (!(widthPixels > 0)) return false;
+  const { west, east, south, north } = lonLatExtent(extent);
+  const squeeze = Math.cos((((south + north) / 2) * Math.PI) / 180);
+  const km = (east - west) * KM_PER_DEGREE_LON * squeeze;
+  return km / widthPixels <= CELL_KM;
 }
 
 export function boxParams(box: MapBox): Record<string, string> {

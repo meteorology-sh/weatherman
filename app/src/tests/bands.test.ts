@@ -1,10 +1,12 @@
 // ArcGIS
 import { candidateCloudBaseRenderer } from "@/lib/arcgis/renderers";
+import type SimpleFillSymbol from "@arcgis/core/symbols/SimpleFillSymbol";
 import {
   SEEDABLE_BASE_FT,
   BASE_CEILING_FT,
   CANDIDATE_BANDS,
   CEILING_FT,
+  CLOUD_BASE_ALPHA,
   CLOUD_BASE_BANDS,
   CLOUD_BASE_RGB,
   CLOUD_BANDS,
@@ -22,6 +24,10 @@ import {
   PRECIP_RGB,
   SLW_RGB,
 } from "@/lib/arcgis/bands";
+
+/** Rec. 709 luma, so "lighter" is what an eye reads and not a sum of channels. */
+const lightness = (rgb: readonly number[]) =>
+  0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
 
 describe("CLOUD_BANDS", () => {
   // The server decides which contours exist (FIELDS.clouds.levels in
@@ -192,8 +198,10 @@ describe("soloColor", () => {
   });
 
   it("gives the legend the color each band is actually painted", () => {
-    expect(soloColor(CLOUD_BASE_RGB, CLOUD_BASE_BANDS[0].alpha)).toContain(
-      String(CLOUD_BASE_BANDS[0].alpha)
+    const band = CLOUD_BASE_BANDS[0];
+
+    expect(soloColor(band.rgb, CLOUD_BASE_ALPHA)).toBe(
+      `rgba(${band.rgb.join(",")},${CLOUD_BASE_ALPHA.toFixed(3)})`
     );
   });
 
@@ -224,52 +232,33 @@ describe("CLOUD_BASE_BANDS", () => {
     expect(candidateCloudBaseRenderer.field).toBe("cloudBaseFt");
   });
 
-  // Loud to quiet, like the cloud tops: brightness is how short the climb is,
-  // not how big the number is. Inverted, the ramp would shout about the cloud
-  // furthest out of reach.
-  it("fades as the base gets higher", () => {
-    const alphas = CLOUD_BASE_BANDS.map((band) => band.alpha);
+  // Lightness is the number: the lowest base is the deepest violet and the
+  // highest is the palest, so a cell reads as high or low without the legend.
+  it("lightens as the base gets higher", () => {
+    const light = CLOUD_BASE_BANDS.map((band) => lightness(band.rgb));
 
-    expect(alphas).toEqual([...alphas].sort((a, b) => b - a));
+    expect(light).toEqual([...light].sort((a, b) => a - b));
   });
 
-  // A base too high to work and no cloud at all are different answers, and
-  // dropping the top band would make them the same blank cell. Whether that
-  // base can be flown is the seeding opportunity's judgement, not this ramp's.
-  it("stays open above the workable bound", () => {
-    const top = CLOUD_BASE_BANDS[CLOUD_BASE_BANDS.length - 1];
+  // The height is in the color, so the symbol's opacity carries none of it: the
+  // see-through is one knob on the layer, and what a band mixes with is the
+  // basemap rather than another band.
+  it("paints every band at one opacity", () => {
+    const alphas = candidateCloudBaseRenderer.uniqueValueInfos!.map(
+      (info) => (info.symbol as SimpleFillSymbol).color!.a
+    );
 
-    expect(top.value).toBe(BASE_CEILING_FT);
-    expect(top.alpha).toBeGreaterThan(0);
-    expect(top.label).toContain("over");
+    expect(alphas).toEqual(CLOUD_BASE_BANDS.map(() => CLOUD_BASE_ALPHA));
   });
 
-  // Two fills on one map, and a third that must not read as either of them.
-  it("takes a hue of its own on the candidate map", () => {
-    for (const other of [SLW_RGB, RADAR_RGB]) {
-      expect(CLOUD_BASE_RGB).not.toEqual(other);
-    }
-  });
+  // These bands do not composite: a disjoint band is painted once, so it has to
+  // carry its whole separation from its neighbors in its own color. Steps this
+  // wide survive being read against a basemap rather than against each other.
+  it("separates each band by a step of its own", () => {
+    const light = CLOUD_BASE_BANDS.map((band) => lightness(band.rgb));
 
-  // Disjoint bands, so the swatch is the literal fill. Nothing composites, and
-  // a stacked alpha would describe a map that is not being drawn. The ceiling
-  // is where the nested layers' four bands stack to, so the loudest fill on the
-  // map is no louder here than it is anywhere else.
-  it("stays faint enough that the basemap reads through", () => {
-    for (const band of CLOUD_BASE_BANDS) {
-      expect(band.alpha).toBeLessThanOrEqual(
-        stackedAlpha(CANDIDATE_BANDS, CANDIDATE_BANDS.length)
-      );
-    }
-  });
-
-  // These bands do not composite, so the gap between them is only as wide as it
-  // is written — see the cloud-top note for why that has to be said out loud.
-  it("separates each band by more than a stacking step", () => {
-    const alphas = CLOUD_BASE_BANDS.map((band) => band.alpha);
-
-    for (let i = 0; i < alphas.length - 1; i++) {
-      expect(alphas[i] - alphas[i + 1]).toBeGreaterThanOrEqual(0.12);
+    for (let i = 0; i < light.length - 1; i++) {
+      expect(light[i + 1] - light[i]).toBeGreaterThanOrEqual(24);
     }
   });
 

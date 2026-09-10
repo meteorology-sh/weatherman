@@ -62,7 +62,7 @@ import {
   ReplayLightningLayer,
 } from "@/lib/arcgis/layers";
 import { PRECIP_FIRST_HOUR } from "@/lib/arcgis/bands";
-import { INITIAL_BOX, heldBox } from "@/lib/bbox";
+import { INITIAL_BOX, heldBox, tracesNative } from "@/lib/bbox";
 
 // Types
 import type { ClickEvent } from "@arcgis/core/views/input/types";
@@ -83,7 +83,9 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const drawnReplayAt = useRef<string | null>(null);
   const drawnBuild = useRef<string | null>(null);
   const drawnBoxKey = useRef<string | null>(null);
+  const drawnFine = useRef<boolean | null>(null);
   const [viewBox, setViewBox] = useState(INITIAL_BOX);
+  const [fine, setFine] = useState(false);
 
   const dispatch = useAppDispatch();
   const hour = useAppSelector((state) => state.forecast.hour);
@@ -169,8 +171,12 @@ export const ArcGIS = ({ mode }: PropsT) => {
 
   // National grids stay on the server. The map asks for a padded window
   // that covers the view and keeps it while the view sits inside, so
-  // zooming does not refetch. The rings are smoothed the same way at
-  // every zoom; eval asks for the fine stairs separately.
+  // zooming does not refetch.
+  //
+  // How finely the window is traced follows the zoom rather than the window:
+  // a held box stops the refetching, but the same box read at two zooms can
+  // want two different resolutions, so `tracesNative` is asked on every
+  // settle and not only when the box is replaced.
   useEffect(() => {
     const view = viewRef.current;
     if (!view) return;
@@ -179,6 +185,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
         { xmin: number; ymin: number; xmax: number; ymax: number } | undefined;
       if (!extent) return;
       setViewBox((held) => heldBox(held, extent));
+      setFine(tracesNative(extent, view.width));
     };
     apply();
     const handle = reactiveUtils.watch(
@@ -322,7 +329,11 @@ export const ArcGIS = ({ mode }: PropsT) => {
   useEffect(() => {
     if (drawnBoxKey.current === boxKey) return;
     drawnBoxKey.current = boxKey;
-    CandidateFieldLayer.url = CandidateFieldUrl(viewBox);
+    // Recorded here as well as in the resolution effect below, so a settle
+    // that moved the window and crossed the resolution at once fetches the
+    // field once rather than twice.
+    drawnFine.current = fine;
+    CandidateFieldLayer.url = CandidateFieldUrl(viewBox, fine);
     CandidateFieldLayer.refresh();
     CandidateRadarLayer.url = RadarReflectivityUrl(viewBox);
     CandidateRadarLayer.refresh();
@@ -340,7 +351,25 @@ export const ArcGIS = ({ mode }: PropsT) => {
     CandidateConfirmedLayer.refresh();
     CandidateEchoFreezeLayer.url = RadarEchoFreezeUrl(viewBox);
     CandidateEchoFreezeLayer.refresh();
-  }, [boxKey, viewBox]);
+  }, [boxKey, viewBox, fine]);
+
+  // Zoom crossed the resolution the native cells become visible at, without
+  // moving the window off the held box.
+  //
+  // Only the seeding opportunity is repointed. It is the one layer that is a
+  // gate rather than a gradient, so the 4×4 average changes its answer instead
+  // of smoothing it; everything else is a field with an edge to interpolate
+  // along, where the average is the right operation at every zoom.
+  useEffect(() => {
+    if (drawnFine.current === fine) return;
+    drawnFine.current = fine;
+    CandidateFieldLayer.url = CandidateFieldUrl(viewBox, fine);
+    CandidateFieldLayer.refresh();
+    if (ready !== null) {
+      ReplayFieldLayer.url = ReplayCandidateUrl(ready, viewBox, fine);
+      ReplayFieldLayer.refresh();
+    }
+  }, [fine, viewBox, ready]);
 
   // Send the candidate layers after the build the store says is current.
   //
@@ -388,7 +417,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     if (at === null || drawnReplayAt.current === key) return;
     drawnReplayAt.current = key;
 
-    ReplayFieldLayer.url = ReplayCandidateUrl(at, viewBox);
+    ReplayFieldLayer.url = ReplayCandidateUrl(at, viewBox, fine);
     ReplayRadarLayer.url = ReplayRadarUrl(at, viewBox);
     ReplayStormCoreLayer.url = ReplayRadarStormCoresUrl(at, viewBox);
     ReplayStormMotionLayer.url = ReplayRadarStormMotionUrl(at, viewBox);
@@ -425,7 +454,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayLightningLayer.refresh();
     ReplayConfirmedLayer.refresh();
     ReplayEchoFreezeLayer.refresh();
-  }, [ready, boxKey, viewBox]);
+  }, [ready, boxKey, viewBox, fine]);
 
   // Surface "still drawing" so the slider can say so rather than looking stuck.
   useEffect(() => {

@@ -32,9 +32,10 @@
 // Services
 import { CELL_KM2, inBox } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
+import { bandFeatures } from "../shared/contour";
 
 // Types
-import type { Geo } from "../shared/contour";
+import type { ContourFeature, Geo, Grid, RingStyle } from "../shared/contour";
 
 /**
  * The highest workable cloud base, ft MSL.
@@ -230,11 +231,13 @@ export function summarizeMergedBase(
 }
 
 /**
- * The ramp the fill is traced on: disjoint bands in ft MSL.
+ * The ramp the fill is traced on: band edges in ft MSL.
  *
  * Thirds of the workable bound, so every edge traces back to that one number
- * rather than being picked from a coverage table. Disjoint because a height is
- * a position and not an accumulation — exactly one band applies to a cell.
+ * rather than being picked from a coverage table.
+ *
+ * Disjoint because a height is a position and not an accumulation — exactly one
+ * band applies to a cell, and `baseFeatures` carries what that costs.
  *
  * **The last band is open above the bound and still drawn.** A base too high to
  * work and no cloud at all are different answers, and blanking the first would
@@ -250,3 +253,34 @@ export const MERGED_BASE = {
     BASE_CEILING_FT,
   ] as const,
 } as const;
+
+/**
+ * The layer's fill: one MultiPolygon per band, and a cell in exactly one of
+ * them.
+ *
+ * **Disjoint, because the fill is one you can see through.** `bandFeatures` and
+ * not `features`: nested rings would put a cell inside its own band and inside
+ * every band below it, and two translucent fills over each other composite into
+ * a shade the ramp does not have. Only an opaque fill can carry the ramp in the
+ * draw order instead, and an opaque fill takes the basemap with it.
+ *
+ * Cutting the bands apart costs a hole in each one, and a hole has to lie
+ * inside the ring it is cut from — see `nest` in `../shared/contour.ts` for
+ * what that takes and what it looked like when it was not done.
+ *
+ * Traced here rather than at the call site so the disjointness is a property of
+ * the layer and not of whichever method happens to draw it.
+ */
+export function baseFeatures(
+  grid: Grid,
+  geo: Geo,
+  style: RingStyle
+): ContourFeature[] {
+  return bandFeatures(
+    grid,
+    geo,
+    MERGED_BASE.property,
+    MERGED_BASE.edges,
+    style
+  );
+}

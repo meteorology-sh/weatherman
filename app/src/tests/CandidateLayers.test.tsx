@@ -21,6 +21,7 @@ import {
 import {
   CEILING_FT,
   BASE_CEILING_FT,
+  CLOUD_BASE_ALPHA,
   CLOUD_BASE_BANDS,
   CLOUD_BASE_RGB,
 } from "@/lib/arcgis/bands";
@@ -54,11 +55,12 @@ const RADAR = RadarLegend.name;
 const FIELD = CandidateLegend.name;
 const LIQUID = LiquidLegend.name;
 
-const rgba = (css: string) =>
-  css
-    .replace(/\s+/g, "")
-    .replace(/(\.\d*?)0+\)/, "$1)")
-    .replace(/\.\)/, ")");
+/** A css color as its numbers, so `rgb(a,b,c)` and `rgba(a,b,c,1)` compare equal. */
+const rgba = (css: string) => {
+  const parts = (css.match(/[\d.]+/g) ?? []).map(Number);
+  const [red, green, blue, alpha = 1] = parts;
+  return `${red},${green},${blue},${alpha}`;
+};
 
 const allOn = () => {
   const store = createTestStore();
@@ -125,16 +127,38 @@ describe("CandidateLayers cloud base", () => {
   it("paints each swatch its own unstacked fill", () => {
     const { container } = withLayer();
 
-    const window = bases(container)[1];
-    expect(rgba(window.style.backgroundColor)).toBe(
-      rgba(soloColor(CLOUD_BASE_RGB, CLOUD_BASE_BANDS[1].alpha))
+    const violet = CLOUD_BASE_BANDS.findIndex(
+      (band) => band.rgb === CLOUD_BASE_RGB
+    );
+    expect(rgba(bases(container)[violet].style.backgroundColor)).toBe(
+      rgba(soloColor(CLOUD_BASE_RGB, CLOUD_BASE_ALPHA))
     );
   });
 
-  it("keeps the reachable band the loudest", () => {
-    const [reachable, unreachable] = CLOUD_BASE_BANDS.map((b) => b.alpha);
+  // The height is in the color, so the swatches differ from each other and not
+  // from the basemap: every one of them is painted at the same opacity.
+  it("gives every swatch its own color at one opacity", () => {
+    const { container } = withLayer();
 
-    expect(reachable).toBeGreaterThan(unreachable);
+    const painted = bases(container).map((swatch) =>
+      rgba(swatch.style.backgroundColor)
+    );
+
+    expect(painted).toEqual(
+      CLOUD_BASE_BANDS.map((band) =>
+        rgba(soloColor(band.rgb, CLOUD_BASE_ALPHA))
+      )
+    );
+    expect(new Set(painted).size).toBe(CLOUD_BASE_BANDS.length);
+  });
+
+  // Lightness is the height, so the lowest band is the deepest violet.
+  it("keeps the reachable band the darkest", () => {
+    const luma = (rgb: readonly number[]) =>
+      0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+    const [reachable, unreachable] = CLOUD_BASE_BANDS.map((b) => luma(b.rgb));
+
+    expect(reachable).toBeLessThan(unreachable);
   });
 
   it("bands on thirds of the workable bound, open above it", () => {

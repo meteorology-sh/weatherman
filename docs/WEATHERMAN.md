@@ -22,12 +22,18 @@ sampling rule that decides whether a proposed layer is honest at all. **Read
   field. Averaging removes structure and is fine; interpolating invents it
   and is not. The remaining corners are rounded so a storm is a blob, not
   a triangle. Evaluation maps skip the average and keep the native stairs.
-  The factor does not change with the window, so zooming does not restyle
-  the rings. The map holds a padded covering window and does not refetch
-  while the view sits inside it. Clicks still read the native cell. The
-  join samples GOES and MRMS onto HRRR's 3 km cells (majority / nearest),
-  never the other way. Compare a variable's correlation length to the
-  sample spacing before drawing any new field (`MEASUREMENTS.md` §3).
+  The map holds a padded covering window and does not refetch while the
+  view sits inside it. Clicks always read the native cell. The join samples
+  GOES and MRMS onto HRRR's 3 km cells (majority / nearest), never the
+  other way. Compare a variable's correlation length to the sample spacing
+  before drawing any new field (`MEASUREMENTS.md` §3).
+- **A gate is drawn at the resolution the screen can show.** Averaging a
+  continuous field smooths it; averaging a 0/1 gate takes a vote and changes
+  the answer, which is how a fill comes to disagree with a click inside it.
+  So the seeding opportunity is traced on the native cells while one covers
+  at least a screen pixel, and takes the average only past that, where a
+  native cell is smaller than a pixel and the rings could not be seen
+  anyway. Nothing else is resolution-dependent (`UNCERTAINTY.md` §1).
 - **A source too sparse to pass that test is drawn as points, and only points** —
   color banding in a marker ramp, each marker where the observation was, nothing
   between them.
@@ -277,10 +283,22 @@ ground — and `bands.test.ts` pins the derivation so it cannot be mistaken for 
 citation.
 
 It has **real nodata**, and its bands are **disjoint**: a height is a position,
-not an accumulation, so exactly one applies to a cell. **The ramp runs
-loud-to-quiet**, like the cloud tops — brightness is how short the climb is, not
-how big the number is. The last band is open above the bound and still drawn,
-because a base too high to work and no cloud at all are different answers.
+not an accumulation, so exactly one applies to a cell. **The height is in the
+color** — four steps of the layer's violet, every one painted at the same 80% —
+because an opacity ramp reads as how much basemap shows through, which is hard
+to compare between two patches that are not touching. **The ramp runs dark to
+light with the height**: the lowest base is the deepest violet and the highest
+is the palest. The last band is open above the bound and still drawn, because a
+base too high to work and no cloud at all are different answers.
+
+**A fill you can see through is why the bands are cut apart.** Two translucent
+bands over each other composite into a shade the ramp does not have, so each
+band is traced with the band above it removed as a hole. A hole has to lie
+inside the ring it is cut from, the two are levels of one field thinned and
+rounded apart, and where they crossed the polygon stopped being a polygon —
+which a tessellator answers differently at every zoom, so pieces of the fill
+came and went as the map zoomed. `nest` in `contour.ts` fits each level inside
+the one under it and is what holds that closed.
 
 **MSL because the height is**: the base is a position above sea level, and both
 halves of the merge produce it in that datum. The cost is that it says nothing

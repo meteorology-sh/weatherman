@@ -78,9 +78,15 @@ is not. Layers here are traced at native sampling. The candidate map then
 averages each 4×4 of those cells — 12 km on HRRR, 8 km on GOES, 4 km
 on MRMS — and contours that coarser field; remaining corners are
 rounded. Evaluation maps skip the average and keep the native stairs.
-The map does not change that factor when the window grows, and it does
-not refetch while the view sits inside the window it already asked for.
-Clicks still read the native grid. The join samples GOES and MRMS onto
+The map does not refetch while the view sits inside the window it
+already asked for. Clicks still read the native grid.
+
+The one field this average is wrong for is the seeding opportunity,
+because it is a gate and not a surface: a 4×4 mean of 0 and 1 is a vote,
+not a smoothing, and the fill it draws can refuse under a click inside
+it. It is traced on the native cells while a native cell covers at least
+a screen pixel, and averaged only past that point, where the rings it
+would gain are finer than a pixel. The join samples GOES and MRMS onto
 HRRR's 3 km cells rather than averaging everything to a shared 12 km
 grid.
 

@@ -136,19 +136,37 @@ export async function GetSounding(
  * The Texas fly fill — base in the window, echo top past freezing,
  * rain nearby. Liquid-with-no-rain geometry stays on `/candidate/field` for
  * eval.
+ *
+ * `fine` traces the native 3 km cells instead of the 4×4 average. It is a
+ * gate, so the average changes the answer rather than smoothing it, and a
+ * click always reads the native cell — `tracesNative` decides when the display
+ * can show the difference.
+ *
+ * `round` rides with it. A gate has no gradient to put a vertex along, so its
+ * ring runs on cell edges and comes out as a staircase whatever the cell size;
+ * the map takes the corners off it and the evaluation, which measures against
+ * that edge, does not.
  */
-export function CandidateFieldUrl(box: MapBox = INITIAL_BOX): string {
-  return `/candidate/target?${new URLSearchParams(boxParams(box))}`;
+export function CandidateFieldUrl(
+  box: MapBox = INITIAL_BOX,
+  fine = false
+): string {
+  return `/candidate/target?${new URLSearchParams({
+    ...boxParams(box),
+    ...(fine ? { fine: "1", round: "1" } : {}),
+  })}`;
 }
 
 /** The same fill at a past hour. `at` names the HRRR cycle to replay. */
 export function ReplayCandidateUrl(
   at: string,
-  box: MapBox = INITIAL_BOX
+  box: MapBox = INITIAL_BOX,
+  fine = false
 ): string {
   return `/candidate/target?${new URLSearchParams({
     at,
     ...boxParams(box),
+    ...(fine ? { fine: "1", round: "1" } : {}),
   })}`;
 }
 

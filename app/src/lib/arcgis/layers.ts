@@ -29,7 +29,18 @@ import {
   LightningUrl,
 } from "@/lib/client";
 
+/**
+ * What every layer on either map is drawn at.
+ *
+ * One knob for all of them, applied to the layer rather than to its symbols, so
+ * a layer whose bands composite is halved once at the end rather than band by
+ * band. The ground under a fill stays readable at every zoom, and the switches
+ * are there for when it does not.
+ */
+const LAYER_OPACITY = 0.5;
+
 export const ReplayCloudBaseLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "HRRR cloud base (replay)",
   copyright: "NOAA HRRR",
   renderer: candidateCloudBaseRenderer,
@@ -43,6 +54,7 @@ export const ReplayCloudBaseLayer = new GeoJSONLayer({
 });
 
 export const ReplayLiquidLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "HRRR supercooled liquid water (replay)",
   copyright: "NOAA HRRR",
   renderer: candidateLiquidRenderer,
@@ -56,6 +68,7 @@ export const ReplayLiquidLayer = new GeoJSONLayer({
 });
 
 export const ReplayRadarLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "MRMS base reflectivity (replay)",
   copyright: "NOAA / National Weather Service MRMS",
   renderer: candidateRadarRenderer,
@@ -93,6 +106,7 @@ export const TEXAS_ZOOM = 5;
 export const STORM_OBJECT_MIN_SCALE = scaleAtZoom(TEXAS_ZOOM + 1);
 
 export const ReplayStormCoreLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "MRMS radar storm cores (replay)",
   copyright: "NOAA / National Weather Service MRMS",
   renderer: stormCoreRenderer,
@@ -108,6 +122,7 @@ export const ReplayStormCoreLayer = new GeoJSONLayer({
 });
 
 export const ReplayStormMotionLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "MRMS radar storm motion (replay)",
   copyright: "NOAA / National Weather Service MRMS",
   renderer: stormMotionRenderer,
@@ -124,6 +139,7 @@ export const ReplayStormMotionLayer = new GeoJSONLayer({
 });
 
 export const ReplayLightningLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "GOES-East GLM flashes (replay)",
   copyright: "NOAA GOES-East GLM",
   renderer: lightningRenderer,
@@ -134,6 +150,7 @@ export const ReplayLightningLayer = new GeoJSONLayer({
 });
 
 export const ReplayEchoFreezeLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "MRMS echo top past freezing (replay)",
   copyright: "NOAA MRMS / NOAA HRRR",
   renderer: echoFreezeRenderer,
@@ -151,6 +168,7 @@ export const ReplayEchoFreezeLayer = new GeoJSONLayer({
  * nearby, rain nearby. One fill. The same cells a click names FLY.
  */
 export const CandidateFieldLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "Seeding opportunity",
   url: CandidateFieldUrl(),
   copyright: "NOAA HRRR / NOAA MRMS",
@@ -180,6 +198,7 @@ export const CandidateFieldLayer = new GeoJSONLayer({
  * actually falls. Added above the field so the line sits on top of the fills.
  */
 export const CandidateConfirmedLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "Seeding opportunity — observed liquid top",
   url: CandidateConfirmedUrl(),
   copyright: "NOAA GOES-East",
@@ -195,6 +214,7 @@ export const CandidateConfirmedLayer = new GeoJSONLayer({
 
 /** The same field at a replayed hour, as its own instance. */
 export const ReplayFieldLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "Seeding opportunity (replay)",
   copyright: "NOAA HRRR / NOAA MRMS",
   renderer: candidateFieldRenderer,
@@ -209,6 +229,7 @@ export const ReplayFieldLayer = new GeoJSONLayer({
 
 /** The same outline at a replayed hour. */
 export const ReplayConfirmedLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "Seeding opportunity — observed liquid top (replay)",
   copyright: "NOAA GOES-East",
   renderer: candidateConfirmedRenderer,
@@ -225,17 +246,18 @@ export const ReplayConfirmedLayer = new GeoJSONLayer({
  * Modeled cloud base, banded server-side from HRRR — the height an aircraft
  * would climb through, and the variable Texas operations actually select on.
  *
- * **Disjoint bands, not nested contours**, because the field is a window rather
- * than a magnitude: below it the base is fog, above it the base is cirrus, and
- * the middle band is the one worth looking at. It has the same real nodata the
- * cloud-top layer has — where the model has no cloud over a cell, nothing is
- * drawn.
+ * **Disjoint bands, not nested contours**, because the fill is one you can see
+ * through: two translucent bands over each other would composite into a shade
+ * the ramp does not have, so exactly one is drawn over any cell and the draw
+ * order carries nothing. It has the same real nodata the cloud-top layer has —
+ * where the model has no cloud over a cell, nothing is drawn.
  *
  * Pinned to hour 0, like the liquid-water layer and for the same reason: the
  * candidate map is "right now", and a cloud base is a state the analysis holds
  * rather than a flux needing a timestep. Nothing repoints this url.
  */
 export const CandidateCloudBaseLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "HRRR cloud base",
   url: CloudBaseUrl(),
   copyright: "NOAA HRRR",
@@ -257,6 +279,7 @@ export const CandidateCloudBaseLayer = new GeoJSONLayer({
  * forecast-hour slider moves.
  */
 export const ForecastCloudsLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "HRRR forecast cloud cover",
   url: ForecastCloudsUrl(0),
   copyright: "NOAA HRRR",
@@ -280,6 +303,7 @@ export const ForecastCloudsLayer = new GeoJSONLayer({
  * instead would download a frame nobody has asked to see.
  */
 export const ForecastPrecipLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "HRRR forecast precipitation rate",
   url: ForecastPrecipUrl(0),
   copyright: "NOAA HRRR",
@@ -304,6 +328,7 @@ export const ForecastPrecipLayer = new GeoJSONLayer({
  * once per session.
  */
 export const CandidateLiquidLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "HRRR supercooled liquid water",
   url: ForecastLiquidUrl(0),
   copyright: "NOAA HRRR",
@@ -330,6 +355,7 @@ export const CandidateLiquidLayer = new GeoJSONLayer({
  * no schema to infer and leaves the renderer with no field to match.
  */
 export const ForecastLiquidLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "HRRR forecast supercooled liquid water",
   url: ForecastLiquidUrl(0),
   copyright: "NOAA HRRR",
@@ -356,6 +382,7 @@ export const ForecastLiquidLayer = new GeoJSONLayer({
  * at 1 km, so contouring that mosaic removes no structure and invents none.
  */
 export const CandidateRadarLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "MRMS base reflectivity",
   url: RadarReflectivityUrl(),
   copyright: "NOAA / National Weather Service MRMS",
@@ -368,6 +395,7 @@ export const CandidateRadarLayer = new GeoJSONLayer({
  * switch under radar drives this with the heading tick.
  */
 export const CandidateStormCoreLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "MRMS radar storm cores",
   url: RadarStormCoresUrl(),
   copyright: "NOAA / National Weather Service MRMS",
@@ -389,6 +417,7 @@ export const CandidateStormCoreLayer = new GeoJSONLayer({
  * will be.
  */
 export const CandidateStormMotionLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "MRMS radar storm motion",
   url: RadarStormMotionUrl(),
   copyright: "NOAA / National Weather Service MRMS",
@@ -410,6 +439,7 @@ export const CandidateStormMotionLayer = new GeoJSONLayer({
  * switch under radar drives this with the mosaic.
  */
 export const CandidateLightningLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "GOES-East GLM flashes",
   url: LightningUrl(),
   copyright: "NOAA GOES-East GLM",
@@ -425,6 +455,7 @@ export const CandidateLightningLayer = new GeoJSONLayer({
  * with the mosaic.
  */
 export const CandidateEchoFreezeLayer = new GeoJSONLayer({
+  opacity: LAYER_OPACITY,
   title: "MRMS echo top past freezing",
   url: RadarEchoFreezeUrl(),
   copyright: "NOAA MRMS / NOAA HRRR",

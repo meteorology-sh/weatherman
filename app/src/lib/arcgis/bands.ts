@@ -274,17 +274,42 @@ export const BASE_CEILING_FT = 18000;
  *
  * **Disjoint, like the cloud-top bands.** A height is a position rather than an
  * accumulation, so exactly one band applies to a cell and nothing nests.
+ *
+ * **The height is in the color, not in the opacity.** Every band is painted at
+ * the same {@link CLOUD_BASE_ALPHA}, so hue and lightness are what separate
+ * them. A ramp that varies in opacity instead puts the reading in how much
+ * basemap shows through, which is hard to compare between two patches that are
+ * not touching — and it cannot survive two bands overlapping, because the
+ * composite of two opacities is a third shade the legend does not have.
  */
 export type CloudBaseBand = {
   readonly value: number;
   readonly label: string;
-  readonly alpha: number;
+  readonly rgb: readonly number[];
 };
+
+/**
+ * The opacity every cloud-base band is painted at.
+ *
+ * Full, because the height is carried by the color and a washed-out color is a
+ * washed-out reading. The see-through is one knob on the layer instead —
+ * `LAYER_OPACITY` in `layers.ts` — so what a band is mixed with is the basemap
+ * and never another band.
+ *
+ * The bands are still cut apart rather than nested, because the layer they are
+ * drawn on is one you can see through: two of them over each other would
+ * composite into a shade the ramp does not have.
+ */
+export const CLOUD_BASE_ALPHA = 1;
 
 /**
  * Violet, and the last hue this map has left. Slate is cloud shape, amber is
  * modeled liquid water, cyan is observed rain; cloud base is a fourth claim
  * and cannot borrow any of the three without reading as one of them.
+ *
+ * The ramp below is four steps of this one violet rather than four hues, for
+ * that same reason — the layer has to stay one claim on the map. This is its
+ * third step, so the layer still reads as the color it always has.
  */
 export const CLOUD_BASE_RGB = [167, 139, 250] as const;
 
@@ -293,20 +318,18 @@ export const CLOUD_BASE_RGB = [167, 139, 250] as const;
  * server/src/lib/services/candidate/cloudbase.ts — thirds of the top of the
  * map, so every edge traces to that one number.
  *
- * **The ramp runs loud-to-quiet.** Brightness is not the height, it is how much
- * of a climb there is before there is cloud to work with: the lowest base is
- * the least of it, so it is the loudest. Reading brightness as the magnitude of
- * the number would put the ramp exactly the wrong way round, which is why this
- * note exists.
+ * **The ramp runs dark to light with the height.** Lightness is the number: the
+ * lowest base is the deepest violet and the highest is the palest, so a cell
+ * reads as high or low without the legend.
  *
  * **The last band is open above the bound and still drawn.** A base too high to
  * work and no cloud at all are different answers, and blanking the first would
  * make them the same. Whether that base can be flown is the seeding
  * opportunity's judgement, not this layer's.
  *
- * The steps are wide because these bands do not composite — see the cloud-top
- * note above for why a disjoint band has to carry its whole separation in the
- * alpha written here.
+ * The steps are wide because these bands do not composite: a disjoint band is
+ * painted once, so it has to carry its whole separation from its neighbors in
+ * the color written here.
  */
 const THIRD_OF_BASE_CEILING = BASE_CEILING_FT / 3;
 
@@ -314,22 +337,22 @@ export const CLOUD_BASE_BANDS: readonly CloudBaseBand[] = [
   {
     value: 0,
     label: `under ${THIRD_OF_BASE_CEILING / 1000}k`,
-    alpha: 0.6,
+    rgb: [76, 29, 149],
   },
   {
     value: THIRD_OF_BASE_CEILING,
     label: `${THIRD_OF_BASE_CEILING / 1000}–${(2 * THIRD_OF_BASE_CEILING) / 1000}k`,
-    alpha: 0.4,
+    rgb: [124, 58, 237],
   },
   {
     value: 2 * THIRD_OF_BASE_CEILING,
     label: `${(2 * THIRD_OF_BASE_CEILING) / 1000}–${BASE_CEILING_FT / 1000}k`,
-    alpha: 0.26,
+    rgb: CLOUD_BASE_RGB,
   },
   {
     value: BASE_CEILING_FT,
     label: `over ${BASE_CEILING_FT / 1000}k`,
-    alpha: 0.12,
+    rgb: [221, 214, 254],
   },
 ];
 

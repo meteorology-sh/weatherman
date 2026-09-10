@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 // Services
 import {
   BASE_CEILING_FT,
+  baseFeatures,
   MERGED_BASE,
   mergedBaseAt,
   mergedBaseValues,
@@ -15,7 +16,10 @@ import { CELL_KM2 } from "../lib/services/shared/grid";
 
 // Types
 import type { MergedBaseInputs } from "../lib/services/candidate/cloudbase";
-import type { Geo } from "../lib/services/shared/contour";
+import { FINE_STYLE, SMOOTH_STYLE } from "../lib/services/shared/contour";
+
+// Types
+import type { Geo, Grid } from "../lib/services/shared/contour";
 
 const RUN = new Date("2025-05-15T18:00:00.000Z");
 
@@ -226,5 +230,63 @@ describe("MERGED_BASE", () => {
 
   it("traces on the property the app's renderer matches", () => {
     assert.equal(MERGED_BASE.property, "cloudBaseFt");
+  });
+});
+
+describe("baseFeatures", () => {
+  const geo: Geo = {
+    nx: 2,
+    ny: 2,
+    lats: Float32Array.from([30, 30, 31, 31]),
+    lons: Float32Array.from([-100, -99, -100, -99]),
+  };
+
+  const gridOf = (values: number[]): Grid => ({
+    nx: 2,
+    ny: 2,
+    values: Float32Array.from(values),
+  });
+
+  const edgesOf = (values: number[], style = FINE_STYLE) =>
+    baseFeatures(gridOf(values), geo, style).map(
+      (f) => f.properties.cloudBaseFt
+    );
+
+  // Disjoint, not nested: the fill is one you can see through, and two
+  // translucent bands over each other composite into a shade the ramp does not
+  // have. Only an opaque fill could carry the ramp in the draw order instead.
+  it("puts a cell in exactly one band", () => {
+    assert.deepEqual(edgesOf([13000, 13000, 13000, 13000]), [
+      (2 * BASE_CEILING_FT) / 3,
+    ]);
+  });
+
+  it("draws the lowest base in the lowest band alone", () => {
+    assert.deepEqual(edgesOf([4700, 4700, 4700, 4700]), [0]);
+  });
+
+  // Two bases in one band are one answer, whatever the ring smoother does to
+  // the edges around them.
+  it("paints two bases in the same band identically", () => {
+    assert.deepEqual(
+      edgesOf([5900, 5900, 5900, 5900], SMOOTH_STYLE),
+      edgesOf([4700, 4700, 4700, 4700], SMOOTH_STYLE)
+    );
+  });
+
+  // A base over the bound is still measured and still drawn — in the open band
+  // and in nothing else.
+  it("draws a base above the bound in the open band alone", () => {
+    assert.deepEqual(edgesOf([21000, 21000, 21000, 21000]), [BASE_CEILING_FT]);
+  });
+
+  // NaN is what the merge writes where the layer draws nothing.
+  it("traces nothing where the merge declined", () => {
+    const nan = Number.NaN;
+
+    assert.deepEqual(
+      baseFeatures(gridOf([nan, nan, nan, nan]), geo, FINE_STYLE),
+      []
+    );
   });
 });

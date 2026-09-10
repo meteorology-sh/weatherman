@@ -58,7 +58,7 @@ import {
   summarize as summarizeTarget,
 } from "./target";
 import {
-  MERGED_BASE,
+  baseFeatures,
   mergedBaseValues,
   readMergedBase,
   summarizeMergedBase,
@@ -227,7 +227,8 @@ export class CandidateService {
   async targetField(
     at?: Date,
     box: LonLatBox = DRAWN,
-    fine = false
+    fine = false,
+    round = false
   ): Promise<CandidateFrame> {
     const scene = await this.scene(at);
     const geo = scene.cells.geo;
@@ -249,7 +250,9 @@ export class CandidateService {
         [1],
         // A gate, so the values are 1 or nothing. There is no gradient to
         // interpolate a ring along, hence `styleFor` and not `smoothFor`.
-        styleFor(fine)
+        // The map asks for the corners to be taken off the staircase that
+        // leaves; the evaluation measures against it and does not.
+        styleFor(fine, round)
       ),
     };
   }
@@ -279,13 +282,8 @@ export class CandidateService {
     );
     return {
       ...scene.frame,
-      features: features(
-        drawn.grid,
-        drawn.geo,
-        MERGED_BASE.property,
-        MERGED_BASE.edges,
-        smoothFor(fine)
-      ),
+      // Disjoint bands — `cloudbase.ts` owns the trace and says why.
+      features: baseFeatures(drawn.grid, drawn.geo, smoothFor(fine)),
     };
   }
 
