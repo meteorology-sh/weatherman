@@ -13,7 +13,6 @@ import { HeadingLegend, LightningLegend } from "@/lib/arcgis/legends";
 // Components
 import { LayerToggle, SubToggle } from "@/app/components/panel/LayerToggle";
 import { Ramp } from "@/app/components/panel/Ramp";
-import { CloudBaseRamp } from "@/app/components/panel/CloudBaseRamp";
 
 // Types
 import type { EvalLayer } from "~/lib/layers";
@@ -21,7 +20,7 @@ import type { EvalLayer } from "~/lib/layers";
 /**
  * The map's controls — the same switches the product's own panel uses.
  *
- * `LayerToggle`, `SubToggle`, `Ramp` and `CloudBaseRamp` are imported from
+ * `LayerToggle`, `SubToggle` and `Ramp` are imported from
  * `/app` rather than reimplemented, so a layer is named, described and ramped
  * here exactly as it is in Weatherman. Rewriting them would have made this page
  * a second opinion about the map instead of a window onto it.
@@ -34,15 +33,9 @@ import type { EvalLayer } from "~/lib/layers";
 
 const hhmm = (iso: string) => `${iso.slice(11, 13)}${iso.slice(14, 16)}Z`;
 
-/**
- * A gate has no ramp, so its switch carries only its name and its prose.
- *
- * `CloudBaseRamp` prints its own unit, like the product's panel, so only the
- * stacked ramp is given one here.
- */
+/** A gate has no ramp, so its switch carries only its name and its prose. */
 const ramp = (layer: EvalLayer) => {
   if (layer.kind === "gate") return null;
-  if (layer.key === "cloudBase") return <CloudBaseRamp />;
   return (
     <>
       <Ramp
@@ -50,6 +43,7 @@ const ramp = (layer: EvalLayer) => {
         rgb={layer.rgb}
         captions={layer.captions}
         titles={layer.titles}
+        disjoint={layer.shape === "disjoint"}
       />
       <div className="text-xs">{layer.unit}</div>
     </>

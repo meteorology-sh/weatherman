@@ -1,10 +1,15 @@
+// React
+import { StrictMode } from "react";
+
 // Testing
-import { act } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
+import { Provider } from "react-redux";
 import { createTestStore, renderWithStore } from "./utils";
 import {
   FakeExtent,
   FakeMap,
   FakeMapView,
+  arcgis,
   layers as layerFakes,
   resetArcgis,
   watch,
@@ -241,6 +246,39 @@ describe("ArcGIS in replay mode", () => {
       store.dispatch(ready(AT));
     });
 
+    expect(replayRadarLayer.refresh).not.toHaveBeenCalled();
+  });
+
+  // The hour stays ready in the store when the operator leaves the page, so
+  // the map built on the way back has to take the layers on without waiting
+  // for a new hour.
+  it("puts the replay layers on a map mounted after the hour was readied", () => {
+    const store = createTestStore();
+    store.dispatch(ready(AT));
+    renderWithStore(<ArcGIS mode="replay" />, store).unmount();
+
+    renderWithStore(<ArcGIS mode="replay" />, store);
+
+    expect(map().layers).toContain(replayCloudBaseLayer);
+    expect(map().layers).toContain(replayFieldLayer);
+  });
+
+  // At the root, as main.tsx mounts it: nested under a non-strict root, React
+  // does not double-invoke effects, and there would be no second map to join.
+  it("joins StrictMode's second map without fetching the hour twice", () => {
+    const store = createTestStore();
+    store.dispatch(ready(AT));
+
+    render(
+      <StrictMode>
+        <Provider store={store}>
+          <ArcGIS mode="replay" />
+        </Provider>
+      </StrictMode>
+    );
+
+    expect(arcgis.maps).toHaveLength(2);
+    expect(map().layers).toContain(replayRadarLayer);
     expect(replayRadarLayer.refresh).not.toHaveBeenCalled();
   });
 

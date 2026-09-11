@@ -25,17 +25,14 @@
 // ArcGIS
 import {
   CLOUD_BASE_BANDS,
-  CLOUD_BASE_RGB,
+  CLOUD_BASE_LABELS,
+  COLORS,
   ECHO_FREEZE_ALPHA,
-  ECHO_FREEZE_RGB,
   FLY_ALPHA,
-  FLY_RGB,
   RADAR_BANDS,
   RADAR_LABELS,
-  RADAR_RGB,
   SLW_BANDS,
   SLW_LABELS,
-  SLW_RGB,
 } from "@/lib/arcgis/bands";
 import {
   CandidateLegend,
@@ -79,7 +76,7 @@ export type BandedLayer = Common & {
   rgb: readonly number[];
   shape: BandShape;
   /** One caption per band, in the operator's units. */
-  captions: string[];
+  captions: readonly string[];
   /** Hover text per band, where the numbers have words behind them. */
   titles?: readonly string[];
   unit: string;
@@ -106,7 +103,7 @@ export const LAYERS: readonly EvalLayer[] = [
     legend: CandidateLegend,
     under: null,
     kind: "gate",
-    rgb: FLY_RGB,
+    rgb: COLORS.fly,
     alpha: FLY_ALPHA,
   },
   {
@@ -115,7 +112,7 @@ export const LAYERS: readonly EvalLayer[] = [
     under: null,
     kind: "bands",
     bands: RADAR_BANDS,
-    rgb: RADAR_RGB,
+    rgb: COLORS.rain,
     shape: "nested",
     captions: RADAR_BANDS.map((band) => String(band.value)),
     titles: RADAR_LABELS,
@@ -126,7 +123,7 @@ export const LAYERS: readonly EvalLayer[] = [
     legend: EchoFreezeLegend,
     under: "radar",
     kind: "gate",
-    rgb: ECHO_FREEZE_RGB,
+    rgb: COLORS.echoFreeze,
     alpha: ECHO_FREEZE_ALPHA,
   },
   {
@@ -135,9 +132,9 @@ export const LAYERS: readonly EvalLayer[] = [
     under: null,
     kind: "bands",
     bands: CLOUD_BASE_BANDS,
-    rgb: CLOUD_BASE_RGB,
+    rgb: COLORS.cloudBase,
     shape: "disjoint",
-    captions: CLOUD_BASE_BANDS.map((band) => band.label),
+    captions: CLOUD_BASE_LABELS,
     unit: "ft MSL",
   },
   {
@@ -146,7 +143,7 @@ export const LAYERS: readonly EvalLayer[] = [
     under: null,
     kind: "bands",
     bands: SLW_BANDS,
-    rgb: SLW_RGB,
+    rgb: COLORS.liquid,
     shape: "nested",
     captions: SLW_BANDS.map((band) => String(band.value)),
     titles: SLW_LABELS,

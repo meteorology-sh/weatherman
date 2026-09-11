@@ -1,5 +1,9 @@
+// React
+import { StrictMode } from "react";
+
 // Testing
-import { act } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
+import { Provider } from "react-redux";
 import { createTestStore, renderWithStore } from "./utils";
 import {
   FakeExtent,
@@ -73,6 +77,67 @@ describe("ArcGIS", () => {
     rerender(<ArcGIS mode="candidate" />);
 
     expect(arcgis.views).toHaveLength(1);
+  });
+
+  // Every route mounts its own map, so a view that outlives its page is a
+  // WebGL context left running for every visit.
+  it("takes the view down when the map goes away", () => {
+    const { unmount } = renderWithStore(
+      <ArcGIS mode="candidate" />,
+      createTestStore()
+    );
+    const fake = view();
+
+    unmount();
+
+    expect(fake.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  // Destroying a view destroys every layer still on its map, and these layers
+  // are singletons the next map mounts again.
+  it("takes the shared layers off before the view goes down", () => {
+    const { unmount } = renderWithStore(
+      <ArcGIS mode="candidate" />,
+      createTestStore()
+    );
+    const fake = view();
+
+    unmount();
+
+    expect(fake.layersAtDestroy).toEqual([]);
+  });
+
+  it("builds a whole map again on a return to the page", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="candidate" />, store).unmount();
+
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+
+    expect(arcgis.views).toHaveLength(2);
+    expect(map().layers).toHaveLength(12);
+    expect(view().destroy).not.toHaveBeenCalled();
+  });
+
+  // StrictMode mounts, cleans up and mounts again. One view has to be left
+  // standing, and the layers must not pay for the second mount twice.
+  //
+  // At the root, as main.tsx mounts it: nested under a non-strict root, React
+  // does not double-invoke effects, and this would pass without a double mount.
+  it("leaves one live map, fetched once, after StrictMode's double mount", () => {
+    render(
+      <StrictMode>
+        <Provider store={createTestStore()}>
+          <ArcGIS mode="candidate" />
+        </Provider>
+      </StrictMode>
+    );
+
+    expect(arcgis.views).toHaveLength(2);
+    const live = arcgis.views.filter((v) => !v.destroy.mock.calls.length);
+    expect(live).toHaveLength(1);
+    expect(live[0]).toBe(view());
+    expect(map().layers).toHaveLength(12);
+    expect(fieldLayer.refresh).toHaveBeenCalledTimes(1);
   });
 
   it("puts every layer on the map so switching re-uses what is loaded", () => {

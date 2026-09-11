@@ -112,61 +112,76 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const replaying = mode === "replay";
   const raining = forecasting && hour >= PRECIP_FIRST_HOUR;
 
-  // Initialize the map once
+  // Build the map on mount and take it down on unmount. Every route mounts its
+  // own, so a view left standing is a WebGL context nothing draws into, and
+  // each visit to a page would leave one more.
+  //
+  // The layers are module singletons the next map mounts again, and destroying
+  // a view destroys its map and every layer still on it — so they come off the
+  // map first. StrictMode's double-invoked effect runs this cleanup too; the
+  // url guards below survive it, so the second map takes the layers with what
+  // they already fetched rather than fetching again.
   useEffect(() => {
-    if (mapDiv.current && !viewRef.current) {
-      const map = new Map({
-        basemap: "dark-gray-vector",
-        // Order is draw order. On the forecast map rain sits over cloud; on
-        // the candidate map the measured radar sits over everything a model
-        // drew, because a candidate is only disqualified by rain where the
-        // two overlap, so the disqualifier has to be the layer you can see.
-        //
-        // Cloud base is at the bottom: it covers more ground than any of
-        // them and it is the question you ask *before* the others — can I
-        // get into this cloud at all — so it belongs under the answers.
-        //
-        // Either map's supercooled liquid sits inside the cloud it is drawn
-        // from, so it goes over the cloud and under what falls out of it.
-        layers: [
-          CandidateCloudBaseLayer,
-          ForecastCloudsLayer,
-          ForecastLiquidLayer,
-          ForecastPrecipLayer,
-          CandidateLiquidLayer,
-          CandidateRadarLayer,
-          CandidateEchoFreezeLayer,
-          CandidateLightningLayer,
-          CandidateStormMotionLayer,
-          CandidateStormCoreLayer,
-          CandidateFieldLayer,
-          CandidateConfirmedLayer,
-        ],
-      });
+    if (!mapDiv.current) return;
 
-      const view = new MapView({
-        container: mapDiv.current,
-        map: map,
-        center: [-99.9, 31.4],
-        zoom: 5,
-      });
-      view.attributionVisible = false;
+    const map = new Map({
+      basemap: "dark-gray-vector",
+      // Order is draw order. On the forecast map rain sits over cloud; on
+      // the candidate map the measured radar sits over everything a model
+      // drew, because a candidate is only disqualified by rain where the
+      // two overlap, so the disqualifier has to be the layer you can see.
+      //
+      // Cloud base is at the bottom: it covers more ground than any of
+      // them and it is the question you ask *before* the others — can I
+      // get into this cloud at all — so it belongs under the answers.
+      //
+      // Either map's supercooled liquid sits inside the cloud it is drawn
+      // from, so it goes over the cloud and under what falls out of it.
+      layers: [
+        CandidateCloudBaseLayer,
+        ForecastCloudsLayer,
+        ForecastLiquidLayer,
+        ForecastPrecipLayer,
+        CandidateLiquidLayer,
+        CandidateRadarLayer,
+        CandidateEchoFreezeLayer,
+        CandidateLightningLayer,
+        CandidateStormMotionLayer,
+        CandidateStormCoreLayer,
+        CandidateFieldLayer,
+        CandidateConfirmedLayer,
+      ],
+    });
 
-      const boundary = new Extent({
-        xmin: -180,
-        ymin: 17,
-        xmax: -65,
-        ymax: 72,
-        spatialReference: { wkid: 4326 }, // In other words, GPS
-      });
-      view.constraints = {
-        geometry: boundary,
-        minZoom: 3,
-      };
+    const view = new MapView({
+      container: mapDiv.current,
+      map: map,
+      center: [-99.9, 31.4],
+      zoom: 5,
+    });
+    view.attributionVisible = false;
 
-      viewRef.current = view;
-      mapRef.current = map;
-    }
+    const boundary = new Extent({
+      xmin: -180,
+      ymin: 17,
+      xmax: -65,
+      ymax: 72,
+      spatialReference: { wkid: 4326 }, // In other words, GPS
+    });
+    view.constraints = {
+      geometry: boundary,
+      minZoom: 3,
+    };
+
+    viewRef.current = view;
+    mapRef.current = map;
+
+    return () => {
+      map.removeAll();
+      view.destroy();
+      viewRef.current = null;
+      mapRef.current = null;
+    };
   }, []);
 
   // National grids stay on the server. The map asks for a padded window
@@ -403,18 +418,23 @@ export const ArcGIS = ({ mode }: PropsT) => {
   // is the difference between the three layers landing together and landing a
   // minute apart.
   //
-  // They join the map the first time an hour is ready. The page opens with
+  // They join a map the first time an hour is ready on it. The page opens with
   // no date chosen, so they are not in the mount effect. The `drawnReplayAt`
   // guard keeps StrictMode's double-invoked effect from refetching the same
-  // frames.
+  // frames, but it does not decide whether they join: a map mounted after the
+  // hour was readied — a return to this page, or StrictMode's second mount —
+  // has none of them on it yet.
   //
   // Every layer is pointed, switched on or not, and in the same priority
   // order as the candidate map: an hour is one scene, and the switches over
   // it should show what is already in hand rather than start a download.
   useEffect(() => {
     const at = ready;
-    const key = at === null ? null : `${at}:${boxKey}`;
-    if (at === null || drawnReplayAt.current === key) return;
+    if (at === null) return;
+    const map = mapRef.current;
+    const joining = map !== null && !map.layers.includes(ReplayCloudBaseLayer);
+    const key = `${at}:${boxKey}`;
+    if (drawnReplayAt.current === key && !joining) return;
     drawnReplayAt.current = key;
 
     ReplayFieldLayer.url = ReplayCandidateUrl(at, viewBox, fine);
@@ -427,8 +447,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayConfirmedLayer.url = ReplayConfirmedUrl(at, viewBox);
     ReplayEchoFreezeLayer.url = ReplayRadarEchoFreezeUrl(at, viewBox);
 
-    const map = mapRef.current;
-    if (map && !map.layers.includes(ReplayCloudBaseLayer)) {
+    if (joining) {
       // Draw order matches the candidate map: cloud base underneath, the
       // modeled liquid over it, the measured radar over both, the storm
       // marks over that.

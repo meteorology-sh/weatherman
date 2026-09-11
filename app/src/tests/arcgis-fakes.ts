@@ -23,6 +23,10 @@ export type FakeMapT = {
 };
 
 export type FakeViewT = {
+  map?: FakeMapT;
+  destroy: Mock;
+  /** What was still on the view's map when it was destroyed. */
+  layersAtDestroy?: unknown[];
   center?: [number, number];
   zoom?: number;
   stationary?: boolean;
@@ -142,6 +146,9 @@ export class FakeMap {
   addMany(added: unknown[]) {
     this.layers.push(...added);
   }
+  removeAll() {
+    return this.layers.splice(0);
+  }
   constructor(props: Record<string, unknown>) {
     Object.assign(this, props);
     arcgis.maps.push(this as unknown as FakeMapT);
@@ -149,6 +156,13 @@ export class FakeMap {
 }
 
 export class FakeMapView {
+  map?: FakeMapT;
+  layersAtDestroy?: unknown[];
+  // A real view destroys its map and every layer still on it, so record what
+  // would have gone down with it.
+  destroy = vi.fn(() => {
+    this.layersAtDestroy = [...(this.map?.layers ?? [])];
+  });
   goTo = vi.fn();
   whenLayerView = vi.fn(() => Promise.resolve({ updating: false }));
   handlers: Record<string, (event: unknown) => void> = {};

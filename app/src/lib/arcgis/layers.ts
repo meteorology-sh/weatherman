@@ -30,6 +30,17 @@ import {
 } from "@/lib/client";
 
 /**
+ * **A change to this module reloads the page.** Every layer below is one live
+ * ArcGIS object, and `Map.tsx` builds its map around them once. A hot update
+ * re-runs this module and mints layers the map has never seen, so every switch
+ * and url after it lands on objects that are not drawn. `renderers.ts` and
+ * `bands.ts` reach the map through here, so an edit to either reloads too.
+ */
+if (import.meta.hot) {
+  import.meta.hot.accept(() => location.reload());
+}
+
+/**
  * What every layer on either map is drawn at.
  *
  * One knob for all of them, applied to the layer rather than to its symbols, so

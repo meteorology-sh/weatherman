@@ -15,12 +15,7 @@ import {
 } from "~/lib/layers";
 
 // ArcGIS
-import {
-  LIGHTNING_RGB,
-  MOTION_RGB,
-  RADAR_RGB,
-  soloColor,
-} from "@/lib/arcgis/bands";
+import { COLORS, soloColor } from "@/lib/arcgis/bands";
 
 // Layout
 import type { Fitted } from "./fit";
@@ -261,7 +256,7 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
                 <path
                   key={`heading-${index}`}
                   d={draw(ring)}
-                  fill={soloColor(MOTION_RGB, 0.95)}
+                  fill={soloColor(COLORS.motion, 0.95)}
                 />
               ))}
 
@@ -274,7 +269,7 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
                   cx={px(lon)}
                   cy={py(lat)}
                   r={3.5}
-                  fill={soloColor(RADAR_RGB, 0.95)}
+                  fill={soloColor(COLORS.rain, 0.95)}
                 />
               )
             )}
@@ -288,7 +283,7 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
                   cx={px(lon)}
                   cy={py(lat)}
                   r={2.5}
-                  fill={soloColor(LIGHTNING_RGB, 0.95)}
+                  fill={soloColor(COLORS.lightning, 0.95)}
                 />
               )
             )}
