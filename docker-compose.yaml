@@ -30,6 +30,8 @@ services:
       context: ./eval
       dockerfile: Dockerfiles/Dockerfile.local
     command: ["node", "--watch", "server.mjs"]
+    profiles:
+      - evaluation
     environment:
       WEATHERMAN_SERVER: http://weatherman-server-service:3000
     volumes:
@@ -44,6 +46,8 @@ services:
       context: ./eval/app
       dockerfile: Dockerfiles/Dockerfile.local
     command: ["yarn", "run", "dev"]
+    profiles:
+      - evaluation
     environment:
       EVAL_ORIGIN: http://weatherman-eval-service:3100
       SERVER_ORIGIN: http://weatherman-server-service:3000
