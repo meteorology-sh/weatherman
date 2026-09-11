@@ -71,11 +71,12 @@ the click.
 
 Rain on a cell is not a reason to delete the storm.
 
-A click leads with the storm. The column — liquid, base, top, rain,
-observed phase — follows as what each source said over that 3 km cell.
+A click leads with the answer: FLY or DON'T FLY, and the Texas tests on
+that cell (base under the ceiling, echo top past freezing, rain in the
+neighborhood) with the failed one named. The storm follows under Radar,
+then the cloud over that 3 km cell, then the environment around it.
 "The radar is watching this cell rain" is a fact about the storm, not a
-veto. The Texas tests on that cell (base in the window, echo top past
-freezing, rain in the neighborhood) are the answer.
+veto.
 
 ## TITAN stays where it is
 

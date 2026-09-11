@@ -86,14 +86,32 @@ describe("ClickedPoint", () => {
     });
 
     expect(screen.getByText("FLY")).toBeTruthy();
-    expect(screen.getByText("Column")).toBeTruthy();
+    expect(screen.getByText("Cloud")).toBeTruthy();
     expect(screen.getByText("Environment")).toBeTruthy();
   });
 
+  it("orders the verdict, radar, cloud, and environment", () => {
+    const store = createTestStore();
+    const { container } = renderWithStore(<ClickedPoint />, store);
+
+    act(() => {
+      store.dispatch(soundingActions.setPoint([-101.42, 32.05]));
+      store.dispatch(soundingActions.setData(sounding));
+      store.dispatch(seedabilityActions.setHere(here));
+      store.dispatch(stormsActions.setHere(null));
+    });
+
+    const headings = Array.from(container.querySelectorAll("h3")).map(
+      (h) => h.textContent
+    );
+    expect(headings.slice(1)).toEqual(["Radar", "Cloud", "Environment"]);
+    expect(headings[0]).toContain("FLY");
+  });
+
   // The panel rules its sections off with a border on each of them, so the
-  // three have to sit in that column themselves. Wrapping them in a div would
+  // four have to sit in that column themselves. Wrapping them in a div would
   // rule the group off as one section and lose the lines between them.
-  it("puts the three readouts in the panel's own column", () => {
+  it("puts the four readouts in the panel's own column", () => {
     const store = createTestStore();
     const { container } = renderWithStore(<ClickedPoint />, store);
 

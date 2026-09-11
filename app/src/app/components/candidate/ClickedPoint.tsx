@@ -2,13 +2,13 @@
 import { useAppSelector } from "@/lib/store/hooks";
 
 // Components
-import { CloudHere } from "./CloudHere";
-import { Convective } from "./Convective";
-import { Sounding } from "./Sounding";
+import { Cloud } from "./Cloud";
+import { Environment } from "./Environment";
+import { FlyHere } from "./FlyHere";
 import { StormHere } from "./StormHere";
 
 /**
- * FLY on the clicked cell, the storm, and the column numbers.
+ * FLY on the clicked cell, then the storm, the cloud, and the air around it.
  */
 export const ClickedPoint = () => {
   const clicked = useAppSelector((state) => state.sounding.clicked);
@@ -17,10 +17,10 @@ export const ClickedPoint = () => {
 
   return (
     <>
-      <CloudHere />
+      <FlyHere />
       <StormHere />
-      <Sounding />
-      <Convective />
+      <Cloud />
+      <Environment />
     </>
   );
 };

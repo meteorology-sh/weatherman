@@ -26,7 +26,7 @@ import type { Analysis, Flare, Painted } from "~/lib/types";
 
 // Components
 import { stormLines } from "./storm";
-import { cellRows, columnRows, flew } from "./readout";
+import { decisionRows, environmentRows, flew, REASON } from "./readout";
 
 /**
  * One analysis hour: the layers we painted, and the flares charged to it.
@@ -413,9 +413,9 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
               })}
             </div>
             {/*
-             * What a click on this release would have said. The same three
-             * blocks the operator panel prints — the verdict on the cell, the
-             * storm it sat in, and the column over it.
+             * What a click on this release would have said, in the operator
+             * panel's order — the verdict and its tests, the storm it sat in,
+             * and the air around it. The Cloud table is on the page below.
              */}
             {hovered.cell && (
               <div className="pt-1">
@@ -426,13 +426,15 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
                 >
                   {flew(hovered.cell) ? "FLY" : "DON'T FLY"}
                 </span>
-                {cellRows(hovered.cell).map((row) => (
-                  <span key={row.label}>
-                    {" · "}
-                    {row.label.toLowerCase()}{" "}
-                    <span className="font-semibold">{row.value}</span>
-                  </span>
-                ))}
+                {decisionRows(hovered.cell)
+                  .filter((row) => !flew(hovered.cell) || row.label !== REASON)
+                  .map((row) => (
+                    <span key={row.label}>
+                      {" · "}
+                      {row.label}{" "}
+                      <span className="font-semibold">{row.value}</span>
+                    </span>
+                  ))}
               </div>
             )}
             {hovered.storm && (
@@ -444,9 +446,9 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
             )}
             {hovered.column && (
               <div className="pt-1 flex flex-wrap gap-x-4 gap-y-1">
-                {columnRows(hovered.column).map((row) => (
+                {environmentRows(hovered.cell, hovered.column).map((row) => (
                   <span key={row.label}>
-                    {row.label.toLowerCase()}{" "}
+                    {row.label}{" "}
                     <span className="font-semibold">{row.value}</span>
                   </span>
                 ))}

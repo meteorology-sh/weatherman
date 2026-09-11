@@ -11,22 +11,6 @@ export const Forecast = () => {
           <h2>Cloud Forecast</h2>
           <p>HRRR cloud cover and precipitation, 0–18 h.</p>
         </div>
-
-        <div className="py-2">
-          <div className="collapse bg-base-200 border-base-300 border">
-            <input type="checkbox" />
-            <div className="collapse-title font-semibold">Instructions</div>
-            <div className="collapse-content text-sm">
-              <div className="prose">
-                <ol>
-                  <li>Slider: analysis hour to +18 h.</li>
-                  <li>PRECIPITATION starts at +1 h.</li>
-                </ol>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <TimeSlider />
         <div className="divider my-1" />
         <ForecastLayers />

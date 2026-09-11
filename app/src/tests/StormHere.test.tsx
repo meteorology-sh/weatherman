@@ -52,22 +52,35 @@ describe("StormHere", () => {
     act(() => {
       store.dispatch(stormsActions.setHere(null));
     });
-    expect(screen.getByText("none within 40 km")).toBeTruthy();
+    expect(screen.getByText("Radar")).toBeTruthy();
+    expect(screen.getByText("None Within 40 km")).toBeTruthy();
   });
 
   // The one thing said about where on the storm the click landed: how far it
   // is from the drawn edge, and which side of that edge it is on.
   it("reports the distance to the edge, motion, and echo top as numbers", () => {
     const store = createTestStore();
-    renderWithStore(<StormHere />, store);
+    const { container } = renderWithStore(<StormHere />, store);
     act(() => {
       store.dispatch(stormsActions.setHere(reading));
     });
-    expect(screen.getByText("Distance to edge")).toBeTruthy();
-    expect(screen.getByText("4.2 km inside")).toBeTruthy();
-    expect(screen.getByText("NE 28 km/h")).toBeTruthy();
-    expect(screen.getByText("14,000 ft above freezing")).toBeTruthy();
-    expect(screen.getByText(/-14 °C · -2 °C/)).toBeTruthy();
+    expect(container.textContent).toContain(
+      "Radar" +
+        "Distance to Storm Edge4.2 km inside" +
+        "Storm MotionNE 28 km/h" +
+        "Tallest 18 dBZ Echo Top14,000 ft above freezing" +
+        "Coldest Cloud Top-14 °C · -2 °C" +
+        "Lightning Flashes3"
+    );
+  });
+
+  it("names the model when no 18 dBZ top was measured", () => {
+    const store = createTestStore();
+    renderWithStore(<StormHere />, store);
+    act(() => {
+      store.dispatch(stormsActions.setHere({ ...reading, echoTopFt: null }));
+    });
+    expect(screen.getByText("12,000 ft above freezing (model)")).toBeTruthy();
   });
 
   // The edge is the only place named. A flank, a core, or an inflow notch
@@ -101,7 +114,7 @@ describe("StormHere", () => {
     act(() => {
       store.dispatch(stormsActions.setHere({ ...reading, edgeKm: null }));
     });
-    expect(screen.getByText("Distance to edge")).toBeTruthy();
+    expect(screen.getByText("Distance to Storm Edge")).toBeTruthy();
     expect(screen.getByText("—")).toBeTruthy();
   });
 

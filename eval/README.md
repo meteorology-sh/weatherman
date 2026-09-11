@@ -44,7 +44,7 @@ reads `out/` on every request.
 | Band overlap                | `out/balloons-*.json` (`regions.json` → `runs.balloons`) | radiosonde vs model column; **the page calculates overlap from those rows**                                                    |
 | The layers Weatherman draws | `out/painted-*.json` (`runs.painted`)                    | `near.radar`, `near.echoFreeze`, `near.cloudBase`, `near.target`                                                               |
 | Texas storm features        | the same painted files                                   | `storm` on each flare: in 20 dBZ, nearer the edge, upwind, echo top past freezing                                              |
-| The click on each release   | the same painted files                                   | `cell` and `column` on each flare: FLY or DON'T FLY with the numbers behind it, the modeled column, and the convective numbers |
+| The click on each release   | the same painted files                                   | `cell`, `storm` and `column` on each flare: Fly or Don't Fly with the tests behind it, then Radar, Cloud, and Environment |
 
 `near.target` is the Texas fly fill (`GET /candidate/target`, property
 `fly`) — the fill the operator map names SEEDING OPPORTUNITY.
@@ -308,11 +308,12 @@ in `paint.mjs` and to a column in the flare tables in the same change —
 a reading the map shows an operator and the evaluation quietly drops is
 a reading nobody can check.
 
-Which table it goes in follows what it is. `cellRows` in `readout.ts` is
-the operator's panel and mirrors it exactly, so a figure there reads as
-the figure a crew saw; anything the panel does not print goes in the
-block beside it, which is the evaluation's own and holds no verdicts.
-The same rule covers `/forecast/sounding` and the column tables under it.
+Which table it goes in follows what it is. The operator's panel is built
+from `app/src/lib/readout.ts`, and the flare tables print those same
+builders — the verdict, Radar, Cloud, Environment — so a figure there
+reads as the figure a crew saw. Anything the panel does not print goes in
+Rest of the Click, which is the evaluation's own and holds no verdicts.
+A reading added to the panel is added to `readout.ts`, and reaches both.
 
 **A field added to a route after a season is painted is not in that
 season.** The painted files hold what the server answered on the day they
@@ -370,15 +371,15 @@ in blocks 1 and 3 are the arithmetic `score-season.mjs` prints:
 2. THE FLARES — each release, inside-or-kilometers per fill.
 3. Texas storm features — upwind, in 20 dBZ, nearer the edge, echo top
    past freezing, from `storm` on each flare.
-4. What a click would have said — FLY or DON'T FLY with the numbers
-   behind it, then everything else the click returns, then the column and
-   the convective numbers, from `cell` and `column` on each flare. The
-   first block is the operator's panel, formatted by the product's own
-   rules in `readout.ts` so a figure there reads as the figure an operator
-   would have read. The second is the evaluation's own: the seeding
-   opportunity and liquid verdicts, HRRR's own base against the merged
-   one, cloud-top temperature and observed phase, and each source's scan
-   minute. Nothing in it is a verdict.
+4. What a click would have said, in the operator panel's order — Fly or
+   Don't Fly (verdict, payload, reason, and the tests behind it), Radar,
+   Cloud, and Environment — from `cell`, `storm` and `column` on each
+   flare, built by the product's own `app/src/lib/readout.ts` so a figure
+   there reads as the figure an operator would have read. Rest of the
+   Click is the evaluation's own: the liquid verdict, HRRR's own base
+   against the merged one, whether the base was drawn, the freezing level
+   the echo-top test was asked against, and each source's scan minute.
+   Nothing in it is a verdict.
 
 **RADIOSONDE.** Every scored ascent from `balloons-*.json`. Overlap is
 calculated in `server.mjs` from those rows, the same function

@@ -1,11 +1,14 @@
 // Components
 import { MATCH, MISS, NEUTRAL } from "./storm";
 import {
-  cellRows,
   clickExtraRows,
-  columnRows,
+  cloudRows,
+  decisionRows,
   environmentRows,
   flew,
+  payloadLabel,
+  radarRows,
+  SECTIONS,
 } from "./readout";
 
 // Types
@@ -15,19 +18,21 @@ import type { Row } from "./readout";
 /**
  * What a click on each release would have answered.
  *
- * **These are the operator's own panel, one row per flare.** Weatherman answers
- * a click with FLY or DON'T FLY and the numbers behind the call, plus the
- * modeled column over that point. Both blocks are formatted by `readout.ts`
- * from the product's own rules, so a figure printed here reads as the figure an
- * operator would have read. The storm a release sat in is context for the map
- * rather than a verdict, and stays on the hover there.
+ * **These are the operator's own panel, one row per flare, in the panel's
+ * order:** FLY or DON'T FLY with the tests behind it, then Radar, Cloud and
+ * Environment. Every row is built by the product's own `@/lib/readout`, so a
+ * figure printed here reads as the figure an operator would have read. The
+ * last table is the evaluation's own — what the click carries that the panel
+ * does not print.
  *
- * A release whose painted record has no `cell` or `column` was written before
- * `paint.mjs` stored them, and every one of its numbers is an em dash rather
- * than a zero.
+ * A release whose painted record has no `cell`, `storm` or `column` was written
+ * before `paint.mjs` stored them, and every one of its numbers is an em dash
+ * rather than a zero.
  */
 
 type PropsT = { flares: Flare[] };
+
+type LeadT = { label: string; cell: (flare: Flare) => React.ReactNode };
 
 const verdictTone = (fly: boolean | null) =>
   fly === null ? NEUTRAL : fly ? MATCH : MISS;
@@ -35,48 +40,76 @@ const verdictTone = (fly: boolean | null) =>
 const verdictLabel = (fly: boolean | null) =>
   fly === null ? "—" : fly ? "FLY" : "DON'T FLY";
 
+/** The badge columns the panel prints in its heading. */
+const VERDICT: LeadT[] = [
+  {
+    label: "Verdict",
+    cell: (flare) => {
+      const fly = flew(flare.cell);
+      return (
+        <span className={verdictTone(fly).text}>{verdictLabel(fly)}</span>
+      );
+    },
+  },
+  { label: "Payload", cell: (flare) => payloadLabel(flare.cell) ?? "—" },
+];
+
 function Table({
-  labels,
+  title,
+  flares,
   rows,
+  lead = [],
 }: {
-  labels: string[];
-  rows: { flare: Flare; cells: Row[]; lead?: React.ReactNode }[];
+  title: string;
+  flares: Flare[];
+  rows: (flare: Flare | null) => Row[];
+  lead?: LeadT[];
 }) {
+  const labels = rows(null).map((row) => row.label);
   return (
-    <div className="overflow-x-auto">
-      <table className="table table-sm">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>County</th>
-            {rows[0]?.lead !== undefined && (
-              <th className="text-right">Verdict</th>
-            )}
-            {labels.map((label) => (
-              <th key={label} className="text-right whitespace-normal">
-                {label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ flare, cells, lead }) => (
-            <tr key={flare.at}>
-              <td className="font-mono whitespace-nowrap">{flare.timeZ}Z</td>
-              <td>{flare.county}</td>
-              {lead !== undefined && lead}
-              {cells.map((cell) => (
-                <td
-                  key={cell.label}
-                  className="text-right font-mono whitespace-nowrap"
-                >
-                  {cell.value}
-                </td>
-              ))}
+    <div className="flex flex-col gap-2">
+      <h4 className="text-sm font-semibold">{title}</h4>
+      <div className="overflow-x-auto">
+        <table className="table table-sm">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>County</th>
+              {[...lead.map((column) => column.label), ...labels].map(
+                (label) => (
+                  <th key={label} className="text-right whitespace-normal">
+                    {label}
+                  </th>
+                )
+              )}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {flares.map((flare) => (
+              <tr key={flare.at}>
+                <td className="font-mono whitespace-nowrap">{flare.timeZ}Z</td>
+                <td>{flare.county}</td>
+                {lead.map((column) => (
+                  <td
+                    key={column.label}
+                    className="text-right font-mono whitespace-nowrap"
+                  >
+                    {column.cell(flare)}
+                  </td>
+                ))}
+                {rows(flare).map((cell) => (
+                  <td
+                    key={cell.label}
+                    className="text-right font-mono whitespace-nowrap"
+                  >
+                    {cell.value}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -100,59 +133,32 @@ export const FlareReadouts = ({ flares }: PropsT) => {
         </p>
       )}
 
-      <div className="flex flex-col gap-2">
-        <h4 className="text-sm font-semibold">The cell</h4>
-        <Table
-          labels={cellRows(null).map((row) => row.label)}
-          rows={sorted.map((flare) => {
-            const fly = flew(flare.cell);
-            return {
-              flare,
-              cells: cellRows(flare.cell),
-              lead: (
-                <td
-                  className={`text-right font-mono whitespace-nowrap ${verdictTone(fly).text}`}
-                >
-                  {verdictLabel(fly)}
-                </td>
-              ),
-            };
-          })}
-        />
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <h4 className="text-sm font-semibold">The rest of the click</h4>
-        <Table
-          labels={clickExtraRows(null).map((row) => row.label)}
-          rows={sorted.map((flare) => ({
-            flare,
-            cells: clickExtraRows(flare.cell),
-          }))}
-        />
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <h4 className="text-sm font-semibold">The column</h4>
-        <Table
-          labels={columnRows(null).map((row) => row.label)}
-          rows={sorted.map((flare) => ({
-            flare,
-            cells: columnRows(flare.column),
-          }))}
-        />
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <h4 className="text-sm font-semibold">The environment</h4>
-        <Table
-          labels={environmentRows(null).map((row) => row.label)}
-          rows={sorted.map((flare) => ({
-            flare,
-            cells: environmentRows(flare.column),
-          }))}
-        />
-      </div>
+      <Table
+        title="Fly or Don't Fly"
+        flares={sorted}
+        lead={VERDICT}
+        rows={(flare) => decisionRows(flare?.cell)}
+      />
+      <Table
+        title={SECTIONS.radar}
+        flares={sorted}
+        rows={(flare) => radarRows(flare?.storm)}
+      />
+      <Table
+        title={SECTIONS.cloud}
+        flares={sorted}
+        rows={(flare) => cloudRows(flare?.cell, flare?.column)}
+      />
+      <Table
+        title={SECTIONS.environment}
+        flares={sorted}
+        rows={(flare) => environmentRows(flare?.cell, flare?.column)}
+      />
+      <Table
+        title="Rest of the Click"
+        flares={sorted}
+        rows={(flare) => clickExtraRows(flare?.cell)}
+      />
     </div>
   );
 };

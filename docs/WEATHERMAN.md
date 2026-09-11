@@ -146,21 +146,32 @@ MSL, whose measured 18 dBZ echo top is at or above freezing nearby,
 and that have rain nearby. That fill is where to click. Cloud base
 starts off.
 
-**A click on the fly fill is FLY.** The panel names the cloud base in MSL and
-which model height gave it, the base above the ground, the 18 dBZ echo top
-against freezing, the rain on that cell, the observed cloud-top phase, modeled
-liquid, and where on the storm the click landed. The echo top is the measured
-18 dBZ height, the same sample the echo-past-freezing fill is drawn from. Phase
-is the satellite's classification of the top of whatever deck it can see; it is
-reported and never gates a cell.
+**A click on the fly fill is FLY.** The panel reads in the order an operator
+decides, and every label is title case:
+
+- **FLY or DON'T FLY**, with the payload badge on FLY, then the tests behind
+  the call: the cloud base the ceiling test was asked of, in MSL, and which
+  model height gave it; the 18 dBZ echo top against freezing; the rain on that
+  cell; and the warm-cloud depth a salt flare works in. DON'T FLY names the
+  failed test on a Reason row.
+- **Radar** — the nearest storm: distance to its drawn edge, motion, its
+  tallest 18 dBZ echo top against freezing, its coldest cloud top and how that
+  top changed, and lightning flashes.
+- **Cloud** — over the clicked cell: base above ground, observed cloud-top
+  temperature and phase, supercooled liquid water, and vertically integrated
+  liquid.
+- **Environment** — the modeled column: ground elevation, freezing level,
+  −15 °C level, the seeding band, LCL, CCL, CAPE, and CIN.
+
+Every height names its datum. Each reading is printed once. The echo top is
+the measured 18 dBZ height, the same sample the echo-past-freezing fill is drawn
+from. Phase is the satellite's classification of the top of whatever deck it can
+see; it is reported and never gates a cell. The rows come from
+`app/src/lib/readout.ts`, which the evaluation's flare tables print as well.
 
 **Cloud base sits at the bottom of the stack because it is the question asked
 first** — how high is the bottom of this cloud — and the layers above are
 answers about the cloud standing on it.
-
-**The 12Z table hangs on the click.** Freezing level, −15 °C, warm-cloud
-depth (freezing minus cloud base), CAPE, CIN, and LCL are labeled
-numbers after a click. GOES cloud-top temperature is a reading on the click.
 
 **The product this map is** lives in `docs/INNOVATION.md`. Mosaic storms are
 not TITAN cells and are not labeled as such.
@@ -631,7 +642,7 @@ NOMADS HRRR .idx → byte-range subset of the 2D diagnostics (~10 MB, 9 records)
              → GET /candidate/cloudbase → CandidateCloudBaseLayer.url
 
 GET /forecast/sounding?lat&lon&hour → the same cached grid, read at one cell
-                                    → Sounding.diagnostics → Convective panel
+                                    → Sounding.diagnostics → Environment and Cloud tables
 ```
 
 The point sounding is the one HRRR product small enough to ride the whole pattern
@@ -644,7 +655,7 @@ The join answers a click the same way, off the same build the map is drawing:
 ```
 GET /candidate/point?lat&lon → the cached join, read at one cell
                              → CandidatePointProvider → seedability slice
-                             → CloudHere selects via useAppSelector
+                             → FlyHere, Cloud, Environment select via useAppSelector
 ```
 
 **The build keeps the arrays it joined**, not just the contours, which is what
