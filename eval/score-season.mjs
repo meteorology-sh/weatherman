@@ -66,6 +66,17 @@ function insideByClock(near, key) {
   return near.kmAtRelease === 0;
 }
 
+/**
+ * Whether a release has an answer for this layer.
+ *
+ * A layer that painted nothing in the window is an answer — the release is
+ * outside it — so `empty` counts. A null is a route that failed, and a failed
+ * route is not a miss; `verify.mjs` refuses a season that has one.
+ */
+function scorable(near) {
+  return Boolean(near) && (near.km != null || near.empty === true);
+}
+
 /** The distance to the edge, from the same clock `insideByClock` reads. */
 function kmByClock(near, key) {
   if (near.clock) return near.km;
@@ -118,9 +129,9 @@ function cell(inside, n) {
   return `${inside}/${n} (${pct(inside, n)})`;
 }
 
-function testCell(test) {
-  if (!test || !test.n) return "—";
-  return cell(test.yes, test.n);
+/** A storm feature over every located flare; one with no storm reading did not pass. */
+function testCell(test, flares) {
+  return cell(test?.yes ?? 0, flares);
 }
 
 function regionOfPainted(name) {
@@ -218,27 +229,30 @@ for (const name of files) {
     stats[id].positionKm.push(positionKm);
     if (radialOf(flare, origin)) stats[id].radial += 1;
 
-    const near = flare.near?.target;
-    if (near && near.km != null) {
-      const placed = inNamedCounty(flare);
-      if (placed === null) stats[id].unplaced += 1;
-      else {
-        const bucket = placed ? stats[id].placed : stats[id].misplaced;
-        bucket.n += 1;
-        if (insideByClock(near, "target")) bucket.inside += 1;
+    // Every located flare is in every denominator. A flare with no answer for
+    // a layer is not inside it.
+    const target = flare.near?.target;
+    const placed = inNamedCounty(flare);
+    if (placed === null) stats[id].unplaced += 1;
+    else {
+      const bucket = placed ? stats[id].placed : stats[id].misplaced;
+      bucket.n += 1;
+      if (scorable(target) && insideByClock(target, "target")) {
+        bucket.inside += 1;
       }
     }
     for (const [key] of LAYERS) {
-      const near = flare.near?.[key];
-      if (!near || near.km == null) continue;
       const layer = stats[id].layers[key];
       layer.n += 1;
+      const near = flare.near?.[key];
+      if (!scorable(near)) continue;
       if (insideByClock(near, key)) {
         layer.inside += 1;
         continue;
       }
       const cellKm = painted.cellKm?.[key];
-      if (cellKm != null && kmByClock(near, key) <= cellKm + positionKm) {
+      const km = kmByClock(near, key);
+      if (cellKm != null && km != null && km <= cellKm + positionKm) {
         layer.within += 1;
       }
     }
@@ -437,7 +451,9 @@ for (const region of evaluable) {
   );
   console.log(
     `| ${region.short} | ${stats[region.id].flares.length} | ` +
-      TEXAS_KEYS.map(([key]) => testCell(tests[key])).join(" | ") +
+      TEXAS_KEYS.map(([key]) =>
+        testCell(tests[key], stats[region.id].flares.length)
+      ).join(" | ") +
       " |"
   );
 }
@@ -446,7 +462,9 @@ const seasonTests = Object.fromEntries(
 );
 console.log(
   `| Season | ${seasonFlares.length} | ` +
-    TEXAS_KEYS.map(([key]) => testCell(seasonTests[key])).join(" | ") +
+    TEXAS_KEYS.map(([key]) =>
+      testCell(seasonTests[key], seasonFlares.length)
+    ).join(" | ") +
     " |"
 );
 
@@ -542,76 +560,75 @@ if (distinct.summary) {
  *
  * Read off `cell`, the click readout `paint.mjs` stored from
  * `/candidate/point`, so these are the answers the product gave, not a
- * re-derivation. The verdict charges a cell to the first test it fails — base,
- * then rain, then payload — so rain is only answered for a cell whose base
- * passed. The two payload halves come from `payload`, which the server asks of
- * every cell whatever the verdict.
+ * re-derivation. Every located flare is in every denominator, and a flare with
+ * no click readout passes nothing. The verdict charges a cell to the first test
+ * it fails — base, then rain, then payload — so rain is only asked of a cell
+ * whose base passed, and row 2 is the two together. The two payload halves come
+ * from `payload`, which the server asks of every cell whatever the verdict.
  *
  * A release is an ice flare when its row logs glaciogenic and a salt flare
  * when it logs hygroscopic; a row logging both is in both columns.
  */
 const BASE_FAILS = new Set(["noCloudBase", "baseTooHigh"]);
-const supportsIce = (cell) => cell.payload === "ice" || cell.payload === "both";
-const supportsSalt = (cell) =>
-  cell.payload === "salt" || cell.payload === "both";
+const supportsIce = (flare) =>
+  flare.cell?.payload === "ice" || flare.cell?.payload === "both";
+const supportsSalt = (flare) =>
+  flare.cell?.payload === "salt" || flare.cell?.payload === "both";
+const baseOk = (flare) =>
+  Boolean(flare.cell) && !BASE_FAILS.has(flare.cell.target);
+const flies = (flare) => flare.cell?.target === "target";
 
-const answered = seasonFlares.filter((flare) => flare.cell);
 const criteriaColumns = [
   {
     label: "Ice flares",
-    flares: answered.filter(
+    flares: seasonFlares.filter(
       (flare) => flare.payload === "glaciogenic" || flare.payload === "both"
     ),
     own: supportsIce,
   },
   {
     label: "Salt flares",
-    flares: answered.filter(
+    flares: seasonFlares.filter(
       (flare) => flare.payload === "hygroscopic" || flare.payload === "both"
     ),
     own: supportsSalt,
   },
   {
     label: "Type not logged",
-    flares: answered.filter((flare) => flare.payload == null),
+    flares: seasonFlares.filter((flare) => flare.payload == null),
     own: null,
   },
-  { label: "All answered", flares: answered, own: null },
+  { label: "All flares", flares: seasonFlares, own: null },
 ];
 
-const baseOk = (flare) => !BASE_FAILS.has(flare.cell.target);
 const CRITERIA = [
-  ["1. Cloud base under 18,000 ft MSL", (flares) => [flares.filter(baseOk).length, flares.length]],
+  ["1. Cloud base under 18,000 ft MSL", baseOk],
   [
-    "2. Rain at 20 dBZ within a cell, of those passing 1",
-    (flares) => {
-      const reached = flares.filter(baseOk);
-      return [
-        reached.filter((flare) => flare.cell.target !== "noStorm").length,
-        reached.length,
-      ];
-    },
+    "2. Base passes and rain at 20 dBZ within a cell",
+    (flare) => baseOk(flare) && flare.cell.target !== "noStorm",
   ],
-  [
-    "3a. Echo top at or above freezing within a cell (ice)",
-    (flares) => [flares.filter((flare) => supportsIce(flare.cell)).length, flares.length],
-  ],
-  [
-    "3b. Base below the freezing level (salt)",
-    (flares) => [flares.filter((flare) => supportsSalt(flare.cell)).length, flares.length],
-  ],
-  ["FLY", (flares) => [flares.filter((flare) => flare.cell.target === "target").length, flares.length]],
+  ["3a. Echo top at or above freezing within a cell (ice)", supportsIce],
+  ["3b. Base below the freezing level (salt)", supportsSalt],
+  ["FLY", flies],
 ];
 
 console.log("\n## The fly criteria at each release\n");
 console.log(
-  "| Criterion | " + criteriaColumns.map((column) => `${column.label} (${column.flares.length})`).join(" | ") + " |"
+  "| Criterion | " +
+    criteriaColumns
+      .map((column) => `${column.label} (${column.flares.length})`)
+      .join(" | ") +
+    " |"
 );
 console.log("| --- | " + criteriaColumns.map(() => "---:").join(" | ") + " |");
-for (const [label, score] of CRITERIA) {
+for (const [label, passes] of CRITERIA) {
   console.log(
     `| ${label} | ` +
-      criteriaColumns.map((column) => cell(...score(column.flares))).join(" | ") +
+      criteriaColumns
+        .map((column) =>
+          cell(column.flares.filter(passes).length, column.flares.length)
+        )
+        .join(" | ") +
       " |"
   );
 }
@@ -622,7 +639,7 @@ console.log(
         column.own
           ? cell(
               column.flares.filter(
-                (flare) => flare.cell.target === "target" && column.own(flare.cell)
+                (flare) => flies(flare) && column.own(flare)
               ).length,
               column.flares.length
             )

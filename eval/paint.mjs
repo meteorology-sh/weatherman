@@ -583,8 +583,20 @@ function clockTimeOf(layer, frame, fallback) {
  * difference between them is what closing the clock offset was worth.
  */
 function nearness(frame, layer, lon, lat, raw) {
+  // A route that failed has no answer, and the day is not complete.
+  if (!frame || frame.error) return null;
   const polygons = coverage(frame, layer.shape);
-  if (!polygons) return null;
+  // The route answered and painted nothing in the window. The release is
+  // outside the layer, with no edge near enough to measure to.
+  if (!polygons) {
+    return {
+      measuredTo: "any band of this layer",
+      inside: false,
+      km: null,
+      kmAtRelease: null,
+      empty: true,
+    };
+  }
   const drifted = distanceToPolygonsKm(polygons, lon, lat);
   const atRelease = distanceToPolygonsKm(polygons, raw[0], raw[1]);
   return {

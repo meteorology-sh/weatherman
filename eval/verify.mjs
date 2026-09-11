@@ -99,6 +99,13 @@ for (const region of regions) {
     for (const analysis of paintedDay.analyses ?? []) {
       for (const flare of analysis.flares ?? []) {
         flares += 1;
+        // An empty layer is an answer (`empty: true`); a null is a route that
+        // failed, and a season with a failed route is not complete.
+        for (const layer of paintedDay.layers ?? []) {
+          if (flare.near?.[layer.key] == null) {
+            missing.push(`out/${name} ${flare.timeZ} (${layer.key} failed)`);
+          }
+        }
         if (flare.drift) drifted += 1;
         else missing.push(`out/${name} ${flare.timeZ} (no storm motion)`);
         if (Object.prototype.hasOwnProperty.call(flare, "storm")) {

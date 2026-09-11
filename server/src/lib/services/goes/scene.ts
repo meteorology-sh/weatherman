@@ -22,6 +22,16 @@ import type { AbiGrid } from "./abi";
 export const BUCKET = "https://noaa-goes19.s3.amazonaws.com";
 
 /**
+ * GOES-16, which was GOES-East until GOES-19 took the slot in April 2025.
+ *
+ * GOES-19's archive of these products starts in early April 2025, so an hour
+ * before that is only on GOES-16. Its keys are returned as full URLs so a
+ * download knows which bucket filed them. The scene carries its own projection,
+ * so nothing downstream needs to know which satellite scanned it.
+ */
+const PREVIOUS_EAST = "https://noaa-goes16.s3.amazonaws.com";
+
+/**
  * The slice of h5wasm these services use.
  *
  * Declared locally rather than imported: h5wasm is ESM-only and this server is
@@ -136,17 +146,19 @@ export function text(node: H5Dataset, name: string): string {
 }
 
 /** Every key under a prefix. The listing is XML and only the keys are wanted. */
-async function list(prefix: string): Promise<string[]> {
+async function list(bucket: string, prefix: string): Promise<string[]> {
   const res = await fetch(
-    `${BUCKET}/?list-type=2&prefix=${encodeURIComponent(prefix)}`
+    `${bucket}/?list-type=2&prefix=${encodeURIComponent(prefix)}`
   );
   if (!res.ok) throw new Error(`GOES listing failed: ${res.status}`);
   const xml = await res.text();
   return Array.from(xml.matchAll(/<Key>([^<]+)<\/Key>/g)).map((m) => m[1]);
 }
 
+/** A GOES-19 key is bucket-relative; a GOES-16 key is already a full URL. */
 export async function download(key: string): Promise<Buffer> {
-  const res = await fetch(`${BUCKET}/${key}`);
+  const url = key.startsWith("https://") ? key : `${BUCKET}/${key}`;
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`GOES scene fetch failed: ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
 }
@@ -172,7 +184,10 @@ function prefix(product: string, t: Date): string {
  * can make it alone.
  */
 export async function keysInHour(product: string, t: Date): Promise<string[]> {
-  return list(prefix(product, t));
+  const keys = await list(BUCKET, prefix(product, t));
+  if (keys.length) return keys;
+  const previous = await list(PREVIOUS_EAST, prefix(product, t));
+  return previous.map((key) => `${PREVIOUS_EAST}/${key}`);
 }
 
 /**
