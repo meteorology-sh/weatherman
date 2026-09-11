@@ -9,11 +9,10 @@ import { forecastActions } from "@/lib/store/features/forecast";
 import {
   BAND_LABEL,
   CLOUD_BANDS,
+  COLORS,
   PRECIP_BANDS,
   SLW_BANDS,
-  SLW_RGB,
   stackedColor,
-  PRECIP_RGB,
 } from "@/lib/arcgis/bands";
 
 // ArcGIS
@@ -64,7 +63,7 @@ describe("ForecastLayers", () => {
     const precipSwatches = swatches(container).slice(CLOUD_BANDS.length);
     const heaviest = precipSwatches[precipSwatches.length - 1];
     expect(rgba(heaviest.style.backgroundColor)).toBe(
-      rgba(stackedColor(PRECIP_BANDS, PRECIP_RGB, PRECIP_BANDS.length))
+      rgba(stackedColor(PRECIP_BANDS, COLORS.rain, PRECIP_BANDS.length))
     );
   });
 
@@ -237,7 +236,7 @@ describe("ForecastLayers supercooled liquid", () => {
     const liquid = swatches(container).slice(CLOUD_BANDS.length);
     const richest = liquid[liquid.length - 1];
     expect(rgba(richest.style.backgroundColor)).toBe(
-      rgba(stackedColor(SLW_BANDS, SLW_RGB, SLW_BANDS.length))
+      rgba(stackedColor(SLW_BANDS, COLORS.liquid, SLW_BANDS.length))
     );
   });
 

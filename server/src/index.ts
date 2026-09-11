@@ -26,7 +26,7 @@ app.use("/cloudtop", cloudtop);
 app.use("/forecast", forecast);
 app.use("/radar", radar);
 
-app.get("/healthcheck", (req: Request, res: Response) => {
+app.get("/healthcheck", (_req: Request, res: Response) => {
   res.send("Hello, world!");
 });
 

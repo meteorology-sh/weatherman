@@ -6,7 +6,7 @@ import type { CloudPhase, SeedingPayload } from "@/lib/types";
 
 // Components
 import { MeasurementGrid } from "@/app/components/panel/Measurements";
-import { dash, latLon } from "@/lib/format";
+import { latLon } from "@/lib/format";
 
 const num = new Intl.NumberFormat("en-US");
 

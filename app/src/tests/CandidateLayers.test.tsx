@@ -11,20 +11,13 @@ import { seedabilityActions } from "@/lib/store/features/seedability";
 // ArcGIS
 import {
   BAND_LABEL,
+  COLORS,
   RADAR_BANDS,
-  RADAR_RGB,
   SLW_BANDS,
-  SLW_RGB,
   stackedColor,
   soloColor,
 } from "@/lib/arcgis/bands";
-import {
-  CEILING_FT,
-  BASE_CEILING_FT,
-  CLOUD_BASE_ALPHA,
-  CLOUD_BASE_BANDS,
-  CLOUD_BASE_RGB,
-} from "@/lib/arcgis/bands";
+import { BASE_CEILING_FT, CLOUD_BASE_BANDS } from "@/lib/arcgis/bands";
 import {
   CandidateLegend,
   CloudBaseLegend,
@@ -88,9 +81,7 @@ describe("CandidateLayers", () => {
 
 describe("CandidateLayers cloud base", () => {
   const bases = (container: HTMLElement) =>
-    Array.from(
-      container.querySelectorAll<HTMLElement>("div.h-3.w-full")
-    ).filter((el) => el.title.endsWith("ft MSL"));
+    swatches(container, CloudBaseLegend.name);
 
   const withLayer = () => {
     const store = allOn();
@@ -124,20 +115,9 @@ describe("CandidateLayers cloud base", () => {
     expect(bases(container)).toHaveLength(CLOUD_BASE_BANDS.length);
   });
 
+  // The bands are cut apart on the server, so a swatch is one band's own fill
+  // and never a composite of the bands under it.
   it("paints each swatch its own unstacked fill", () => {
-    const { container } = withLayer();
-
-    const violet = CLOUD_BASE_BANDS.findIndex(
-      (band) => band.rgb === CLOUD_BASE_RGB
-    );
-    expect(rgba(bases(container)[violet].style.backgroundColor)).toBe(
-      rgba(soloColor(CLOUD_BASE_RGB, CLOUD_BASE_ALPHA))
-    );
-  });
-
-  // The height is in the color, so the swatches differ from each other and not
-  // from the basemap: every one of them is painted at the same opacity.
-  it("gives every swatch its own color at one opacity", () => {
     const { container } = withLayer();
 
     const painted = bases(container).map((swatch) =>
@@ -146,19 +126,16 @@ describe("CandidateLayers cloud base", () => {
 
     expect(painted).toEqual(
       CLOUD_BASE_BANDS.map((band) =>
-        rgba(soloColor(band.rgb, CLOUD_BASE_ALPHA))
+        rgba(soloColor(COLORS.cloudBase, band.alpha))
       )
     );
     expect(new Set(painted).size).toBe(CLOUD_BASE_BANDS.length);
   });
 
-  // Lightness is the height, so the lowest band is the deepest violet.
-  it("keeps the reachable band the darkest", () => {
-    const luma = (rgb: readonly number[]) =>
-      0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
-    const [reachable, unreachable] = CLOUD_BASE_BANDS.map((b) => luma(b.rgb));
+  it("keeps the lowest base the brightest", () => {
+    const [lowest, ...higher] = CLOUD_BASE_BANDS.map((band) => band.alpha);
 
-    expect(reachable).toBeLessThan(unreachable);
+    for (const alpha of higher) expect(lowest).toBeGreaterThan(alpha);
   });
 
   it("bands on thirds of the workable bound, open above it", () => {
@@ -214,7 +191,7 @@ describe("CandidateLayers radar", () => {
 
     const hardest = swatches(container, RADAR)[RADAR_BANDS.length - 1];
     expect(rgba(hardest.style.backgroundColor)).toBe(
-      rgba(stackedColor(RADAR_BANDS, RADAR_RGB, RADAR_BANDS.length))
+      rgba(stackedColor(RADAR_BANDS, COLORS.rain, RADAR_BANDS.length))
     );
   });
 
@@ -385,7 +362,7 @@ describe("CandidateLayers supercooled liquid", () => {
 
     const richest = swatches(container, LIQUID)[SLW_BANDS.length - 1];
     expect(rgba(richest.style.backgroundColor)).toBe(
-      rgba(stackedColor(SLW_BANDS, SLW_RGB, SLW_BANDS.length))
+      rgba(stackedColor(SLW_BANDS, COLORS.liquid, SLW_BANDS.length))
     );
   });
 

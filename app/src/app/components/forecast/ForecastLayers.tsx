@@ -11,14 +11,12 @@ import {
 import {
   BAND_LABEL,
   CLOUD_BANDS,
-  CLOUD_RGB,
+  COLORS,
   PRECIP_BANDS,
   PRECIP_LABELS,
-  PRECIP_RGB,
   PRECIP_FIRST_HOUR,
   SLW_BANDS,
   SLW_LABELS,
-  SLW_RGB,
 } from "@/lib/arcgis/bands";
 
 // Components
@@ -41,7 +39,7 @@ export const ForecastLayers = () => {
         <div className="text-sm font-semibold">{CloudCoverLegend.name}</div>
         <Ramp
           bands={CLOUD_BANDS}
-          rgb={CLOUD_RGB}
+          rgb={COLORS.cloud}
           captions={CLOUD_BANDS.map((band) => `${band.value}%`)}
         />
         <LayerDefinitions legend={CloudCoverLegend} />
@@ -57,7 +55,7 @@ export const ForecastLayers = () => {
             see what is coming, not watch a control vanish. */}
         <Ramp
           bands={PRECIP_BANDS}
-          rgb={PRECIP_RGB}
+          rgb={COLORS.rain}
           captions={PRECIP_BANDS.map((band) => String(band.value))}
           titles={PRECIP_LABELS}
           muted={blank}
@@ -92,7 +90,7 @@ export const ForecastLayers = () => {
       >
         <Ramp
           bands={SLW_BANDS}
-          rgb={SLW_RGB}
+          rgb={COLORS.liquid}
           captions={SLW_BANDS.map((band) => String(band.value))}
           titles={SLW_LABELS}
         />

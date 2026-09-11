@@ -17,17 +17,17 @@ import {
 } from "@/lib/arcgis/legends";
 import {
   BAND_LABEL,
+  CLOUD_BASE_BANDS,
+  CLOUD_BASE_LABELS,
+  COLORS,
   RADAR_BANDS,
-  RADAR_RGB,
   SLW_BANDS,
   SLW_LABELS,
-  SLW_RGB,
 } from "@/lib/arcgis/bands";
 
 // Components
 import { LayerToggle, SubToggle } from "@/app/components/panel/LayerToggle";
 import { Ramp } from "@/app/components/panel/Ramp";
-import { CloudBaseRamp } from "@/app/components/panel/CloudBaseRamp";
 
 export const CandidateLayers = () => {
   const dispatch = useAppDispatch();
@@ -54,7 +54,7 @@ export const CandidateLayers = () => {
       >
         <Ramp
           bands={RADAR_BANDS}
-          rgb={RADAR_RGB}
+          rgb={COLORS.rain}
           captions={RADAR_BANDS.map((band) => String(band.value))}
         />
         <div className="text-xs">dBZ</div>
@@ -80,7 +80,13 @@ export const CandidateLayers = () => {
         checked={cloudBase}
         onChange={(on) => dispatch(cloudBaseActions.setVisible(on))}
       >
-        <CloudBaseRamp />
+        <Ramp
+          bands={CLOUD_BASE_BANDS}
+          rgb={COLORS.cloudBase}
+          captions={CLOUD_BASE_LABELS}
+          disjoint
+        />
+        <div className="text-xs">ft MSL</div>
       </LayerToggle>
 
       <LayerToggle
@@ -90,7 +96,7 @@ export const CandidateLayers = () => {
       >
         <Ramp
           bands={SLW_BANDS}
-          rgb={SLW_RGB}
+          rgb={COLORS.liquid}
           captions={SLW_BANDS.map((band) => String(band.value))}
           titles={SLW_LABELS}
         />

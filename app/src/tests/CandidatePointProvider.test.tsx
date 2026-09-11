@@ -31,6 +31,12 @@ const point: CandidatePoint = {
   cloudTopC: null,
   dbz: null,
   radarCovered: true,
+  cloudBaseMslFt: null,
+  baseSource: null,
+  baseDrawn: false,
+  payload: null,
+  warmCloudDepthFt: null,
+  cclFt: null,
 };
 
 const calls = () => (fetch as ReturnType<typeof vi.fn>).mock.calls;

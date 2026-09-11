@@ -22,6 +22,7 @@ const sounding: SoundingT = {
   lat: 39.8,
   lon: -98.54,
   surfaceFt: 1830,
+  cclFt: null,
   freezingFt: 16390,
   bandBaseFt: 19237,
   bandTopFt: 26618,
@@ -51,6 +52,12 @@ const here: CandidatePoint = {
   cloudTopC: -14,
   dbz: null,
   radarCovered: true,
+  cloudBaseMslFt: 5800,
+  baseSource: "model",
+  baseDrawn: true,
+  payload: "both",
+  warmCloudDepthFt: 10200,
+  cclFt: null,
 };
 
 describe("ClickedPoint", () => {

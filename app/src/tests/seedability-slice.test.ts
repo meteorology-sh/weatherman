@@ -34,6 +34,12 @@ describe("seedability slice", () => {
       cloudTopC: -14,
       dbz: null,
       radarCovered: true,
+      cloudBaseMslFt: 5800,
+      baseSource: "model",
+      baseDrawn: true,
+      payload: "both",
+      warmCloudDepthFt: 10200,
+      cclFt: null,
     };
 
     it("starts with no point read", () => {

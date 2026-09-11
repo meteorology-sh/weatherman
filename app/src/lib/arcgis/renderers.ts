@@ -14,24 +14,15 @@ import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol";
 import SimpleLineSymbol from "@arcgis/core/symbols/SimpleLineSymbol";
 import {
   CLOUD_BANDS,
-  CLOUD_RGB,
-  CLOUD_BASE_ALPHA,
   CLOUD_BASE_BANDS,
-  FLY_ALPHA,
-  FLY_RGB,
-  CONFIRMED_RGB,
+  COLORS,
   CONFIRMED_WIDTH,
   ECHO_FREEZE_ALPHA,
-  ECHO_FREEZE_RGB,
-  LIGHTNING_RGB,
-  MOTION_RGB,
+  FLY_ALPHA,
   MOTION_WIDTH,
   PRECIP_BANDS,
-  PRECIP_RGB,
   RADAR_BANDS,
-  RADAR_RGB,
   SLW_BANDS,
-  SLW_RGB,
 } from "./bands";
 
 // Types
@@ -48,22 +39,31 @@ const fills = (bands: readonly Band[], rgb: readonly number[]) =>
 
 export const forecastCloudRenderer = new UniqueValueRenderer({
   field: "cloudCover",
-  uniqueValueInfos: fills(CLOUD_BANDS, CLOUD_RGB),
+  uniqueValueInfos: fills(CLOUD_BANDS, COLORS.cloud),
 });
 
 export const forecastPrecipRenderer = new UniqueValueRenderer({
   field: "precipRate",
-  uniqueValueInfos: fills(PRECIP_BANDS, PRECIP_RGB),
+  uniqueValueInfos: fills(PRECIP_BANDS, COLORS.rain),
 });
 
 export const candidateLiquidRenderer = new UniqueValueRenderer({
   field: "slwPath",
-  uniqueValueInfos: fills(SLW_BANDS, SLW_RGB),
+  uniqueValueInfos: fills(SLW_BANDS, COLORS.liquid),
 });
 
 export const candidateRadarRenderer = new UniqueValueRenderer({
   field: "reflectivity",
-  uniqueValueInfos: fills(RADAR_BANDS, RADAR_RGB),
+  uniqueValueInfos: fills(RADAR_BANDS, COLORS.rain),
+});
+
+/**
+ * Cloud base. The bands are disjoint, so each fill is exactly the swatch the
+ * legend shows.
+ */
+export const candidateCloudBaseRenderer = new UniqueValueRenderer({
+  field: "cloudBaseFt",
+  uniqueValueInfos: fills(CLOUD_BASE_BANDS, COLORS.cloudBase),
 });
 
 /**
@@ -71,7 +71,7 @@ export const candidateRadarRenderer = new UniqueValueRenderer({
  */
 export const candidateFieldRenderer = new SimpleRenderer({
   symbol: new SimpleFillSymbol({
-    color: [...FLY_RGB, FLY_ALPHA],
+    color: [...COLORS.fly, FLY_ALPHA],
     outline: { width: 0 },
   }),
 });
@@ -88,7 +88,7 @@ export const candidateFieldRenderer = new SimpleRenderer({
 export const candidateConfirmedRenderer = new SimpleRenderer({
   symbol: new SimpleFillSymbol({
     color: [0, 0, 0, 0],
-    outline: { color: [...CONFIRMED_RGB, 0.9], width: CONFIRMED_WIDTH },
+    outline: { color: [...COLORS.confirmed, 0.9], width: CONFIRMED_WIDTH },
   }),
 });
 
@@ -99,7 +99,7 @@ export const candidateConfirmedRenderer = new SimpleRenderer({
 /** The heaviest rain in the storm — one point at the strongest 1 km cell. */
 export const stormCoreRenderer = new SimpleRenderer({
   symbol: new SimpleMarkerSymbol({
-    color: [...RADAR_RGB, 0.95],
+    color: [...COLORS.rain, 0.95],
     size: 3,
     outline: { color: [0, 0, 0, 0], width: 0 },
   }),
@@ -115,11 +115,11 @@ export const stormCoreRenderer = new SimpleRenderer({
  */
 export const stormMotionRenderer = new SimpleRenderer({
   symbol: new SimpleLineSymbol({
-    color: [...MOTION_RGB, 0.95],
+    color: [...COLORS.motion, 0.95],
     width: MOTION_WIDTH,
     cap: "butt",
     marker: {
-      color: [...MOTION_RGB, 0.95],
+      color: [...COLORS.motion, 0.95],
       placement: "end",
       style: "arrow",
     },
@@ -131,7 +131,7 @@ export const stormMotionRenderer = new SimpleRenderer({
  */
 export const echoFreezeRenderer = new SimpleRenderer({
   symbol: new SimpleFillSymbol({
-    color: [...ECHO_FREEZE_RGB, ECHO_FREEZE_ALPHA],
+    color: [...COLORS.echoFreeze, ECHO_FREEZE_ALPHA],
     outline: { width: 0 },
   }),
 });
@@ -139,27 +139,8 @@ export const echoFreezeRenderer = new SimpleRenderer({
 /** One GLM flash. Points only — lightning is not a surface. */
 export const lightningRenderer = new SimpleRenderer({
   symbol: new SimpleMarkerSymbol({
-    color: [...LIGHTNING_RGB, 0.95],
+    color: [...COLORS.lightning, 0.95],
     size: 5,
     outline: { color: [0, 0, 0, 0], width: 0 },
   }),
-});
-
-/**
- * Cloud base: one violet per band at one opacity.
- *
- * The bands are disjoint, so nothing composites and each fill is the color the
- * legend shows. The height is in the color for that reason — an opacity ramp
- * reads as "how much basemap shows through", and two of those overlapping make
- * a shade that is not on the ramp at all.
- */
-export const candidateCloudBaseRenderer = new UniqueValueRenderer({
-  field: "cloudBaseFt",
-  uniqueValueInfos: CLOUD_BASE_BANDS.map(({ value, rgb }) => ({
-    value,
-    symbol: new SimpleFillSymbol({
-      color: [...rgb, CLOUD_BASE_ALPHA],
-      outline: { width: 0 },
-    }),
-  })),
 });

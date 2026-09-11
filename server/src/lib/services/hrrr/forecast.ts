@@ -59,7 +59,6 @@ import {
   isothermFt,
   levelKey,
   mbLabel,
-  pressureLevels,
   temperatureAtMb,
 } from "./profile";
 import {
@@ -94,7 +93,7 @@ import type {
   ContourRing,
   ContourFeature,
 } from "../shared/contour";
-import type { Cycle, Product } from "./bytes";
+import type { Cycle } from "./bytes";
 import type { Slw, SlwStats } from "./slw";
 import type { ProfileGrid, SoundingLevel } from "./profile";
 import type {

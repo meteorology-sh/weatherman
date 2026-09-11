@@ -19,8 +19,9 @@ import {
 // ArcGIS
 import {
   BAND_LABEL,
+  CLOUD_BASE_BANDS,
+  COLORS,
   SLW_BANDS,
-  SLW_RGB,
   stackedColor,
 } from "@/lib/arcgis/bands";
 
@@ -187,7 +188,7 @@ describe("ReplayLayers", () => {
     expect(swatches(container, LIQUID)).toHaveLength(SLW_BANDS.length);
     const richest = swatches(container, LIQUID)[SLW_BANDS.length - 1];
     expect(rgba(richest.style.backgroundColor)).toBe(
-      rgba(stackedColor(SLW_BANDS, SLW_RGB, SLW_BANDS.length))
+      rgba(stackedColor(SLW_BANDS, COLORS.liquid, SLW_BANDS.length))
     );
   });
 
@@ -214,12 +215,9 @@ describe("ReplayLayers", () => {
       store.dispatch(replayActions.setCloudBase(true));
     });
 
-    const ramp = () =>
-      Array.from(
-        container.querySelectorAll<HTMLElement>("div.h-3.w-full")
-      ).filter((el) => el.title.endsWith("ft MSL"));
-
-    expect(ramp().length).toBeGreaterThan(0);
+    expect(swatches(container, CloudBaseLegend.name)).toHaveLength(
+      CLOUD_BASE_BANDS.length
+    );
     expect(container.textContent).toContain("ft MSL");
     expect(container.textContent).not.toContain("AGL");
     expect(container.textContent).not.toContain("FLIGHT WINDOW");

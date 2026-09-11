@@ -4,30 +4,19 @@ import type SimpleFillSymbol from "@arcgis/core/symbols/SimpleFillSymbol";
 import {
   SEEDABLE_BASE_FT,
   BASE_CEILING_FT,
-  CANDIDATE_BANDS,
-  CEILING_FT,
-  CLOUD_BASE_ALPHA,
   CLOUD_BASE_BANDS,
-  CLOUD_BASE_RGB,
+  CLOUD_BASE_LABELS,
   CLOUD_BANDS,
+  COLORS,
   PRECIP_BANDS,
   PRECIP_LABELS,
   PRECIP_FIRST_HOUR,
-  MOTION_RGB,
   RADAR_BANDS,
   RADAR_LABELS,
-  RADAR_RGB,
   stackedAlpha,
   stackedColor,
   soloColor,
-  CLOUD_RGB,
-  PRECIP_RGB,
-  SLW_RGB,
 } from "@/lib/arcgis/bands";
-
-/** Rec. 709 luma, so "lighter" is what an eye reads and not a sum of channels. */
-const lightness = (rgb: readonly number[]) =>
-  0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
 
 describe("CLOUD_BANDS", () => {
   // The server decides which contours exist (FIELDS.clouds.levels in
@@ -100,12 +89,6 @@ describe("RADAR_BANDS", () => {
     expect(RADAR_LABELS).toHaveLength(RADAR_BANDS.length);
   });
 
-  // Observed rain and forecast rain are the same quantity, and they never share
-  // a map. A second hue would imply a second variable.
-  it("paints observed rain the color the forecast map paints rain", () => {
-    expect(RADAR_RGB).toEqual(PRECIP_RGB);
-  });
-
   // Drawn over the liquid-water contours, so the top band has to leave the
   // amber underneath legible rather than covering it.
   it("stays translucent enough to read the layer underneath", () => {
@@ -115,7 +98,7 @@ describe("RADAR_BANDS", () => {
 
 describe("heading mark", () => {
   it("is white on the dark basemap", () => {
-    expect(MOTION_RGB).toEqual([255, 255, 255]);
+    expect(COLORS.motion).toEqual([255, 255, 255]);
   });
 });
 
@@ -175,10 +158,10 @@ describe("stackedAlpha", () => {
 
 describe("stackedColor", () => {
   it("carries the layer's hue into the legend swatch", () => {
-    expect(stackedColor(CLOUD_BANDS, CLOUD_RGB, 1)).toBe(
+    expect(stackedColor(CLOUD_BANDS, COLORS.cloud, 1)).toBe(
       "rgba(255,255,255,0.100)"
     );
-    expect(stackedColor(PRECIP_BANDS, PRECIP_RGB, 1)).toBe(
+    expect(stackedColor(PRECIP_BANDS, COLORS.rain, 1)).toBe(
       "rgba(34,211,238,0.150)"
     );
   });
@@ -186,7 +169,7 @@ describe("stackedColor", () => {
   // Cloud is a veil; rain is the thing you look for through it. If they shared
   // a hue the operator could not tell a raining cell from a thick one.
   it("gives rain a hue cloud can never reach", () => {
-    expect(PRECIP_RGB).not.toEqual(CLOUD_RGB);
+    expect(COLORS.rain).not.toEqual(COLORS.cloud);
   });
 });
 
@@ -194,22 +177,13 @@ describe("soloColor", () => {
   // The cloud-base bands are disjoint — exactly one applies to a cell — so the
   // legend must read each band straight rather than compositing it.
   it("is the band's own alpha, not a running composite", () => {
-    expect(soloColor(CLOUD_BASE_RGB, 0.3)).toBe("rgba(167,139,250,0.300)");
+    expect(soloColor(COLORS.cloudBase, 0.3)).toBe("rgba(167,139,250,0.300)");
   });
 
-  it("gives the legend the color each band is actually painted", () => {
-    const band = CLOUD_BASE_BANDS[0];
-
-    expect(soloColor(band.rgb, CLOUD_BASE_ALPHA)).toBe(
-      `rgba(${band.rgb.join(",")},${CLOUD_BASE_ALPHA.toFixed(3)})`
-    );
-  });
-
-  // Four stacked bands reach ~0.6 alpha; one solo band at 1.0 does not. Getting
-  // these two the same way round is the whole point of having both.
+  // Getting these two the same way round is the whole point of having both.
   it("differs from the stacked composite it is not", () => {
-    expect(soloColor(CLOUD_RGB, 0.1)).not.toBe(
-      stackedColor(CLOUD_BANDS, CLOUD_RGB, 2)
+    expect(soloColor(COLORS.cloud, 0.1)).not.toBe(
+      stackedColor(CLOUD_BANDS, COLORS.cloud, 2)
     );
   });
 });
@@ -232,34 +206,26 @@ describe("CLOUD_BASE_BANDS", () => {
     expect(candidateCloudBaseRenderer.field).toBe("cloudBaseFt");
   });
 
-  // Lightness is the number: the lowest base is the deepest violet and the
-  // highest is the palest, so a cell reads as high or low without the legend.
-  it("lightens as the base gets higher", () => {
-    const light = CLOUD_BASE_BANDS.map((band) => lightness(band.rgb));
+  // Brighter is lower: the lowest base is the most opaque.
+  it("fades as the base gets higher", () => {
+    const alphas = CLOUD_BASE_BANDS.map((band) => band.alpha);
 
-    expect(light).toEqual([...light].sort((a, b) => a - b));
+    expect(alphas).toEqual([...alphas].sort((a, b) => b - a));
+    expect(new Set(alphas).size).toBe(alphas.length);
   });
 
-  // The height is in the color, so the symbol's opacity carries none of it: the
-  // see-through is one knob on the layer, and what a band mixes with is the
-  // basemap rather than another band.
-  it("paints every band at one opacity", () => {
-    const alphas = candidateCloudBaseRenderer.uniqueValueInfos!.map(
-      (info) => (info.symbol as SimpleFillSymbol).color!.a
+  it("paints each band at its own alpha in the layer's one color", () => {
+    const colors = candidateCloudBaseRenderer.uniqueValueInfos!.map(
+      (info) => (info.symbol as SimpleFillSymbol).color!.toRgba()
     );
 
-    expect(alphas).toEqual(CLOUD_BASE_BANDS.map(() => CLOUD_BASE_ALPHA));
+    expect(colors).toEqual(
+      CLOUD_BASE_BANDS.map((band) => [...COLORS.cloudBase, band.alpha])
+    );
   });
 
-  // These bands do not composite: a disjoint band is painted once, so it has to
-  // carry its whole separation from its neighbors in its own color. Steps this
-  // wide survive being read against a basemap rather than against each other.
-  it("separates each band by a step of its own", () => {
-    const light = CLOUD_BASE_BANDS.map((band) => lightness(band.rgb));
-
-    for (let i = 0; i < light.length - 1; i++) {
-      expect(light[i + 1] - light[i]).toBeGreaterThanOrEqual(24);
-    }
+  it("names every band", () => {
+    expect(CLOUD_BASE_LABELS).toHaveLength(CLOUD_BASE_BANDS.length);
   });
 
   // The edges come from the top of the map, not from Texas practice — which

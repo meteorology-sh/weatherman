@@ -283,12 +283,11 @@ ground — and `bands.test.ts` pins the derivation so it cannot be mistaken for 
 citation.
 
 It has **real nodata**, and its bands are **disjoint**: a height is a position,
-not an accumulation, so exactly one applies to a cell. **The height is in the
-color** — four steps of the layer's violet, every one painted at the same 80% —
-because an opacity ramp reads as how much basemap shows through, which is hard
-to compare between two patches that are not touching. **The ramp runs dark to
-light with the height**: the lowest base is the deepest violet and the highest
-is the palest. The last band is open above the bound and still drawn, because a
+not an accumulation, so exactly one applies to a cell. It is shaded like every
+other layer — one violet, stepped in opacity — and **brighter is lower**: the
+lowest base is the most opaque and the highest the faintest. Each band's alpha
+is its whole fill rather than a step in a stack, so the legend paints it
+unstacked. The last band is open above the bound and still drawn, because a
 base too high to work and no cloud at all are different answers.
 
 **A fill you can see through is why the bands are cut apart.** Two translucent
