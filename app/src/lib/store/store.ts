@@ -9,6 +9,7 @@ import seedabilityReducer from "./features/seedability";
 import stormsReducer from "./features/storms";
 import replayReducer from "./features/replay";
 import soundingReducer from "./features/sounding";
+import noticesReducer from "./features/notices";
 
 // ArcGIS layer instances are module-scope singletons in lib/arcgis/, never
 // store state: putting one here forces serializableCheck off. The store holds
@@ -25,6 +26,7 @@ export const store = configureStore({
     storms: stormsReducer,
     replay: replayReducer,
     sounding: soundingReducer,
+    notices: noticesReducer,
   },
 });
 

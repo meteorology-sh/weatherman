@@ -670,6 +670,25 @@ arrive continuously with no publication cycle to key off, so both use a 5-minute
 TTL and each frame carries its own valid time — the sidebar reports the scene's
 age rather than implying it is live.
 
+**A source with something wrong with it says so.** When a live request fails or
+its data looks wrong, the service puts that source on the notice board, and the
+candidate panel says "Something is wrong with" it at the top until the source
+answers well again. Closing a notice hides that problem only.
+
+Looking wrong is a basic check, not a quality score: an MRMS mosaic with a
+quarter of the country uncovered, since no quarter is without a radar. HRRR, the
+GOES cloud top and the GOES phase report a failed request only. The MRMS echo
+top also draws NOAA's archived copy of the same product from `noaa-mrms-pds`
+when the live file fails either way, and its notice says how many minutes behind
+live that copy is.
+
+```
+watch, EchoTopService → Notices              [services/shared/notices.ts]
+                      → GET /status/notices  [routers/status.ts]
+                      → NoticeProvider, each minute [app/src/lib/context]
+                      → SourceNotices, top of the candidate panel
+```
+
 ## Color
 
 One hue per claim, and they cannot be swapped without the map lying:

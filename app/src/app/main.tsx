@@ -26,6 +26,7 @@ import { SeedabilityProvider } from "@/lib/context/SeedabilityProvider.tsx";
 import { DomainProvider } from "@/lib/context/DomainProvider.tsx";
 import { SoundingProvider } from "@/lib/context/SoundingProvider.tsx";
 import { ReplayProvider } from "@/lib/context/ReplayProvider.tsx";
+import { NoticeProvider } from "@/lib/context/NoticeProvider.tsx";
 
 const router = createBrowserRouter([
   {
@@ -68,7 +69,9 @@ const router = createBrowserRouter([
                     <CandidatePointProvider>
                       <StormProvider>
                         <DomainProvider>
-                          <Candidate />
+                          <NoticeProvider>
+                            <Candidate />
+                          </NoticeProvider>
                         </DomainProvider>
                       </StormProvider>
                     </CandidatePointProvider>

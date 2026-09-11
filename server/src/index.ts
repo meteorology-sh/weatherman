@@ -10,6 +10,7 @@ import { candidate } from "./routers/candidate";
 import { cloudtop } from "./routers/cloudtop";
 import { forecast } from "./routers/forecast";
 import { radar } from "./routers/radar";
+import { status } from "./routers/status";
 
 // Types
 import { Express } from "express";
@@ -25,6 +26,7 @@ app.use("/candidate", candidate);
 app.use("/cloudtop", cloudtop);
 app.use("/forecast", forecast);
 app.use("/radar", radar);
+app.use("/status", status);
 
 app.get("/healthcheck", (_req: Request, res: Response) => {
   res.send("Hello, world!");

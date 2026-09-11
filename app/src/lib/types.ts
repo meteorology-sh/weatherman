@@ -366,6 +366,20 @@ export interface StormNear {
   glmFlashes: number | null;
 }
 
+/** Mirrors Notice in server/src/lib/services/shared/notices.ts */
+export interface SourceNotice {
+  /** The source and when this problem began. Stable while the problem is. */
+  id: string;
+  /** The feed the notice is about. */
+  source: string;
+  /** What went wrong, and what is drawn instead if anything is. */
+  detail: string;
+  /** How far the drawn data trails the live feed, minutes. Null unless an older copy is drawn. */
+  delayMinutes: number | null;
+  /** When the server first reported this problem, ISO 8601. */
+  since: string;
+}
+
 /** Mirrors RadarStats in server/src/lib/services/mrms/radar.ts */
 export interface RadarStats {
   /** When the server last built the scene, ISO 8601. */

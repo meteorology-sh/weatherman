@@ -1,10 +1,12 @@
 // Node
 import { describe, it } from "node:test";
+import type { TestContext } from "node:test";
 import assert from "node:assert/strict";
 
 // Services
 import {
   EchoTopService,
+  echoTopCovered,
   echoTopFtValues,
   heightFt,
   pastFreezingValues,
@@ -14,6 +16,7 @@ import {
   NO_ECHO_KM,
 } from "../lib/services/mrms/echotop";
 import { identify } from "../lib/services/mrms/objects";
+import { NoticeBoard } from "../lib/services/shared/notices";
 
 // Types
 import type { Grid, Geo } from "../lib/services/shared/contour";
@@ -157,5 +160,168 @@ describe("EchoTopService.tallest", () => {
     const hit = await svc.tallest(storm, geo);
     assert.equal(hit, null);
     assert.ok(Date.now() - t0 < 500);
+  });
+});
+
+/** A 4×2 mosaic, south row first, covered everywhere with no echo. */
+function mosaic(validTime: string, emptySouthwest = false) {
+  const nx = 4;
+  const ny = 2;
+  const values = new Float32Array(nx * ny).fill(NO_ECHO_KM);
+  const lats = new Float32Array(nx * ny);
+  const lons = new Float32Array(nx * ny);
+  for (let j = 0; j < ny; j++) {
+    for (let i = 0; i < nx; i++) {
+      lats[j * nx + i] = j === 0 ? 30 : 40;
+      lons[j * nx + i] = -110 + 10 * i;
+    }
+  }
+  if (emptySouthwest) {
+    values[0] = NO_COVERAGE_KM;
+    values[1] = NO_COVERAGE_KM;
+  }
+  return {
+    grid: { nx, ny, values } as Grid,
+    geo: { nx, ny, lats, lons } as Geo,
+    validTime,
+  };
+}
+
+type Scene = ReturnType<typeof mosaic>;
+
+/** The service's private seams: the GRIB read and the archive listing. */
+type Internals = {
+  build(key?: string): Promise<Scene>;
+  sceneAt(at: Date): Promise<string>;
+  cache: unknown;
+};
+
+const ARCHIVE_KEY =
+  "CONUS/EchoTop_18_00.50/20260911/MRMS_EchoTop_18_00.50_20260911-021439.grib2.gz";
+
+/** A service whose live file and archived copy are the scenes given. */
+function withFeeds(
+  t: TestContext,
+  live: () => Promise<Scene>,
+  archived: () => Promise<Scene>
+) {
+  const notices = new NoticeBoard();
+  const svc = new EchoTopService(notices);
+  const inner = svc as unknown as Internals;
+  t.mock.method(inner, "sceneAt", async () => ARCHIVE_KEY);
+  t.mock.method(inner, "build", async (key?: string) =>
+    key ? archived() : live()
+  );
+  return { svc, inner, notices };
+}
+
+describe("echoTopCovered", () => {
+  // No echo is a radar that looked and saw nothing.
+  it("counts no echo and a real top as covered, and no coverage as not", () => {
+    assert.equal(echoTopCovered(NO_ECHO_KM), true);
+    assert.equal(echoTopCovered(8.5), true);
+    assert.equal(echoTopCovered(NO_COVERAGE_KM), false);
+  });
+});
+
+describe("EchoTopService live feed", () => {
+  it("draws the live file and says nothing when it looks right", async (t) => {
+    const { svc, notices } = withFeeds(
+      t,
+      async () => mosaic("2026-09-11T02:18:00.000Z"),
+      async () => mosaic("2026-09-11T02:14:00.000Z")
+    );
+
+    const scene = await svc.mosaic();
+
+    assert.equal(scene.validTime, "2026-09-11T02:18:00.000Z");
+    assert.deepEqual(notices.list(), []);
+  });
+
+  it("draws the archived copy when the live data looks wrong", async (t) => {
+    const { svc, notices } = withFeeds(
+      t,
+      async () => mosaic("2026-09-11T02:18:00.000Z", true),
+      async () => mosaic("2026-09-11T02:14:00.000Z")
+    );
+
+    const scene = await svc.mosaic();
+
+    assert.equal(scene.validTime, "2026-09-11T02:14:00.000Z");
+    const [notice] = notices.list();
+    assert.equal(
+      notice.detail,
+      "The live data looks wrong. Showing NOAA's archived copy."
+    );
+    assert.equal(notice.delayMinutes, 4);
+  });
+
+  it("keeps the live file when the archive looks wrong too", async (t) => {
+    const { svc, notices } = withFeeds(
+      t,
+      async () => mosaic("2026-09-11T02:18:00.000Z", true),
+      async () => mosaic("2026-09-11T02:14:00.000Z", true)
+    );
+
+    const scene = await svc.mosaic();
+
+    assert.equal(scene.validTime, "2026-09-11T02:18:00.000Z");
+    const [notice] = notices.list();
+    assert.equal(notice.detail, "The live data looks wrong.");
+    assert.equal(notice.delayMinutes, null);
+  });
+
+  it("draws the archived copy when the live request fails", async (t) => {
+    const { svc, notices } = withFeeds(
+      t,
+      async () => {
+        throw new Error("MRMS echo-top unreachable: socket hang up");
+      },
+      async () => mosaic("2026-09-11T02:14:00.000Z")
+    );
+
+    const scene = await svc.mosaic();
+
+    assert.equal(scene.validTime, "2026-09-11T02:14:00.000Z");
+    const [notice] = notices.list();
+    assert.equal(
+      notice.detail,
+      "The live request failed. Showing NOAA's archived copy."
+    );
+    assert.equal(typeof notice.delayMinutes, "number");
+  });
+
+  it("throws the live failure when neither can be read", async (t) => {
+    const { svc, notices } = withFeeds(
+      t,
+      async () => {
+        throw new Error("MRMS echo-top unreachable: socket hang up");
+      },
+      async () => {
+        throw new Error("No archived MRMS echo-top near then");
+      }
+    );
+
+    await assert.rejects(svc.mosaic(), /socket hang up/);
+    assert.equal(notices.list()[0].detail, "The live request failed.");
+  });
+
+  it("goes back to the live file, and clears, once it looks right", async (t) => {
+    let whole = false;
+    const { svc, inner, notices } = withFeeds(
+      t,
+      async () => mosaic("2026-09-11T02:18:00.000Z", !whole),
+      async () => mosaic("2026-09-11T02:14:00.000Z")
+    );
+
+    await svc.mosaic();
+    assert.equal(notices.list().length, 1);
+
+    whole = true;
+    inner.cache = null;
+    const scene = await svc.mosaic();
+
+    assert.equal(scene.validTime, "2026-09-11T02:18:00.000Z");
+    assert.deepEqual(notices.list(), []);
   });
 });

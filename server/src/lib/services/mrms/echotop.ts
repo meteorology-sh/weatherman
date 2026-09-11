@@ -17,6 +17,9 @@ import { promisify } from "util";
 import { eachMessage } from "../shared/grib";
 import { cellAt, DRAWN, prepareDraw } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
+import { LOOKS_WRONG, Notices, REQUEST_FAILED } from "../shared/notices";
+import type { NoticeBoard } from "../shared/notices";
+import { hasEmptyQuarter } from "./coverage";
 import { features, smoothFor } from "../shared/contour";
 import type { ContourFrame, Geo, Grid } from "../shared/contour";
 import { METERS_TO_FEET } from "../hrrr/profile";
@@ -159,12 +162,27 @@ export function tallestOver(
   };
 }
 
+/**
+ * A radar looked at this cell. Anything above the midpoint of the two
+ * sentinels, so a decode that rounds either one still lands on its own side.
+ */
+export const echoTopCovered = (km: number) =>
+  km > (NO_ECHO_KM + NO_COVERAGE_KM) / 2;
+
+/** How the notice board names this feed. */
+const SOURCE = "MRMS echo top";
+
 export class EchoTopService {
   private geo: Geo | null = null;
   private cache: { scene: Scene; fetchedAt: number } | null = null;
   private inflight: Promise<Scene> | null = null;
   private archive = new Map<string, Scene>();
   private archiveInflight = new Map<string, Promise<Scene>>();
+  private readonly notices: NoticeBoard;
+
+  constructor(notices: NoticeBoard = Notices) {
+    this.notices = notices;
+  }
 
   async tallest(
     storm: StormObject,
@@ -249,7 +267,7 @@ export class EchoTopService {
     }
     if (this.inflight) return this.inflight;
 
-    const work = this.build()
+    const work = this.live()
       .then((scene) => {
         this.cache = { scene, fetchedAt: Date.now() };
         return scene;
@@ -260,6 +278,57 @@ export class EchoTopService {
 
     this.inflight = work;
     return work;
+  }
+
+  /**
+   * The live mosaic, or NOAA's archived copy of it when the live request fails
+   * or its data looks wrong.
+   *
+   * The archive is the same product filed minutes later, built apart from the
+   * live file, and the notice says how many minutes behind live it is. The live
+   * file is still asked first on every rebuild, so the map returns to it, and
+   * the notice clears, as soon as it answers well.
+   */
+  private async live(): Promise<Scene> {
+    let scene: Scene;
+    try {
+      scene = await this.build();
+    } catch (error) {
+      return this.fallback(REQUEST_FAILED, null, error);
+    }
+    if (hasEmptyQuarter(scene.grid, echoTopCovered)) {
+      return this.fallback(LOOKS_WRONG, scene);
+    }
+    this.notices.clear(SOURCE);
+    return scene;
+  }
+
+  /**
+   * The archived scan nearest the live one when it looks right. Otherwise the
+   * live scene as it is, or the live failure when there is no live scene.
+   */
+  private async fallback(
+    detail: string,
+    live: Scene | null,
+    failure?: unknown
+  ): Promise<Scene> {
+    const want = live ? new Date(live.validTime) : new Date();
+    const archived = await this.replay(want).catch(() => null);
+
+    if (archived && !hasEmptyQuarter(archived.grid, echoTopCovered)) {
+      this.notices.report(SOURCE, {
+        detail: `${detail} Showing NOAA's archived copy.`,
+        delayMinutes: Math.max(
+          0,
+          Math.round((want.getTime() - Date.parse(archived.validTime)) / 60_000)
+        ),
+      });
+      return archived;
+    }
+
+    this.notices.report(SOURCE, { detail, delayMinutes: null });
+    if (live) return live;
+    throw failure;
   }
 
   private async replay(at: Date): Promise<Scene> {

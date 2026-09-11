@@ -11,6 +11,7 @@ import type {
   SlwStats,
   RadarStats,
   Sounding,
+  SourceNotice,
   StormNear,
 } from "@/lib/types";
 import { boxParams, INITIAL_BOX } from "@/lib/bbox";
@@ -432,4 +433,14 @@ export async function GetRadarStats(at?: string): Promise<RadarStats> {
   }
   const stats: RadarStats = await res.json();
   return stats;
+}
+
+/** Every source drawing something other than its own live feed. */
+export async function GetNotices(): Promise<SourceNotice[]> {
+  const res = await fetch("/status/notices");
+  if (!res.ok) {
+    throw new Error(`Failed to fetch source notices: ${res.status}`);
+  }
+  const notices: SourceNotice[] = await res.json();
+  return notices;
 }

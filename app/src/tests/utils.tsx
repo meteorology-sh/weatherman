@@ -14,6 +14,7 @@ import seedabilityReducer from "@/lib/store/features/seedability";
 import stormsReducer from "@/lib/store/features/storms";
 import replayReducer from "@/lib/store/features/replay";
 import soundingReducer from "@/lib/store/features/sounding";
+import noticesReducer from "@/lib/store/features/notices";
 
 // Testing
 import { render } from "@testing-library/react";
@@ -63,6 +64,7 @@ export function createTestStore() {
       storms: stormsReducer,
       replay: replayReducer,
       sounding: soundingReducer,
+      notices: noticesReducer,
     },
   });
 }

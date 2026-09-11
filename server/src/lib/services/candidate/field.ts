@@ -32,6 +32,8 @@ import { Goes } from "../goes/cloudtop";
 import { GoesPhase } from "../goes/phase";
 import { EchoTops, echoTopFtValues, sampleEchoTopKm } from "../mrms/echotop";
 import { Mrms } from "../mrms/radar";
+import { hasEmptyQuarter, reflectivityCovered } from "../mrms/coverage";
+import { watch } from "../shared/notices";
 import {
   assertInDomain,
   inGrid,
@@ -469,15 +471,31 @@ export class CandidateService {
     // the mosaic nearest 18:43, rather than putting all three on 18:00.
     const cycle = at && nearestHour(at);
 
-    const [liquid, base, ccl, band, tops, radar, phase, echo] =
+    // A live build puts a source on the notice board when its request fails
+    // or its data looks wrong. A replay reads archives and reports its own.
+    const live = <T>(
+      source: string,
+      request: Promise<T>,
+      looksWrong?: (answer: T) => boolean
+    ) => (at ? request : watch(source, request, looksWrong));
+
+    const [[liquid, base, ccl, band], tops, radar, phase, echo] =
       await Promise.all([
-        Hrrr.liquidField(ANALYSIS_HOUR, cycle),
-        Hrrr.diagnosticField("cloudBase", ANALYSIS_HOUR, cycle),
-        Hrrr.cclField(ANALYSIS_HOUR, cycle),
-        Hrrr.bandField(ANALYSIS_HOUR, cycle),
-        Goes.topField(at),
-        Mrms.reflectivityField(at),
+        live(
+          "NOAA HRRR",
+          Promise.all([
+            Hrrr.liquidField(ANALYSIS_HOUR, cycle),
+            Hrrr.diagnosticField("cloudBase", ANALYSIS_HOUR, cycle),
+            Hrrr.cclField(ANALYSIS_HOUR, cycle),
+            Hrrr.bandField(ANALYSIS_HOUR, cycle),
+          ])
+        ),
+        live("GOES-East cloud top", Goes.topField(at)),
+        live("MRMS reflectivity", Mrms.reflectivityField(at), (scene) =>
+          hasEmptyQuarter(scene.grid, reflectivityCovered)
+        ),
         observedPhase(at),
+        // Reports on its own, because it also falls back to the archive.
         EchoTops.mosaic(at).catch(() => null),
       ]);
 
@@ -652,7 +670,10 @@ async function observedPhase(
   at?: Date
 ): Promise<{ cells: Float32Array | null; validTime: string | null }> {
   try {
-    const scene = await GoesPhase.phaseField(at);
+    const request = GoesPhase.phaseField(at);
+    const scene = await (at
+      ? request
+      : watch("GOES-East cloud phase", request));
     return { cells: scene.cells.values, validTime: scene.validTime };
   } catch {
     return { cells: null, validTime: null };
