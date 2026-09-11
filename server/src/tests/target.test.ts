@@ -202,11 +202,14 @@ describe("target join", () => {
     );
   });
 
-  it("charges a neighborhood with no freezing level separately from a cloud neither payload can use", () => {
+  // A missing freezing level is not a test of its own. Both payload tests
+  // compare against it, so a column without one passes neither.
+  it("fails the payload test where the model gives no freezing level", () => {
     assert.equal(
-      verdict(cell({ freezingFt: Number.NaN, echoTopFt: Number.NaN }), 0),
-      "noFreezingLevel"
+      verdict(cell({ freezingFt: Number.NaN }), 0),
+      "noIceNoWarmLayer"
     );
+    assert.equal(payloadAt(cell({ freezingFt: Number.NaN }), 0), null);
     // Top never reached freezing and the base is above the freezing level, so
     // there is no ice to make and no warm layer to grow rain in.
     assert.equal(
@@ -259,7 +262,6 @@ describe("target join", () => {
     const cases = [
       cell({ cloudBaseFt: BASE_CEILING_FT + 1000, cclFt: Number.NaN }),
       cell({ cloudBaseFt: Number.NaN, cclFt: Number.NaN }),
-      cell({ freezingFt: Number.NaN, echoTopFt: Number.NaN }),
       cell({ echoTopFt: Number.NaN, cloudBaseFt: 17000, cclFt: 17000 }),
       cell({ dbz: NO_ECHO }),
       cell(),
@@ -278,17 +280,15 @@ describe("target join", () => {
     assert.equal(charged.target, 1);
     assert.equal(charged.baseTooHigh, 1);
     assert.equal(charged.noCloudBase, 1);
-    assert.equal(charged.noFreezingLevel, 1);
     assert.equal(charged.noIceNoWarmLayer, 1);
     assert.equal(charged.noStorm, 1);
     assert.equal(
       charged.target +
         charged.baseTooHigh +
         charged.noCloudBase +
-        charged.noFreezingLevel +
         charged.noIceNoWarmLayer +
         charged.noStorm,
-      6
+      5
     );
   });
 });
@@ -297,9 +297,8 @@ function emptyCounts() {
   return {
     noCloudBase: 0,
     baseTooHigh: 0,
-    noFreezingLevel: 0,
-    noIceNoWarmLayer: 0,
     noStorm: 0,
+    noIceNoWarmLayer: 0,
   };
 }
 

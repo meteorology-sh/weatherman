@@ -55,8 +55,9 @@ the operator is asked to look at.
 
 Two products, not one verdict:
 
-- **Target.** Which storm, which flank, is the base reachable, is the
-  echo top past freezing. Drawn as SEEDING OPPORTUNITY: the fill of
+- **Target.** Which storm, which flank, is the base reachable, is it
+  raining nearby, and can the cloud take a flare: an echo top past
+  freezing, or a base below it. Drawn as SEEDING OPPORTUNITY: the fill of
   cells that pass those tests, and the click on that fill.
 - **Liquid check.** Does the model put supercooled liquid in the band
   over that storm. A reading. Never the mask.
@@ -72,8 +73,8 @@ the click.
 Rain on a cell is not a reason to delete the storm.
 
 A click leads with the answer: FLY or DON'T FLY, and the Texas tests on
-that cell (base under the ceiling, echo top past freezing, rain in the
-neighborhood) with the failed one named. The storm follows under Radar,
+that cell (base under the ceiling, rain in the neighborhood, and an echo
+top past freezing or a base below it) with the failed one named. The storm follows under Radar,
 then the cloud over that 3 km cell, then the environment around it.
 "The radar is watching this cell rain" is a fact about the storm, not a
 veto.

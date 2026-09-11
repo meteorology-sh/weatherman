@@ -30,9 +30,9 @@ re-parse operations reports.** `releases.mjs`, `panhandle.mjs`,
 run.
 
 `out/` holds the complete Texas season: every located flare at native
-sampling with storm motion, the storm reading, the seeding opportunity, the
-cloud-base window, and echo past freezing, and a balloon file per program
-that briefs on a sonde.
+sampling with storm motion, the storm reading, and the distance to each
+layer Weatherman draws, and a balloon file per program that briefs on a
+sonde.
 
 ## What the eval app reads
 
@@ -53,10 +53,8 @@ reads `out/` on every request.
 panel has four switches: the fly fill, radar with three gates under it,
 cloud base, and supercooled liquid water. This page carries the same four.
 A layer this page drew that the product does not draw would be a claim
-about a map nobody flies, so `near.cloudTop`, `near.candidate` and
-`near.baseWindow` are scored into `EVALUATION.md` by `score-season.mjs`
-and are not read by the app. The flyable window is reported on a click and
-is not a fill — see `docs/INVESTIGATION.md`.
+about a map nobody flies, so `paint.mjs` paints those five fills and
+`score-season.mjs` scores those five, and nothing else.
 
 The Panhandle has no balloon file. It briefs on a NAM column, not a sonde.
 
@@ -64,7 +62,7 @@ The Panhandle has no balloon file. It briefs on a NAM column, not a sonde.
 
 A season is every seeded day in `data/` that has a located flare. **Done**
 is a painted file for each of those days, every located flare present,
-with `near` (original layers and Texas fills), `storm` on each
+with `near` (each layer), `storm` on each
 (`storm: null` means we looked and there was no 20 dBZ object), and the
 click readout `cell` and `column` on each (either may be null for a
 release outside the model's grid), and a balloon file for each program
@@ -325,14 +323,11 @@ Fills `paint.mjs` stores, all `fine=1`:
 
 | `near` key   | Route                          | Property          | Cell |
 | ------------ | ------------------------------ | ----------------- | ---- |
-| `cloudBase`  | `/candidate/cloudbase`         | `cloudBaseFt`     | 3 km |
-| `cloudTop`   | `/cloudtop/temperature`        | `topColdnessC`    | 2 km |
-| `liquid`     | `/forecast/liquid`             | `slwPath`         | 3 km |
-| `candidate`  | `/candidate/field`             | `seedableSlwPath` | 3 km |
-| `radar`      | `/radar/reflectivity`          | `reflectivity`    | 1 km |
 | `target`     | `/candidate/target`            | `fly`             | 3 km |
-| `baseWindow` | `/forecast/cloudbase/window`   | `inWindow`        | 3 km |
+| `radar`      | `/radar/reflectivity`          | `reflectivity`    | 1 km |
 | `echoFreeze` | `/radar/echotop/past-freezing` | `pastFreezing`    | 3 km |
+| `cloudBase`  | `/candidate/cloudbase`         | `cloudBaseFt`     | 3 km |
+| `liquid`     | `/forecast/liquid`             | `slwPath`         | 3 km |
 
 Inside is inside the contour after storm-motion drift. A missing frame
 for an hour drops that flare from that column's denominator.
@@ -431,5 +426,7 @@ Not run on their own, except the tests.
 | `weatherman.mjs`       | Address of the Weatherman API. Ask it for the storm at a point.                           |
 | `storm-score.mjs`      | Yes or no for each Texas turret feature from a storm reading.                             |
 | `band-score.mjs`       | Band overlap from one balloon row. The eval app and `score-season.mjs` both call this.    |
+| `tolerance.mjs`        | How far a printed position can move a release. `score-season.mjs` adds one layer cell.    |
 | `storm-score.test.mjs` | Tests for the turret-feature rules.                                                       |
 | `band-score.test.mjs`  | Tests for the overlap arithmetic.                                                         |
+| `tolerance.test.mjs`   | Tests for the position rounding bounds.                                                   |

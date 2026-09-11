@@ -81,12 +81,9 @@ if (!DATE) {
  */
 const CELL_KM = {
   cloudBase: 3,
-  cloudTop: 2,
   liquid: 3,
-  candidate: 3,
   radar: 1,
   target: 3,
-  baseWindow: 3,
   echoFreeze: 3,
 };
 
@@ -136,10 +133,9 @@ function withBox(path) {
  * Same routes, same properties. Each request carries the flare's own timestamp
  * as `at`. `hour=0` on the HRRR fields for the reason the candidate map pins
  * them there: a cloud base and a mixing ratio are states the analysis holds,
- * so f00 is a real answer rather than an empty one. The satellite and the
- * radar take no hour at all — they are scenes, and each carries its own
- * valid time. The join already splits those clocks: HRRR rounds to the hour,
- * GOES and radar keep the minute.
+ * so f00 is a real answer rather than an empty one. The radar takes no hour
+ * at all — it is a scene, and carries its own valid time. The join already
+ * splits those clocks: HRRR rounds to the hour, radar keeps the minute.
  *
  * `target` is fetched first: building it warms every source the other HRRR
  * fields read.
@@ -181,17 +177,6 @@ const LAYERS = [
     clock: "radar",
   },
   {
-    key: "cloudTop",
-    name: "CLOUD TOPS",
-    path: (at) => `/cloudtop/temperature?at=${encodeURIComponent(at)}&fine=1`,
-    property: "topColdnessC",
-    unit: "°C below zero",
-    shape: "disjoint",
-    cellKm: CELL_KM.cloudTop,
-    // Wholly a satellite product; the scene is both its value and its edge.
-    clock: "scene",
-  },
-  {
     key: "liquid",
     name: "SUPERCOOLED LIQUID WATER",
     path: (at) => `/forecast/liquid?hour=0&at=${encodeURIComponent(at)}&fine=1`,
@@ -200,23 +185,6 @@ const LAYERS = [
     shape: "nested",
     cellKm: CELL_KM.liquid,
     // HRRR alone. Nothing measured touches it, so it is as old as the hour.
-    clock: "model",
-  },
-  {
-    // Supercooled liquid with every other candidate test already applied —
-    // the satellite sees cloud whose top reaches the band, the base is under
-    // the band top, and the radar is not watching the cell rain itself out.
-    // `liquid` above is the unfiltered field; this is the join over it, and
-    // the two are stored side by side so the difference is legible.
-    key: "candidate",
-    name: "CANDIDATE SUPERCOOLED LIQUID",
-    path: (at) => `/candidate/field?at=${encodeURIComponent(at)}&fine=1`,
-    property: "seedableSlwPath",
-    unit: "g/m²",
-    shape: "nested",
-    cellKm: CELL_KM.candidate,
-    // Hybrid, but the contour that bounds it is the model's own 10 g/m² line;
-    // the measured tests erase area inside that line rather than place it.
     clock: "model",
   },
   {
@@ -237,21 +205,9 @@ const LAYERS = [
     unit: "pass",
     shape: "disjoint",
     cellKm: CELL_KM.target,
-    // Rain nearby and an echo top past freezing nearby are what switch this
-    // fill on, and both are measured at the asked-for minute.
+    // Rain nearby is measured at the asked-for minute, and a cell without it
+    // is never drawn, so the radar scan places this fill's edge.
     clock: "radar",
-  },
-  {
-    key: "baseWindow",
-    name: "BASE WINDOW",
-    path: (at) =>
-      `/forecast/cloudbase/window?hour=0&at=${encodeURIComponent(at)}&fine=1`,
-    property: "inWindow",
-    unit: "pass",
-    shape: "disjoint",
-    cellKm: CELL_KM.baseWindow,
-    // HRRR's own base against a height bound. No observation in it.
-    clock: "model",
   },
   {
     key: "echoFreeze",
@@ -268,16 +224,7 @@ const LAYERS = [
 ];
 
 /** Warms the join first; every other fill reads that same cached scene. */
-const FETCH_ORDER = [
-  "target",
-  "candidate",
-  "liquid",
-  "cloudBase",
-  "baseWindow",
-  "echoFreeze",
-  "cloudTop",
-  "radar",
-];
+const FETCH_ORDER = ["target", "liquid", "cloudBase", "echoFreeze", "radar"];
 
 /* ---------- geometry ---------- */
 

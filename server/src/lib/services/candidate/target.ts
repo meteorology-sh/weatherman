@@ -2,8 +2,9 @@
  * The seeding opportunity: a workable cloud base next to a storm whose echo
  * reaches past freezing.
  *
- * Three tests on one 3 km cell — a cloud base under 18,000 ft MSL, a measured
- * 18 dBZ echo top at or above the freezing level nearby, and rain nearby. Not
+ * Three tests on one 3 km cell — a cloud base under 18,000 ft MSL, rain
+ * nearby, and a cloud either payload can work: a measured 18 dBZ echo top at
+ * or above the freezing level nearby, or a base below the freezing level. Not
  * a quiet supercooled-liquid column under a cold top: this does not gate on
  * modeled liquid in the seeding band, and it does not cross a cell off for
  * rain.
@@ -46,16 +47,15 @@ export type TargetRejected = {
   noCloudBase: number;
   /** The base sits at or above 18,000 ft MSL. */
   baseTooHigh: number;
-  /** No column in the neighborhood has a freezing level. */
-  noFreezingLevel: number;
-  /**
-   * Neither payload has anything to work with: no column in the neighborhood
-   * has an echo top at or above freezing, and this column's base is already at
-   * or above the freezing level, so there is no warm layer either.
-   */
-  noIceNoWarmLayer: number;
   /** No column in the neighborhood has measured echo at 20 dBZ. */
   noStorm: number;
+  /**
+   * Neither payload has anything to work with: no column in the neighborhood
+   * has an echo top at or above its freezing level, and this column's base is
+   * not below its freezing level, so there is no warm layer either. A column
+   * the model gives no freezing level passes neither comparison.
+   */
+  noIceNoWarmLayer: number;
 };
 
 export type TargetVerdict = "target" | keyof TargetRejected;
@@ -223,15 +223,13 @@ export function verdict(inputs: TargetInputs, i: number): TargetVerdict {
 
   const around = neighborhood(i, inputs.nx, inputs.ny);
 
-  let sawFreezing = false;
   let pastFreezing = false;
   let storm = false;
   for (const k of around) {
     const freezing = inputs.freezingFt[k];
-    if (Number.isFinite(freezing)) {
-      sawFreezing = true;
-      const top = inputs.echoTopFt[k];
-      if (Number.isFinite(top) && top >= freezing) pastFreezing = true;
+    const top = inputs.echoTopFt[k];
+    if (Number.isFinite(freezing) && Number.isFinite(top) && top >= freezing) {
+      pastFreezing = true;
     }
     const reflectivity = inputs.dbz[k];
     if (reflectivity !== BLOCK_NO_COVERAGE && reflectivity >= RAIN_DBZ) {
@@ -239,7 +237,6 @@ export function verdict(inputs: TargetInputs, i: number): TargetVerdict {
     }
   }
 
-  if (!sawFreezing) return "noFreezingLevel";
   if (!storm) return "noStorm";
   // Ice needs a top that reached freezing. Salt needs only a warm layer, which
   // is what a base below the freezing level is. A cell passes on either, and
@@ -298,9 +295,8 @@ export function join(inputs: TargetInputs): TargetJoin {
   const rejected: TargetRejected = {
     noCloudBase: 0,
     baseTooHigh: 0,
-    noFreezingLevel: 0,
-    noIceNoWarmLayer: 0,
     noStorm: 0,
+    noIceNoWarmLayer: 0,
   };
   let target = 0;
 
@@ -364,9 +360,8 @@ export function summarize(
   const rejected: TargetRejected = {
     noCloudBase: 0,
     baseTooHigh: 0,
-    noFreezingLevel: 0,
-    noIceNoWarmLayer: 0,
     noStorm: 0,
+    noIceNoWarmLayer: 0,
   };
   let asked = 0;
   let passed = 0;
@@ -396,9 +391,8 @@ export function summarize(
     rejected: {
       noCloudBase: rejected.noCloudBase * CELL_KM2,
       baseTooHigh: rejected.baseTooHigh * CELL_KM2,
-      noFreezingLevel: rejected.noFreezingLevel * CELL_KM2,
-      noIceNoWarmLayer: rejected.noIceNoWarmLayer * CELL_KM2,
       noStorm: rejected.noStorm * CELL_KM2,
+      noIceNoWarmLayer: rejected.noIceNoWarmLayer * CELL_KM2,
     },
   };
 }

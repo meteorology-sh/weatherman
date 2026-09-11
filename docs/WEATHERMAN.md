@@ -345,15 +345,19 @@ click's 18 dBZ echo-top is the measured height from MRMS, not this field.
 Three tests on one 3 km cell:
 
 - there is a **workable cloud base under 18,000 ft MSL**
-- a measured 18 dBZ echo top sits **at or above the modeled freezing
-  level** in this cell or the ones next to it
 - rain at **20 dBZ** in this cell or next to it
+- the cloud can take a flare: a measured 18 dBZ echo top sits **at or
+  above the modeled freezing level** in this cell or the ones next to it,
+  or the base sits **below the freezing level** in this cell
+
+A column the model gives no freezing level passes neither half of the
+third test.
 
 **The base is the one the cloud-base layer draws** — HRRR's own where the model
 has a cloud, the convective condensation level where it does not, under the same
 `BASE_CEILING_FT` bound. So the base behind a green cell here is the base painted
 over it there, and a column with no base from either height fails on that test
-rather than resting on the two radar tests. That waiver used to be the layer's
+rather than resting on the other two tests. That waiver used to be the layer's
 weakest point: HRRR grows no cloud in most cells under convection, so the base
 test was skipped exactly where it mattered.
 

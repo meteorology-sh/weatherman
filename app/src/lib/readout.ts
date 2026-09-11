@@ -87,7 +87,6 @@ export const REASON = "Reason";
 export const REASONS: Record<Exclude<TargetVerdict, "target">, string> = {
   noCloudBase: "No Cloud Base",
   baseTooHigh: `Cloud Base at or Above ${BASE_CEILING_LABEL} MSL`,
-  noFreezingLevel: "No Freezing Level",
   noStorm: "No Rain Nearby",
   noIceNoWarmLayer: "No Echo Top Past Freezing or Warm Layer",
 };

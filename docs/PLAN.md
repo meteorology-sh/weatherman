@@ -11,10 +11,11 @@ is the one that decides how much the rest of the numbers are worth.
 
 ---
 
-## 1. Nothing in the evaluation carries a tolerance
+## 1. The tolerance reads in one direction
 
-Every result is a bit — the flare was inside the fill or it was not —
-and both sides of that comparison are softer than the bit implies.
+Inside is a bit — the flare was inside the fill or it was not — and both
+sides of that comparison are softer than the bit implies. The season
+tables carry a tolerance above that bit and none below it.
 
 **The release point.** Two programmes print GPS coordinates. The other
 three do not:
@@ -45,17 +46,20 @@ precisely the release was printed:
 
 **The layer edge.** The fills are traced from 3 km cells and drawn as
 smooth contours, so the boundary is placed to a precision the underlying
-grid does not have. Of the 243 flares outside the seeding opportunity,
-98 are within one cell of it and 137 within two. `nearness` keeps
-`edgeKm` only for a release that missed, so the same question cannot even
-be asked of the ones that landed inside: how many were a cell from the
-edge is not recorded.
+grid does not have.
 
-**The work.** A release carries a position tolerance, from the programme
-and from the printed precision. A distance is reported against it: inside,
-within the tolerance, or outside. `nearness` stores `edgeKm` whether or
-not the release was inside, so a margin can be read in both directions.
-The headline stops being one number and becomes a number with a band.
+**What is built.** `score-season.mjs` gives each release a tolerance of
+one cell of the layer plus the rounding of its printed position
+(`eval/lib/tolerance.mjs`), and reports every layer as inside, within
+tolerance, or outside. Within tolerance is its own column and never joins
+inside.
+
+**The work.** `nearness` keeps `edgeKm` only for a release that missed, so
+how many releases inside were a cell from the edge is not recorded, and
+inside has no lower bound. Storing `edgeKm` whether or not the release was
+inside reads the margin in both directions, and needs a repaint. The
+inferred radial origin, a bearing that may be magnetic, and Rolling Plains
+rows that may print minutes stay outside the bound until each is measured.
 
 This is the largest single change to what the evaluation claims, and it
 can move a figure in either direction — 25% of the season's flares are

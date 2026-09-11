@@ -98,9 +98,8 @@ const targetStats: TargetStats = {
   rejected: {
     noCloudBase: 81000,
     baseTooHigh: 36000,
-    noFreezingLevel: 9000,
-    noIceNoWarmLayer: 162000,
     noStorm: 59100,
+    noIceNoWarmLayer: 162000,
   },
 };
 

@@ -11,11 +11,8 @@
  * four switches: the Texas fly fill it names SEEDING OPPORTUNITY, radar with
  * three gates under it, cloud base, and supercooled liquid water. This page
  * carries the same four. A layer this page drew that the product does not draw
- * would be a claim about a map nobody flies, so cloud tops, the candidate
- * liquid composite and the flyable window are not here — the product draws
- * none of the three, and a painted file that still carries them is simply not
- * read. Those are reported on a click and scored into `EVALUATION.md`; they
- * are not fills.
+ * would be a claim about a map nobody flies, so a fill the product does not
+ * draw is neither painted nor read.
  *
  * A gate is one fill rather than a ramp: the test passed on that 3 km square or
  * it did not, and shading it by a value would invent a quantity the route does

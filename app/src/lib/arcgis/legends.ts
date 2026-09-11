@@ -95,11 +95,11 @@ export const LightningLegend: LayerLegend = {
 export const CandidateLegend: LayerLegend = {
   name: "SEEDING OPPORTUNITY",
   source: "HRRR + MRMS",
-  summary: `Where three tests pass at once: there is a workable cloud base, its radar echo reaches past freezing, and rain is falling nearby.`,
+  summary: `Where three tests pass at once: there is a workable cloud base, rain is falling nearby, and the cloud can take a flare — its radar echo reaches past freezing, or its base sits below freezing.`,
   detail: [
-    `Green marks a 3 km cell where three tests pass: a cloud base under ${BASE_CEILING_LABEL} MSL; an 18 dBZ echo top at or above the freezing level nearby; and reflectivity of at least ${RADAR_BANDS[0].value} dBZ nearby.`,
+    `Green marks a 3 km cell where three tests pass: a cloud base under ${BASE_CEILING_LABEL} MSL; reflectivity of at least ${RADAR_BANDS[0].value} dBZ nearby; and either an 18 dBZ echo top at or above the freezing level nearby or a base below the freezing level.`,
     `The base is the one the CLOUD BASE layer draws — HRRR's own where the model has a cloud, the convective condensation level where it does not — so the base behind a green cell is the base painted over it. There is no lower bound: a low cloud is still cloud worth working.`,
-    `A cell with no base from either height fails on that, rather than resting on the two radar tests. A click reports which test ruled the cell out and the value behind each one.`,
+    `A cell with no base from either height fails on that, rather than resting on the other two tests. A click reports which test ruled the cell out and the value behind each one.`,
   ],
 };
 

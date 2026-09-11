@@ -108,9 +108,8 @@ export interface TargetStats {
   rejected: {
     noCloudBase: number;
     baseTooHigh: number;
-    noFreezingLevel: number;
-    noIceNoWarmLayer: number;
     noStorm: number;
+    noIceNoWarmLayer: number;
   };
 }
 
@@ -129,9 +128,8 @@ export type TargetVerdict =
   | "target"
   | "noCloudBase"
   | "baseTooHigh"
-  | "noFreezingLevel"
-  | "noIceNoWarmLayer"
-  | "noStorm";
+  | "noStorm"
+  | "noIceNoWarmLayer";
 
 /**
  * Mirrors SeedingPayload in server/src/lib/services/candidate/target.ts —
