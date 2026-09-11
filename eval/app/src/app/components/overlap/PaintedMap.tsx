@@ -15,7 +15,7 @@ import {
 } from "~/lib/layers";
 
 // ArcGIS
-import { COLORS, soloColor } from "@/lib/arcgis/bands";
+import { COLORS, LAYER_OPACITY, soloColor } from "@/lib/arcgis/bands";
 
 // Layout
 import type { Fitted } from "./fit";
@@ -122,31 +122,36 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
 
   /**
    * One layer's levels, low to high, so the fills composite the way ArcGIS
-   * composites them.
+   * composites them — then the whole layer at `LAYER_OPACITY`, as a group,
+   * because the product sets that on the layer and not on its symbols.
    */
   const fillsOf = (layer: EvalLayer) => {
     const frame = painted.frames[analysis.at]?.[layer.key];
     if (!frame || frame.error) return null;
-    return frame.levels.map((level) => {
-      // A gate paints every level it has at one alpha; a ramped field paints
-      // only the levels its band table names, so a contour the product does
-      // not draw is not drawn here either.
-      const alpha =
-        layer.kind === "gate"
-          ? layer.alpha
-          : layer.bands.find((b) => b.value === level.level)?.alpha;
-      if (alpha === undefined) return null;
-      return level.polygons.map((polygon, index) => (
-        <path
-          key={`${layer.key}-${level.level}-${index}`}
-          d={polygon.map(draw).join(" ")}
-          fillRule="evenodd"
-          fill={soloColor(layer.rgb, alpha)}
-          stroke={soloColor(layer.rgb, 0.85)}
-          strokeWidth={1}
-        />
-      ));
-    });
+    return (
+      <g key={layer.key} opacity={LAYER_OPACITY}>
+        {frame.levels.map((level) => {
+          // A gate paints every level it has at one alpha; a ramped field
+          // paints only the levels its band table names, so a contour the
+          // product does not draw is not drawn here either.
+          const alpha =
+            layer.kind === "gate"
+              ? layer.alpha
+              : layer.bands.find((b) => b.value === level.level)?.alpha;
+          if (alpha === undefined) return null;
+          return level.polygons.map((polygon, index) => (
+            <path
+              key={`${layer.key}-${level.level}-${index}`}
+              d={polygon.map(draw).join(" ")}
+              fillRule="evenodd"
+              fill={soloColor(layer.rgb, alpha)}
+              stroke={soloColor(layer.rgb, 0.85)}
+              strokeWidth={1}
+            />
+          ));
+        })}
+      </g>
+    );
   };
 
   /**
@@ -248,45 +253,53 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
               the echo top over the rain it annotates. */}
           {belowMarks.map(fillsOf)}
 
-          {visible.radar &&
-            heading &&
-            (painted.marks?.[analysis.at]?.heading.rings ?? [])
-              .filter(inView)
-              .map((ring, index) => (
-                <path
-                  key={`heading-${index}`}
-                  d={draw(ring)}
-                  fill={soloColor(COLORS.motion, 0.95)}
-                />
-              ))}
+          {/* The storm marks are layers in the product too, at the same
+              layer opacity. */}
+          {visible.radar && heading && (
+            <g opacity={LAYER_OPACITY}>
+              {(painted.marks?.[analysis.at]?.heading.rings ?? [])
+                .filter(inView)
+                .map((ring, index) => (
+                  <path
+                    key={`heading-${index}`}
+                    d={draw(ring)}
+                    fill={soloColor(COLORS.motion, 0.95)}
+                  />
+                ))}
+            </g>
+          )}
 
-          {visible.radar &&
-            heading &&
-            (painted.marks?.[analysis.at]?.cores.points ?? []).map(
-              ([lon, lat], index) => (
-                <circle
-                  key={`core-${index}`}
-                  cx={px(lon)}
-                  cy={py(lat)}
-                  r={3.5}
-                  fill={soloColor(COLORS.rain, 0.95)}
-                />
-              )
-            )}
+          {visible.radar && heading && (
+            <g opacity={LAYER_OPACITY}>
+              {(painted.marks?.[analysis.at]?.cores.points ?? []).map(
+                ([lon, lat], index) => (
+                  <circle
+                    key={`core-${index}`}
+                    cx={px(lon)}
+                    cy={py(lat)}
+                    r={3.5}
+                    fill={soloColor(COLORS.rain, 0.95)}
+                  />
+                )
+              )}
+            </g>
+          )}
 
-          {visible.radar &&
-            lightning &&
-            (painted.marks?.[analysis.at]?.lightning.points ?? []).map(
-              ([lon, lat], index) => (
-                <circle
-                  key={`flash-${index}`}
-                  cx={px(lon)}
-                  cy={py(lat)}
-                  r={2.5}
-                  fill={soloColor(COLORS.lightning, 0.95)}
-                />
-              )
-            )}
+          {visible.radar && lightning && (
+            <g opacity={LAYER_OPACITY}>
+              {(painted.marks?.[analysis.at]?.lightning.points ?? []).map(
+                ([lon, lat], index) => (
+                  <circle
+                    key={`flash-${index}`}
+                    cx={px(lon)}
+                    cy={py(lat)}
+                    r={2.5}
+                    fill={soloColor(COLORS.lightning, 0.95)}
+                  />
+                )
+              )}
+            </g>
+          )}
 
           {/* The fly fill, over the marks, as the operator's map draws it. */}
           {aboveMarks.map(fillsOf)}

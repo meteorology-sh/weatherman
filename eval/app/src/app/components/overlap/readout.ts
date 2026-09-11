@@ -89,11 +89,23 @@ function rain(cell: CellAtFlare): string {
 export function cellRows(cell: CellAtFlare | null | undefined): Row[] {
   return [
     { label: "Cloud Base", value: cell ? mergedBase(cell) : "—" },
+    // A cell can be a target with no modeled base, and the panel says so
+    // rather than printing a dash that reads as a missing reading.
     {
       label: "Base Above Ground",
-      value: cell ? feet(cell.cloudBaseAglFt) : "—",
+      value: !cell
+        ? "—"
+        : cell.cloudBaseAglFt == null
+          ? "not modeled"
+          : feet(cell.cloudBaseAglFt),
     },
-    { label: "CCL", value: cell ? feet(cell.cclFt) : "—" },
+    {
+      label: "CCL",
+      value:
+        cell && Number.isFinite(cell.cclFt)
+          ? `${num.format(cell.cclFt as number)} ft MSL`
+          : "—",
+    },
     {
       label: "Warm-Cloud Depth",
       value: !cell

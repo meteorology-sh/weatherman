@@ -37,6 +37,17 @@ export const COLORS = {
   motion: [255, 255, 255],
 } as const;
 
+/**
+ * What every layer on either map is drawn at, over whatever its own alphas
+ * composite to.
+ *
+ * One knob for all of them, applied to the layer rather than to its symbols, so
+ * a layer whose bands composite is halved once at the end rather than band by
+ * band. The ground under a fill stays readable at every zoom, and the switches
+ * are there for when it does not.
+ */
+export const LAYER_OPACITY = 0.5;
+
 /** The single-fill layers, which have no band table to carry an alpha. */
 export const FLY_ALPHA = 0.45;
 export const ECHO_FREEZE_ALPHA = 0.28;

@@ -353,8 +353,10 @@ stops drawing comes out of that file.
 county box. Flare positions as points. Layer geometry from
 `frames[hour]` in the painted file — the same polygons `paint.mjs`
 stored, native stairs. Radar marks (cores, heading, lightning) from
-`marks`. Opening set: radar with its heading marks, and the fly fill,
-which is what `replay.ts` opens with.
+`marks`. Opening set: the fly fill alone, which is what `replay.ts` opens
+with. Heading and lightning wait on their own switches under radar, as they
+do there. Every fill and mark is drawn at `LAYER_OPACITY` from `bands.ts`,
+the opacity the product sets on each layer.
 
 A gate is one fill at one alpha, not a ramp. The route answers pass or
 fail on a 3 km square, so shading it by a contour level would invent a

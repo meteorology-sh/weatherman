@@ -12,7 +12,7 @@ import { CountiesUrl } from "~/lib/client";
 
 // ArcGIS
 import { HeadingLegend, LightningLegend } from "@/lib/arcgis/legends";
-import { COLORS, soloColor } from "@/lib/arcgis/bands";
+import { COLORS, LAYER_OPACITY, soloColor } from "@/lib/arcgis/bands";
 
 // Components
 import { Status } from "../Status";
@@ -268,7 +268,7 @@ export const Overlap = () => {
                             cx="7"
                             cy="7"
                             r="3.5"
-                            fill={soloColor(COLORS.rain, 0.95)}
+                            fill={soloColor(COLORS.rain, 0.95 * LAYER_OPACITY)}
                           />
                         </svg>
                         Heaviest rain in the storm ({HeadingLegend.name})
@@ -279,7 +279,10 @@ export const Overlap = () => {
                             cx="7"
                             cy="7"
                             r="2.5"
-                            fill={soloColor(COLORS.lightning, 0.95)}
+                            fill={soloColor(
+                              COLORS.lightning,
+                              0.95 * LAYER_OPACITY
+                            )}
                           />
                         </svg>
                         {LightningLegend.name} in the last five minutes

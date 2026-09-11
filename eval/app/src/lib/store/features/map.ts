@@ -36,9 +36,9 @@ const initialState: MapState = {
   visible: { ...OPEN_WITH },
   selectedHour: null,
   drift: true,
-  // On with the rain, like the product's own map: the core and the heading
-  // are how a storm object is read, not an extra opinion about it.
-  heading: true,
+  // Off until asked, like the replay map's own switch: turning the rain on
+  // draws the rain, and the storm marks wait on their own switch under it.
+  heading: false,
   lightning: false,
   counties: true,
 };

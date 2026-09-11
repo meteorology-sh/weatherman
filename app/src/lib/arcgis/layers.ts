@@ -13,6 +13,7 @@ import {
   stormCoreRenderer,
   stormMotionRenderer,
 } from "./renderers";
+import { LAYER_OPACITY } from "./bands";
 
 // Client
 import {
@@ -40,15 +41,6 @@ if (import.meta.hot) {
   import.meta.hot.accept(() => location.reload());
 }
 
-/**
- * What every layer on either map is drawn at.
- *
- * One knob for all of them, applied to the layer rather than to its symbols, so
- * a layer whose bands composite is halved once at the end rather than band by
- * band. The ground under a fill stays readable at every zoom, and the switches
- * are there for when it does not.
- */
-const LAYER_OPACITY = 0.5;
 
 export const ReplayCloudBaseLayer = new GeoJSONLayer({
   opacity: LAYER_OPACITY,
