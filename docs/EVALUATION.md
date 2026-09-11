@@ -4,15 +4,15 @@ Every table here is printed by `node eval/score-season.mjs` from the painted
 season in `eval/out/`. How to run the job is `eval/README.md`.
 
 Every located flare is in every denominator: 1353 for the season, the
-program's releases for a program. A flare with no answer for a layer is not
-inside it.
+program's releases for a program. A layer that painted nothing near a flare
+counts as a miss.
 
 | The season                               |                         |
 | ---------------------------------------- | ----------------------: |
 | Flying days painted                      |                     116 |
 | First / last                             | 2025-03-26 / 2025-10-24 |
 | Located flares                           |                    1353 |
-| Flares a click answered                  |                    1341 |
+| Flares a click answered                  |                    1353 |
 | Flares standing in a 20 dBZ storm object |                    1314 |
 | Programs                                 |                       5 |
 | Balloon ascents, band scored             |                     104 |
@@ -25,28 +25,27 @@ inside it.
 | West Texas     |      497 |       420/497 (84.5%) |      302/497 (60.8%) |      325/497 (65.4%) |      326/497 (65.6%) |            31/497 (6.2%) |
 | Trans Pecos    |      465 |       421/465 (90.5%) |      320/465 (68.8%) |      349/465 (75.1%) |      339/465 (72.9%) |            25/465 (5.4%) |
 | Panhandle      |      255 |       186/255 (72.9%) |      132/255 (51.8%) |      149/255 (58.4%) |      143/255 (56.1%) |           27/255 (10.6%) |
-| South Texas    |       83 |         40/83 (48.2%) |        24/83 (28.9%) |        24/83 (28.9%) |        25/83 (30.1%) |              3/83 (3.6%) |
+| South Texas    |       83 |         46/83 (55.4%) |        24/83 (28.9%) |        24/83 (28.9%) |        29/83 (34.9%) |              3/83 (3.6%) |
 | Rolling Plains |       53 |         33/53 (62.3%) |        21/53 (39.6%) |        22/53 (41.5%) |        20/53 (37.7%) |             6/53 (11.3%) |
-| **Season**     | **1353** | **1100/1353 (81.3%)** | **799/1353 (59.1%)** | **869/1353 (64.2%)** | **853/1353 (63.0%)** |       **92/1353 (6.8%)** |
+| **Season**     | **1353** | **1106/1353 (81.7%)** | **799/1353 (59.1%)** | **869/1353 (64.2%)** | **857/1353 (63.3%)** |       **92/1353 (6.8%)** |
 
 ## The fly criteria at each release
 
 Each release's own 3 km cell, as the click readout stored on the painted
-flare answered it. A flare with no click readout passes nothing. The verdict
-charges a cell to the first test it fails — base, then rain, then payload —
-so rain is only asked of a cell whose base passed, and row 2 is the two
-together. The two payload halves are asked of every cell. An ice flare is a
-row the report logs as glaciogenic, a salt flare one it logs as
-hygroscopic; a row logging both is in both columns.
+flare answered it. The verdict charges a cell to the first test it fails —
+base, then rain, then payload — so rain is only asked of a cell whose base
+passed, and row 2 is the two together. The two payload halves are asked of
+every cell. An ice flare is a row the report logs as glaciogenic, a salt
+flare one it logs as hygroscopic; a row logging both is in both columns.
 
-| Criterion                                             |    Ice flares (935) |  Salt flares (106) | Type not logged (391) |  All flares (1353) |
-| ----------------------------------------------------- | ------------------: | -----------------: | --------------------: | -----------------: |
-| 1. Cloud base under 18,000 ft MSL                     |     921/935 (98.5%) |    105/106 (99.1%) |       357/391 (91.3%) |  1305/1353 (96.5%) |
-| 2. Base passes and rain at 20 dBZ within a cell       |     814/935 (87.1%) |     93/106 (87.7%) |       266/391 (68.0%) |  1103/1353 (81.5%) |
-| 3a. Echo top at or above freezing within a cell (ice) |     843/935 (90.2%) |     96/106 (90.6%) |       281/391 (71.9%) |  1147/1353 (84.8%) |
-| 3b. Base below the freezing level (salt)              |     854/935 (91.3%) |     93/106 (87.7%) |       328/391 (83.9%) |  1207/1353 (89.2%) |
-| FLY                                                   |     814/935 (87.1%) |     93/106 (87.7%) |       264/391 (67.5%) |  1101/1353 (81.4%) |
-| **FLY, for the flare that was flown**                 | **808/935 (86.4%)** | **82/106 (77.4%)** |                     — |                  — |
+| Criterion                                             |    Ice flares (935) |  Salt flares (106) | Type not logged (391) | All flares (1353) |
+| ----------------------------------------------------- | ------------------: | -----------------: | --------------------: | ----------------: |
+| 1. Cloud base under 18,000 ft MSL                     |     921/935 (98.5%) |    105/106 (99.1%) |       369/391 (94.4%) | 1317/1353 (97.3%) |
+| 2. Base passes and rain at 20 dBZ within a cell       |     814/935 (87.1%) |     93/106 (87.7%) |       271/391 (69.3%) | 1108/1353 (81.9%) |
+| 3a. Echo top at or above freezing within a cell (ice) |     843/935 (90.2%) |     96/106 (90.6%) |       286/391 (73.1%) | 1152/1353 (85.1%) |
+| 3b. Base below the freezing level (salt)              |     854/935 (91.3%) |     93/106 (87.7%) |       339/391 (86.7%) | 1218/1353 (90.0%) |
+| FLY                                                   |     814/935 (87.1%) |     93/106 (87.7%) |       269/391 (68.8%) | 1106/1353 (81.7%) |
+| **FLY, for the flare that was flown**                 | **808/935 (86.4%)** | **82/106 (77.4%)** |                     — |                 — |
 
 ## Flare overlap within tolerance
 
@@ -66,10 +65,10 @@ landed in the layer.
 
 | Layer                    | Cell |            Inside | Within tolerance |      Inside or within |
 | ------------------------ | ---: | ----------------: | ---------------: | --------------------: |
-| Seeding opportunity      | 3 km | 1100/1353 (81.3%) |  100/1353 (7.4%) | **1200/1353 (88.7%)** |
+| Seeding opportunity      | 3 km | 1106/1353 (81.7%) |  105/1353 (7.8%) | **1211/1353 (89.5%)** |
 | Radar reflectivity       | 1 km |  799/1353 (59.1%) | 209/1353 (15.4%) |     1008/1353 (74.5%) |
 | Echo past freezing       | 3 km |  869/1353 (64.2%) | 262/1353 (19.4%) |     1131/1353 (83.6%) |
-| Cloud base               | 3 km |  853/1353 (63.0%) | 285/1353 (21.1%) |     1138/1353 (84.1%) |
+| Cloud base               | 3 km |  857/1353 (63.3%) | 290/1353 (21.4%) |     1147/1353 (84.8%) |
 | Supercooled liquid water | 3 km |    92/1353 (6.8%) |   90/1353 (6.7%) |      182/1353 (13.5%) |
 
 Each cell below is inside + within tolerance.
@@ -79,9 +78,9 @@ Each cell below is inside + within tolerance.
 | West Texas     |      497 |        84.5% + 4.8% |     60.8% + 13.9% |      65.4% + 19.7% |     65.6% + 21.3% |     6.2% + 4.6% |
 | Trans Pecos    |      465 |        90.5% + 4.3% |     68.8% + 15.1% |      75.1% + 15.1% |     72.9% + 17.6% |     5.4% + 4.5% |
 | Panhandle      |      255 |       72.9% + 12.2% |     51.8% + 17.6% |      58.4% + 19.6% |     56.1% + 21.6% |   10.6% + 14.1% |
-| South Texas    |       83 |       48.2% + 22.9% |     28.9% + 24.1% |      28.9% + 38.6% |     30.1% + 31.3% |     3.6% + 7.2% |
+| South Texas    |       83 |       55.4% + 28.9% |     28.9% + 24.1% |      28.9% + 38.6% |     34.9% + 37.3% |     3.6% + 7.2% |
 | Rolling Plains |       53 |       62.3% + 11.3% |      39.6% + 9.4% |      41.5% + 22.6% |     37.7% + 30.2% |    11.3% + 7.5% |
-| **Season**     | **1353** |    **81.3% + 7.4%** | **59.1% + 15.4%** |  **64.2% + 19.4%** | **63.0% + 21.1%** | **6.8% + 6.7%** |
+| **Season**     | **1353** |    **81.7% + 7.8%** | **59.1% + 15.4%** |  **64.2% + 19.4%** | **63.3% + 21.4%** | **6.8% + 6.7%** |
 
 ## Seeding opportunity, split by whether the report placed the flare
 
@@ -93,7 +92,7 @@ place, not a release the layer missed.
 | West Texas     |     396/466 (85.0%) |  24/31 (77.4%) |                      0 |
 | Trans Pecos    |     407/447 (91.1%) |  14/18 (77.8%) |                      0 |
 | Panhandle      |     148/195 (75.9%) |  38/60 (63.3%) |                      0 |
-| South Texas    |       28/65 (43.1%) |  12/18 (66.7%) |                      0 |
+| South Texas    |       34/65 (52.3%) |  12/18 (66.7%) |                      0 |
 | Rolling Plains |       25/31 (80.6%) |   8/22 (36.4%) |                      0 |
 
 ## Ground each single-level fill painted
@@ -106,13 +105,13 @@ programs' medians.
 | West Texas     |      82 |       892,872 |       54,344 (6.1%) |      39,964 (4.5%) |
 | Trans Pecos    |      88 |       199,195 |       18,758 (9.4%) |      11,661 (5.9%) |
 | Panhandle      |      51 |        51,430 |       8,269 (16.1%) |      6,205 (12.1%) |
-| South Texas    |      22 |        78,429 |      13,714 (17.5%) |      9,605 (12.2%) |
+| South Texas    |      22 |        78,429 |      15,114 (19.3%) |      9,605 (12.2%) |
 | Rolling Plains |      10 |        65,362 |       8,687 (13.3%) |      7,383 (11.3%) |
-| **Season**     | **253** | **1,287,288** |  **103,772 (8.1%)** |  **74,819 (5.8%)** |
+| **Season**     | **253** | **1,287,288** |  **105,172 (8.2%)** |  **74,819 (5.8%)** |
 
 ## Flare overlap with each Texas selection feature
 
-A flare with no storm reading does not pass a feature.
+A flare with no 20 dBZ storm object does not pass a feature.
 
 | Program        | Releases |               Upwind |            In 20 dBZ |       Nearer the edge | Echo top past freezing |
 | -------------- | -------: | -------------------: | -------------------: | --------------------: | ---------------------: |

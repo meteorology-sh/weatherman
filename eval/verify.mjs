@@ -34,6 +34,9 @@ let withStorm = 0;
 let withClick = 0;
 let balloons = 0;
 
+/** The layers Weatherman draws. A painted file may carry others; they are not read. */
+const LAYER_KEYS = ["target", "radar", "echoFreeze", "cloudBase", "liquid"];
+
 function native(cellKm) {
   return (
     cellKm &&
@@ -101,9 +104,9 @@ for (const region of regions) {
         flares += 1;
         // An empty layer is an answer (`empty: true`); a null is a route that
         // failed, and a season with a failed route is not complete.
-        for (const layer of paintedDay.layers ?? []) {
-          if (flare.near?.[layer.key] == null) {
-            missing.push(`out/${name} ${flare.timeZ} (${layer.key} failed)`);
+        for (const key of LAYER_KEYS) {
+          if (flare.near?.[key] == null) {
+            missing.push(`out/${name} ${flare.timeZ} (${key} failed)`);
           }
         }
         if (flare.drift) drifted += 1;
