@@ -8,8 +8,9 @@
  *
  * - **Position is a bearing and a range, not a latitude and a longitude.** The
  *   table reads `109° @ 13 nm`, which is where the cell sat on the radar
- *   display. `project()` turns that into a point; the origin it is measured
- *   from is the caller's to supply, and `data/regions.json` carries it.
+ *   display. `projectRadial()` turns that into a point; the origin it is
+ *   measured from, and the magnetic variation its bearings carry, are the
+ *   caller's to supply, and `data/regions.json` carries both.
  * - **Flare counts are in the prose, not the table.** A row says a flare was
  *   released and not how many, so a release here carries no count and the day's
  *   total comes from the monthly operations report instead.
@@ -20,7 +21,7 @@
  */
 
 // Local
-import { project } from "./geo.mjs";
+import { projectRadial } from "./geo.mjs";
 
 /** `SEEDING REPORT June 02, 2025` opens each day inside a monthly file. */
 const DAY = /SEEDING\s+REPORT\s+([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})/g;
@@ -95,9 +96,10 @@ function parseIndices(text) {
 /**
  * Every daily report in one monthly mission file.
  *
- * `origin` is the point the table's bearings and ranges are measured from. A
- * release is `located` only when there is one, so a month read without it still
- * carries its times, counties and flight structure.
+ * `origin` is the region's origin from `data/regions.json` — the point the
+ * table's bearings and ranges are measured from, and the variation of record
+ * those bearings carry. A release is `located` only when there is one, so a
+ * month read without it still carries its times, counties and flight structure.
  */
 export function parseMissions(text, origin) {
   const starts = [...text.matchAll(DAY)];
@@ -116,7 +118,7 @@ export function parseMissions(text, origin) {
     const releases = [...table.matchAll(RELEASE)].map(
       ([, hhmm, plane, bearing, range, county]) => {
         const at = origin
-          ? project(origin, Number(bearing), Number(range))
+          ? projectRadial(origin, Number(bearing), Number(range))
           : null;
         return {
           at: instant(date, hhmm),

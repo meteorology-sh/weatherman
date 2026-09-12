@@ -16,20 +16,14 @@ const KM_PER_NM = 1.852;
 const EARTH_KM = 6371;
 
 /**
- * Where a bearing and a range put a release.
+ * Where a true bearing and a range put a release.
  *
  * Great-circle rather than flat: at 50 nm a flat projection is off by a few
  * hundred meters, which is nothing against a 3 km cell, but the spherical form
  * is no harder and does not have to be explained.
  *
- * **The bearing is used as printed.** Two programs position their releases
- * this way and neither states whether the display was set to true or magnetic
- * north. The county each row names is not sharp enough to settle it either —
- * about six degrees of eastward rotation fits both records better, which is
- * what a magnetic display would look like and is also what a slightly wrong
- * origin would look like. So no rotation is applied, and the few kilometers
- * that question is worth stay in the number rather than being silently
- * corrected. `positions.mjs` is what measures the cost.
+ * **The bearing is true.** A bearing printed on a report is magnetic, and
+ * `projectRadial` is how it gets here.
  */
 export function project([lat0, lon0], bearingDeg, rangeNm) {
   const angular = (rangeNm * KM_PER_NM) / EARTH_KM;
@@ -50,6 +44,24 @@ export function project([lat0, lon0], bearingDeg, rangeNm) {
 
   const round = (value) => Math.round(value * 10000) / 10000;
   return [round((lat2 * 180) / Math.PI), round((lon2 * 180) / Math.PI)];
+}
+
+/**
+ * Where a printed radial puts a release, from a region's origin.
+ *
+ * **A printed bearing is magnetic.** Aviation references a bearing to magnetic
+ * north through the variation of record the FAA assigns the airport or navaid
+ * it is measured from — a value fixed at an epoch, not moved each year with
+ * the field. The origin in `data/regions.json` carries that variation as
+ * `magneticVariationDeg`, east positive, and adding it gives the true bearing
+ * `project()` takes. An origin without one projects the bearing as printed.
+ */
+export function projectRadial(origin, bearingDeg, rangeNm) {
+  return project(
+    origin.at,
+    bearingDeg + (origin.magneticVariationDeg ?? 0),
+    rangeNm
+  );
 }
 
 /* ---------- how far a point is from a painted region ---------- */

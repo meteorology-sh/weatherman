@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 // Local
-import { project } from "./geo.mjs";
+import { project, projectRadial } from "./geo.mjs";
 import {
   coordinateBoundKm,
   decimals,
@@ -12,7 +12,9 @@ import {
   radialOf,
 } from "./tolerance.mjs";
 
-const AMARILLO = [35.2333, -101.7092];
+const AMARILLO_AT = [35.2333, -101.7092];
+const AMARILLO = { at: AMARILLO_AT };
+const MAGNETIC = { at: AMARILLO_AT, magneticVariationDeg: 8 };
 
 describe("decimals", () => {
   it("counts digits after the point", () => {
@@ -35,7 +37,10 @@ describe("coordinateBoundKm", () => {
 
   it("reads the row at its longer coordinate", () => {
     // 32.4 is 32.40 with the zero dropped.
-    assert.equal(coordinateBoundKm(32.4, -101.12), coordinateBoundKm(32.4, -101.13));
+    assert.equal(
+      coordinateBoundKm(32.4, -101.12),
+      coordinateBoundKm(32.4, -101.13)
+    );
     assert.ok(coordinateBoundKm(32.4, -101.12) < 1);
   });
 });
@@ -55,18 +60,56 @@ describe("radialBoundKm", () => {
 
 describe("radialOf", () => {
   it("reads a bearing and range the record kept", () => {
-    const release = { lat: 34.9567, lon: -100.9909, bearingDeg: 115, rangeNm: 39 };
-    assert.deepEqual(radialOf(release, AMARILLO), { bearingDeg: 115, rangeNm: 39 });
+    const release = {
+      lat: 34.9567,
+      lon: -100.9909,
+      bearingDeg: 115,
+      rangeNm: 39,
+    };
+    assert.deepEqual(radialOf(release, AMARILLO), {
+      bearingDeg: 115,
+      rangeNm: 39,
+    });
   });
 
   it("recovers them from a projected position", () => {
-    const [lat, lon] = project(AMARILLO, 115, 39);
-    assert.deepEqual(radialOf({ lat, lon }, AMARILLO), { bearingDeg: 115, rangeNm: 39 });
+    const [lat, lon] = project(AMARILLO_AT, 115, 39);
+    assert.deepEqual(radialOf({ lat, lon }, AMARILLO), {
+      bearingDeg: 115,
+      rangeNm: 39,
+    });
+  });
+
+  it("recovers the printed magnetic bearing, not the true one", () => {
+    const [lat, lon] = projectRadial(MAGNETIC, 115, 39);
+    assert.deepEqual(radialOf({ lat, lon }, MAGNETIC), {
+      bearingDeg: 115,
+      rangeNm: 39,
+    });
+  });
+
+  it("wraps a magnetic bearing just west of north", () => {
+    const [lat, lon] = projectRadial(MAGNETIC, 355, 20);
+    assert.deepEqual(radialOf({ lat, lon }, MAGNETIC), {
+      bearingDeg: 355,
+      rangeNm: 20,
+    });
+  });
+
+  it("refuses a position projected against a different variation", () => {
+    const [lat, lon] = project(AMARILLO_AT, 115, 39);
+    assert.equal(
+      radialOf({ lat, lon }, { at: AMARILLO_AT, magneticVariationDeg: 8.5 }),
+      null
+    );
   });
 
   it("recovers a bearing just west of north", () => {
-    const [lat, lon] = project(AMARILLO, 359, 12);
-    assert.deepEqual(radialOf({ lat, lon }, AMARILLO), { bearingDeg: 359, rangeNm: 12 });
+    const [lat, lon] = project(AMARILLO_AT, 359, 12);
+    assert.deepEqual(radialOf({ lat, lon }, AMARILLO), {
+      bearingDeg: 359,
+      rangeNm: 12,
+    });
   });
 
   it("refuses a coordinate that is not on the lattice", () => {
@@ -80,8 +123,11 @@ describe("radialOf", () => {
 
 describe("positionBoundKm", () => {
   it("uses the radial bound for a radial row", () => {
-    const [lat, lon] = project(AMARILLO, 115, 39);
-    assert.equal(positionBoundKm({ lat, lon }, AMARILLO), radialBoundKm(115, 39));
+    const [lat, lon] = project(AMARILLO_AT, 115, 39);
+    assert.equal(
+      positionBoundKm({ lat, lon }, AMARILLO),
+      radialBoundKm(115, 39)
+    );
   });
 
   it("uses the coordinate bound otherwise", () => {

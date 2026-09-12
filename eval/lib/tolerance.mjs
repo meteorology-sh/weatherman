@@ -13,13 +13,12 @@
  * line beside the releases the geometry places inside.
  *
  * What the bound leaves out, because nothing on the record measures it: an
- * inferred radial origin, a bearing that may be magnetic, and a Rolling Plains
- * row whose fraction may be minutes. Each can move a release further than the
- * bound does.
+ * inferred radial origin, and a Rolling Plains row whose fraction may be
+ * minutes. Each can move a release further than the bound does.
  */
 
 // Local
-import { project } from "./geo.mjs";
+import { projectRadial } from "./geo.mjs";
 
 const KM_PER_NM = 1.852;
 const EARTH_KM = 6371;
@@ -60,17 +59,20 @@ export function radialBoundKm(bearingDeg, rangeNm) {
  * The printed bearing and range behind a release, or null for a coordinate.
  *
  * A record that kept them is read directly. One that kept only the projected
- * position is inverted from the program's origin, and counts as radial only
- * when a whole-degree bearing and a whole-mile range project back onto the
- * stored position exactly — a coordinate row does not land on that lattice.
+ * position is inverted from the program's origin and its magnetic variation,
+ * and counts as radial only when a whole-degree bearing and a whole-mile range
+ * project back onto the stored position exactly — a coordinate row does not
+ * land on that lattice.
+ *
+ * `origin` is the region's origin from `data/regions.json`.
  */
 export function radialOf(release, origin) {
   if (release.bearingDeg != null && release.rangeNm != null) {
     return { bearingDeg: release.bearingDeg, rangeNm: release.rangeNm };
   }
-  if (!origin) return null;
+  if (!origin?.at) return null;
 
-  const [lat0, lon0] = origin;
+  const [lat0, lon0] = origin.at;
   const phi1 = lat0 * RAD;
   const phi2 = release.lat * RAD;
   const dLambda = (release.lon - lon0) * RAD;
@@ -88,11 +90,14 @@ export function radialOf(release, origin) {
       Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLambda)
   );
 
+  const magnetic = Math.round(
+    bearing / RAD - (origin.magneticVariationDeg ?? 0)
+  );
   const printed = {
-    bearingDeg: (Math.round(bearing / RAD) + 360) % 360,
+    bearingDeg: ((magnetic % 360) + 360) % 360,
     rangeNm: Math.round((angular * EARTH_KM) / KM_PER_NM),
   };
-  const [lat, lon] = project(origin, printed.bearingDeg, printed.rangeNm);
+  const [lat, lon] = projectRadial(origin, printed.bearingDeg, printed.rangeNm);
   return lat === release.lat && lon === release.lon ? printed : null;
 }
 

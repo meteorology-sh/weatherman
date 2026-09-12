@@ -23,7 +23,7 @@
  */
 
 // Local
-import { project } from "./geo.mjs";
+import { projectRadial } from "./geo.mjs";
 
 /**
  * A county name is what ends a table row.
@@ -75,7 +75,7 @@ const SPELLINGS = [
   {
     at: /^(\d{1,3})\s*[xX]\s*(\d{1,3})(?!\S)/,
     read: ([bearing, range], origin) =>
-      project(origin.at, Number(bearing), Number(range)),
+      projectRadial(origin, Number(bearing), Number(range)),
     needsOrigin: true,
   },
 ];

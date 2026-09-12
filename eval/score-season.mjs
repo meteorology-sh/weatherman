@@ -195,7 +195,7 @@ for (const name of files) {
   const id = regionOfPainted(name);
   const painted = JSON.parse(await readFile(join(OUT, name), "utf8"));
   const flares = (painted.analyses ?? []).flatMap((a) => a.flares);
-  const origin = evaluable.find((region) => region.id === id)?.origin?.at;
+  const origin = evaluable.find((region) => region.id === id)?.origin;
   stats[id].days += 1;
   stats[id].dates.push(painted.date);
   stats[id].flares.push(...flares);

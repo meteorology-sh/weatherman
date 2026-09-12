@@ -272,23 +272,27 @@ the Panhandle, the town of Pleasanton for South Texas. Both are
 inferences, and a center placed a few miles wrong slides every flare in
 that program by the same few miles.
 
-**Whether the compass is true or magnetic.** A magnetic heading in Texas
-runs about six degrees east of a true one, and the reports do not say
-which they used. Six degrees does not sound like much until it is
-multiplied by the range: at 39 nautical miles it moves the flare about
-7 km, more than two of the cells the fills are drawn on. Both radial
-programs want about the same six degrees of eastward rotation to land more
-flares in their named counties, which is what a magnetic display would
-look like and also what two slightly misplaced centers would look like.
-No rotation is applied.
+**Which north the compass points at.** The bearings are magnetic.
+Aviation measures a bearing from magnetic north using the variation of
+record the FAA assigns the airport or navaid it is taken from — a value
+fixed at an epoch, not moved each year with the field. Amarillo's is 8°E
+and Pleasanton's is 6°E, both at epoch 2000, and each region's
+`magneticVariationDeg` adds it to every printed bearing before the flare
+is placed. It is not a small correction: at 39 nautical miles eight
+degrees moves a flare about 10 km, more than three of the cells the fills
+are drawn on.
+
+`positions.mjs` is the check. A bearing read against the wrong north
+turns every flare by the same angle, so the flares that miss their named
+county all lean one way; read against the right one, a miss is a pilot
+naming the county they were working and leans neither way. It prints the
+split and the further turn that would place the most flares, and both
+should read even and zero.
 
 Rolling Plains is a different failure. It prints real coordinates, but
 rounded to a tenth of a degree on some rows — and a tenth of a degree is
 11 km, which is nearly four cells. The number looks precise and is not.
 
-**What to do about it.** Rescoring the Panhandle and South Texas with and
-without six degrees of eastward rotation is a one-parameter test with an
-independent check already in the repo — county agreement — and it would
-settle the question in one run. Until then, a distance measured for a
-radial program is a distance from an inferred point, and should be read as
-such.
+**What is left.** The center is still an inference. A distance measured
+for a radial program is a distance from an inferred point, and should be
+read as such.

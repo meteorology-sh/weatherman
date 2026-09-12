@@ -35,7 +35,7 @@ const { regions } = JSON.parse(
 const region = regions.find((entry) => entry.id === "panhandle");
 const manifest = JSON.parse(await readFile(join(DATA, region.reports), "utf8"));
 
-const origin = region.origin?.at ?? null;
+const origin = region.origin?.at ? region.origin : null;
 if (!origin) {
   console.log("no origin in regions.json — releases will carry no position\n");
 }
