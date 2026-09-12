@@ -1,7 +1,8 @@
 /**
  * Everything a map needs to show one flying day, in one file.
  *
- * `node eval/paint.mjs 2025-04-19 [--region=wtwma] [--season=2025]` — with the
+ * `node eval/paint.mjs 2025-04-19 [--region=wtwma] [--season=2025] [--as-printed]`
+ * — with the
  * Weatherman server running. The season is the date's year unless named.
  * Writes the name the season's `regions.json` gives that program, e.g.
  * `eval/out/2025/painted-2025-04-19.json` for West Texas.
@@ -56,9 +57,10 @@ import { join } from "node:path";
 
 // Local
 import { SERVER, stormNear } from "./lib/weatherman.mjs";
-import { distanceToPolygonsKm } from "./lib/geo.mjs";
+import { distanceToPolygonsKm, project } from "./lib/geo.mjs";
 import { regionsOf, seasonDirs, seasonOf } from "./lib/season.mjs";
 import { stormFromReading } from "./lib/storm-score.mjs";
+import { radialOf } from "./lib/tolerance.mjs";
 
 const TIMEOUT_MS = Number(process.env.WEATHERMAN_TIMEOUT_MS ?? 240_000);
 
@@ -68,7 +70,7 @@ const REGION =
 
 if (!DATE) {
   console.error(
-    "usage: node eval/paint.mjs <YYYY-MM-DD> [--region=wtwma] [--season=YYYY]"
+    "usage: node eval/paint.mjs <YYYY-MM-DD> [--region=wtwma] [--season=YYYY] [--as-printed]"
   );
   process.exit(1);
 }
@@ -79,6 +81,16 @@ const SEASON = seasonOf(
     : [...process.argv, `--season=${DATE.slice(0, 4)}`]
 );
 const { data: DATA, out: OUT } = seasonDirs(SEASON);
+
+/**
+ * `--as-printed` paints a radial program with every printed bearing read as
+ * true north, into `out/<season>/as-printed/`. It is the before column of the
+ * evaluation's adjustment table: the same day and the same layers, with each
+ * release where the report's own numbers put it before the magnetic variation
+ * is added.
+ */
+const AS_PRINTED = process.argv.includes("--as-printed");
+const RUN_DIR = AS_PRINTED ? join(OUT, "as-printed") : OUT;
 
 /**
  * Native cell size of each layer, kilometers. Inside means inside the contour
@@ -617,6 +629,25 @@ function nearness(frame, layer, lon, lat, raw) {
 
 /* ---------- the day ---------- */
 
+if (AS_PRINTED && region.origin?.magneticVariationDeg == null) {
+  console.error(
+    `${region.name} prints no magnetic bearing — there is nothing to paint as printed`
+  );
+  process.exit(1);
+}
+
+/** A radial release placed with its printed bearing read as true north. */
+function trueNorth(release) {
+  const radial = radialOf(release, region.origin);
+  if (!radial) return release;
+  const [lat, lon] = project(
+    region.origin.at,
+    radial.bearingDeg,
+    radial.rangeNm
+  );
+  return { ...release, lat, lon };
+}
+
 const { days } = JSON.parse(
   await readFile(join(DATA, region.releases), "utf8")
 );
@@ -626,7 +657,9 @@ if (!day) {
   process.exit(1);
 }
 
-const releases = day.releases.filter((release) => release.located);
+const releases = day.releases
+  .filter((release) => release.located)
+  .map((release) => (AS_PRINTED ? trueNorth(release) : release));
 
 // One analysis per release, and only the distinct ones are fetched.
 const byHour = new Map();
@@ -790,7 +823,7 @@ for (const hour of hours) {
   analyses.push({ at: hour, flares });
 }
 
-await mkdir(OUT, { recursive: true });
+await mkdir(RUN_DIR, { recursive: true });
 /**
  * The name the region entry gives this run, not one built here.
  *
@@ -801,7 +834,7 @@ await mkdir(OUT, { recursive: true });
  * and whose name says another.
  */
 const file = join(
-  OUT,
+  RUN_DIR,
   (region.runs?.painted ?? "painted-{date}.json").replace("{date}", DATE)
 );
 // Written compact rather than indented. Several fills at several analyses

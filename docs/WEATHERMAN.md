@@ -33,7 +33,7 @@ sampling rule that decides whether a proposed layer is honest at all. **Read
   So the seeding opportunity is traced on the native cells while one covers
   at least a screen pixel, and takes the average only past that, where a
   native cell is smaller than a pixel and the rings could not be seen
-  anyway. Nothing else is resolution-dependent (`UNCERTAINTY.md` §1).
+  anyway. Nothing else is resolution-dependent (the seeding opportunity, below).
 - **A source too sparse to pass that test is drawn as points, and only points** —
   color banding in a marker ramp, each marker where the observation was, nothing
   between them.
@@ -273,6 +273,14 @@ against the operators' own printed cloud base on 104-127 balloon mornings:
 -2,566 ft and 35%. Both halves are model output. A click says which one
 answered; the fill never distinguishes them by colour.
 
+**The CCL's error does not reach the seeding opportunity's base test.** Against
+the balloon's CCL the model runs about 940 ft low with an 1,120 ft typical miss,
+and a base is tested only against 18,000 ft. A fifth of releases take their base
+from the CCL, the median base at a release is 10,516 ft, and 1.4% sit within
+940 ft of the ceiling. It would matter to a rule that uses the base as a
+quantity, such as warm-cloud depth, where 940 ft is a fifth of a West Texas warm
+layer.
+
 **The measured echo top is what makes it a cloud.** A CCL is defined over clear
 ground, and HRRR reports a base for thin high deck no radar sees, so the fill is
 drawn only where the MRMS 18 dBZ echo top sits **above** the base. That is the
@@ -470,6 +478,35 @@ loosely. No cell lookup closes this, because there is nothing wrong with the
 lookup; it is the price of a smooth boundary over a 3 km grid, and it is worst
 exactly where the candidate field is thinnest. **The coordinates in the panel
 are the answer**, not the pixel under the cursor.
+
+**Zoomed out, the fill takes a vote.** Past 3 km to the screen pixel the map
+averages each 4×4 block of cells before tracing, so a block is drawn where nine
+of its sixteen cells qualify. Up to seven cells under a drawn block can refuse,
+and a qualifying cell among refusing neighbours is not drawn. Over one
+1.5° × 1.2° window, 20.1% of the averaged fill refuses on a click and 50.6% of
+the qualifying ground is not drawn. A program-sized view is about 1.1 km to the
+pixel and traces the native cells; `tracesNative` is asked on every settle.
+
+The native trace costs polygons, not bytes:
+
+| Window        | Traced | Payload | Polygons | Vertices | Response |
+| ------------- | ------ | ------- | -------- | -------- | -------- |
+| Texas         | 12 km  | 23 KB   | 27       | 1,310    | ~48 ms   |
+| Texas         | 3 km   | 43 KB   | 131      | 2,433    | ~60 ms   |
+| Whole country | 12 km  | 107 KB  | 106      | 6,254    | ~166 ms  |
+| Whole country | 3 km   | 192 KB  | 590      | 11,075   | ~190 ms  |
+
+After the grid is chosen, a ring is shaped four ways:
+
+| Step                 | What it does                                                                        | Size                      |
+| -------------------- | ----------------------------------------------------------------------------------- | ------------------------- |
+| Stair simplification | Collapses marching-square steps into a diagonal                                     | 0.4 cell                  |
+| Minimum ring         | Islands and holes below one cell are not drawn                                      | 1 cell                    |
+| Corner rounding      | Two Chaikin passes on the map only; the evaluation keeps the stairs                 | map only                  |
+| Vertex placement     | Continuous fields interpolate the level; the gate fills keep the cell-edge midpoint | ±½ cell on the gate fills |
+
+A 0/1 mask keeps midpoints because interpolating it collapses a one-cell feature
+to a point. Stored rings are rounded to three decimal places, about 110 m.
 
 **The map is drawn from one build and the panel answers from the current one,
 so the map follows the build.** The server rebuilds the join as its sources roll

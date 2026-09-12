@@ -31,6 +31,7 @@ let drifted = 0;
 let withStorm = 0;
 let withClick = 0;
 let balloons = 0;
+let asPrinted = 0;
 
 /** The layers Weatherman draws. A painted file may carry others; they are not read. */
 const LAYER_KEYS = ["target", "radar", "echoFreeze", "cloudBase", "liquid"];
@@ -98,6 +99,22 @@ for (const region of regions) {
       continue;
     }
     painted += 1;
+
+    // A program whose bearings carry a magnetic variation is painted a second
+    // time with them read as true north, for the evaluation's before column.
+    if (region.origin?.magneticVariationDeg != null) {
+      try {
+        const printed = JSON.parse(
+          await readFile(join(OUT, "as-printed", name), "utf8")
+        );
+        if (native(printed.cellKm)) asPrinted += 1;
+        else
+          missing.push(`out/${SEASON}/as-printed/${name} (not native cellKm)`);
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+        missing.push(`out/${SEASON}/as-printed/${name}`);
+      }
+    }
     let dayFlares = 0;
     let dayCells = 0;
     for (const analysis of paintedDay.analyses ?? []) {
@@ -179,4 +196,5 @@ console.log(
     `storm motion on ${drifted}, storm reading on ${withStorm}, ` +
     `click readout on ${withClick}`
 );
+console.log(`  as printed ${asPrinted} radial days`);
 console.log(`  balloons  ${balloons}`);

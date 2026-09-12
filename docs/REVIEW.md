@@ -12,7 +12,7 @@ Every number here is measured from the painted season in `eval/out/2025/` — 11
 days, 253 analysis hours, 1,353 located flares — and from
 `eval/data/counties-tx.geojson`. The Panhandle and South Texas print a bearing
 from magnetic north and a range; their releases are placed with the FAA
-variation of record at each program's origin, as `UNCERTAINTY.md` §6
+variation of record at each program's origin, as `UNCERTAINTY.md`
 describes, and every figure below is measured from those positions.
 
 ---
@@ -167,13 +167,6 @@ nothing confirms nobody flew.
 ---
 
 ## 6. Scoring the 2023 and 2024 seasons beside 2025
-
-2024 is scored in `EVALUATION-2024.md`. Its record is thin: six West Texas days
-of twenty-four, the Panhandle from June to September, and only the South Texas
-rows printed as coordinates, because no single origin places that season's
-bearings. Trans-Pecos and the Rolling Plains posted nothing that survives. The
-Panhandle's 8°E variation places its 2024 releases as it places 2025's, which
-is the replication step 3 asks for.
 
 Three seasons instead of one triples the flare count and asks whether South
 Texas's gap is a property of that district or of one year's record. It does not

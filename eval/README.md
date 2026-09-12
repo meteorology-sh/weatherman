@@ -71,7 +71,10 @@ with `near` (each layer), `storm` on each
 (`storm: null` means we looked and there was no 20 dBZ object), and the
 click readout `cell` and `column` on each (either may be null for a
 release outside the model's grid), and a balloon file for each program
-that briefs on a sonde. A partial `out/`
+that briefs on a sonde. A program whose bearings carry a magnetic variation
+has each of its days painted a second time with `--as-printed`, its
+bearings read as true north, into `out/<season>/as-printed/`: that is the
+before column of the evaluation's adjustment table. A partial `out/`
 is an incomplete run, not the season.
 
 `paint.mjs` talks to a running Weatherman API, draws the product's own
@@ -112,7 +115,10 @@ job slot. `{%}` is the slot number GNU `parallel` assigns:
 
 ```bash
 SEASON=2025
-DAYS=$(node eval/days.mjs --season=$SEASON | wc -l)
+# Every painted day, then the radial programs' days again as printed.
+QUEUE=$({ node eval/days.mjs --season=$SEASON
+          node eval/days.mjs --season=$SEASON --as-printed | sed 's/$/\t--as-printed/'; })
+DAYS=$(printf '%s\n' "$QUEUE" | wc -l)
 PAIRS=${PAIRS:-$DAYS}          # fewer than DAYS paints in waves
 
 echo "start   $(date -u +%FT%TZ) UTC / $(TZ=America/Chicago date +'%F %T %Z')"
@@ -143,8 +149,8 @@ done
 
 parallel -j $PAIRS --colsep '\t' --joblog season.joblog \
   'WEATHERMAN_SERVER=http://localhost:$((3000 + {%})) \
-   node eval/paint.mjs {2} --region={1} --season='$SEASON' > logs/{1}-{2}.log 2>&1' \
-  :::: <(node eval/days.mjs --season=$SEASON)
+   node eval/paint.mjs {2} --region={1} --season='$SEASON' {3} > logs/{1}-{2}{3}.log 2>&1' \
+  :::: <(printf '%s\n' "$QUEUE")
 
 echo "finished $(TZ=America/Chicago date +'%F %T %Z'), $(ls eval/out/$SEASON | wc -l) files"
 ```
@@ -266,16 +272,18 @@ with no fetch.
 
 ```bash
 node eval/verify.mjs --season=$SEASON
-node eval/score-season.mjs --season=$SEASON
+node eval/score-season.mjs --season=$SEASON > docs/EVALUATION.md
 node eval/pack.mjs
 ```
 
 `verify.mjs` requires native cell sizes for every fill this run stores,
 storm motion, a storm reading and a click readout on every located flare,
-and a balloon file per sonde program. It asserts those fields are
-present, not that they carry a value. `score-season.mjs` prints one season's
-tables from `out/<season>/`: `docs/EVALUATION.md` is 2025, and every other
-season's go to their own `docs/EVALUATION-<season>.md`. `pack.mjs` writes `eval/eval-snapshot.tar.gz` after
+a balloon file per sonde program, and an as-printed day for every day of a
+program whose bearings carry a magnetic variation. It asserts those fields
+are present, not that they carry a value. `score-season.mjs` prints the
+season's evaluation document, aligned and wrapped as committed:
+`docs/EVALUATION.md` is 2025, and any other season is its own
+`docs/EVALUATION-<season>.md`. `pack.mjs` writes `eval/eval-snapshot.tar.gz` after
 verify passes.
 
 Copy `out/` (or the tarball) back. The eval app and `EVALUATION.md` are
@@ -434,7 +442,7 @@ on the storm they flew.
 | Script             | What it does                                                                                                                    |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
 | `days.mjs`         | Print seeded days that have a located flare.                                                                                    |
-| `paint.mjs`        | Score one flying day. Writes the painted file `regions.json` names.                                                             |
+| `paint.mjs`        | Score one flying day. Writes the painted file `regions.json` names; `--as-printed` reads radial bearings as true north.         |
 | `balloons.mjs`     | Compare the report sounding table to HRRR at 12Z. Writes `runs.balloons`. The app then calculates layer overlap from that file. |
 | `server.mjs`       | HTTP for the eval app (port 3100), one season. Re-reads `out/<season>/` per request.                                            |
 | `releases.mjs`     | Download and parse daily reports into a flight record.                                                                          |
@@ -442,7 +450,7 @@ on the storm they flew.
 | `records.mjs`      | Download a program's reports into `cache/<season>/` without parsing.                                                            |
 | `counties.mjs`     | Pull county polygons from TIGERweb into `data/counties-tx.geojson`.                                                             |
 | `positions.mjs`    | Share of releases that land in the county their own row names, and which way a radial program's misses lean.                    |
-| `score-season.mjs` | Print one season's evaluation tables from `out/<season>/`. No network.                                                          |
+| `score-season.mjs` | Print the season's evaluation document from `out/<season>/`. No network.                                                        |
 | `verify.mjs`       | Is this tree a complete season? No network. Exit 1 if not.                                                                      |
 | `pack.mjs`         | After `verify.mjs` passes, pack `data/`, `cache/`, `out/` to `eval/eval-snapshot.tar.gz`.                                       |
 

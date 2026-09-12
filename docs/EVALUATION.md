@@ -1,162 +1,121 @@
 # Evaluation — the 2025 Texas season
 
-Every table here is printed by `node eval/score-season.mjs --season=2025` from
-the painted season in `eval/out/2025/`. How to run the job is `eval/README.md`.
-
-Every located flare is in every denominator: 1353 for the season, the
-program's releases for a program. A layer that painted nothing near a flare
-counts as a miss.
-
-| The season                               |                         |
-| ---------------------------------------- | ----------------------: |
-| Flying days painted                      |                     116 |
-| First / last                             | 2025-03-26 / 2025-10-24 |
-| Located flares                           |                    1353 |
-| Flares a click answered                  |                    1353 |
-| Flares standing in a 20 dBZ storm object |                    1335 |
-| Programs                                 |                       5 |
-| Balloon ascents, band scored             |                     104 |
-| Balloon ascents, CCL scored              |                     105 |
+116 flying days and 1,353 located flares across five programs. Every located
+flare is in every denominator. How to run the job is `eval/README.md`.
 
 ## Flare overlap with each layer
 
-Two programs print a position the record cannot pin down. The Rolling Plains
-write a fraction that is sometimes a decimal degree and sometimes minutes and
-never say which, and the two readings of one row lie tens of kilometres apart —
-many cells of any layer here. South Texas and the Panhandle write a bearing and
-a range from a point their reports never name. Every position is read exactly
-as printed and nothing is rewritten, so where those three score low the row is
-about the record as much as about the layer. `positions.mjs` prints how far
-that goes.
+The share of flares that landed inside each layer at the minute of release.
+Ground painted is the seeding-opportunity fill's median hourly area, and its
+share of the program's window.
 
-| Program        | Releases |   Seeding opportunity |   Radar reflectivity |   Echo past freezing |           Cloud base | Supercooled liquid water |
-| -------------- | -------: | --------------------: | -------------------: | -------------------: | -------------------: | -----------------------: |
-| West Texas     |      497 |       427/497 (85.9%) |      312/497 (62.8%) |      335/497 (67.4%) |      334/497 (67.2%) |            32/497 (6.4%) |
-| Trans Pecos    |      465 |       428/465 (92.0%) |      323/465 (69.5%) |      355/465 (76.3%) |      345/465 (74.2%) |            27/465 (5.8%) |
-| Panhandle      |      255 |       232/255 (91.0%) |      196/255 (76.9%) |      221/255 (86.7%) |      209/255 (82.0%) |           29/255 (11.4%) |
-| South Texas    |       83 |         57/83 (68.7%) |        22/83 (26.5%) |        25/83 (30.1%) |        27/83 (32.5%) |              5/83 (6.0%) |
-| Rolling Plains |       53 |         37/53 (69.8%) |        24/53 (45.3%) |        27/53 (50.9%) |        25/53 (47.2%) |             6/53 (11.3%) |
-| **Season**     | **1353** | **1181/1353 (87.3%)** | **877/1353 (64.8%)** | **963/1353 (71.2%)** | **940/1353 (69.5%)** |       **99/1353 (7.3%)** |
+| Program        | Releases |   Seeding opportunity |         Ground painted |   Radar reflectivity |   Echo past freezing |           Cloud base | Supercooled liquid water |
+| -------------- | -------: | --------------------: | ---------------------: | -------------------: | -------------------: | -------------------: | -----------------------: |
+| West Texas     |      497 |       427/497 (85.9%) |      54,344 km² (6.1%) |      312/497 (62.8%) |      335/497 (67.4%) |      334/497 (67.2%) |            32/497 (6.4%) |
+| Trans Pecos    |      465 |       428/465 (92.0%) |      18,230 km² (9.2%) |      323/465 (69.5%) |      355/465 (76.3%) |      345/465 (74.2%) |            27/465 (5.8%) |
+| Panhandle      |      255 |       232/255 (91.0%) |      8,269 km² (16.1%) |      196/255 (76.9%) |      221/255 (86.7%) |      209/255 (82.0%) |           29/255 (11.4%) |
+| South Texas    |       83 |         57/83 (68.7%) |     15,114 km² (19.3%) |        22/83 (26.5%) |        25/83 (30.1%) |        27/83 (32.5%) |              5/83 (6.0%) |
+| Rolling Plains |       53 |         37/53 (69.8%) |      9,503 km² (14.5%) |        24/53 (45.3%) |        27/53 (50.9%) |        25/53 (47.2%) |             6/53 (11.3%) |
+| **Season**     | **1353** | **1181/1353 (87.3%)** | **105,460 km² (8.2%)** | **877/1353 (64.8%)** | **963/1353 (71.2%)** | **940/1353 (69.5%)** |       **99/1353 (7.3%)** |
 
-## The fly criteria at each release
+## FLY or DON'T FLY at each release
 
-Each release's own 3 km cell, as the click readout stored on the painted
-flare answered it. The verdict charges a cell to the first test it fails —
-base, then rain, then payload — so rain is only asked of a cell whose base
-passed, and row 2 is the two together. The two payload halves are asked of
-every cell. An ice flare is a row the report logs as glaciogenic, a salt
-flare one it logs as hygroscopic; a row logging both is in both columns.
+What a click on the release's own 3 km cell answered: cloud base under 18,000 ft
+MSL, 20 dBZ rain in the cell or its neighbours, and a payload the column
+supports.
 
-| Criterion                                             |    Ice flares (935) |  Salt flares (106) | Type not logged (391) | All flares (1353) |
-| ----------------------------------------------------- | ------------------: | -----------------: | --------------------: | ----------------: |
-| 1. Cloud base under 18,000 ft MSL                     |     917/935 (98.1%) |    104/106 (98.1%) |       377/391 (96.4%) | 1320/1353 (97.6%) |
-| 2. Base passes and rain at 20 dBZ within a cell       |     827/935 (88.4%) |     96/106 (90.6%) |       321/391 (82.1%) | 1172/1353 (86.6%) |
-| 3a. Echo top at or above freezing within a cell (ice) |     861/935 (92.1%) |    100/106 (94.3%) |       338/391 (86.4%) | 1224/1353 (90.5%) |
-| 3b. Base below the freezing level (salt)              |     850/935 (90.9%) |     92/106 (86.8%) |       353/391 (90.3%) | 1227/1353 (90.7%) |
-| FLY                                                   |     827/935 (88.4%) |     96/106 (90.6%) |       321/391 (82.1%) | 1172/1353 (86.6%) |
-| **FLY, for the flare that was flown**                 | **821/935 (87.8%)** | **85/106 (80.2%)** |                     — |                 — |
+| Program        | Releases | Cloud base under 18,000 ft | … and rain within a cell |         Ice supported |        Salt supported |                   FLY |
+| -------------- | -------: | -------------------------: | -----------------------: | --------------------: | --------------------: | --------------------: |
+| West Texas     |      497 |            484/497 (97.4%) |          424/497 (85.3%) |       450/497 (90.5%) |       460/497 (92.6%) |       424/497 (85.3%) |
+| Trans Pecos    |      465 |            459/465 (98.7%) |          427/465 (91.8%) |       436/465 (93.8%) |       414/465 (89.0%) |       427/465 (91.8%) |
+| Panhandle      |      255 |            246/255 (96.5%) |          232/255 (91.0%) |       247/255 (96.9%) |       230/255 (90.2%) |       232/255 (91.0%) |
+| South Texas    |       83 |             83/83 (100.0%) |            54/83 (65.1%) |         52/83 (62.7%) |         75/83 (90.4%) |         54/83 (65.1%) |
+| Rolling Plains |       53 |              48/53 (90.6%) |            35/53 (66.0%) |         39/53 (73.6%) |         48/53 (90.6%) |         35/53 (66.0%) |
+| **Season**     | **1353** |      **1320/1353 (97.6%)** |    **1172/1353 (86.6%)** | **1224/1353 (90.5%)** | **1227/1353 (90.7%)** | **1172/1353 (86.6%)** |
 
-## Flare overlap within tolerance
+For each DON'T FLY, the first test its cell failed. No cell failed the payload
+test.
 
-A release is within tolerance when it lands outside a layer but no further
-from its edge than one cell of that layer plus the rounding of its printed
-position. It is counted on its own and never added to inside. Nothing lowers
-inside: a painted file stores no distance to the edge for a release that
-landed in the layer.
+| Program        | DON'T FLY | No cloud base under 18,000 ft | No 20 dBZ rain within a cell |
+| -------------- | --------: | ----------------------------: | ---------------------------: |
+| West Texas     |        73 |                            13 |                           60 |
+| Trans Pecos    |        38 |                             6 |                           32 |
+| Panhandle      |        23 |                             9 |                           14 |
+| South Texas    |        29 |                             0 |                           29 |
+| Rolling Plains |        18 |                             5 |                           13 |
+| **Season**     |   **181** |                        **33** |                      **148** |
 
-| Program        | Releases | Printed as bearing and range | Position rounding, median | Position rounding, max |
-| -------------- | -------: | ---------------------------: | ------------------------: | ---------------------: |
-| West Texas     |      497 |                            0 |                   0.01 km |                0.73 km |
-| Trans Pecos    |      465 |                            0 |                   0.01 km |                0.07 km |
-| Panhandle      |      255 |                          255 |                   1.01 km |                1.59 km |
-| South Texas    |       83 |                           78 |                   1.09 km |                1.36 km |
-| Rolling Plains |       53 |                            0 |                   0.73 km |                0.73 km |
+## Uncertainty
 
-| Layer                    | Cell |            Inside | Within tolerance |      Inside or within |
-| ------------------------ | ---: | ----------------: | ---------------: | --------------------: |
-| Seeding opportunity      | 3 km | 1181/1353 (87.3%) |   91/1353 (6.7%) | **1272/1353 (94.0%)** |
-| Radar reflectivity       | 1 km |  877/1353 (64.8%) | 209/1353 (15.4%) |     1086/1353 (80.3%) |
-| Echo past freezing       | 3 km |  963/1353 (71.2%) | 241/1353 (17.8%) |     1204/1353 (89.0%) |
-| Cloud base               | 3 km |  940/1353 (69.5%) | 272/1353 (20.1%) |     1212/1353 (89.6%) |
-| Supercooled liquid water | 3 km |    99/1353 (7.3%) |   97/1353 (7.2%) |      196/1353 (14.5%) |
+A flare just outside a layer may really be inside it. The margin is one grid
+cell of that layer plus how coarsely the report prints the flare's position. A
+miss within the margin is counted, never scored as inside.
 
-Each cell below is inside + within tolerance.
+| Program        | Position printed as |     Rounding | Radar, 1 km cells | Other layers, 3 km cells | Seeding-opportunity misses within the margin | Lands in the county its row names |
+| -------------- | ------------------- | -----------: | ----------------: | -----------------------: | -------------------------------------------: | --------------------------------: |
+| West Texas     | Coordinates         | under 0.1 km |            1.0 km |                   3.0 km |                                     28 of 70 |                   466/497 (93.8%) |
+| Trans Pecos    | Coordinates         | under 0.1 km |            1.0 km |                   3.0 km |                                     21 of 37 |                   447/465 (96.1%) |
+| Panhandle      | Bearing and range   |       1.0 km |            2.0 km |                   4.0 km |                                     19 of 23 |                   220/255 (86.3%) |
+| South Texas    | Bearing and range   |       1.1 km |            2.1 km |                   4.1 km |                                     17 of 26 |                     75/83 (90.4%) |
+| Rolling Plains | Coordinates         |       0.7 km |            1.7 km |                   3.7 km |                                      6 of 16 |                     31/53 (58.5%) |
+| **Season**     |                     |              |                   |                          |                                **91 of 172** |             **1239/1353 (91.6%)** |
 
-| Program        | Releases | Seeding opportunity |             Radar | Echo past freezing |        Cloud base |             SLW |
-| -------------- | -------: | ------------------: | ----------------: | -----------------: | ----------------: | --------------: |
-| West Texas     |      497 |        85.9% + 5.6% |     62.8% + 14.3% |      67.4% + 20.1% |     67.2% + 22.1% |     6.4% + 4.6% |
-| Trans Pecos    |      465 |        92.0% + 4.5% |     69.5% + 15.7% |      76.3% + 15.5% |     74.2% + 18.1% |     5.8% + 4.9% |
-| Panhandle      |      255 |        91.0% + 7.5% |     76.9% + 14.1% |      86.7% + 10.2% |     82.0% + 14.1% |   11.4% + 16.5% |
-| South Texas    |       83 |       68.7% + 20.5% |     26.5% + 27.7% |      30.1% + 37.3% |     32.5% + 31.3% |     6.0% + 6.0% |
-| Rolling Plains |       53 |       69.8% + 11.3% |     45.3% + 11.3% |      50.9% + 22.6% |     47.2% + 30.2% |    11.3% + 7.5% |
-| **Season**     | **1353** |    **87.3% + 6.7%** | **64.8% + 15.4%** |  **71.2% + 17.8%** | **69.5% + 20.1%** | **7.3% + 7.2%** |
+The margin leaves out what no report says: the point a bearing and range is
+measured from, and whether a Rolling Plains coordinate is minutes. Where either
+is wrong, the flare tends to miss the county its own row names, which is what
+the last column shows.
 
-## Seeding opportunity, split by whether the report placed the flare
+The seeding-opportunity fill's outline cuts the corners of the cells a click
+reads, so 19 flares at its edge get a different answer from each: 14 inside the
+fill in a DON'T FLY cell, 5 outside it in a FLY cell. That is why
+seeding-opportunity overlap counts 1,181 and FLY counts 1,172.
 
-A release that missed the county its own row named is a release we cannot
-place, not a release the layer missed.
+Rows with no usable position stay in the flight record and out of every
+denominator.
 
-| Program        | In its named county | Somewhere else | County not in the file |
-| -------------- | ------------------: | -------------: | ---------------------: |
-| West Texas     |     403/466 (86.5%) |  24/31 (77.4%) |                      0 |
-| Trans Pecos    |     414/447 (92.6%) |  14/18 (77.8%) |                      0 |
-| Panhandle      |     202/220 (91.8%) |  30/35 (85.7%) |                      0 |
-| South Texas    |       52/75 (69.3%) |    5/8 (62.5%) |                      0 |
-| Rolling Plains |       27/31 (87.1%) |  10/22 (45.5%) |                      0 |
+| Program     | Releases not placed | Why                                                                                               |
+| ----------- | ------------------: | ------------------------------------------------------------------------------------------------- |
+| West Texas  |                   2 | 21 August: 2 rows print no position                                                               |
+| Trans Pecos |                   7 | 27 March: 6 rows print no position; 30 June: 31.0996 / -1033.7377 is outside the program's window |
 
-## Ground each single-level fill painted
+## Report data that needs adjusting
 
-The median painted analysis hour per program, km². The season row adds the
-programs' medians.
+**Transformed.** Two programs print a bearing from magnetic north and a range,
+from an origin their reports never name. Before reads the bearing as true north.
 
-| Program        |   Hours |  Ground asked | Seeding opportunity | Echo past freezing |
-| -------------- | ------: | ------------: | ------------------: | -----------------: |
-| West Texas     |      82 |       892,872 |       54,344 (6.1%) |      42,094 (4.7%) |
-| Trans Pecos    |      88 |       199,195 |       18,230 (9.2%) |      11,304 (5.7%) |
-| Panhandle      |      51 |        51,430 |       8,269 (16.1%) |      6,205 (12.1%) |
-| South Texas    |      22 |        78,429 |      15,114 (19.3%) |      9,605 (12.2%) |
-| Rolling Plains |      10 |        65,362 |       9,503 (14.5%) |      8,063 (12.3%) |
-| **Season**     | **253** | **1,287,288** |  **105,460 (8.2%)** |  **77,270 (6.0%)** |
+| Program     | What the report prints               | Transformation                                                          |          Before |               After |
+| ----------- | ------------------------------------ | ----------------------------------------------------------------------- | --------------: | ------------------: |
+| Panhandle   | Bearing and range, all 255 releases  | Projected from the radar at Amarillo; bearing + 8°E variation of record | 186/255 (72.9%) | **232/255 (91.0%)** |
+| South Texas | Bearing and range, 78 of 83 releases | Projected from Pleasanton; bearing + 6°E variation of record            |   48/83 (57.8%) |   **57/83 (68.7%)** |
 
-## Flare overlap with each Texas selection feature
+**Not adjusted.** Rolling Plains coordinates are sometimes decimal degrees and
+sometimes minutes. They are read as decimal degrees: 31 of 53 land in the county
+the row names, against 466 of 497 for West Texas.
 
-A flare with no 20 dBZ storm object does not pass a feature.
+## Radiosondes against the modeled column
 
-| Program        | Releases |               Upwind |            In 20 dBZ |       Nearer the edge | Echo top past freezing |
-| -------------- | -------: | -------------------: | -------------------: | --------------------: | ---------------------: |
-| West Texas     |      497 |      230/497 (46.3%) |      312/497 (62.8%) |       458/497 (92.2%) |        475/497 (95.6%) |
-| Trans Pecos    |      465 |      171/465 (36.8%) |      315/465 (67.7%) |       433/465 (93.1%) |        457/465 (98.3%) |
-| Panhandle      |      255 |      124/255 (48.6%) |      193/255 (75.7%) |       225/255 (88.2%) |        254/255 (99.6%) |
-| South Texas    |       83 |        29/83 (34.9%) |        20/83 (24.1%) |        83/83 (100.0%) |          79/83 (95.2%) |
-| Rolling Plains |       53 |        28/53 (52.8%) |        23/53 (43.4%) |         50/53 (94.3%) |          50/53 (94.3%) |
-| **Season**     | **1353** | **582/1353 (43.0%)** | **863/1353 (63.8%)** | **1249/1353 (92.3%)** |  **1315/1353 (97.2%)** |
+Each 12Z ascent a report prints, against the HRRR column at that hour and site:
+the average offset, then the typical miss. The season row counts each
+site-morning once. The Panhandle Groundwater Conservation District briefs on a
+NAM forecast rather than a balloon, and has no row.
 
-## The sounding layer against the balloons
+**Freezing level to −15 °C**
 
-The freezing level and the −15 °C height are what the reports print, so they
-are what can be scored. The seeding band's own edges, −5 and −18 °C, are not in
-the record — this is a check on the column those heights are read off, not on
-the band.
+| Program        | Ascents | Freezing level              | −15 °C height               | Layer overlap | Overlap above 90% |
+| -------------- | ------: | --------------------------- | --------------------------- | ------------: | ----------------: |
+| West Texas     |      67 | 33 m low · 43 m typical     | 23 m low · 51 m typical     |         94.7% |          60 of 67 |
+| Trans Pecos    |      39 | 24 m low · 29 m typical     | 9 m low · 48 m typical      |         95.5% |          37 of 39 |
+| South Texas    |      11 | 12 m low · 34 m typical     | 23 m low · 42 m typical     |         95.2% |          11 of 11 |
+| Rolling Plains |       7 | 21 m low · 24 m typical     | 66 m low · 52 m typical     |         95.4% |            5 of 7 |
+| **Season**     | **104** | **29 m low · 40 m typical** | **21 m low · 51 m typical** |     **95.0%** |     **95 of 104** |
 
-Each height cell reads: how far our height sits from the balloon's on average,
-then the typical miss in either direction. "Low" means our height is below the
-balloon's. The CCL column is scored over every ascent that prints one, so its
-count can exceed the layer's.
+**Convective condensation level**, the cloud-base layer's height where the model
+has no cloud
 
-| Program        | Ascents | Freezing level          | −15 °C height           | CCL                       | Layer overlap | Cleared 90% |
-| -------------- | ------: | ----------------------- | ----------------------- | ------------------------- | ------------: | ----------: |
-| West Texas     |      67 | 33 m low · 43 m typical | 23 m low · 51 m typical | 325 m low · 269 m typical |     **94.7%** |    60 of 67 |
-| Trans Pecos    |      39 | 24 m low · 29 m typical | 9 m low · 48 m typical  | 353 m low · 378 m typical |     **95.5%** |    37 of 39 |
-| South Texas    |      11 | 12 m low · 34 m typical | 23 m low · 42 m typical | 31 m low · 461 m typical  |     **95.2%** |    11 of 11 |
-| Rolling Plains |       7 | 21 m low · 24 m typical | 66 m low · 52 m typical | 300 m low · 656 m typical |     **95.4%** |      5 of 7 |
-
-| Distinct ascents    |            |
-| ------------------- | ---------: |
-| Layer scored        |        104 |
-| Median layer depth  |     2429 m |
-| Mean layer overlap  |  **95.0%** |
-| Worst layer overlap |      77.2% |
-| Cleared 80%         | 103 of 104 |
-| CCL scored          |        105 |
-| CCL, average offset |  287 m low |
-| CCL, typical miss   |      342 m |
+| Program        | Ascents | CCL                           |
+| -------------- | ------: | ----------------------------- |
+| West Texas     |      67 | 325 m low · 269 m typical     |
+| Trans Pecos    |      39 | 353 m low · 378 m typical     |
+| South Texas    |      12 | 31 m low · 461 m typical      |
+| Rolling Plains |       7 | 300 m low · 656 m typical     |
+| **Season**     | **105** | **287 m low · 342 m typical** |

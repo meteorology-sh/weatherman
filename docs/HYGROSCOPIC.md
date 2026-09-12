@@ -127,6 +127,19 @@ Two cautions against reading it as a recommendation:
   analysis counts them as "not past freezing," which is the generous
   reading for the salt side.
 
+What every program flew, from the day totals in the reports:
+
+| Program        | Glaciogenic | Hygroscopic | Hygroscopic share |
+| -------------- | ----------: | ----------: | ----------------: |
+| West Texas     |       1,080 |          55 |              4.8% |
+| Trans Pecos    |       1,143 |          51 |              4.3% |
+| Panhandle      |         499 |          37 |              6.9% |
+| South Texas    |         205 |          18 |              8.1% |
+| Rolling Plains |          71 |           7 |              9.0% |
+
+South Texas and Rolling Plains lean harder on salt by a few points, not by a
+category.
+
 Where the regime lives:
 
 | Program        | Warm-cloud depth (median) | Base temperature (median) | Flares with a 6,000 ft+ warm layer |

@@ -1,9 +1,11 @@
 /**
  * Seeded days that have a located flare, one date per line.
  *
- * `node eval/days.mjs [--season=2025] [--region=wtwma]`
+ * `node eval/days.mjs [--season=2025] [--region=wtwma] [--as-printed]`
  *
- * No region flag prints `region<TAB>date` for every program. The AWS
+ * No region flag prints `region<TAB>date` for every program. `--as-printed`
+ * keeps only the programs whose bearings carry a magnetic variation, whose days
+ * `paint.mjs --as-printed` paints a second time. The AWS
  * season job feeds these dates to `paint.mjs`.
  */
 
@@ -25,7 +27,12 @@ const regions = await regionsOf(SEASON);
 
 const wanted = REGION
   ? regions.filter((region) => region.id === REGION)
-  : regions.filter((region) => region.releases);
+  : regions.filter(
+      (region) =>
+        region.releases &&
+        (!process.argv.includes("--as-printed") ||
+          region.origin?.magneticVariationDeg != null)
+    );
 
 if (REGION && wanted.length === 0) {
   console.error(
