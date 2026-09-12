@@ -334,6 +334,28 @@ async function frameAt(layer, at) {
   return work;
 }
 
+/**
+ * The frame a release is scored against, at its own minute.
+ *
+ * Retried, never replaced: an hourly frame is a different scan, and scoring
+ * against it silently moves the edge the release is measured to. A layer that
+ * still does not answer is null, so `verify.mjs` reports the day.
+ */
+async function frameAtRelease(layer, at, attempts = 3) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await frameAt(layer, at);
+    } catch (failure) {
+      framesByPath.delete(withBox(layer.path(at)));
+      if (attempt >= attempts) {
+        console.log(`    ${at} ${layer.key} failed: ${failure.message}`);
+        return null;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+    }
+  }
+}
+
 function pointsOf(frame) {
   const points = [];
   for (const feature of frame.features ?? []) {
@@ -597,6 +619,9 @@ function clockTimeOf(layer, frame, fallback) {
  * point where the model has the air standing still. Both are kept: the raw
  * distance is what a reader would compute by hand off the report, and the
  * difference between them is what closing the clock offset was worth.
+ *
+ * `edgeKm` is the distance to the nearest edge from either side. Inside, `km`
+ * is zero and only `edgeKm` says how close the release came to falling out.
  */
 function nearness(frame, layer, lon, lat, raw) {
   // A route that failed has no answer, and the day is not complete.
@@ -610,6 +635,8 @@ function nearness(frame, layer, lon, lat, raw) {
       inside: false,
       km: null,
       kmAtRelease: null,
+      edgeKm: null,
+      edgeKmAtRelease: null,
       empty: true,
     };
   }
@@ -624,6 +651,8 @@ function nearness(frame, layer, lon, lat, raw) {
     inside: drifted.inside,
     km: drifted.km,
     kmAtRelease: atRelease.km,
+    edgeKm: drifted.edgeKm ?? null,
+    edgeKmAtRelease: atRelease.edgeKm ?? null,
   };
 }
 
@@ -746,9 +775,7 @@ for (const hour of hours) {
     const at = drift?.to ?? raw;
     const near = {};
     for (const layer of LAYERS) {
-      const scored = await frameAt(layer, release.at).catch(
-        () => frames[hour][layer.key]
-      );
+      const scored = await frameAtRelease(layer, release.at);
       const when = clockTimeOf(layer, scored, hour);
       const shifted = advect(release, motion, when);
       const from = shifted.to ?? raw;

@@ -277,7 +277,8 @@ node eval/pack.mjs
 ```
 
 `verify.mjs` requires native cell sizes for every fill this run stores,
-storm motion, a storm reading and a click readout on every located flare,
+an edge distance on every layer, storm motion, a storm reading and a click
+readout on every located flare,
 a balloon file per sonde program, and an as-printed day for every day of a
 program whose bearings carry a magnetic variation. It asserts those fields
 are present, not that they carry a value. `score-season.mjs` prints the
@@ -334,7 +335,7 @@ On each flare:
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `at`, `timeZ`, `lon`, `lat` | the release                                                                                                                                                                                                                                                                                                                   |
 | `drift`, `compared`         | storm-motion offset and the drifted point                                                                                                                                                                                                                                                                                     |
-| `near.<key>`                | `inside`, `km`, `kmAtRelease`, `validTime`, and `clock` / `clockTime` — which of the frame's timestamps placed that fill's edge, and what it read                                                                                                                                                                             |
+| `near.<key>`                | `inside`, `km`, `kmAtRelease`, `edgeKm` / `edgeKmAtRelease` — the nearest edge from either side — `validTime`, and `clock` / `clockTime` — which of the frame's timestamps placed that fill's edge, and what it read                                                                                                          |
 | `storm`                     | `/candidate/storm` at the release, or `null`                                                                                                                                                                                                                                                                                  |
 | `cell`                      | `/candidate/point` at the release minute, whole — `target` and `verdict`, the payload the column supports, merged cloud base with its source and the CCL behind it, base above ground, warm-cloud depth, 18 dBZ echo top, freezing level, rain, liquid, observed cloud-top temperature and phase — or `null` outside the grid |
 | `column`                    | `/forecast/sounding` at the analysis — ground, freezing level, seeding band, the profile levels, and the `wrfsfc` diagnostics — or `null` outside the grid                                                                                                                                                                    |

@@ -47,18 +47,31 @@ test.
 
 ## Uncertainty
 
-A flare just outside a layer may really be inside it. The margin is one grid
-cell of that layer plus how coarsely the report prints the flare's position. A
-miss within the margin is counted, never scored as inside.
+A flare within the margin of the seeding opportunity's edge could be on either
+side of it. The margin is one 3 km grid cell plus how coarsely the report prints
+the flare's position.
 
-| Program        | Position printed as |     Rounding | Radar, 1 km cells | Other layers, 3 km cells | Seeding-opportunity misses within the margin | Lands in the county its row names |
-| -------------- | ------------------- | -----------: | ----------------: | -----------------------: | -------------------------------------------: | --------------------------------: |
-| West Texas     | Coordinates         | under 0.1 km |            1.0 km |                   3.0 km |                                     28 of 70 |                   466/497 (93.8%) |
-| Trans Pecos    | Coordinates         | under 0.1 km |            1.0 km |                   3.0 km |                                     21 of 37 |                   447/465 (96.1%) |
-| Panhandle      | Bearing and range   |       1.0 km |            2.0 km |                   4.0 km |                                     19 of 23 |                   220/255 (86.3%) |
-| South Texas    | Bearing and range   |       1.1 km |            2.1 km |                   4.1 km |                                     17 of 26 |                     75/83 (90.4%) |
-| Rolling Plains | Coordinates         |       0.7 km |            1.7 km |                   3.7 km |                                      6 of 16 |                     31/53 (58.5%) |
-| **Season**     |                     |              |                   |                          |                                **91 of 172** |             **1239/1353 (91.6%)** |
+| Program        | Releases | Seeding opportunity | Within the margin |                  Share |
+| -------------- | -------: | ------------------: | ----------------: | ---------------------: |
+| West Texas     |      497 |                 427 |         +28 / −85 |     85.9% +5.6 / −17.1 |
+| Trans Pecos    |      465 |                 428 |         +21 / −55 |     92.0% +4.5 / −11.8 |
+| Panhandle      |      255 |                 232 |         +19 / −62 |     91.0% +7.5 / −24.3 |
+| South Texas    |       83 |                  57 |         +17 / −26 |    68.7% +20.5 / −31.3 |
+| Rolling Plains |       53 |                  37 |          +6 / −19 |    69.8% +11.3 / −35.8 |
+| **Season**     | **1353** |            **1181** |    **+91 / −247** | **87.3% +6.7 / −18.3** |
+
+Within the margin counts the flares outside the seeding opportunity but within
+the margin of its edge (+), and the flares inside it but within the margin (−).
+Share is each count over releases.
+
+| Program        | Position printed as |     Rounding | Margin | Lands in the county its row names |
+| -------------- | ------------------- | -----------: | -----: | --------------------------------: |
+| West Texas     | Coordinates         | under 0.1 km | 3.0 km |                   466/497 (93.8%) |
+| Trans Pecos    | Coordinates         | under 0.1 km | 3.0 km |                   447/465 (96.1%) |
+| Panhandle      | Bearing and range   |       1.0 km | 4.0 km |                   220/255 (86.3%) |
+| South Texas    | Bearing and range   |       1.1 km | 4.1 km |                     75/83 (90.4%) |
+| Rolling Plains | Coordinates         |       0.7 km | 3.7 km |                     31/53 (58.5%) |
+| **Season**     |                     |              |        |             **1239/1353 (91.6%)** |
 
 The margin leaves out what no report says: the point a bearing and range is
 measured from, and whether a Rolling Plains coordinate is minutes. Where either

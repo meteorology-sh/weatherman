@@ -170,6 +170,9 @@ export type Nearness = {
   km: number | null;
   /** The same distance without the drift correction, for comparison. */
   kmAtRelease: number | null;
+  /** Distance to the nearest edge from either side, drifted and not. */
+  edgeKm?: number | null;
+  edgeKmAtRelease?: number | null;
   /**
    * When the frame this was measured against is true of. HRRR rounds to the
    * analysis hour; the radar and the satellite keep the scan minute, so the

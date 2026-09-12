@@ -64,6 +64,12 @@ function insideByClock(near, key) {
   return near.kmAtRelease === 0;
 }
 
+/** Distance to the nearest edge from either side, at the same clock. */
+function edgeByClock(near, key) {
+  if (near.clock || !MEASURED_EDGE.has(key)) return near.edgeKm ?? null;
+  return near.edgeKmAtRelease ?? null;
+}
+
 function kmByClock(near, key) {
   if (near.clock) return near.km;
   if (!MEASURED_EDGE.has(key)) return near.km;
@@ -155,7 +161,7 @@ for (const region of evaluable) {
     days: days.length,
     flares,
     layers: Object.fromEntries(
-      LAYERS.map(([key]) => [key, { inside: 0, within: 0 }])
+      LAYERS.map(([key]) => [key, { inside: 0, within: 0, atEdge: 0 }])
     ),
     positionKm: [],
     cellKm: Object.fromEntries(LAYERS.map(([key]) => [key, []])),
@@ -189,15 +195,15 @@ for (const region of evaluable) {
       for (const [key] of LAYERS) {
         const near = flare.near?.[key];
         if (!scorable(near)) continue;
+        const marginKm = (day.cellKm?.[key] ?? NaN) + positionKm;
         if (insideByClock(near, key)) {
           row.layers[key].inside += 1;
+          const edgeKm = edgeByClock(near, key);
+          if (edgeKm != null && edgeKm <= marginKm) row.layers[key].atEdge += 1;
           continue;
         }
-        const cellKm = day.cellKm?.[key];
         const km = kmByClock(near, key);
-        if (cellKm != null && km != null && km <= cellKm + positionKm) {
-          row.layers[key].within += 1;
-        }
+        if (km != null && km <= marginKm) row.layers[key].within += 1;
       }
     }
   }
@@ -409,35 +415,64 @@ table(
 
 heading("Uncertainty");
 say(
-  "A flare just outside a layer may really be inside it. The margin is one " +
-    "grid cell of that layer plus how coarsely the report prints the " +
-    "flare's position. A miss within the margin is counted, never scored as " +
-    "inside."
+  "A flare within the margin of the seeding opportunity's edge could be on " +
+    "either side of it. The margin is one 3 km grid cell plus how coarsely " +
+    "the report prints the flare's position."
 );
 
-/** Layers grouped by grid cell, the most common size last as "other layers". */
-const cellOf = (key) => median(rows.flatMap((row) => row.cellKm[key]));
-const cellGroups = [...new Set(LAYERS.map(([key]) => cellOf(key)))]
-  .map((km) => ({ km, keys: LAYERS.filter(([key]) => cellOf(key) === km) }))
-  .sort((a, b) => a.keys.length - b.keys.length)
-  .map((group, i, all) => ({
-    km: group.km,
-    label:
-      i === all.length - 1 && all.length > 1
-        ? `Other layers, ${group.km} km cells`
-        : `${group.keys.map(([, , short]) => short).join(", ")}, ${group.km} km cells`,
-  }));
+const signed = ({ within, atEdge }) => `+${within} / −${atEdge}`;
+const points = (n, d) => ((100 * n) / d).toFixed(1);
+const plusMinus = ({ inside, within, atEdge }, n) =>
+  `${pct(inside, n)} +${points(within, n)} / −${points(atEdge, n)}`;
+const seasonTarget = rows.reduce(
+  (sum, row) => ({
+    inside: sum.inside + row.layers.target.inside,
+    within: sum.within + row.layers.target.within,
+    atEdge: sum.atEdge + row.layers.target.atEdge,
+  }),
+  { inside: 0, within: 0, atEdge: 0 }
+);
+table(
+  [
+    ["Program", L],
+    ["Releases", R],
+    ["Seeding opportunity", R],
+    ["Within the margin", R],
+    ["Share", R],
+  ],
+  [
+    ...rows.map((row) => [
+      row.region.short,
+      String(row.flares.length),
+      String(row.layers.target.inside),
+      signed(row.layers.target),
+      plusMinus(row.layers.target, row.flares.length),
+    ]),
+    [
+      bold("Season"),
+      bold(seasonFlares.length),
+      bold(seasonTarget.inside),
+      bold(signed(seasonTarget)),
+      bold(plusMinus(seasonTarget, seasonFlares.length)),
+    ],
+  ]
+);
+say(
+  "Within the margin counts the flares outside the seeding opportunity but " +
+    "within the margin of its edge (+), and the flares inside it but within " +
+    "the margin (−). Share is each count over releases."
+);
+
+const targetCellKm = median(rows.flatMap((row) => row.cellKm.target));
 const km1 = (n) => (n < 0.05 ? "under 0.1 km" : `${n.toFixed(1)} km`);
 const printedAs = (row) =>
   row.radial > row.flares.length / 2 ? "Bearing and range" : "Coordinates";
-const misses = (row) => row.flares.length - row.layers.target.inside;
 table(
   [
     ["Program", L],
     ["Position printed as", L],
     ["Rounding", R],
-    ...cellGroups.map(({ label }) => [label, R]),
-    ["Seeding-opportunity misses within the margin", R],
+    ["Margin", R],
     ["Lands in the county its row names", R],
   ],
   [
@@ -447,8 +482,7 @@ table(
         row.region.short,
         printedAs(row),
         km1(rounding),
-        ...cellGroups.map(({ km }) => km1(km + rounding)),
-        `${row.layers.target.within} of ${misses(row)}`,
+        km1(targetCellKm + rounding),
         share(row.placed, row.flares.length),
       ];
     }),
@@ -456,11 +490,7 @@ table(
       bold("Season"),
       "",
       "",
-      ...cellGroups.map(() => ""),
-      bold(
-        `${rows.reduce((sum, row) => sum + row.layers.target.within, 0)} of ` +
-          rows.reduce((sum, row) => sum + misses(row), 0)
-      ),
+      "",
       bold(
         share(
           rows.reduce((sum, row) => sum + row.placed, 0),

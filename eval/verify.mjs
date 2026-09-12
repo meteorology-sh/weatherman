@@ -36,6 +36,13 @@ let asPrinted = 0;
 /** The layers Weatherman draws. A painted file may carry others; they are not read. */
 const LAYER_KEYS = ["target", "radar", "echoFreeze", "cloudBase", "liquid"];
 
+/**
+ * How far an observation-clock layer's scan may sit from the release. Radar
+ * scans every two minutes; a frame further off than this is not the release's
+ * own scan.
+ */
+const CLOCK_SLACK_MIN = 10;
+
 function native(cellKm) {
   return (
     cellKm &&
@@ -127,6 +134,23 @@ for (const region of regions) {
           if (flare.near?.[key] == null) {
             missing.push(
               `out/${SEASON}/${name} ${flare.timeZ} (${key} failed)`
+            );
+          } else if (
+            flare.near[key].clock &&
+            flare.near[key].clock !== "model" &&
+            Math.abs(
+              Date.parse(flare.near[key].clockTime) - Date.parse(flare.at)
+            ) >
+              CLOCK_SLACK_MIN * 60000
+          ) {
+            missing.push(
+              `out/${SEASON}/${name} ${flare.timeZ} (${key} scored against a frame from ${flare.near[key].clockTime})`
+            );
+          } else if (
+            !Object.prototype.hasOwnProperty.call(flare.near[key], "edgeKm")
+          ) {
+            missing.push(
+              `out/${SEASON}/${name} ${flare.timeZ} (${key} has no edge distance)`
             );
           }
         }
