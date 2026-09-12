@@ -24,54 +24,55 @@ located release. This file argues what to change.
 
 ## 0. Terms
 
-| Term | Definition |
-| --- | --- |
-| **Glaciogenic seeding** | Silver iodide (AgI) into supercooled liquid, so ice forms and the Wegener–Bergeron–Findeisen process can grow precipitation. |
-| **Hygroscopic seeding** | Salt (NaCl) into the warm part of a cloud, so droplets grow by coalescence. Out of scope for the candidate field; present in the logs. |
-| **Seeding band** | −5 °C to −18 °C. Warm edge is physics (AgI barely nucleates above it). Cold edge is a judgment about supply. |
-| **Supercooled liquid water (SLW)** | Liquid colder than 0 °C. The only substance glaciogenic seeding acts on. Nothing free and national measures it in the vertical. |
-| **TITAN** | Thunderstorm Identification, Tracking, Analysis, and Nowcasting (Dixon and Wiener, 1993). NCAR radar-object software. Mandatory on Texas Weather Modification Association projects since 1999. |
-| **Cell** | A contiguous radar storm TITAN (or an analogue) has given an identity, a track, and a set of attributes. |
-| **Turret / feeder** | A growing convective tower, usually on the flank of a cell that already has a raining core. The Texas target. |
-| **Inflow** | Cloud-base updraft that carries flare material into the tower. Pilots report it as climb rate, in ft/min. |
-| **First half-lifetime** | Operational rule: seed while the cell is still growing. A mature, quasi-steady storm is treated as too old. |
-| **MRMS** | NOAA's 1 km / ~2 min national radar mosaic, already ingested here. |
-| **HRRR** | NOAA's 3 km hourly convection-allowing model, already ingested here. |
-| **GOES-19 ABI** | 2 km / 5 min geostationary cloud-top products, already ingested here. |
-| **GLM** | Geostationary Lightning Mapper. On the same GOES bucket. Not ingested. |
-| **TDLR** | Texas Department of Licensing and Regulation. Licenses the programs and excludes severe storms under permit. |
+| Term                               | Definition                                                                                                                                                                                     |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Glaciogenic seeding**            | Silver iodide (AgI) into supercooled liquid, so ice forms and the Wegener–Bergeron–Findeisen process can grow precipitation.                                                                   |
+| **Hygroscopic seeding**            | Salt (NaCl) into the warm part of a cloud, so droplets grow by coalescence. Out of scope for the candidate field; present in the logs.                                                         |
+| **Seeding band**                   | −5 °C to −18 °C. Warm edge is physics (AgI barely nucleates above it). Cold edge is a judgment about supply.                                                                                   |
+| **Supercooled liquid water (SLW)** | Liquid colder than 0 °C. The only substance glaciogenic seeding acts on. Nothing free and national measures it in the vertical.                                                                |
+| **TITAN**                          | Thunderstorm Identification, Tracking, Analysis, and Nowcasting (Dixon and Wiener, 1993). NCAR radar-object software. Mandatory on Texas Weather Modification Association projects since 1999. |
+| **Cell**                           | A contiguous radar storm TITAN (or an analogue) has given an identity, a track, and a set of attributes.                                                                                       |
+| **Turret / feeder**                | A growing convective tower, usually on the flank of a cell that already has a raining core. The Texas target.                                                                                  |
+| **Inflow**                         | Cloud-base updraft that carries flare material into the tower. Pilots report it as climb rate, in ft/min.                                                                                      |
+| **First half-lifetime**            | Operational rule: seed while the cell is still growing. A mature, quasi-steady storm is treated as too old.                                                                                    |
+| **MRMS**                           | NOAA's 1 km / ~2 min national radar mosaic, already ingested here.                                                                                                                             |
+| **HRRR**                           | NOAA's 3 km hourly convection-allowing model, already ingested here.                                                                                                                           |
+| **GOES-19 ABI**                    | 2 km / 5 min geostationary cloud-top products, already ingested here.                                                                                                                          |
+| **GLM**                            | Geostationary Lightning Mapper. On the same GOES bucket. Not ingested.                                                                                                                         |
+| **TDLR**                           | Texas Department of Licensing and Regulation. Licenses the programs and excludes severe storms under permit.                                                                                   |
 
 **The seven criteria (C1–C7)** from the system design remain the physics
 yardstick. They are not the operator's checklist. Texas practice maps onto them
 unevenly, which is the point of §2.
 
-| | Criterion | Physical variable |
-| --- | --- | --- |
-| **C1** | A cloud is present *and growing* | presence; convective vigour; growth rate; lightning onset |
-| **C2** | The cloud is deep enough | cloud-base height and cloud-top height → depth |
-| **C3** | The supercooled temperature window exists in-cloud | temperature profile → isotherm heights |
-| **C4** | That window holds **liquid**, not ice | phase as a function of height |
-| **C5** | There is enough liquid to be worth it | liquid water path |
-| **C6** | It isn't already raining itself out | precipitation aloft and at the surface |
-| **C7** | It's reachable and safe to fly | cloud motion; winds; electrification; ceiling |
+|        | Criterion                                          | Physical variable                                         |
+| ------ | -------------------------------------------------- | --------------------------------------------------------- |
+| **C1** | A cloud is present _and growing_                   | presence; convective vigour; growth rate; lightning onset |
+| **C2** | The cloud is deep enough                           | cloud-base height and cloud-top height → depth            |
+| **C3** | The supercooled temperature window exists in-cloud | temperature profile → isotherm heights                    |
+| **C4** | That window holds **liquid**, not ice              | phase as a function of height                             |
+| **C5** | There is enough liquid to be worth it              | liquid water path                                         |
+| **C6** | It isn't already raining itself out                | precipitation aloft and at the surface                    |
+| **C7** | It's reachable and safe to fly                     | cloud motion; winds; electrification; ceiling             |
 
 ---
 
 ## 1. What the 2025 season established
 
-Four programs that brief a balloon put the seeding band where we draw it:
-median overlap 95.3–97.7%, edge biases within 70 m of zero. Finding 3 is not
-"the layer is in the wrong sky."
+Four programs that brief a balloon put the 0 to −15 °C layer where we draw it:
+median overlap 95.3–97.7%, edge biases within 70 m of zero. That is the column
+the seeding band is read off, not the band itself. Finding 3 is not "the layer
+is in the wrong sky."
 
 At native sampling, inside the contour after storm-motion drift:
 
-| Program | Cloud base | Cloud tops | Radar | Supercooled liquid | Seeding opportunity |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| West Texas | 69.4% | 1.4% | 60.8% | 6.4% | 2.8% |
-| South Texas | 75.9% | 4.2% | 28.9% | 2.6% | 2.9% |
-| Trans-Pecos | 76.6% | 2.8% | 68.4% | 5.5% | 1.3% |
-| Rolling Plains | 77.4% | 5.9% | 40.4% | 11.3% | 6.3% |
-| Panhandle | 73.3% | 1.2% | 53.7% | 10.9% | 3.1% |
+| Program        | Cloud base | Cloud tops | Radar | Supercooled liquid | Seeding opportunity |
+| -------------- | ---------: | ---------: | ----: | -----------------: | ------------------: |
+| West Texas     |      69.4% |       1.4% | 60.8% |               6.4% |                2.8% |
+| South Texas    |      75.9% |       4.2% | 28.9% |               2.6% |                2.9% |
+| Trans-Pecos    |      76.6% |       2.8% | 68.4% |               5.5% |                1.3% |
+| Rolling Plains |      77.4% |       5.9% | 40.4% |              11.3% |                6.3% |
+| Panhandle      |      73.3% |       1.2% | 53.7% |              10.9% |                3.1% |
 
 West Texas, 497 located flares, both bounding hours: liquid in both 17 (3.5%);
 seedable ignoring rain, same 17; seedable including rain, **0**. Those 17 sit at
@@ -110,7 +111,7 @@ the worked example; the other four programs are the same shape.
    a balloon.
 2. **Watch.** TITAN on a project C-band (historically WSR-74C) and on NEXRAD.
    Cells get numeric IDs. The daily log is written in those IDs — `158/262 →
-   158/297` — not in lat/lon of liquid.
+158/297` — not in lat/lon of liquid.
 3. **Select.** Convective, still growing, first half of the cell's lifetime,
    bases in the 4,000–12,000 ft window the state publishes, depth past the
    freezing level, enough cloud-base inflow to carry material, not severe
@@ -121,7 +122,7 @@ the worked example; the other four programs are the same shape.
    reports climb rate in ft/min and pressure altitude, timed to the minute,
    next to a TITAN cell ID. That is how they know they are in the updraft.
 5. **Seed.** Wing-mounted or ejectable flares, almost always AgI, sometimes
-   NaCl on the same pass. Timing and targeting of *young* thunderstorms are
+   NaCl on the same pass. Timing and targeting of _young_ thunderstorms are
    the two factors the state's own description names.
 6. **Evaluate.** TITAN matches seeded cells to unseeded controls on lifetime,
    area, volume, top, max reflectivity, precipitation flux, and precipitation
@@ -156,7 +157,7 @@ Operational papers and TWMA briefings add:
 - Severe weather is a **suspension**, not a target.
 
 That is C1 (growing), C2 (base and depth), C3 (band exists in-cloud), C7
-(inflow, not severe), with C6 inverted: rain in the core is how they *find*
+(inflow, not severe), with C6 inverted: rain in the core is how they _find_
 the flank, not how they cross the cell off.
 
 C4 and C5 — liquid in the band, and enough of it — are assumed from the
@@ -223,10 +224,10 @@ opinion on that cell rather than the mask that hides it.
 
 Two products, not one verdict:
 
-| Product | Question | Today | After the pivot |
-| --- | --- | --- | --- |
-| **Target** | Which cell, which flank, is it still growing, can we reach the base? | Not asked | The map an operator flies |
-| **Liquid check** | Does the model put SLW in the band over that cell? | The mask | A reading on the selected cell |
+| Product          | Question                                                             | Today     | After the pivot                |
+| ---------------- | -------------------------------------------------------------------- | --------- | ------------------------------ |
+| **Target**       | Which cell, which flank, is it still growing, can we reach the base? | Not asked | The map an operator flies      |
+| **Liquid check** | Does the model put SLW in the band over that cell?                   | The mask  | A reading on the selected cell |
 
 The evaluation already computes the liquid check with rain ignored.
 That number stays. It stops being the thing that empties the candidate
@@ -310,7 +311,7 @@ the product is the thing it says it is.
 Test: for each 2025 flare, which object was it in or next to, how old was
 that object, what was its max dBZ, and how far was the flare from the 20 dBZ
 edge toward quiet air. Radar-inside is already 60.8% in West Texas and 68.4%
-in Trans-Pecos; this asks whether those releases sit on *young* cells, which
+in Trans-Pecos; this asks whether those releases sit on _young_ cells, which
 is the operational rule the column map cannot see.
 
 ### Option 3 — Flanks: quiet inflow next to a raining core
@@ -421,7 +422,7 @@ releases.
 
 Test: the liquid-inside rate stays the diagnostic it is today (6.4% West
 Texas, 2.6–11.3% across programs). It stops being a shipping criterion
-for the targeting map. Days where the typical release *was* inside liquid
+for the targeting map. Days where the typical release _was_ inside liquid
 (one West Texas day of 34) are the days to put in front of an operator
 first.
 
@@ -528,7 +529,7 @@ The tests, in order, each cited:
    and 3. Finding 9 is why.
 2. **Echo top at or above the freezing level**, in this cell or an
    8-connected 3 km neighbor. Freezing height is `isothermFieldFt(profile,
-   0)`, the same function Finding 1 already trusts. Echo top is HRRR
+0)`, the same function Finding 1 already trusts. Echo top is HRRR
    `RETOP` — modeled height, labeled as such, not a volume scan. The
    aircraft is not under the cold GOES top, so cloud-top temperature at
    this cell is not this test.
@@ -558,13 +559,13 @@ The 2025 score charges each release to the first test its own 3 km cell
 fails. Of 1,341 releases the join could answer, 920 pass. Of the 541 that
 land outside the drawn fill:
 
-| Charged to | Releases |
-| --- | ---: |
-| the cell passes; the drifted point is outside the contour | 197 |
-| no modeled cloud base | 234 |
-| echo top below freezing in the neighborhood | 71 |
-| base above the service ceiling | 27 |
-| no 20 dBZ in the neighborhood | 12 |
+| Charged to                                                | Releases |
+| --------------------------------------------------------- | -------: |
+| the cell passes; the drifted point is outside the contour |      197 |
+| no modeled cloud base                                     |      234 |
+| echo top below freezing in the neighborhood               |       71 |
+| base above the service ceiling                            |       27 |
+| no 20 dBZ in the neighborhood                             |       12 |
 
 **Twelve releases are the rain test.** Widening the neighborhood past one
 HRRR cell buys almost nothing, so it stays at one cell. What binds is the
@@ -630,16 +631,16 @@ fill's 57% has stopped selecting, whatever the flare counts say.
 The test is not "overlap with flares went up." Flares are a biased sample of
 days someone already decided to fly. The tests are:
 
-| Claim | Test against 2025 |
-| --- | --- |
-| We select the same *storms* | Share of flares that fall in or on the upwind flank of a live object |
-| We select them at the same *stage* | Lifetime percentile of the object at the flare minute (first half vs last) |
-| We are looking at the *flank*, not the core | Distance to upwind quiet side vs distance to max dBZ |
-| The glaciogenic cue is present | Echo at or above the freezing level on that object |
-| The briefing is the same briefing | Model 12Z column vs the printed sounding table, past the two isotherms |
-| Growth is real | GOES-top area/height change sign at the flare minute |
-| Liquid remains an open check | SLW-inside rate, still reported, no longer a ship gate |
-| Rain is no longer a silent veto | Opportunity-with-rain-ignored is the headline; raining share is next to it |
+| Claim                                       | Test against 2025                                                          |
+| ------------------------------------------- | -------------------------------------------------------------------------- |
+| We select the same _storms_                 | Share of flares that fall in or on the upwind flank of a live object       |
+| We select them at the same _stage_          | Lifetime percentile of the object at the flare minute (first half vs last) |
+| We are looking at the _flank_, not the core | Distance to upwind quiet side vs distance to max dBZ                       |
+| The glaciogenic cue is present              | Echo at or above the freezing level on that object                         |
+| The briefing is the same briefing           | Model 12Z column vs the printed sounding table, past the two isotherms     |
+| Growth is real                              | GOES-top area/height change sign at the flare minute                       |
+| Liquid remains an open check                | SLW-inside rate, still reported, no longer a ship gate                     |
+| Rain is no longer a silent veto             | Opportunity-with-rain-ignored is the headline; raining share is next to it |
 
 A change that raises flare overlap by drawing every echo in Texas, or by
 dropping the liquid reading, has not worked. It has hidden the disagreement
@@ -649,15 +650,15 @@ the evaluation found.
 
 ## 8. Coverage against C1–C7 after this sequence
 
-| | Criterion | Today | After the sequence |
-| --- | --- | --- | --- |
-| **C1** | present and growing | Presence (GOES). Growing absent. | Growth as an attribute on a tracked cell (GOES difference, GLM). Still not a national surface. |
-| **C2** | deep enough | Base drawn; depth at a click; Texas window reported. | Base window as a permit-box filter; depth and warm-cloud depth as maps. |
-| **C3** | band exists | Complete, balloon-checked. | Unchanged. Used to place reflectivity on isotherms. |
-| **C4** | window holds liquid | Simulated; GOES phase at the top only. | Still simulated. Shown on the cell instead of used as a mask. Station still required to measure it. |
-| **C5** | enough liquid | Simulated, 10 g/m² gate. | Same field, not a gate. |
-| **C6** | not already raining | Measured and applied as a veto they do not use. | Measured and drawn as core vs flank. Not a silent delete. |
-| **C7** | reachable and safe | Storm motion computed, not shown; no lightning; ceiling unflagged. | Nowcast on the cell, GLM as points, ceiling against band base. Severe-weather watches still absent. |
+|        | Criterion           | Today                                                              | After the sequence                                                                                  |
+| ------ | ------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| **C1** | present and growing | Presence (GOES). Growing absent.                                   | Growth as an attribute on a tracked cell (GOES difference, GLM). Still not a national surface.      |
+| **C2** | deep enough         | Base drawn; depth at a click; Texas window reported.               | Base window as a permit-box filter; depth and warm-cloud depth as maps.                             |
+| **C3** | band exists         | Complete, balloon-checked.                                         | Unchanged. Used to place reflectivity on isotherms.                                                 |
+| **C4** | window holds liquid | Simulated; GOES phase at the top only.                             | Still simulated. Shown on the cell instead of used as a mask. Station still required to measure it. |
+| **C5** | enough liquid       | Simulated, 10 g/m² gate.                                           | Same field, not a gate.                                                                             |
+| **C6** | not already raining | Measured and applied as a veto they do not use.                    | Measured and drawn as core vs flank. Not a silent delete.                                           |
+| **C7** | reachable and safe  | Storm motion computed, not shown; no lightning; ceiling unflagged. | Nowcast on the cell, GLM as points, ceiling against band base. Severe-weather watches still absent. |
 
 The honest summary today: **C3 is solved, C6 is measured and misapplied, C2
 is half-built, C4/C5 are simulated and over-gated, C1 and C7 are missing.**
@@ -673,31 +674,31 @@ verdict on supercooled liquid, and it must not pretend to be.
 
 **Texas operations and TITAN**
 
-- Dixon, M. and Wiener, G. (1993). *TITAN: Thunderstorm Identification, Tracking, Analysis, and Nowcasting.* J. Atmos. Oceanic Technol. 10, 785. https://journals.ametsoc.org/view/journals/atot/10/6/1520-0426_1993_010_0785_ttitaa_2_0_co_2.xml
-- Bates, R. and Ruiz-Columbie, A. (2002). *Weather Modification Scientific Management in Texas.* J. Wea. Mod. https://journalofweathermodification.scholasticahq.com/
-- Woodley, W. L. and Rosenfeld, D. (2004). *The Development and Testing of a New Method to Evaluate the Operational Cloud-Seeding Programs in Texas.* J. Appl. Meteor. 43, 249. https://journals.ametsoc.org/view/journals/apme/43/2/1520-0450_2004_043_0249_tdatoa_2.0.co_2.xml
-- Johnson, J. T. et al. (2004). *A hydrometeorological decision support system to support weather modification operations in Texas and Oklahoma.* 14th Conf. on Planned and Inadvertent Weather Modification, AMS. https://ams.confex.com/ams/pdfpapers/88272.pdf
-- Weather Modification Inc. *West Central Texas Rainfall Enhancement Program — Operations Manual*, filed with the West Central Texas Weather Modification Association, 2002. Launch criteria, targeting, and seeding rates. https://library.oarcloud.noaa.gov/noaa_documents.lib/OAR/OWAQ/Weather_Modification_Project/West%20Central%20Texas%20Weather%20Modification%20Assoc._02-1135_05.01.2002-09.30.2002.pdf
-- Texas Comptroller of Public Accounts (2022). *Seeding Snap.* https://comptroller.texas.gov/economy/economic-data/water/2022/seeding-snap.php
+- Dixon, M. and Wiener, G. (1993). _TITAN: Thunderstorm Identification, Tracking, Analysis, and Nowcasting._ J. Atmos. Oceanic Technol. 10, 785. https://journals.ametsoc.org/view/journals/atot/10/6/1520-0426_1993_010_0785_ttitaa_2_0_co_2.xml
+- Bates, R. and Ruiz-Columbie, A. (2002). _Weather Modification Scientific Management in Texas._ J. Wea. Mod. https://journalofweathermodification.scholasticahq.com/
+- Woodley, W. L. and Rosenfeld, D. (2004). _The Development and Testing of a New Method to Evaluate the Operational Cloud-Seeding Programs in Texas._ J. Appl. Meteor. 43, 249. https://journals.ametsoc.org/view/journals/apme/43/2/1520-0450_2004_043_0249_tdatoa_2.0.co_2.xml
+- Johnson, J. T. et al. (2004). _A hydrometeorological decision support system to support weather modification operations in Texas and Oklahoma._ 14th Conf. on Planned and Inadvertent Weather Modification, AMS. https://ams.confex.com/ams/pdfpapers/88272.pdf
+- Weather Modification Inc. _West Central Texas Rainfall Enhancement Program — Operations Manual_, filed with the West Central Texas Weather Modification Association, 2002. Launch criteria, targeting, and seeding rates. https://library.oarcloud.noaa.gov/noaa_documents.lib/OAR/OWAQ/Weather_Modification_Project/West%20Central%20Texas%20Weather%20Modification%20Assoc._02-1135_05.01.2002-09.30.2002.pdf
+- Texas Comptroller of Public Accounts (2022). _Seeding Snap._ https://comptroller.texas.gov/economy/economic-data/water/2022/seeding-snap.php
 - Texas Department of Licensing and Regulation — Weather Modification. https://www.tdlr.texas.gov/weather/summary.htm
-- Texas Department of Licensing and Regulation. *Weather Modification Knowledge Base.* https://www.tdlr.texas.gov/weather/weatherfaq.htm
+- Texas Department of Licensing and Regulation. _Weather Modification Knowledge Base._ https://www.tdlr.texas.gov/weather/weatherfaq.htm
 - West Texas Weather Modification Association — Operations and TITAN evaluations. https://westtxwxmod.com/
 
 **Seeding physics and AgI**
 
-- Marcolli, C. et al. (2016). *Ice nucleation efficiency of AgI: review and new insights.* Atmos. Chem. Phys. 16, 8915. https://acp.copernicus.org/articles/16/8915/2016/acp-16-8915-2016.pdf
-- *Quantified ice-nucleating ability of AgI-containing seeding particles in natural clouds.* Atmos. Chem. Phys. 25, 5387 (2025). https://acp.copernicus.org/articles/25/5387/2025/
+- Marcolli, C. et al. (2016). _Ice nucleation efficiency of AgI: review and new insights._ Atmos. Chem. Phys. 16, 8915. https://acp.copernicus.org/articles/16/8915/2016/acp-16-8915-2016.pdf
+- _Quantified ice-nucleating ability of AgI-containing seeding particles in natural clouds._ Atmos. Chem. Phys. 25, 5387 (2025). https://acp.copernicus.org/articles/25/5387/2025/
 
 **Seeding field experiments (orographic, different regime)**
 
-- French, J. R. et al. (2018). *Precipitation formation from orographic cloud seeding.* PNAS. https://www.pnas.org/doi/abs/10.1073/pnas.1716995115
-- Friedrich, K. et al. (2020). *Quantifying snowfall from orographic cloud seeding.* PNAS. https://www.pnas.org/doi/10.1073/pnas.1917204117
-- Tessendorf, S. A. et al. (2019). *A Transformational Approach to Winter Orographic Weather Modification Research: The SNOWIE Project.* Bull. Amer. Meteor. Soc. 100(1).
-- Rasmussen, R. M. et al. (2021). *Potential for Ground-Based Glaciogenic Cloud Seeding over Mountains in the Interior Western United States.* J. Appl. Meteor. Climatol. 60(9).
+- French, J. R. et al. (2018). _Precipitation formation from orographic cloud seeding._ PNAS. https://www.pnas.org/doi/abs/10.1073/pnas.1716995115
+- Friedrich, K. et al. (2020). _Quantifying snowfall from orographic cloud seeding._ PNAS. https://www.pnas.org/doi/10.1073/pnas.1917204117
+- Tessendorf, S. A. et al. (2019). _A Transformational Approach to Winter Orographic Weather Modification Research: The SNOWIE Project._ Bull. Amer. Meteor. Soc. 100(1).
+- Rasmussen, R. M. et al. (2021). _Potential for Ground-Based Glaciogenic Cloud Seeding over Mountains in the Interior Western United States._ J. Appl. Meteor. Climatol. 60(9).
 
 **Icing / operational fusion**
 
-- Bernstein, B. C. et al. (2005). *Current Icing Potential: Algorithm Description and Comparison with Aircraft Observations.* J. Appl. Meteor. 44, 969.
+- Bernstein, B. C. et al. (2005). _Current Icing Potential: Algorithm Description and Comparison with Aircraft Observations._ J. Appl. Meteor. 44, 969.
 
 **In-repo**
 

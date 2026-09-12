@@ -67,7 +67,7 @@ export const Findings = () => {
             Nothing has been measured against this program. Its daily reports
             have not been found and parsed into a flight record, so there are no
             flare coordinates to check the map against and no sounding table to
-            check the seeding band against.
+            check the modeled column against.
           </p>
           <p className="text-sm">
             Wiring one up means adding its report source to{" "}
@@ -110,7 +110,7 @@ export const Findings = () => {
               QUESTION 1 — {band ? "ANSWERED YES" : "NOT MEASURED HERE YET"}
             </div>
             <h2 className="card-title">
-              Is the seeding band in the right place?
+              Is the modeled column in the right place?
             </h2>
             {band?.overlap ? (
               <>

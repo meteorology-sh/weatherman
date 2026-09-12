@@ -50,7 +50,7 @@ export const BandColumns = ({ ascents }: PropsT) => {
           height={HEIGHT}
           viewBox={`0 0 ${width} ${HEIGHT}`}
           role="img"
-          aria-label="Measured and modeled seeding band heights for every ascent"
+          aria-label="Measured and modeled 0 to −15 °C layer heights for every ascent"
         >
           {gridlines.map((m) => (
             <g key={m}>

@@ -16,8 +16,8 @@
  * directory that is not committed; this server re-reads it on every request.
  *
  * **The arithmetic behind a published number lives here, not in the app.**
- * Band overlap is calculated from the balloon JSON. Layer and Texas-feature
- * counts are calculated from the painted files. The page and
+ * Sounding-layer overlap is calculated from the balloon JSON. Layer and
+ * Texas-feature counts are calculated from the painted files. The page and
  * `EVALUATION.md` cannot drift apart by recomputing the same figure two ways.
  */
 

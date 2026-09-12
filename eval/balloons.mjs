@@ -25,26 +25,30 @@
  * crew actually read, not with the air over the cell.
  *
  * The offset is small rather than absent. A sonde is released about 45 minutes
- * before the nominal hour and reaches the seeding band minutes into the flight,
+ * before the nominal hour and reaches the layer minutes into the flight,
  * so the true separation is 20–30 minutes. It is survivable here because a
  * thermal profile at 4–7 km moves tens of meters in an hour, where a growing
  * turret swings 40 dBZ in the same span.
  *
  * The rows the operator prints are the seeding decision itself — the freezing
- * level and the −15 °C height bound the glaciogenic window, and the warm cloud
- * depth is what a hygroscopic flare works — so this measures agreement with
- * what the crews are actually launched on.
+ * level and the −15 °C height are the layer the crews brief, and the warm
+ * cloud depth is what a hygroscopic flare works — so this measures agreement
+ * with what the crews are actually launched on.
  *
  * What it can and cannot reach:
  *
- * - It checks where the seeding band sits. The freezing level and the −15 °C
- *   height are the band's own coordinates, and they decide which part of the
- *   column the liquid integral is taken over.
+ * - It checks the modeled column, at the two heights the reports print: 0 and
+ *   −15 °C.
+ * - It does not check the seeding band's own edges. The band runs −5 to
+ *   −18 °C, and the reports carry an indices table rather than an ascent, so
+ *   the balloon's −5 and −18 heights are not in the record at all. Deriving
+ *   them from the two printed points would assume a lapse rate nobody read
+ *   and extrapolate past −15 for the cold edge.
  * - It does not check the liquid. Nothing in the record measures supercooled
- *   water in the band, and no sounding index stands in for it.
+ *   water at any temperature, and no sounding index stands in for it.
  *
- * So this says whether we are looking in the right place, not whether we are
- * right about what is there.
+ * So this says whether the column is in the right place, not whether we are
+ * right about what is in it.
  */
 
 // Node
@@ -480,13 +484,13 @@ for (const pair of PAIRS) {
 /* ---------- the band as a whole ---------- */
 
 /**
- * How much of the seeding band we drew is the seeding band that was measured.
+ * How much of the 0 to −15 °C layer we model is the layer that was measured.
  *
  * The two edges are scored separately above, but a crew does not fly an edge —
  * it flies the layer between them. Overlap divided by union is the figure that
- * answers "would an aircraft holding our band have been in theirs": 1.0 is the
+ * answers "would an aircraft holding our layer have been in theirs": 1.0 is the
  * same layer, 0.0 is two layers that do not touch. Reported against the union
- * rather than against theirs alone so that drawing a band far too deep is
+ * rather than against theirs alone so that drawing a layer far too deep is
  * penalized rather than rewarded for covering everything.
  */
 const overlaps = rows

@@ -122,24 +122,32 @@ A flare with no 20 dBZ storm object does not pass a feature.
 | Rolling Plains |       53 |        25/53 (47.2%) |        20/53 (37.7%) |         45/53 (84.9%) |          45/53 (84.9%) |
 | **Season**     | **1353** | **572/1353 (42.3%)** | **786/1353 (58.1%)** | **1246/1353 (92.1%)** |  **1279/1353 (94.5%)** |
 
-## The seeding band against the balloons
+## The sounding layer against the balloons
 
-Each cell is bias / typical miss. The CCL column is scored over every ascent
-that prints one, so its count can exceed the band's.
+The freezing level and the −15 °C height are what the reports print, so they
+are what can be scored. The seeding band's own edges, −5 and −18 °C, are not in
+the record — this is a check on the column those heights are read off, not on
+the band.
 
-| Program        | Ascents | Freezing level | −15 °C height |            CCL | Band overlap | Cleared 90% |
-| -------------- | ------: | -------------: | ------------: | -------------: | -----------: | ----------: |
-| West Texas     |      67 |   −33 m / 43 m |  −23 m / 51 m | −325 m / 269 m |    **94.7%** |    60 of 67 |
-| Trans Pecos    |      39 |   −24 m / 29 m |   −9 m / 48 m | −353 m / 378 m |    **95.5%** |    37 of 39 |
-| South Texas    |      11 |   −12 m / 34 m |  −23 m / 42 m |  −31 m / 461 m |    **95.2%** |    11 of 11 |
-| Rolling Plains |       7 |   −21 m / 24 m |  −66 m / 52 m | −300 m / 656 m |    **95.4%** |      5 of 7 |
+Each height cell reads: how far our height sits from the balloon's on average,
+then the typical miss in either direction. "Low" means our height is below the
+balloon's. The CCL column is scored over every ascent that prints one, so its
+count can exceed the layer's.
 
-| Distinct ascents        |                |
-| ----------------------- | -------------: |
-| Band scored             |            104 |
-| Median band depth       |         2429 m |
-| Mean band overlap       |      **95.0%** |
-| Worst band overlap      |          77.2% |
-| Cleared 80%             |     103 of 104 |
-| CCL scored              |            105 |
-| CCL bias / typical miss | −287 m / 342 m |
+| Program        | Ascents | Freezing level          | −15 °C height           | CCL                       | Layer overlap | Cleared 90% |
+| -------------- | ------: | ----------------------- | ----------------------- | ------------------------- | ------------: | ----------: |
+| West Texas     |      67 | 33 m low · 43 m typical | 23 m low · 51 m typical | 325 m low · 269 m typical |     **94.7%** |    60 of 67 |
+| Trans Pecos    |      39 | 24 m low · 29 m typical | 9 m low · 48 m typical  | 353 m low · 378 m typical |     **95.5%** |    37 of 39 |
+| South Texas    |      11 | 12 m low · 34 m typical | 23 m low · 42 m typical | 31 m low · 461 m typical  |     **95.2%** |    11 of 11 |
+| Rolling Plains |       7 | 21 m low · 24 m typical | 66 m low · 52 m typical | 300 m low · 656 m typical |     **95.4%** |      5 of 7 |
+
+| Distinct ascents    |            |
+| ------------------- | ---------: |
+| Layer scored        |        104 |
+| Median layer depth  |     2429 m |
+| Mean layer overlap  |  **95.0%** |
+| Worst layer overlap |      77.2% |
+| Cleared 80%         | 103 of 104 |
+| CCL scored          |        105 |
+| CCL, average offset |  287 m low |
+| CCL, typical miss   |      342 m |

@@ -2,9 +2,9 @@
  * Print the EVALUATION.md tables from files already in eval/out.
  *
  * `node eval/score-season.mjs` — no server. Layer overlap and Texas storm
- * features come from the painted days. Band overlap is
+ * features come from the painted days. Sounding-layer overlap is
  * calculated from the balloon JSON. Shared Midland and Del Rio mornings
- * are counted once in the season band table.
+ * are counted once in the season sounding-layer table.
  *
  * Every overlap is also read against a tolerance: one cell of the layer plus
  * the rounding of the printed position (`lib/tolerance.mjs`). A release
@@ -45,12 +45,7 @@ const LAYERS = [
  * painted before that field existed score by the same rule as days painted
  * after, rather than the tables mixing two conventions.
  */
-const MEASURED_EDGE = new Set([
-  "cloudBase",
-  "radar",
-  "target",
-  "echoFreeze",
-]);
+const MEASURED_EDGE = new Set(["cloudBase", "radar", "target", "echoFreeze"]);
 
 /**
  * Was the release in the layer, measured against the clock that layer answers?
@@ -150,10 +145,7 @@ const evaluable = regions.filter((region) => region.releases);
  */
 const emptyLayers = () =>
   Object.fromEntries(
-    LAYERS.map(([key]) => [
-      key,
-      { n: 0, inside: 0, within: 0 },
-    ])
+    LAYERS.map(([key]) => [key, { n: 0, inside: 0, within: 0 }])
   );
 
 /**
@@ -323,7 +315,9 @@ for (const region of evaluable) {
   );
 }
 
-console.log("\n| Layer | Cell | Inside | Within tolerance | Inside or within |");
+console.log(
+  "\n| Layer | Cell | Inside | Within tolerance | Inside or within |"
+);
 console.log("| --- | ---: | ---: | ---: | ---: |");
 for (const [key, label] of LAYERS) {
   const layer = seasonLayers[key];
@@ -497,11 +491,20 @@ function bandRow(rows) {
   };
 }
 
+/**
+ * One height cell, written so it reads without the caption.
+ *
+ * Two different numbers: how far our height sits from the balloon's on
+ * average, then how far a single ascent typically misses regardless of
+ * direction. A signed pair like "−21 m / 53 m" cannot say which is which.
+ */
 function edge(s) {
   if (!s) return "—";
   const bias = Math.round(s.bias);
   const typical = Math.round(s.typical);
-  return `${bias > 0 ? "+" : ""}${bias} m / ${typical} m`;
+  const offset =
+    bias === 0 ? "level" : `${Math.abs(bias)} m ${bias > 0 ? "high" : "low"}`;
+  return `${offset} · ${typical} m typical`;
 }
 
 function overlapCell(summary) {
@@ -514,12 +517,12 @@ function cleared(summary) {
   return `${summary.over90} of ${summary.n}`;
 }
 
-console.log("\n## The seeding band against the balloons\n");
+console.log("\n## The sounding layer against the balloons\n");
 console.log(
-  "Each cell is bias / typical miss. The CCL column is the cloud-base layer's\nfallback height and is scored over every ascent that prints one, so its\ncount can exceed the band's.\n"
+  "The freezing level and the −15 °C height are what the reports print, so they\nare what can be scored. The seeding band's own edges, −5 and −18 °C, are not\nin the record — this is a check on the column those heights are read off, not\non the band.\n\nEach height cell reads: how far our height sits from the balloon's on average,\nthen the typical miss in either direction. The CCL column is the cloud-base\nlayer's fallback height and is scored over every ascent that prints one, so\nits count can exceed the layer's.\n"
 );
 console.log(
-  "| Program | Ascents | Freezing level | −15 °C height | CCL | Band overlap | Cleared 90% |"
+  "| Program | Ascents | Freezing level | −15 °C height | CCL | Layer overlap | Cleared 90% |"
 );
 console.log("| --- | ---: | ---: | ---: | ---: | ---: | ---: |");
 
@@ -638,9 +641,8 @@ console.log(
       .map((column) =>
         column.own
           ? cell(
-              column.flares.filter(
-                (flare) => flies(flare) && column.own(flare)
-              ).length,
+              column.flares.filter((flare) => flies(flare) && column.own(flare))
+                .length,
               column.flares.length
             )
           : "—"
@@ -649,7 +651,9 @@ console.log(
     " |"
 );
 
-const seasonDates = evaluable.flatMap((region) => stats[region.id].dates).sort();
+const seasonDates = evaluable
+  .flatMap((region) => stats[region.id].dates)
+  .sort();
 console.log("\n## The season\n");
 console.log("| The season | |");
 console.log("| --- | ---: |");

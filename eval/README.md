@@ -2,7 +2,7 @@
 
 **Evaluate against the season** means: score every located 2025 flare
 against Weatherman's own layers at that minute, re-score the 12Z balloons
-against the modeled seeding band, and store JSON the eval app reads as
+against the modeled column, and store JSON the eval app reads as
 regional maps and tables.
 
 Parses Texas rain-enhancement reports, scores each flare against
@@ -39,11 +39,11 @@ sonde.
 The app does not re-score against a live Weatherman API. `server.mjs`
 reads `out/` on every request.
 
-| Result                      | File                                                     | Field                                                                                                                          |
-| --------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Band overlap                | `out/balloons-*.json` (`regions.json` → `runs.balloons`) | radiosonde vs model column; **the page calculates overlap from those rows**                                                    |
-| The layers Weatherman draws | `out/painted-*.json` (`runs.painted`)                    | `near.radar`, `near.echoFreeze`, `near.cloudBase`, `near.target`                                                               |
-| Texas storm features        | the same painted files                                   | `storm` on each flare: in 20 dBZ, nearer the edge, upwind, echo top past freezing                                              |
+| Result                      | File                                                     | Field                                                                                                                     |
+| --------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Layer overlap               | `out/balloons-*.json` (`regions.json` → `runs.balloons`) | radiosonde vs model column; **the page calculates overlap from those rows**                                               |
+| The layers Weatherman draws | `out/painted-*.json` (`runs.painted`)                    | `near.radar`, `near.echoFreeze`, `near.cloudBase`, `near.target`                                                          |
+| Texas storm features        | the same painted files                                   | `storm` on each flare: in 20 dBZ, nearer the edge, upwind, echo top past freezing                                         |
 | The click on each release   | the same painted files                                   | `cell`, `storm` and `column` on each flare: Fly or Don't Fly with the tests behind it, then Radar, Cloud, and Environment |
 
 `near.target` is the Texas fly fill (`GET /candidate/target`, property
@@ -321,13 +321,13 @@ it. Either repaint or say plainly that the column is empty for that run.
 
 Fills `paint.mjs` stores, all `fine=1`:
 
-| `near` key   | Route                          | Property          | Cell |
-| ------------ | ------------------------------ | ----------------- | ---- |
-| `target`     | `/candidate/target`            | `fly`             | 3 km |
-| `radar`      | `/radar/reflectivity`          | `reflectivity`    | 1 km |
-| `echoFreeze` | `/radar/echotop/past-freezing` | `pastFreezing`    | 3 km |
-| `cloudBase`  | `/candidate/cloudbase`         | `cloudBaseFt`     | 3 km |
-| `liquid`     | `/forecast/liquid`             | `slwPath`         | 3 km |
+| `near` key   | Route                          | Property       | Cell |
+| ------------ | ------------------------------ | -------------- | ---- |
+| `target`     | `/candidate/target`            | `fly`          | 3 km |
+| `radar`      | `/radar/reflectivity`          | `reflectivity` | 1 km |
+| `echoFreeze` | `/radar/echotop/past-freezing` | `pastFreezing` | 3 km |
+| `cloudBase`  | `/candidate/cloudbase`         | `cloudBaseFt`  | 3 km |
+| `liquid`     | `/forecast/liquid`             | `slwPath`      | 3 km |
 
 Inside is inside the contour after storm-motion drift. A missing frame
 for an hour drops that flare from that column's denominator.
@@ -378,9 +378,9 @@ in blocks 1 and 3 are the arithmetic `score-season.mjs` prints:
 
 **RADIOSONDE.** Every scored ascent from `balloons-*.json`. Overlap is
 calculated in `server.mjs` from those rows, the same function
-`score-season.mjs` calls. The page leads with the seeding band and calls
+`score-season.mjs` calls. The page leads with the layer overlap and calls
 out the CCL separately, because that row is the cloud-base layer's
-fallback height rather than a band edge.
+fallback height rather than a layer edge.
 
 Every measured number on that page is already on disk: the reports print
 the ascent's own table and `releases.mjs` parsed it into
@@ -398,20 +398,20 @@ on the storm they flew.
 
 ## Scripts
 
-| Script             | What it does                                                                                                                   |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `days.mjs`         | Print seeded days that have a located flare.                                                                                   |
-| `paint.mjs`        | Score one flying day. Writes the painted file `regions.json` names.                                                            |
-| `balloons.mjs`     | Compare the report sounding table to HRRR at 12Z. Writes `runs.balloons`. The app then calculates band overlap from that file. |
-| `server.mjs`       | HTTP for the eval app (port 3100). Re-reads `out/` per request.                                                                |
-| `releases.mjs`     | Download and parse daily reports into a flight record.                                                                         |
-| `panhandle.mjs`    | Same, for the Panhandle's monthly files.                                                                                       |
-| `records.mjs`      | Download a program's PDFs into `cache/` without parsing.                                                                       |
-| `counties.mjs`     | Pull county polygons from TIGERweb into `data/counties-tx.geojson`.                                                            |
-| `positions.mjs`    | Share of releases that land in the county their own row names.                                                                 |
-| `score-season.mjs` | Print the EVALUATION.md tables from `out/`. No network.                                                                        |
-| `verify.mjs`       | Is this tree a complete season? No network. Exit 1 if not.                                                                     |
-| `pack.mjs`         | After `verify.mjs` passes, pack `data/`, `cache/`, `out/` to `eval/eval-snapshot.tar.gz`.                                      |
+| Script             | What it does                                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `days.mjs`         | Print seeded days that have a located flare.                                                                                    |
+| `paint.mjs`        | Score one flying day. Writes the painted file `regions.json` names.                                                             |
+| `balloons.mjs`     | Compare the report sounding table to HRRR at 12Z. Writes `runs.balloons`. The app then calculates layer overlap from that file. |
+| `server.mjs`       | HTTP for the eval app (port 3100). Re-reads `out/` per request.                                                                 |
+| `releases.mjs`     | Download and parse daily reports into a flight record.                                                                          |
+| `panhandle.mjs`    | Same, for the Panhandle's monthly files.                                                                                        |
+| `records.mjs`      | Download a program's PDFs into `cache/` without parsing.                                                                        |
+| `counties.mjs`     | Pull county polygons from TIGERweb into `data/counties-tx.geojson`.                                                             |
+| `positions.mjs`    | Share of releases that land in the county their own row names.                                                                  |
+| `score-season.mjs` | Print the EVALUATION.md tables from `out/`. No network.                                                                         |
+| `verify.mjs`       | Is this tree a complete season? No network. Exit 1 if not.                                                                      |
+| `pack.mjs`         | After `verify.mjs` passes, pack `data/`, `cache/`, `out/` to `eval/eval-snapshot.tar.gz`.                                       |
 
 ### Helpers in `lib/`
 
@@ -425,7 +425,7 @@ Not run on their own, except the tests.
 | `pdf.mjs`              | Pull text out of the source PDFs.                                                         |
 | `weatherman.mjs`       | Address of the Weatherman API. Ask it for the storm at a point.                           |
 | `storm-score.mjs`      | Yes or no for each Texas turret feature from a storm reading.                             |
-| `band-score.mjs`       | Band overlap from one balloon row. The eval app and `score-season.mjs` both call this.    |
+| `band-score.mjs`       | Layer overlap from one balloon row. The eval app and `score-season.mjs` both call this.   |
 | `tolerance.mjs`        | How far a printed position can move a release. `score-season.mjs` adds one layer cell.    |
 | `storm-score.test.mjs` | Tests for the turret-feature rules.                                                       |
 | `band-score.test.mjs`  | Tests for the overlap arithmetic.                                                         |

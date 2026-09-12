@@ -39,15 +39,15 @@ those IDs.
 TITAN already tracks the cell. The gap is everything the desk already
 computes that never lands on the storm in view.
 
-| On the storm | What it is | What it is not |
-| --- | --- | --- |
-| Cloud base, ft above the ground | Can the aircraft climb in, and does rain from this base reach the ground. Under 12,000 ft is the West Texas criterion. | A national height ramp used as a mask. |
-| Freezing level and −15 °C | The morning sounding, on this column. Median overlap with the balloons they brief is 95.3–97.7%. | A forecast of where to fly in hours. |
-| 18 dBZ echo top versus freezing | The glaciogenic cue, measured. | A second rain fill. |
-| Upwind raining edge | The flank of the object they fly. Heading from the previous mosaic, not inflow. | Climb rate in ft/min. Pilots measure that with the aircraft. |
-| Supercooled liquid in the seeding band | HRRR's opinion over this storm. | A test that hides the storm. |
-| GOES top, whether it cooled, phase | Growth and glaciation at the top, observed. | A −5 °C fill at the aircraft. Crews seed at cloud base. |
-| GLM flashes | Electrification over this storm, as points. | A contour. Lightning is too sparse. |
+| On the storm                           | What it is                                                                                                             | What it is not                                               |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Cloud base, ft above the ground        | Can the aircraft climb in, and does rain from this base reach the ground. Under 12,000 ft is the West Texas criterion. | A national height ramp used as a mask.                       |
+| Freezing level and −15 °C              | The morning sounding, on this column. Median overlap with the balloons they brief is 95.3–97.7%.                       | A forecast of where to fly in hours.                         |
+| 18 dBZ echo top versus freezing        | The glaciogenic cue, measured.                                                                                         | A second rain fill.                                          |
+| Upwind raining edge                    | The flank of the object they fly. Heading from the previous mosaic, not inflow.                                        | Climb rate in ft/min. Pilots measure that with the aircraft. |
+| Supercooled liquid in the seeding band | HRRR's opinion over this storm.                                                                                        | A test that hides the storm.                                 |
+| GOES top, whether it cooled, phase     | Growth and glaciation at the top, observed.                                                                            | A −5 °C fill at the aircraft. Crews seed at cloud base.      |
+| GLM flashes                            | Electrification over this storm, as points.                                                                            | A contour. Lightning is too sparse.                          |
 
 Silver iodide still only acts on supercooled liquid. Radar still cannot
 see that liquid. Those sentences do not move. What moves is the thing
@@ -135,19 +135,19 @@ swallow the tracker.
 
 **Evaluate against the season** means: score every located 2025 flare
 against Weatherman's own layers at that minute, re-score the 12Z balloons
-against the modeled seeding band, and store JSON the eval app reads as
+against the modeled column, and store JSON the eval app reads as
 regional maps and tables. The job is `eval/README.md`.
 
 The test is not "overlap with flares went up." Flares are a biased
 sample of days someone already decided to fly.
 
-| Claim | Test against 2025 |
-| --- | --- |
-| We select the same kind of storm | Share of flares that fall in or on the upwind raining edge of a live mosaic object |
-| We are looking at the flank, not the core | Distance to the upwind edge versus to the heaviest rain |
-| The glaciogenic cue is present | 18 dBZ echo top at or above freezing on that object |
-| Liquid remains an open check | Supercooled-liquid-inside rate, still reported, no longer a ship gate |
-| Rain is no longer a silent veto | The storm stays on the map; the join is a switch |
+| Claim                                     | Test against 2025                                                                  |
+| ----------------------------------------- | ---------------------------------------------------------------------------------- |
+| We select the same kind of storm          | Share of flares that fall in or on the upwind raining edge of a live mosaic object |
+| We are looking at the flank, not the core | Distance to the upwind edge versus to the heaviest rain                            |
+| The glaciogenic cue is present            | 18 dBZ echo top at or above freezing on that object                                |
+| Liquid remains an open check              | Supercooled-liquid-inside rate, still reported, no longer a ship gate              |
+| Rain is no longer a silent veto           | The storm stays on the map; the join is a switch                                   |
 
 A change that raises flare overlap by drawing every echo in Texas, or by
 dropping the liquid reading, has not worked. It has hidden the

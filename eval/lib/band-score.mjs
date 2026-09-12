@@ -1,7 +1,14 @@
 /**
- * How much of the seeding band we drew is the band a radiosonde measured.
+ * How much of the 0 to −15 °C layer we model is the layer a radiosonde
+ * measured.
  *
- * Overlap over union, so a band drawn far too deep is penalized rather than
+ * Those two heights are what the reports print, and they are not the seeding
+ * band's own edges: the band runs −5 to −18 °C, and no ascent in the record
+ * locates either one. So this scores the column the band's heights are read
+ * off, which is what licenses trusting them — it is not a measurement of the
+ * band.
+ *
+ * Overlap over union, so a layer drawn far too deep is penalized rather than
  * rewarded for covering everything. A crew does not fly an edge, it flies
  * the layer between them.
  *

@@ -49,9 +49,7 @@ export const Radiosonde = () => {
     <div className="h-full overflow-y-auto">
       <div className="max-w-5xl mx-auto p-8 flex flex-col gap-6">
         <div className="prose max-w-none">
-          <h1 className="mb-1">
-            The seeding band is where the balloons put it
-          </h1>
+          <h1 className="mb-1">The column is where the balloons put it</h1>
           <p>
             The National Weather Service flies a thermometer from Midland and
             Del Rio twice a day, straight through the layer that decides a
@@ -63,7 +61,7 @@ export const Radiosonde = () => {
         {band.overlap && (
           <div className="stats stats-vertical sm:stats-horizontal bg-base-200">
             <div className="stat">
-              <div className="stat-title">Overlap with the measured band</div>
+              <div className="stat-title">Overlap with the measured layer</div>
               <div className="stat-value text-success">
                 {pct(band.overlap.mean)}
               </div>
@@ -72,7 +70,7 @@ export const Radiosonde = () => {
               </div>
             </div>
             <div className="stat">
-              <div className="stat-title">Band depth</div>
+              <div className="stat-title">Layer depth</div>
               <div className="stat-value">{band.overlap.medianDepth} m</div>
               <div className="stat-desc">median, floor to ceiling</div>
             </div>
@@ -100,13 +98,15 @@ export const Radiosonde = () => {
                 <div className="stat-desc">against {ccl.n} ascents</div>
               </div>
               <div className="stat">
-                <div className="stat-title">Bias</div>
+                <div className="stat-title">Average offset</div>
                 <div className="stat-value">
-                  {ccl.bias > 0 ? "+" : ""}
-                  {ccl.bias} {ccl.unit}
+                  {Math.abs(ccl.bias)} {ccl.unit}{" "}
+                  {ccl.bias > 0 ? "high" : "low"}
                 </div>
                 <div className="stat-desc">
-                  {ccl.bias > 0 ? "we run high" : "we run low"}
+                  {ccl.bias > 0
+                    ? "our height sits above the balloon's"
+                    : "our height sits below the balloon's"}
                 </div>
               </div>
               <div className="stat">
@@ -165,7 +165,7 @@ export const Radiosonde = () => {
               <tr>
                 <th>Reading</th>
                 <th className="text-right">Ascents</th>
-                <th className="text-right">Bias</th>
+                <th className="text-right">Average offset</th>
                 <th className="text-right">Typical miss</th>
                 <th className="text-right">Worst</th>
               </tr>
@@ -176,8 +176,8 @@ export const Radiosonde = () => {
                   <td>{reading.label}</td>
                   <td className="text-right font-mono">{reading.n}</td>
                   <td className="text-right font-mono">
-                    {reading.bias > 0 ? "+" : ""}
-                    {reading.bias} {reading.unit}
+                    {Math.abs(reading.bias)} {reading.unit}{" "}
+                    {reading.bias > 0 ? "high" : "low"}
                   </td>
                   <td className="text-right font-mono font-semibold">
                     {reading.typical} {reading.unit}
@@ -194,13 +194,16 @@ export const Radiosonde = () => {
         <div className="prose max-w-none text-sm">
           <p>
             {band.attempted} pairs attempted, {band.failed} lost to timeouts.
-            Bias near zero on both edges means the misses are scatter rather
-            than a standing offset, so there is nothing to correct for.
+            The average offset is how far our height sits from the
+            balloon&rsquo;s, and the typical miss is how far off a single ascent
+            usually is regardless of direction. An average offset near zero on
+            both edges means the misses are scatter rather than a standing
+            offset, so there is nothing to correct for.
           </p>
           <p>
             The balloon is close in time but not simultaneous — it is released
-            about 45 minutes before its nominal hour and reaches the seeding
-            band minutes into the flight, so the gap is 20–30 minutes. That is
+            about 45 minutes before its nominal hour and reaches the layer
+            minutes into the flight, so the gap is 20–30 minutes. That is
             survivable here because a temperature profile at 4–7 km moves tens
             of meters in an hour.
           </p>

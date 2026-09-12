@@ -116,8 +116,8 @@ apply.
 
 - `yarn format` / `yarn format:check` in either package.
 - Editors format on save via `.vscode/settings.json`.
-- A `PostToolUse` hook (`.claude/settings.json` → `.claude/format.sh`) formats
-  files Claude edits, so never shell out to Prettier by hand.
+- Nothing formats automatically outside the editor, so run
+  `npx prettier --write` on the files you changed before committing.
 - ESLint flat config in `/app`: `js.configs.recommended` + `typescript-eslint` +
   `react-hooks` + `react-refresh`. Run `yarn lint` before committing.
 - TypeScript enforces `noUnusedLocals` / `noUnusedParameters`. No dead code.
