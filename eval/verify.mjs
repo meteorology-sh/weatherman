@@ -99,9 +99,12 @@ for (const region of regions) {
       continue;
     }
     painted += 1;
+    let dayFlares = 0;
+    let dayCells = 0;
     for (const analysis of paintedDay.analyses ?? []) {
       for (const flare of analysis.flares ?? []) {
         flares += 1;
+        dayFlares += 1;
         // An empty layer is an answer (`empty: true`); a null is a route that
         // failed, and a season with a failed route is not complete.
         for (const key of LAYER_KEYS) {
@@ -127,7 +130,17 @@ for (const region of regions) {
         } else {
           missing.push(`out/${name} ${flare.timeZ} (no click readout)`);
         }
+        if (flare.cell) dayCells += 1;
       }
+    }
+
+    // One null cell is geography; every cell on the day null is a route that
+    // stopped answering. `/candidate/point` answers for any release inside the
+    // model grid whatever the weather, so a whole day of nulls is an API that
+    // died mid-run — which still writes the day, at a size that looks like a
+    // quiet one.
+    if (dayFlares > 0 && dayCells === 0) {
+      missing.push(`out/${name} (every cell readout on the day is null)`);
     }
   }
 

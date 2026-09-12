@@ -253,6 +253,16 @@ for (const name of files) {
 
 console.log("## Flare overlap with each layer\n");
 console.log(
+  "Two programs print a position the record cannot pin down. The Rolling" +
+    " Plains write a fraction that is sometimes a decimal degree and sometimes" +
+    " minutes and never say which, and the two readings of one row lie tens of" +
+    " kilometres apart — many cells of any layer here. South Texas and the" +
+    " Panhandle write a bearing and a range from a point their reports never" +
+    " name. Every position is read exactly as printed and nothing is rewritten," +
+    " so where those three score low the row is about the record as much as" +
+    " about the layer. `positions.mjs` prints how far that goes.\n"
+);
+console.log(
   "| Program | Releases | " +
     LAYERS.map(([, label]) => label).join(" | ") +
     " |"
