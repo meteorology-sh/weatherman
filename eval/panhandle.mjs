@@ -1,8 +1,9 @@
 /**
  * Turn the Panhandle district's monthly reports into a flight record.
  *
- * `node eval/panhandle.mjs` — reads the cached months in `cache/panhandle/`,
- * writes `data/releases-panhandle-2025.json`.
+ * `node eval/panhandle.mjs [--season=2025]` — reads the cached months in
+ * `cache/<season>/panhandle/`, writes the flight record the season's
+ * `regions.json` names.
  *
  * **It is a separate script because the district files a separate document.**
  * `releases.mjs` reads the daily report West Texas and Trans-Pecos both write;
@@ -18,20 +19,18 @@
 
 // Node
 import { readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 // Local
 import { extractText } from "./lib/pdf.mjs";
 import { parseMissions, parseMonthTotals } from "./lib/panhandle.mjs";
+import { regionsOf, seasonDirs, seasonOf } from "./lib/season.mjs";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const DATA = join(HERE, "data");
-const CACHE = join(HERE, "cache", "panhandle");
+const SEASON = seasonOf();
+const { data: DATA, cache: SEASON_CACHE } = seasonDirs(SEASON);
+const CACHE = join(SEASON_CACHE, "panhandle");
 
-const { regions } = JSON.parse(
-  await readFile(join(DATA, "regions.json"), "utf8")
-);
+const regions = await regionsOf(SEASON);
 const region = regions.find((entry) => entry.id === "panhandle");
 const manifest = JSON.parse(await readFile(join(DATA, region.reports), "utf8"));
 
@@ -54,15 +53,34 @@ for (const month of months) {
     (d) => d.month === month && d.kind === "operations"
   );
 
+  // A month posted without its mission reports has no flight table to read,
+  // and one whose operations report is not a PDF has no day totals to check
+  // the table against. Both are printed as problems rather than passed over.
+  if (!missions) {
+    problems.push(`${month}: no mission reports posted`);
+    continue;
+  }
   const flown = parseMissions(
     extractText(await readFile(join(CACHE, missions.file))),
     origin
   );
-  const totals = parseMonthTotals(
-    extractText(await readFile(join(CACHE, operations.file))),
-    year,
-    index
-  );
+  const checked = Boolean(operations?.file.endsWith(".pdf"));
+  if (!checked) {
+    problems.push(
+      `${month}: ${
+        operations
+          ? `operations report is .${operations.file.split(".").pop()}, not read`
+          : "no operations report posted"
+      } — days not checked against a total`
+    );
+  }
+  const totals = checked
+    ? parseMonthTotals(
+        extractText(await readFile(join(CACHE, operations.file))),
+        year,
+        index
+      )
+    : {};
 
   for (const day of flown) {
     const stated = totals[day.date] ?? null;
@@ -87,7 +105,9 @@ for (const month of months) {
       `${date}: in the operations report, not in the missions file`
     );
   }
-  for (const day of flown.filter((entry) => !totals[entry.date])) {
+  for (const day of checked
+    ? flown.filter((entry) => !totals[entry.date])
+    : []) {
     problems.push(
       `${day.date}: in the missions file, not in the operations report`
     );

@@ -23,8 +23,15 @@
 // Local
 import { projectRadial } from "./geo.mjs";
 
-/** `SEEDING REPORT June 02, 2025` opens each day inside a monthly file. */
-const DAY = /SEEDING\s+REPORT\s+([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})/g;
+/**
+ * `SEEDING REPORT June 02, 2025` opens each day inside a monthly file.
+ *
+ * Some months' text layer puts a dash after `REPORT` — sometimes the raw
+ * Windows-1252 byte for one — or spaces the digits of the day apart, `June 0 3 ,
+ * 2024`, and all of them are the same heading.
+ */
+const DAY =
+  /SEEDING\s+REPORT\s*[-–—\u0096]?\s*([A-Za-z]+)\s+(\d)\s?(\d?)\s*,\s*(\d{4})/g;
 
 /** `2056 N5359P 109° @ 13 nm Armstrong` */
 const RELEASE =
@@ -112,7 +119,7 @@ export function parseMissions(text, origin) {
     );
     const month = MONTHS[start[1].toLowerCase()];
     if (!month) continue;
-    const date = `${start[3]}-${pad(month)}-${pad(Number(start[2]))}`;
+    const date = `${start[4]}-${pad(month)}-${pad(Number(start[2] + start[3]))}`;
 
     const table = body.slice(body.search(/FLIGHT\s+INFORMATION/i));
     const releases = [...table.matchAll(RELEASE)].map(

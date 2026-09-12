@@ -1,7 +1,7 @@
 /**
  * Seeded days that have a located flare, one date per line.
  *
- * `node eval/days.mjs [--region=wtwma]`
+ * `node eval/days.mjs [--season=2025] [--region=wtwma]`
  *
  * No region flag prints `region<TAB>date` for every program. The AWS
  * season job feeds these dates to `paint.mjs`.
@@ -9,19 +9,19 @@
 
 // Node
 import { readFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const DATA = join(HERE, "data");
+// Local
+import { regionsOf, seasonDirs, seasonOf } from "./lib/season.mjs";
+
+const SEASON = seasonOf();
+const { data: DATA } = seasonDirs(SEASON);
 
 const REGION = process.argv
   .find((arg) => arg.startsWith("--region="))
   ?.slice(9);
 
-const { regions } = JSON.parse(
-  await readFile(join(DATA, "regions.json"), "utf8")
-);
+const regions = await regionsOf(SEASON);
 
 const wanted = REGION
   ? regions.filter((region) => region.id === REGION)

@@ -40,18 +40,19 @@ const county = (counties) =>
 /**
  * How a program writes down where a flare went.
  *
- * Five spellings across the five programs, and two of them can appear in one
- * season: South Texas prints degrees in March and a radial from April on, and
+ * Six spellings across the programs and seasons, and two of them can appear in
+ * one season: South Texas prints degrees in March and a radial from April on, and
  * the Rolling Plains stop writing the hemisphere out halfway through June. So
  * the spellings are tried in turn rather than fixed per region, and the reader
  * takes whichever one the row is written in.
  *
- * **A radial is only read where the region says what it is measured from.**
+ * **A radial is only placed where the region says what it is measured from.**
  * `32.43X101.12` and `270X35` are the same shape and mean entirely different
- * things — a place, and a bearing and a range to a place. Nothing in the row
- * tells them apart. What does is that the Rolling Plains have no origin and
- * South Texas has one, so `32.43X101.12` is never read as a bearing and
- * `270X35` is never read as a latitude.
+ * things — a place, and a bearing and a range to a place. The decimal point is
+ * what tells them apart, so `32.43X101.12` is never read as a bearing and
+ * `270X35` is never read as a latitude. A radial in a region with no origin
+ * keeps its printed bearing and range and is not located: the release is real,
+ * and nothing on the record says where it was measured from.
  */
 const SPELLINGS = [
   // `31.1272 / -101.7577` — West Texas and Trans-Pecos, signed.
@@ -71,29 +72,42 @@ const SPELLINGS = [
     at: /^(\d+\.\d+)\s*[xX,]\s*(\d+\.\d+)/,
     read: ([lat, lon]) => [Number(lat), -Number(lon)],
   },
+  // `198° @ 56 nm` — a bearing and a range, written out.
+  {
+    at: /^(\d{1,3})\s*°\s*@\s*(\d{1,3})\s*nm\b/,
+    radial: true,
+  },
   // `270X35` — a bearing in degrees and a range in nautical miles.
   {
     at: /^(\d{1,3})\s*[xX]\s*(\d{1,3})(?!\S)/,
-    read: ([bearing, range], origin) =>
-      projectRadial(origin, Number(bearing), Number(range)),
-    needsOrigin: true,
+    radial: true,
   },
 ];
 
 /**
- * The position a row opens with, and how much of the row it took up, or
- * nothing if the row opens with something else.
+ * The position a row opens with, how much of the row it took up, and the
+ * bearing and range as printed when it is a radial — or nothing if the row
+ * opens with something else.
  */
 function parsePosition(cell, origin) {
   for (const spelling of SPELLINGS) {
-    if (spelling.needsOrigin && !origin) continue;
     const found = cell.match(spelling.at);
-    if (found) {
+    if (!found) continue;
+    if (!spelling.radial) {
       return {
-        at: spelling.read(found.slice(1), origin),
+        at: spelling.read(found.slice(1)),
+        printed: null,
         read: found[0].length,
       };
     }
+    const printed = { bearingDeg: Number(found[1]), rangeNm: Number(found[2]) };
+    return {
+      at: origin
+        ? projectRadial(origin, printed.bearingDeg, printed.rangeNm)
+        : null,
+      printed,
+      read: found[0].length,
+    };
   }
   return null;
 }
@@ -146,8 +160,9 @@ function parseRow(cell, counties, origin) {
   const named = cell.match(new RegExp(`\\b(${county(counties)})\\b`));
 
   return {
-    lat: where ? where.at[0] : null,
-    lon: where ? where.at[1] : null,
+    lat: where?.at ? where.at[0] : null,
+    lon: where?.at ? where.at[1] : null,
+    printed: where ? where.printed : null,
     flares: flares ? parseFlares(flares[0]) : null,
     county: named ? named[1].replace(/\s+/g, " ") : null,
   };
@@ -392,13 +407,15 @@ export function parseReleases(text, date, profile) {
 
   if (releases.length === 0) return bracketed(table, date);
 
-  return releases.map(({ hhmm, plane, lat, lon, flares, county }) => ({
+  return releases.map(({ hhmm, plane, lat, lon, printed, flares, county }) => ({
     at: instant(date, hhmm),
     timeZ: hhmm.padStart(4, "0"),
     plane,
     located: lat !== null && inside(lat, lon, profile.window),
     lat,
     lon,
+    // As printed, so the projection can be redone from the source.
+    ...(printed && printed),
     glaciogenic: flares ? flares.glaciogenic : null,
     hygroscopic: flares ? flares.hygroscopic : null,
     county,
@@ -458,16 +475,26 @@ const loosely = (word) => word.split("").join(String.raw`\s*`);
 
 const HEADING = new RegExp(`${loosely("Flight")}\\s*${loosely("Information")}`);
 
+/** The table's own column headings, `TIME (Z) Plane Flare Location County`. */
+const COLUMNS = /TIME\s*\(Z\)\s*Plane/i;
+
 /**
  * The table only, without the sentence that closes it.
  *
  * That sentence repeats every county with a flare count in the same shape a
  * row ends in, and the whole point of `parseTotals` is to compare the two —
  * so the table must not be allowed to read its own summary back as data.
+ *
+ * **The heading does not always come first.** A Word report can hold the
+ * table's grid ahead of the heading paragraph in its body, so the table starts
+ * at whichever comes first: the heading, or the table's own column headings.
  */
 function flightTable(text) {
-  const start = text.search(HEADING);
-  if (start < 0) return null;
+  const found = [text.search(HEADING), text.search(COLUMNS)].filter(
+    (at) => at >= 0
+  );
+  if (!found.length) return null;
+  const start = Math.min(...found);
   const body = text.slice(start);
   const end = body.search(/Seeding\s+operations\s+were\s+conducted/);
   return end < 0 ? body : body.slice(0, end);

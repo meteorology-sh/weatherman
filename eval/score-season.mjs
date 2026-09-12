@@ -1,7 +1,9 @@
 /**
- * Print the EVALUATION.md tables from files already in eval/out.
+ * Print one season's evaluation tables from files already in its
+ * `eval/out/<season>/`.
  *
- * `node eval/score-season.mjs` — no server. Layer overlap and Texas storm
+ * `node eval/score-season.mjs [--season=2025]` — no server. The 2025 tables are
+ * `docs/EVALUATION.md`; every other season's are `docs/EVALUATION-<season>.md`. Layer overlap and Texas storm
  * features come from the painted days. Sounding-layer overlap is
  * calculated from the balloon JSON. Shared Midland and Del Rio mornings
  * are counted once in the season sounding-layer table.
@@ -14,18 +16,17 @@
 
 // Node
 import { readFile, readdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 // Local
 import { bandOverlap, spread, summarizeOverlaps } from "./lib/band-score.mjs";
 import { boxAreaKm2, inFeature, polygonsAreaKm2 } from "./lib/geo.mjs";
+import { COUNTIES, regionsOf, seasonDirs, seasonOf } from "./lib/season.mjs";
 import { tallyFlags } from "./lib/storm-score.mjs";
 import { positionBoundKm, radialOf } from "./lib/tolerance.mjs";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT = join(HERE, "out");
-const DATA = join(HERE, "data");
+const SEASON = seasonOf();
+const { out: OUT } = seasonDirs(SEASON);
 
 /** The layers Weatherman draws, in the panel's order. */
 const LAYERS = [
@@ -86,9 +87,7 @@ const TEXAS_KEYS = [
   ["echoPastFreezing", "Echo top past freezing"],
 ];
 
-const { regions } = JSON.parse(
-  await readFile(join(DATA, "regions.json"), "utf8")
-);
+const regions = await regionsOf(SEASON);
 
 /**
  * County boundaries, for the one check in this file that asks nothing of
@@ -102,9 +101,10 @@ const { regions } = JSON.parse(
  * they were working.
  */
 const counties = new Map(
-  JSON.parse(
-    await readFile(join(DATA, "counties-tx.geojson"), "utf8")
-  ).features.map((feature) => [feature.properties.BASENAME, feature])
+  JSON.parse(await readFile(COUNTIES, "utf8")).features.map((feature) => [
+    feature.properties.BASENAME,
+    feature,
+  ])
 );
 
 /** Null where the row names no county, or one outside the boundary file. */

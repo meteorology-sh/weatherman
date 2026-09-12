@@ -71,8 +71,10 @@ export const Findings = () => {
           </p>
           <p className="text-sm">
             Wiring one up means adding its report source to{" "}
-            <code className="font-mono">eval/data/regions.json</code> and
-            teaching <code className="font-mono">eval/releases.mjs</code> to
+            <code className="font-mono">
+              eval/data/&lt;season&gt;/regions.json
+            </code>{" "}
+            and teaching <code className="font-mono">eval/releases.mjs</code> to
             read its report layout.
           </p>
           <Link to="/" className="btn btn-sm btn-outline self-start">

@@ -2,7 +2,7 @@
  * The county polygons the target-area figures are clipped to.
  *
  * `node eval/counties.mjs` — reads which counties appear in any program's
- * release list, pulls each one's boundary from Census TIGERweb as GeoJSON,
+ * release list in any season, pulls each one's boundary from Census TIGERweb as GeoJSON,
  * writes `eval/data/counties-tx.geojson`.
  *
  * Counties are the unit because the reports are written in counties. The
@@ -12,11 +12,10 @@
 
 // Node
 import { readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const DATA = join(HERE, "data");
+// Local
+import { COUNTIES, regionsOf, seasonDirs, seasons } from "./lib/season.mjs";
 
 const TIGERWEB =
   "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb" +
@@ -45,24 +44,25 @@ async function county(name) {
 }
 
 /**
- * Every county any program's flight record names.
+ * Every county any program's flight record names, in any season.
  *
  * One file for all of them rather than one per region: the counties overlap —
  * West Texas and Trans-Pecos both fly Pecos, Crane, Crockett, Terrell and Upton
  * — and the map draws whichever region is open out of the same collection.
  */
-const { regions } = JSON.parse(
-  await readFile(join(DATA, "regions.json"), "utf8")
-);
-
 const names = new Set();
-for (const region of regions.filter((entry) => entry.releases)) {
-  const { days } = JSON.parse(
-    await readFile(join(DATA, region.releases), "utf8")
-  );
-  for (const day of days) {
-    for (const release of day.releases) {
-      if (release.county) names.add(release.county);
+for (const season of seasons()) {
+  const { data } = seasonDirs(season);
+  for (const region of (await regionsOf(season)).filter(
+    (entry) => entry.releases
+  )) {
+    const { days } = JSON.parse(
+      await readFile(join(data, region.releases), "utf8")
+    );
+    for (const day of days) {
+      for (const release of day.releases) {
+        if (release.county) names.add(release.county);
+      }
     }
   }
 }
@@ -74,7 +74,7 @@ for (const name of [...names].sort()) {
 }
 
 await writeFile(
-  join(DATA, "counties-tx.geojson"),
+  COUNTIES,
   `${JSON.stringify({ type: "FeatureCollection", features })}\n`
 );
 

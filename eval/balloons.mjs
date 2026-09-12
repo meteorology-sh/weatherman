@@ -1,8 +1,9 @@
 /**
  * The layers, against the instrument the operator briefs its own sorties on.
  *
- * `node eval/balloons.mjs [--region=wtwma] [--resume]` — with the server
- * running. Writes the file `data/regions.json` names for that region.
+ * `node eval/balloons.mjs [--season=2025] [--region=wtwma] [--resume]` — with the
+ * server running. Writes the file the season's `regions.json` names for that
+ * region.
  * `--score` re-prints the summary from it without fetching anything.
  *
  * **Every other comparison in this evaluation is bounded by a clock.** The
@@ -53,14 +54,14 @@
 
 // Node
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 // Local
+import { regionsOf, seasonDirs, seasonOf } from "./lib/season.mjs";
 import { SERVER, SERVERS } from "./lib/weatherman.mjs";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT = join(HERE, "out");
+const SEASON = seasonOf();
+const { data: DATA, out: OUT } = seasonDirs(SEASON);
 
 const M_PER_FT = 0.3048;
 const TIMEOUT_MS = Number(process.env.WEATHERMAN_TIMEOUT_MS ?? 240_000);
@@ -226,9 +227,7 @@ const RESUME = process.argv.includes("--resume");
 const REGION =
   process.argv.find((arg) => arg.startsWith("--region="))?.slice(9) ?? "wtwma";
 
-const { regions } = JSON.parse(
-  await readFile(join(HERE, "data", "regions.json"), "utf8")
-);
+const regions = await regionsOf(SEASON);
 const region = regions.find((entry) => entry.id === REGION);
 
 if (!region) {
@@ -253,7 +252,7 @@ if (!region.releases || sites.length === 0) {
 const OUTFILE = join(OUT, region.runs?.balloons ?? `balloons-${REGION}.json`);
 
 const { days } = JSON.parse(
-  await readFile(join(HERE, "data", region.releases), "utf8")
+  await readFile(join(DATA, region.releases), "utf8")
 );
 
 /** What a previous run already read, when asked to keep it. */

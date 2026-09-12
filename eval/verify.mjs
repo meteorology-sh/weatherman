@@ -4,25 +4,23 @@
  * click readout, and a balloon file for each program that briefs on a
  * sonde.
  *
- * `node eval/verify.mjs`
+ * `node eval/verify.mjs [--season=2025]`
  *
- * Reads only `data/`, `cache/` and `out/`. Does not touch the network.
+ * Reads only that season's `data/`, `cache/` and `out/`. Does not touch the network.
  * Exit 0 if complete; exit 1 and print what is missing otherwise.
  */
 
 // Node
 import { readdir, readFile, stat } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const DATA = join(HERE, "data");
-const CACHE = join(HERE, "cache");
-const OUT = join(HERE, "out");
+// Local
+import { regionsOf, seasonDirs, seasonOf } from "./lib/season.mjs";
 
-const { regions } = JSON.parse(
-  await readFile(join(DATA, "regions.json"), "utf8")
-);
+const SEASON = seasonOf();
+const { data: DATA, cache: CACHE, out: OUT } = seasonDirs(SEASON);
+
+const regions = await regionsOf(SEASON);
 
 const missing = [];
 const extra = [];
@@ -68,10 +66,11 @@ for (const region of regions) {
   const have = await listed(join(CACHE, region.id));
   reports += expect.length;
   for (const file of expect) {
-    if (!have.has(file)) missing.push(`cache/${region.id}/${file}`);
+    if (!have.has(file)) missing.push(`cache/${SEASON}/${region.id}/${file}`);
   }
   for (const file of have) {
-    if (!expect.includes(file)) extra.push(`cache/${region.id}/${file}`);
+    if (!expect.includes(file))
+      extra.push(`cache/${SEASON}/${region.id}/${file}`);
   }
 
   const record = JSON.parse(
@@ -88,14 +87,14 @@ for (const region of regions) {
       await stat(path);
     } catch (error) {
       if (error.code === "ENOENT") {
-        missing.push(`out/${name}`);
+        missing.push(`out/${SEASON}/${name}`);
         continue;
       }
       throw error;
     }
     const paintedDay = JSON.parse(await readFile(path, "utf8"));
     if (!native(paintedDay.cellKm)) {
-      missing.push(`out/${name} (not native cellKm)`);
+      missing.push(`out/${SEASON}/${name} (not native cellKm)`);
       continue;
     }
     painted += 1;
@@ -109,15 +108,22 @@ for (const region of regions) {
         // failed, and a season with a failed route is not complete.
         for (const key of LAYER_KEYS) {
           if (flare.near?.[key] == null) {
-            missing.push(`out/${name} ${flare.timeZ} (${key} failed)`);
+            missing.push(
+              `out/${SEASON}/${name} ${flare.timeZ} (${key} failed)`
+            );
           }
         }
         if (flare.drift) drifted += 1;
-        else missing.push(`out/${name} ${flare.timeZ} (no storm motion)`);
+        else
+          missing.push(
+            `out/${SEASON}/${name} ${flare.timeZ} (no storm motion)`
+          );
         if (Object.prototype.hasOwnProperty.call(flare, "storm")) {
           withStorm += 1;
         } else {
-          missing.push(`out/${name} ${flare.timeZ} (no storm reading)`);
+          missing.push(
+            `out/${SEASON}/${name} ${flare.timeZ} (no storm reading)`
+          );
         }
         // The cell and the column may each be null — a release outside the
         // model's grid is answered "not here" rather than with numbers — so
@@ -128,7 +134,9 @@ for (const region of regions) {
         ) {
           withClick += 1;
         } else {
-          missing.push(`out/${name} ${flare.timeZ} (no click readout)`);
+          missing.push(
+            `out/${SEASON}/${name} ${flare.timeZ} (no click readout)`
+          );
         }
         if (flare.cell) dayCells += 1;
       }
@@ -140,7 +148,9 @@ for (const region of regions) {
     // died mid-run — which still writes the day, at a size that looks like a
     // quiet one.
     if (dayFlares > 0 && dayCells === 0) {
-      missing.push(`out/${name} (every cell readout on the day is null)`);
+      missing.push(
+        `out/${SEASON}/${name} (every cell readout on the day is null)`
+      );
     }
   }
 
@@ -150,7 +160,7 @@ for (const region of regions) {
       await stat(join(OUT, name));
       balloons += 1;
     } catch (error) {
-      if (error.code === "ENOENT") missing.push(`out/${name}`);
+      if (error.code === "ENOENT") missing.push(`out/${SEASON}/${name}`);
       else throw error;
     }
   }
@@ -162,7 +172,7 @@ if (missing.length || extra.length) {
   process.exit(1);
 }
 
-console.log("season complete");
+console.log(`season ${SEASON} complete`);
 console.log(`  reports   ${reports}`);
 console.log(
   `  painted   ${painted} native days, ${flares} located flares, ` +

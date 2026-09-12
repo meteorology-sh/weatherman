@@ -8,7 +8,7 @@ positions the record cannot place, or the fill asks for something their crews
 do not fly. This separates them, and then asks what relaxing the criterion
 would cost.
 
-Every number here is measured from the painted season in `eval/out/` — 116
+Every number here is measured from the painted season in `eval/out/2025/` — 116
 days, 253 analysis hours, 1,353 located flares — and from
 `eval/data/counties-tx.geojson`. The Panhandle and South Texas print a bearing
 from magnetic north and a range; their releases are placed with the FAA
@@ -168,6 +168,13 @@ nothing confirms nobody flew.
 
 ## 6. Scoring the 2023 and 2024 seasons beside 2025
 
+2024 is scored in `EVALUATION-2024.md`. Its record is thin: six West Texas days
+of twenty-four, the Panhandle from June to September, and only the South Texas
+rows printed as coordinates, because no single origin places that season's
+bearings. Trans-Pecos and the Rolling Plains posted nothing that survives. The
+Panhandle's 8°E variation places its 2024 releases as it places 2025's, which
+is the replication step 3 asks for.
+
 Three seasons instead of one triples the flare count and asks whether South
 Texas's gap is a property of that district or of one year's record. It does not
 supply a negative class — another seeded season adds no ground where the answer
@@ -178,7 +185,7 @@ should be no — so it settles §1 and §2 and leaves §5 exactly where it is.
 The daily-report parser (`eval/lib/reports.mjs`) reads four of the five
 programs, `eval/lib/panhandle.mjs` reads the fifth, and `eval/lib/pdf.mjs`
 pulls the text. The painter, the scorer and the verifier are season-agnostic:
-they walk whatever `eval/data/regions.json` lists.
+they walk whatever a season's `eval/data/<season>/regions.json` lists.
 
 The archives reach back. HRRR and MRMS cover both seasons. The satellite does
 too without a change — `server/src/lib/services/goes/scene.ts` reads

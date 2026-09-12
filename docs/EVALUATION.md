@@ -1,7 +1,7 @@
 # Evaluation — the 2025 Texas season
 
-Every table here is printed by `node eval/score-season.mjs` from the painted
-season in `eval/out/`. How to run the job is `eval/README.md`.
+Every table here is printed by `node eval/score-season.mjs --season=2025` from
+the painted season in `eval/out/2025/`. How to run the job is `eval/README.md`.
 
 Every located flare is in every denominator: 1353 for the season, the
 program's releases for a program. A layer that painted nothing near a flare

@@ -1,7 +1,7 @@
 /**
  * Does each release sit in the county its own row names?
  *
- * `node eval/positions.mjs` — reads every parsed flight record and the
+ * `node eval/positions.mjs [--season=2025]` — reads every parsed flight record and the
  * county boundaries, and prints the share of releases whose position falls
  * inside the county on the same line of the report.
  *
@@ -28,26 +28,22 @@
 
 // Node
 import { readFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 // Local
 import { inFeature, projectRadial } from "./lib/geo.mjs";
+import { COUNTIES, regionsOf, seasonDirs, seasonOf } from "./lib/season.mjs";
 import { radialOf } from "./lib/tolerance.mjs";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const DATA = join(HERE, "data");
+const SEASON = seasonOf();
+const { data: DATA } = seasonDirs(SEASON);
 
 /** How far either way a miss is turned looking for its county, degrees. */
 const TURN_LIMIT = 30;
 const TURN_STEP = 0.5;
 
-const { regions } = JSON.parse(
-  await readFile(join(DATA, "regions.json"), "utf8")
-);
-const boundaries = JSON.parse(
-  await readFile(join(DATA, "counties-tx.geojson"), "utf8")
-);
+const regions = await regionsOf(SEASON);
+const boundaries = JSON.parse(await readFile(COUNTIES, "utf8"));
 
 const county = new Map(
   boundaries.features.map((feature) => [feature.properties.BASENAME, feature])

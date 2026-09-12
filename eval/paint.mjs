@@ -1,9 +1,10 @@
 /**
  * Everything a map needs to show one flying day, in one file.
  *
- * `node eval/paint.mjs 2025-04-19 [--region=wtwma]` — with the Weatherman server
- * running. Writes the name `data/regions.json` gives that program, e.g.
- * `eval/out/painted-2025-04-19.json` for West Texas.
+ * `node eval/paint.mjs 2025-04-19 [--region=wtwma] [--season=2025]` — with the
+ * Weatherman server running. The season is the date's year unless named.
+ * Writes the name the season's `regions.json` gives that program, e.g.
+ * `eval/out/2025/painted-2025-04-19.json` for West Texas.
  *
  * **It paints the product's own layers, not a layer invented for the page.**
  * Each fill is the same route the maps fetch, at the same hour parameter,
@@ -51,17 +52,13 @@
 
 // Node
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 // Local
 import { SERVER, stormNear } from "./lib/weatherman.mjs";
 import { distanceToPolygonsKm } from "./lib/geo.mjs";
+import { regionsOf, seasonDirs, seasonOf } from "./lib/season.mjs";
 import { stormFromReading } from "./lib/storm-score.mjs";
-
-const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT = join(HERE, "out");
-const DATA = join(HERE, "data");
 
 const TIMEOUT_MS = Number(process.env.WEATHERMAN_TIMEOUT_MS ?? 240_000);
 
@@ -70,9 +67,18 @@ const REGION =
   process.argv.find((arg) => arg.startsWith("--region="))?.slice(9) ?? "wtwma";
 
 if (!DATE) {
-  console.error("usage: node eval/paint.mjs <YYYY-MM-DD> [--region=wtwma]");
+  console.error(
+    "usage: node eval/paint.mjs <YYYY-MM-DD> [--region=wtwma] [--season=YYYY]"
+  );
   process.exit(1);
 }
+
+const SEASON = seasonOf(
+  process.argv.some((arg) => arg.startsWith("--season="))
+    ? process.argv
+    : [...process.argv, `--season=${DATE.slice(0, 4)}`]
+);
+const { data: DATA, out: OUT } = seasonDirs(SEASON);
 
 /**
  * Native cell size of each layer, kilometers. Inside means inside the contour
@@ -89,9 +95,7 @@ const CELL_KM = {
 
 /* ---------- the region ---------- */
 
-const { regions } = JSON.parse(
-  await readFile(join(DATA, "regions.json"), "utf8")
-);
+const regions = await regionsOf(SEASON);
 const region = regions.find((entry) => entry.id === REGION);
 
 if (!region) {

@@ -1,8 +1,9 @@
 /**
- * The other Texas programs' 2025 reports, on disk.
+ * A season's Texas program reports, on disk.
  *
- * `node eval/records.mjs [--region=transpecos]` — downloads what
- * `data/<region>-2025.json` lists into `eval/cache/<region>/`, skipping
+ * `node eval/records.mjs [--season=2025] [--region=transpecos]` — downloads
+ * what each manifest in `data/<season>/` lists into
+ * `eval/cache/<season>/<region>/`, skipping
  * anything already there. With no region it does every program that has a
  * manifest.
  *
@@ -12,7 +13,8 @@
  * before writing against it, or to warm the cache for a run that will parse
  * every region in turn.
  *
- * **A document is checked for being a PDF and kept whole.** The sources are
+ * **A document is checked for being what its name says and kept whole** — a
+ * PDF, a Word `.docx`, or a legacy Word `.doc`. The sources are
  * three different hosts with three different ideas of a URL — a storage bucket
  * that serves by id, a site that serves by file id, and a Google Doc exported
  * on request — so the manifest carries the resolved URL rather than a template
@@ -21,19 +23,18 @@
 
 // Node
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const CACHE = join(HERE, "cache");
-const DATA = join(HERE, "data");
+// Local
+import { regionsOf, seasonDirs, seasonOf } from "./lib/season.mjs";
+
+const SEASON = seasonOf();
+const { data: DATA, cache: CACHE } = seasonDirs(SEASON);
 
 const ONLY = process.argv.find((arg) => arg.startsWith("--region="))?.slice(9);
 
 /** Every program with a manifest of documents, in the order they are listed. */
-const { regions } = JSON.parse(
-  await readFile(join(DATA, "regions.json"), "utf8")
-);
+const regions = await regionsOf(SEASON);
 
 const wanted = regions.filter(
   (region) => region.reports && (!ONLY || region.id === ONLY)
@@ -51,9 +52,18 @@ if (!wanted.length) {
   process.exit(1);
 }
 
-/** A PDF starts `%PDF`. Anything else is an error page wearing a .pdf name. */
-function isPdf(body) {
-  return body.subarray(0, 4).toString("latin1") === "%PDF";
+/** How each kind of document starts. Anything else is an error page wearing its name. */
+const SIGNATURES = {
+  ".pdf": "%PDF",
+  ".docx": "PK\u0003\u0004",
+  ".doc": "\u00d0\u00cf\u0011\u00e0",
+};
+
+function isWhatItSays(file, body) {
+  const signature = SIGNATURES[file.slice(file.lastIndexOf(".")).toLowerCase()];
+  return (
+    Boolean(signature) && body.subarray(0, 4).toString("latin1") === signature
+  );
 }
 
 for (const region of wanted) {
@@ -85,7 +95,11 @@ for (const region of wanted) {
       const res = await fetch(document.url);
       if (!res.ok) throw new Error(`${res.status}`);
       const body = Buffer.from(await res.arrayBuffer());
-      if (!isPdf(body)) throw new Error(`not a PDF (${body.length} bytes)`);
+      if (!isWhatItSays(document.file, body)) {
+        throw new Error(
+          `not the document its name says (${body.length} bytes)`
+        );
+      }
       await writeFile(join(into, document.file), body);
       fetched += 1;
       bytes += body.length;

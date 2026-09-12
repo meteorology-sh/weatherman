@@ -1,7 +1,8 @@
 /**
  * The findings, over HTTP, for the eval app to draw.
  *
- * `node eval/server.mjs` — port 3100. No dependencies, no build.
+ * `node eval/server.mjs [--season=2025]` — port 3100, one season at a time. No
+ * dependencies, no build.
  *
  * It serves two things and nothing else: the operators' own record, committed in
  * `data/`,
@@ -24,8 +25,7 @@
 // Node
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 // Local
 import {
@@ -34,10 +34,11 @@ import {
   summarizeOverlaps,
   unusableKey,
 } from "./lib/band-score.mjs";
+import { COUNTIES, regionsOf, seasonDirs, seasonOf } from "./lib/season.mjs";
 import { summarizeDay, tallyFlags } from "./lib/storm-score.mjs";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT = join(HERE, "out");
+const SEASON = seasonOf();
+const { data: DATA, out: OUT } = seasonDirs(SEASON);
 const PORT = Number(process.env.EVAL_PORT ?? 3100);
 
 const M_PER_FT = 0.3048;
@@ -53,9 +54,7 @@ const M_PER_FT = 0.3048;
  * region list that hid the others would make one operator's season look like the
  * whole state. The app routes to them and says what is missing.
  */
-const { regions } = JSON.parse(
-  await readFile(join(HERE, "data", "regions.json"), "utf8")
-);
+const regions = await regionsOf(SEASON);
 
 const loaded = new Map();
 for (const region of regions) {
@@ -64,7 +63,7 @@ for (const region of regions) {
     continue;
   }
   const { days } = JSON.parse(
-    await readFile(join(HERE, "data", region.releases), "utf8")
+    await readFile(join(DATA, region.releases), "utf8")
   );
   loaded.set(region.id, { region, seeded: days.filter((day) => day.seeded) });
 }
@@ -83,15 +82,13 @@ const evaluable = (id) => {
  * `counties.mjs` so the committed file stays exactly what the Census served.
  */
 const counties = JSON.stringify(
-  await readFile(join(HERE, "data", "counties-tx.geojson"), "utf8").then(
-    (text) => {
-      const collection = JSON.parse(text);
-      collection.features.forEach((feature, index) => {
-        feature.properties = { OBJECTID: index + 1, ...feature.properties };
-      });
-      return collection;
-    }
-  )
+  await readFile(COUNTIES, "utf8").then((text) => {
+    const collection = JSON.parse(text);
+    collection.features.forEach((feature, index) => {
+      feature.properties = { OBJECTID: index + 1, ...feature.properties };
+    });
+    return collection;
+  })
 );
 
 /* ---------- run output, re-read per request ---------- */

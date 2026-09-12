@@ -2,8 +2,8 @@
  * Turn a program's daily reports into the release list everything else scores
  * against.
  *
- * `node eval/releases.mjs [--region=wtwma]` — downloads what it does not
- * already have into `eval/cache/<region>/`, parses every report, writes the
+ * `node eval/releases.mjs [--season=2025] [--region=wtwma]` — downloads what it
+ * does not already have into `eval/cache/<season>/<region>/`, parses every report, writes the
  * flight record `data/regions.json` names for that region. The PDFs are cached
  * because they never change and the sites are slow.
  *
@@ -20,10 +20,10 @@
 
 // Node
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 // Local
+import { extractDocxText } from "./lib/docx.mjs";
 import { extractText } from "./lib/pdf.mjs";
 import {
   parseReport,
@@ -31,16 +31,15 @@ import {
   splitReports,
   sumReleases,
 } from "./lib/reports.mjs";
+import { regionsOf, seasonDirs, seasonOf } from "./lib/season.mjs";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const DATA = join(HERE, "data");
+const SEASON = seasonOf();
+const { data: DATA, cache: SEASON_CACHE } = seasonDirs(SEASON);
 
 const REGION =
   process.argv.find((arg) => arg.startsWith("--region="))?.slice(9) ?? "wtwma";
 
-const { regions } = JSON.parse(
-  await readFile(join(DATA, "regions.json"), "utf8")
-);
+const regions = await regionsOf(SEASON);
 const region = regions.find((entry) => entry.id === REGION);
 
 if (!region?.counties) {
@@ -52,10 +51,10 @@ if (!region?.counties) {
 }
 
 /** One directory per program, so a second one's reports cannot collide. */
-const CACHE = join(HERE, "cache", region.id);
+const CACHE = join(SEASON_CACHE, region.id);
 
 /** The cached report, or the one download that puts it there. */
-async function pdf({ file, url, date }) {
+async function cached({ file, url, date }) {
   const path = join(CACHE, file);
   try {
     return await readFile(path);
@@ -84,7 +83,10 @@ const reports = manifest.documents.filter((document) =>
 
 /** One entry per day, whichever kind of document it came out of. */
 async function sections(entry) {
-  const text = extractText(await pdf(entry));
+  const body = await cached(entry);
+  const text = entry.file.endsWith(".docx")
+    ? extractDocxText(body)
+    : extractText(body);
   if (entry.kind !== "days") return [{ date: entry.date, text }];
   return splitReports(text).sort((a, b) => a.date.localeCompare(b.date));
 }

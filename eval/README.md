@@ -9,27 +9,32 @@ Parses Texas rain-enhancement reports, scores each flare against
 Weatherman's layers at that minute, and serves the comparison. The
 findings are `docs/EVALUATION.md`.
 
-| Directory | What it is                       |
-| --------- | -------------------------------- |
-| `cache/`  | Source reports (PDFs)            |
-| `data/`   | Parsed records and region config |
-| `out/`    | Scored days the eval app reads   |
+| Directory         | What it is                                      |
+| ----------------- | ----------------------------------------------- |
+| `cache/<season>/` | Source reports (PDF, Word)                      |
+| `data/<season>/`  | Region config, report manifests, parsed records |
+| `out/<season>/`   | Scored days the eval app reads                  |
 
-None of those three is committed. A later season is a new snapshot of the
-same three directories, not a change to this code.
+None of those is committed. **Every season is its own directory in all
+three**, and no season reads another's: permit areas, radial origins and
+report layouts move between years. The county boundaries are geography,
+not a season, and `data/counties-tx.geojson` is shared. Every script takes
+`--season=YYYY` and works on the latest season in `data/` without it;
+`paint.mjs` takes the season from the date it paints. A later season is a
+new directory, not a change to this code.
 
-`eval/out/` is the working score. A subset of painted days is an
-incomplete run, not the season.
+`eval/out/<season>/` is that season's working score. A subset of painted
+days is an incomplete run, not the season.
 
 ## What is already on disk
 
-The 2025 flight records are in `data/`. The PDFs are in `cache/`. County
-polygons are in `data/counties-tx.geojson`. **Do not re-download or
+The 2025 flight records are in `data/2025/`. The reports are in
+`cache/2025/`. County polygons are in `data/counties-tx.geojson`. **Do not re-download or
 re-parse operations reports.** `releases.mjs`, `panhandle.mjs`,
 `records.mjs`, `counties.mjs`, and `positions.mjs` stay idle for this
 run.
 
-`out/` holds the complete Texas season: every located flare at native
+`out/2025/` holds the complete Texas season: every located flare at native
 sampling with storm motion, the storm reading, and the distance to each
 layer Weatherman draws, and a balloon file per program that briefs on a
 sonde.
@@ -39,12 +44,12 @@ sonde.
 The app does not re-score against a live Weatherman API. `server.mjs`
 reads `out/` on every request.
 
-| Result                      | File                                                     | Field                                                                                                                     |
-| --------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Layer overlap               | `out/balloons-*.json` (`regions.json` → `runs.balloons`) | radiosonde vs model column; **the page calculates overlap from those rows**                                               |
-| The layers Weatherman draws | `out/painted-*.json` (`runs.painted`)                    | `near.radar`, `near.echoFreeze`, `near.cloudBase`, `near.target`                                                          |
-| Texas storm features        | the same painted files                                   | `storm` on each flare: in 20 dBZ, nearer the edge, upwind, echo top past freezing                                         |
-| The click on each release   | the same painted files                                   | `cell`, `storm` and `column` on each flare: Fly or Don't Fly with the tests behind it, then Radar, Cloud, and Environment |
+| Result                      | File                                                              | Field                                                                                                                     |
+| --------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Layer overlap               | `out/<season>/balloons-*.json` (`regions.json` → `runs.balloons`) | radiosonde vs model column; **the page calculates overlap from those rows**                                               |
+| The layers Weatherman draws | `out/<season>/painted-*.json` (`runs.painted`)                    | `near.radar`, `near.echoFreeze`, `near.cloudBase`, `near.target`                                                          |
+| Texas storm features        | the same painted files                                            | `storm` on each flare: in 20 dBZ, nearer the edge, upwind, echo top past freezing                                         |
+| The click on each release   | the same painted files                                            | `cell`, `storm` and `column` on each flare: Fly or Don't Fly with the tests behind it, then Radar, Cloud, and Environment |
 
 `near.target` is the Texas fly fill (`GET /candidate/target`, property
 `fly`) — the fill the operator map names SEEDING OPPORTUNITY.
@@ -91,8 +96,8 @@ node eval/paint.mjs 2025-08-04 --region=wtwma
 `days.mjs` prints those dates:
 
 ```bash
-node eval/days.mjs --region=wtwma
-node eval/days.mjs
+node eval/days.mjs --season=2025 --region=wtwma
+node eval/days.mjs --season=2025
 ```
 
 **Parallelism.** One Weatherman API plus one `paint.mjs` per day. Each pair
@@ -106,7 +111,8 @@ loop, so give each painter its own API on its own port and pair the two by
 job slot. `{%}` is the slot number GNU `parallel` assigns:
 
 ```bash
-DAYS=$(node eval/days.mjs | wc -l)
+SEASON=2025
+DAYS=$(node eval/days.mjs --season=$SEASON | wc -l)
 PAIRS=${PAIRS:-$DAYS}          # fewer than DAYS paints in waves
 
 echo "start   $(date -u +%FT%TZ) UTC / $(TZ=America/Chicago date +'%F %T %Z')"
@@ -137,10 +143,10 @@ done
 
 parallel -j $PAIRS --colsep '\t' --joblog season.joblog \
   'WEATHERMAN_SERVER=http://localhost:$((3000 + {%})) \
-   node eval/paint.mjs {2} --region={1} > logs/{1}-{2}.log 2>&1' \
-  :::: <(node eval/days.mjs)
+   node eval/paint.mjs {2} --region={1} --season='$SEASON' > logs/{1}-{2}.log 2>&1' \
+  :::: <(node eval/days.mjs --season=$SEASON)
 
-echo "finished $(TZ=America/Chicago date +'%F %T %Z'), $(ls eval/out | wc -l) files"
+echo "finished $(TZ=America/Chicago date +'%F %T %Z'), $(ls eval/out/$SEASON | wc -l) files"
 ```
 
 Per-layer lines go to `logs/`, one file per painter, so the console
@@ -197,7 +203,7 @@ change needs `docker compose up --build --renew-anon-volumes`.
 Start one API per painter and pair them by slot, as **Parallelism**
 above shows.
 
-Each process writes `eval/out/` under the name `regions.json` gives that
+Each process writes `eval/out/<season>/` under the name `regions.json` gives that
 program (`painted-{date}.json`, `painted-transpecos-{date}.json`, …).
 Two programs fly the same afternoon; those names must stay distinct.
 
@@ -238,9 +244,9 @@ single event loop and a second request to it only queues. Point it at the
 same containers the paint used:
 
 ```bash
-APIS=$(seq 1 $PAIRS | sed 's|^|http://localhost:30|' | paste -sd,)
+APIS=$(seq -s, -f 'http://localhost:%.0f' 3001 $((3000 + PAIRS)))
 for r in wtwma transpecos stwma plains; do
-  WEATHERMAN_SERVERS=$APIS node eval/balloons.mjs --region=$r &
+  WEATHERMAN_SERVERS=$APIS node eval/balloons.mjs --season=$SEASON --region=$r &
 done
 wait
 ```
@@ -250,7 +256,7 @@ over thirty produce the same output. With a single address the script is
 unchanged:
 
 ```bash
-node eval/balloons.mjs --region=wtwma
+node eval/balloons.mjs --season=2025 --region=wtwma
 ```
 
 `--resume` keeps rows already on disk. `--score` reprints from the file
@@ -259,20 +265,47 @@ with no fetch.
 ### Confirm, pack, copy back
 
 ```bash
-node eval/verify.mjs
-node eval/score-season.mjs
+node eval/verify.mjs --season=$SEASON
+node eval/score-season.mjs --season=$SEASON
 node eval/pack.mjs
 ```
 
 `verify.mjs` requires native cell sizes for every fill this run stores,
 storm motion, a storm reading and a click readout on every located flare,
 and a balloon file per sonde program. It asserts those fields are
-present, not that they carry a value. `score-season.mjs` prints the EVALUATION.md
-tables from `out/`. `pack.mjs` writes `eval/eval-snapshot.tar.gz` after
+present, not that they carry a value. `score-season.mjs` prints one season's
+tables from `out/<season>/`: `docs/EVALUATION.md` is 2025, and every other
+season's go to their own `docs/EVALUATION-<season>.md`. `pack.mjs` writes `eval/eval-snapshot.tar.gz` after
 verify passes.
 
 Copy `out/` (or the tarball) back. The eval app and `EVALUATION.md` are
 local work.
+
+## Adding a season
+
+A season is a directory, and adding one changes no code.
+
+1. **Manifests.** One `data/<season>/<region>-<season>.json` per program,
+   in the shape the others use: `source`, `note`, and `documents[]` of
+   `file`, `url`, `date` or `month`, `kind`. Each URL is resolved from the
+   program's own page, or from the Internet Archive's copy of it.
+2. **`data/<season>/regions.json`.** Each program's counties, window,
+   sounding sites and radial origin come from that season's reports. A
+   program with nothing posted keeps its entry without `reports`,
+   `releases` or `runs`.
+3. **Download and parse.** `records.mjs --season=<season>`, then
+   `releases.mjs` per program and `panhandle.mjs`. A county a release names
+   that `data/counties-tx.geojson` does not hold is fetched with
+   `counties.mjs`.
+4. **Check the radial origins before painting.** `positions.mjs
+--season=<season>` prints, per radial program, how many releases land
+   in their named county and which way the misses lean. With the origin
+   the reports name and that facility's FAA variation of record, the
+   misses lean neither way and no further turn helps. A season that leans
+   has a different origin or a different north, and is settled before a
+   day is painted.
+5. **Paint, radiosondes, verify, score** on the EC2 box, as above, with
+   `SEASON` set. The tables go to `docs/EVALUATION-<season>.md`.
 
 ## Painted JSON
 
@@ -384,7 +417,7 @@ fallback height rather than a layer edge.
 
 Every measured number on that page is already on disk: the reports print
 the ascent's own table and `releases.mjs` parsed it into
-`data/releases-*.json` as `day.soundings[<station>]`. `balloons.mjs`
+`data/<season>/releases-*.json` as `day.soundings[<station>]`. `balloons.mjs`
 fetches only the model column to set beside it.
 
 **Findings.** The season tables `EVALUATION.md` reprints. A subset of
@@ -403,13 +436,13 @@ on the storm they flew.
 | `days.mjs`         | Print seeded days that have a located flare.                                                                                    |
 | `paint.mjs`        | Score one flying day. Writes the painted file `regions.json` names.                                                             |
 | `balloons.mjs`     | Compare the report sounding table to HRRR at 12Z. Writes `runs.balloons`. The app then calculates layer overlap from that file. |
-| `server.mjs`       | HTTP for the eval app (port 3100). Re-reads `out/` per request.                                                                 |
+| `server.mjs`       | HTTP for the eval app (port 3100), one season. Re-reads `out/<season>/` per request.                                            |
 | `releases.mjs`     | Download and parse daily reports into a flight record.                                                                          |
 | `panhandle.mjs`    | Same, for the Panhandle's monthly files.                                                                                        |
-| `records.mjs`      | Download a program's PDFs into `cache/` without parsing.                                                                        |
+| `records.mjs`      | Download a program's reports into `cache/<season>/` without parsing.                                                            |
 | `counties.mjs`     | Pull county polygons from TIGERweb into `data/counties-tx.geojson`.                                                             |
-| `positions.mjs`    | Share of releases that land in the county their own row names.                                                                  |
-| `score-season.mjs` | Print the EVALUATION.md tables from `out/`. No network.                                                                         |
+| `positions.mjs`    | Share of releases that land in the county their own row names, and which way a radial program's misses lean.                    |
+| `score-season.mjs` | Print one season's evaluation tables from `out/<season>/`. No network.                                                          |
 | `verify.mjs`       | Is this tree a complete season? No network. Exit 1 if not.                                                                      |
 | `pack.mjs`         | After `verify.mjs` passes, pack `data/`, `cache/`, `out/` to `eval/eval-snapshot.tar.gz`.                                       |
 
@@ -427,6 +460,8 @@ Not run on their own, except the tests.
 | `storm-score.mjs`      | Yes or no for each Texas turret feature from a storm reading.                             |
 | `band-score.mjs`       | Layer overlap from one balloon row. The eval app and `score-season.mjs` both call this.   |
 | `tolerance.mjs`        | How far a printed position can move a release. `score-season.mjs` adds one layer cell.    |
+| `season.mjs`           | Which season a script works on, and its `data/`, `cache/` and `out/` directories.         |
+| `docx.mjs`             | The body text of a Word report, dependency-free, for programs that publish `.docx`.       |
 | `storm-score.test.mjs` | Tests for the turret-feature rules.                                                       |
 | `band-score.test.mjs`  | Tests for the overlap arithmetic.                                                         |
 | `tolerance.test.mjs`   | Tests for the position rounding bounds.                                                   |
