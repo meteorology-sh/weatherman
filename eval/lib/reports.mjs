@@ -247,15 +247,17 @@ function parseHhmm(text) {
 /**
  * The UTC instant of a release.
  *
- * A report covers one operational day and its sorties can run past midnight —
- * 11 August's second sortie lands at 0005Z. A time earlier than the day's
- * first release belongs to the next calendar day.
+ * A report covers one local operating day and prints its times in UTC, so an
+ * evening sortie runs past midnight UTC and a report can hold nothing but
+ * times after 00Z — 6 May is two rows at 0030Z and 0032Z and nothing else.
+ * Seeding here runs from mid-afternoon to a few hours after sunset, 15Z
+ * through 06Z, so a row before midday belongs to the next calendar day.
  */
-function instant(date, hhmm, firstHour) {
+export function instant(date, hhmm) {
   const { hour, minute } = parseHhmm(hhmm);
   const at = new Date(`${date}T00:00:00Z`);
   at.setUTCHours(hour, minute, 0, 0);
-  if (hour < firstHour - 12) at.setUTCDate(at.getUTCDate() + 1);
+  if (hour < 12) at.setUTCDate(at.getUTCDate() + 1);
   return at.toISOString();
 }
 
@@ -390,10 +392,8 @@ export function parseReleases(text, date, profile) {
 
   if (releases.length === 0) return bracketed(table, date);
 
-  const firstHour = parseHhmm(releases[0].hhmm).hour;
-
   return releases.map(({ hhmm, plane, lat, lon, flares, county }) => ({
-    at: instant(date, hhmm, firstHour),
+    at: instant(date, hhmm),
     timeZ: hhmm.padStart(4, "0"),
     plane,
     located: lat !== null && inside(lat, lon, profile.window),
@@ -431,10 +431,8 @@ function bracketed(table, date) {
   const rows = [...table.matchAll(BRACKETED)];
   if (rows.length === 0) return [];
 
-  const firstHour = parseHhmm(rows[0][1]).hour;
-
   return rows.map(([, hhmm, plane, flares]) => ({
-    at: instant(date, hhmm, firstHour),
+    at: instant(date, hhmm),
     timeZ: hhmm.padStart(4, "0"),
     plane,
     located: false,
@@ -516,7 +514,7 @@ export function parseObservations(text, date) {
     if (!cell && !base) continue;
 
     out.push({
-      at: instant(date, hhmm, 0),
+      at: instant(date, hhmm),
       timeZ: hhmm.padStart(4, "0"),
       said,
       ...(cell && {
