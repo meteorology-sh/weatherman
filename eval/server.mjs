@@ -158,7 +158,7 @@ async function paintedOn(region, date) {
   const painted = await run(forDate(region.runs.painted, date));
   for (const flare of painted ? flaresOf(painted) : []) {
     const near = flare.near?.target;
-    if (!near || near.km === null || !flare.cell) continue;
+    if (!near || (near.km === null && !near.empty) || !flare.cell) continue;
     const fly = flare.cell.target === "target";
     if (fly) near.km = 0;
     else if (near.inside) near.km = near.edgeKm ?? near.km;
@@ -177,7 +177,10 @@ async function paintedOn(region, date) {
  * after that. Neither is a claim about how near an aircraft ought to be.
  */
 function summarize(measured, cell) {
-  const kms = measured.map((near) => near.km).sort((a, b) => a - b);
+  const kms = measured
+    .map((near) => near.km)
+    .filter((km) => km !== null)
+    .sort((a, b) => a - b);
   return {
     n: measured.length,
     inside: measured.filter((near) => near.inside).length,
@@ -192,11 +195,17 @@ function summarize(measured, cell) {
 const flaresOf = (painted) =>
   (painted.analyses ?? []).flatMap((entry) => entry.flares);
 
-/** The releases a layer could be measured against — the rest have no frame. */
+/**
+ * The releases a layer could be measured against — the rest have no frame.
+ *
+ * A layer that painted nothing in the window is an answer, and the release is
+ * outside it, so it stays in the denominator with no distance, as it does in
+ * `EVALUATION.md`. A null is a route that failed.
+ */
 const measuredAgainst = (flares, key) =>
   flares
     .map((flare) => flare.near?.[key])
-    .filter((near) => near && near.km !== null);
+    .filter((near) => near && (near.km !== null || near.empty === true));
 
 /** How far each release had to be carried to meet its analysis. */
 function offsets(flares) {

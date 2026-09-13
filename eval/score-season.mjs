@@ -318,6 +318,8 @@ const dayName = (date) =>
   `${Number(date.slice(8))} ${MONTH_NAMES[Number(date.slice(5, 7)) - 1]}`;
 
 const unplaced = [];
+/** Releases whose printed position had one digit typed twice. */
+const retyped = [];
 for (const region of evaluable) {
   const { days } = JSON.parse(
     await readFile(join(DATA, region.releases), "utf8")
@@ -343,6 +345,16 @@ for (const region of evaluable) {
     why.push(`${dayName(day.date)}: ${parts.join("; ")}`);
   }
   if (total) unplaced.push([region.short, String(total), why.join("; ")]);
+  for (const day of days.filter((entry) => entry.seeded)) {
+    for (const release of day.releases) {
+      if (release.printedLat == null && release.printedLon == null) continue;
+      const printed = `${release.printedLat ?? release.lat} / ${release.printedLon ?? release.lon}`;
+      retyped.push(
+        `${region.short} on ${dayName(day.date)} at ${release.timeZ}Z prints ` +
+          `${printed}, read as ${release.lat} / ${release.lon}`
+      );
+    }
+  }
 }
 const unplacedCount = unplaced.reduce(
   (sum, [, total]) => sum + Number(total),
@@ -661,6 +673,14 @@ if (transformed.length) {
         bold(share(row.layers.target.inside, row.flares.length)),
       ];
     })
+  );
+}
+
+if (retyped.length) {
+  say(
+    `**Retyped.** ${retyped.join("; ")}. A position outside the program's ` +
+      "window is read with one doubled digit typed once when exactly one " +
+      "such reading lands inside it."
   );
 }
 

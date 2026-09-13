@@ -407,29 +407,65 @@ export function parseReleases(text, date, profile) {
 
   if (releases.length === 0) return bracketed(table, date);
 
-  return releases.map(({ hhmm, plane, lat, lon, printed, flares, county }) => ({
-    at: instant(date, hhmm),
-    timeZ: hhmm.padStart(4, "0"),
-    plane,
-    located: lat !== null && inside(lat, lon, profile.window),
-    lat,
-    lon,
-    // As printed, so the projection can be redone from the source.
-    ...(printed && printed),
-    glaciogenic: flares ? flares.glaciogenic : null,
-    hygroscopic: flares ? flares.hygroscopic : null,
-    county,
-  }));
+  return releases.map(({ hhmm, plane, lat, lon, printed, flares, county }) => {
+    const retyped = doubledDigit(lat, lon, profile.window);
+    const position = retyped ?? { lat, lon };
+    return {
+      at: instant(date, hhmm),
+      timeZ: hhmm.padStart(4, "0"),
+      plane,
+      located:
+        position.lat !== null &&
+        inside(position.lat, position.lon, profile.window),
+      lat: position.lat,
+      lon: position.lon,
+      // As printed, so the projection can be redone from the source.
+      ...(printed && printed),
+      ...(retyped && { printedLat: lat, printedLon: lon }),
+      glaciogenic: flares ? flares.glaciogenic : null,
+      hygroscopic: flares ? flares.hygroscopic : null,
+      county,
+    };
+  });
+}
+
+/**
+ * A position with one digit typed twice, read with that digit typed once.
+ *
+ * A coordinate outside its own range in the region's window is read again with
+ * each doubled digit typed once, and the position is taken only when exactly
+ * one reading lands inside the window. `-1033.7377` has one: `-103.7377`.
+ * Anything else stays as printed and unlocated. The printed numbers are kept
+ * beside the reading as `printedLat` and `printedLon`.
+ */
+function doubledDigit(lat, lon, window) {
+  if (lat === null || !window || inside(lat, lon, window)) return null;
+  const readings = (value, low, high) => {
+    if (value >= low && value <= high) return [value];
+    const sign = Math.sign(value);
+    const text = String(Math.abs(value));
+    const once = [];
+    for (let i = 1; i < text.length; i++) {
+      if (text[i] === text[i - 1] && /\d/.test(text[i])) {
+        once.push(sign * Number(text.slice(0, i) + text.slice(i + 1)));
+      }
+    }
+    return once;
+  };
+  const found = readings(lat, window.south, window.north).flatMap((y) =>
+    readings(lon, window.west, window.east)
+      .filter((x) => inside(y, x, window))
+      .map((x) => ({ lat: y, lon: x }))
+  );
+  return found.length === 1 ? found[0] : null;
 }
 
 /**
  * Whether a printed position is one the region could have flown.
  *
- * **A position outside the region's window is kept and not scored.** Trans-Pecos
- * prints `-1033.7377` for one release on 30 June, between two rows reading
- * -103.74 — a digit typed twice. Correcting it would be inventing a coordinate;
- * dropping the row would move the day's flare count away from the total the
- * report states three lines later. So the number stays exactly as printed and
+ * **A position outside the region's window is kept and not scored**, unless one
+ * doubled digit explains it (`doubledDigit`). Dropping the row would move the
+ * day's flare count away from the total the report states three lines later, so
  * `located` says it cannot be put on a map, the same way a row with no position
  * at all is handled.
  */
