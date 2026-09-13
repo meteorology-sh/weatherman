@@ -373,15 +373,6 @@ The fill is those cells. A click on it is FLY. Modeled liquid, freezing
 level, −15 °C, CAPE, CIN, LCL, and warm-cloud depth are numbers on that
 click.
 
-**Where the model grew no cloud, the height tests are unanswered rather
-than failed.** HRRR at 3 km does not resolve scattered convective towers
-and reports no cloud base in columns a crew is working, so reading that
-silence as "too high to seed" would make a gap in the model into a
-verdict about the sky. The cell rests on the two measured radar tests,
-which no missing field can pass on its behalf, and the click reports no
-base rather than a height. The cost is that a base genuinely too high is
-not caught there; the pilot confirms the base visually before seeding.
-
 **The band-inside-cloud test is an interval overlap.** Cloud spans base to top;
 the band spans its warm edge (−5 °C, lower) to its cold edge (−18 °C, higher).
 Two intervals overlap when each starts below where the other ends, so the halves
@@ -411,11 +402,11 @@ peak is a number about whichever cell happened to be strongest, which is rarely
 the one on screen. Lightning cannot ride here at all: HRRR does not diagnose it
 at the analysis hour.
 
-**Absence of radar coverage does not veto.** A third of the mosaic's box has no
-radar over it, and no coverage is not a report of clear air — so those cells stay
-candidates and the summary counts how much candidate ground was unchecked rather
-than cleared. Over a clicked cell the two are named apart: a quiet radar reads
-as no echo, and ground no radar covers says so.
+**Ground no radar covers cannot pass the rain test.** The test asks for measured
+20 dBZ in the cell or a neighbour, and a cell no radar sees has no measurement,
+so a neighbourhood with no coverage is DON'T FLY for no rain. No coverage is not
+a report of clear air, so the click names the two apart: a quiet radar reads as
+no echo, and ground no radar covers reads No Radar.
 
 **Observed cloud-top phase rides alongside as a fifth reading and not a fifth
 test.** Everything the join says about liquid water is HRRR's; GOES publishes a

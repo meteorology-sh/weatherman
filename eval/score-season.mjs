@@ -87,9 +87,6 @@ function scorable(near) {
   return Boolean(near) && (near.km != null || near.empty === true);
 }
 
-const inFill = (flare) =>
-  scorable(flare.near?.target) && insideByClock(flare.near.target, "target");
-
 /** The click readout's verdict, charged to the first test the cell failed. */
 const BASE_FAILS = new Set(["noCloudBase", "baseTooHigh"]);
 const flies = (flare) => flare.cell?.target === "target";
@@ -98,6 +95,29 @@ const baseOk = (flare) =>
 const rainOk = (flare) => baseOk(flare) && flare.cell.target !== "noStorm";
 const supportsIce = (flare) => ["ice", "both"].includes(flare.cell?.payload);
 const supportsSalt = (flare) => ["salt", "both"].includes(flare.cell?.payload);
+
+/**
+ * Whether a release has an answer for a layer, and whether it is inside.
+ *
+ * **The seeding opportunity is scored on the cell, not the outline.** A release
+ * is in it when a click on the 3 km cell it landed in says FLY. The stored
+ * outline is smoothed and can disagree with the cells along its edge
+ * (`docs/GEOMETRY.md`); every other layer is scored against its outline.
+ */
+const answered = (flare, key) =>
+  key === "target" ? Boolean(flare.cell) : scorable(flare.near?.[key]);
+const inLayer = (flare, key) =>
+  key === "target"
+    ? flies(flare)
+    : scorable(flare.near?.[key]) && insideByClock(flare.near[key], key);
+
+/** Distance to the drawn outline's edge, from whichever side the release is. */
+function outlineEdgeKm(near, key) {
+  if (!scorable(near)) return null;
+  return insideByClock(near, key)
+    ? edgeByClock(near, key)
+    : kmByClock(near, key);
+}
 
 const regions = await regionsOf(SEASON);
 const evaluable = regions.filter((region) => region.releases);
@@ -193,17 +213,16 @@ for (const region of evaluable) {
       if (radialOf(flare, region.origin)) row.radial += 1;
       if (inNamedCounty(flare)) row.placed += 1;
       for (const [key] of LAYERS) {
-        const near = flare.near?.[key];
-        if (!scorable(near)) continue;
+        if (!answered(flare, key)) continue;
         const marginKm = (day.cellKm?.[key] ?? NaN) + positionKm;
-        if (insideByClock(near, key)) {
+        const edgeKm = outlineEdgeKm(flare.near?.[key], key);
+        const nearEdge = edgeKm != null && edgeKm <= marginKm;
+        if (inLayer(flare, key)) {
           row.layers[key].inside += 1;
-          const edgeKm = edgeByClock(near, key);
-          if (edgeKm != null && edgeKm <= marginKm) row.layers[key].atEdge += 1;
-          continue;
+          if (nearEdge) row.layers[key].atEdge += 1;
+        } else if (nearEdge) {
+          row.layers[key].within += 1;
         }
-        const km = kmByClock(near, key);
-        if (km != null && km <= marginKm) row.layers[key].within += 1;
       }
     }
   }
@@ -275,26 +294,118 @@ const R = "right";
 
 doc.push(`# Evaluation — the ${SEASON} Texas season`, "");
 say(
-  `${seasonDays} flying days and ${thousands(seasonFlares.length)} located ` +
-    `flares across ${counted(rows.length)} programs. Every located flare is in ` +
-    "every denominator. How to run the job is `eval/README.md`."
+  `${seasonDays} flying days across ${counted(rows.length)} programs. How to ` +
+    "run the job is `eval/README.md`."
 );
+
+/* The season at a glance */
+
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+const dayName = (date) =>
+  `${Number(date.slice(8))} ${MONTH_NAMES[Number(date.slice(5, 7)) - 1]}`;
+
+const unplaced = [];
+for (const region of evaluable) {
+  const { days } = JSON.parse(
+    await readFile(join(DATA, region.releases), "utf8")
+  );
+  const why = [];
+  let total = 0;
+  for (const day of days.filter((entry) => entry.seeded)) {
+    const missed = day.releases.filter((release) => !release.located);
+    if (!missed.length) continue;
+    total += missed.length;
+    const blank = missed.filter((release) => release.lat == null);
+    const parts = [];
+    if (blank.length) {
+      parts.push(
+        `${blank.length} ${blank.length === 1 ? "row prints" : "rows print"} no position`
+      );
+    }
+    for (const release of missed.filter((entry) => entry.lat != null)) {
+      parts.push(
+        `${release.lat} / ${release.lon} is outside the program's window`
+      );
+    }
+    why.push(`${dayName(day.date)}: ${parts.join("; ")}`);
+  }
+  if (total) unplaced.push([region.short, String(total), why.join("; ")]);
+}
+const unplacedCount = unplaced.reduce(
+  (sum, [, total]) => sum + Number(total),
+  0
+);
+
+heading("The season at a glance");
+say(
+  `The reports print ${thousands(seasonFlares.length + unplacedCount)} flare ` +
+    `rows. ${unplacedCount ? `${thousands(unplacedCount)} have no usable position (the last table in this section), which leaves` : "Every one has a usable position:"} ` +
+    `${thousands(seasonFlares.length)} located flares. Every located flare is ` +
+    "in every denominator below."
+);
+
+const seedable = seasonFlares.filter((flare) => inLayer(flare, "target"));
+table(
+  [
+    ["Season", L],
+    ["Flares", R],
+  ],
+  [
+    ["Rows in the reports", String(seasonFlares.length + unplacedCount)],
+    ["No usable position", String(unplacedCount)],
+    [bold("Located"), bold(seasonFlares.length)],
+    ["In the seeding opportunity: FLY", String(seedable.length)],
+    ["Outside it: DON'T FLY", String(seasonFlares.length - seedable.length)],
+  ]
+);
+say(
+  "A flare is in the seeding opportunity when a click on the 3 km cell it " +
+    "landed in says FLY. How a position finds its cell, and why the drawn " +
+    "outline can disagree with the cells along its edge, is `docs/GEOMETRY.md`."
+);
+
+if (unplaced.length) {
+  say(
+    "Rows with no usable position stay in the flight record and out of every " +
+      "denominator."
+  );
+  table(
+    [
+      ["Program", L],
+      ["Releases not placed", R],
+      ["Why", L],
+    ],
+    unplaced
+  );
+}
 
 /* Flare overlap with each layer */
 
 heading("Flare overlap with each layer");
 say(
   "The share of flares that landed inside each layer at the minute of " +
-    "release. Ground painted is the seeding-opportunity fill's median hourly " +
-    "area, and its share of the program's window."
+    "release. Seeding opportunity is the FLY cell a click answers; the other " +
+    "layers are their drawn outlines. Ground painted is the " +
+    "seeding-opportunity fill's median hourly area, and its share of the " +
+    "program's window."
 );
 
 const km2 = (n) => `${thousands(Math.round(n))} km²`;
 const layerCount = (flares, key) =>
-  flares.filter(
-    (flare) =>
-      scorable(flare.near?.[key]) && insideByClock(flare.near[key], key)
-  ).length;
+  flares.filter((flare) => inLayer(flare, key)).length;
 
 const groundOf = (row) => {
   const area = median(row.painted);
@@ -458,9 +569,9 @@ table(
   ]
 );
 say(
-  "Within the margin counts the flares outside the seeding opportunity but " +
-    "within the margin of its edge (+), and the flares inside it but within " +
-    "the margin (−). Share is each count over releases."
+  "Within the margin counts the DON'T FLY flares within the margin of the " +
+    "seeding opportunity's drawn edge (+), and the FLY flares within it (−). " +
+    "Share is each count over releases."
 );
 
 const targetCellKm = median(rows.flatMap((row) => row.cellKm.target));
@@ -508,76 +619,6 @@ say(
     "names, which is what the last column shows."
 );
 
-const fillOnly = seasonFlares.filter((flare) => inFill(flare) && !flies(flare));
-const flyOnly = seasonFlares.filter((flare) => !inFill(flare) && flies(flare));
-say(
-  "The seeding-opportunity fill's outline cuts the corners of the cells a " +
-    `click reads, so ${fillOnly.length + flyOnly.length} flares at its edge ` +
-    `get a different answer from each: ${fillOnly.length} inside the fill in ` +
-    `a DON'T FLY cell, ${flyOnly.length} outside it in a FLY cell. That is why ` +
-    `seeding-opportunity overlap counts ${thousands(seasonFlares.filter(inFill).length)} ` +
-    `and FLY counts ${thousands(seasonFlares.filter(flies).length)}.`
-);
-
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-const dayName = (date) =>
-  `${Number(date.slice(8))} ${MONTH_NAMES[Number(date.slice(5, 7)) - 1]}`;
-
-const unplaced = [];
-for (const region of evaluable) {
-  const { days } = JSON.parse(
-    await readFile(join(DATA, region.releases), "utf8")
-  );
-  const why = [];
-  let total = 0;
-  for (const day of days.filter((entry) => entry.seeded)) {
-    const missed = day.releases.filter((release) => !release.located);
-    if (!missed.length) continue;
-    total += missed.length;
-    const blank = missed.filter((release) => release.lat == null);
-    const parts = [];
-    if (blank.length) {
-      parts.push(
-        `${blank.length} ${blank.length === 1 ? "row prints" : "rows print"} no position`
-      );
-    }
-    for (const release of missed.filter((entry) => entry.lat != null)) {
-      parts.push(
-        `${release.lat} / ${release.lon} is outside the program's window`
-      );
-    }
-    why.push(`${dayName(day.date)}: ${parts.join("; ")}`);
-  }
-  if (total) unplaced.push([region.short, String(total), why.join("; ")]);
-}
-if (unplaced.length) {
-  say(
-    "Rows with no usable position stay in the flight record and out of every " +
-      "denominator."
-  );
-  table(
-    [
-      ["Program", L],
-      ["Releases not placed", R],
-      ["Why", L],
-    ],
-    unplaced
-  );
-}
-
 /* Report data that needs adjusting */
 
 heading("Report data that needs adjusting");
@@ -612,7 +653,10 @@ if (transformed.length) {
         `Projected from ${origin.name}; bearing + ` +
           `${variation(origin.magneticVariationDeg)} variation of record`,
         before.length
-          ? share(before.filter(inFill).length, before.length)
+          ? share(
+              before.filter((flare) => inLayer(flare, "target")).length,
+              before.length
+            )
           : "—",
         bold(share(row.layers.target.inside, row.flares.length)),
       ];

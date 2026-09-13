@@ -144,6 +144,29 @@ async function band({ region }) {
 /** The file a run wrote for one date, e.g. `painted-{date}.json`. */
 const forDate = (template, date) => template.replace("{date}", date);
 
+/**
+ * A painted day, with the seeding opportunity scored on the cell.
+ *
+ * A release is in the seeding opportunity when a click on the 3 km cell it
+ * landed in says FLY. The stored outline is smoothed and can disagree with the
+ * cells along its edge (`docs/GEOMETRY.md`), so `near.target.inside` is
+ * replaced by the verdict here, once, and every count and label the app shows
+ * reads the same answer `EVALUATION.md` prints. `km` is zero on FLY; on DON'T
+ * FLY inside the outline it is the distance out of the outline.
+ */
+async function paintedOn(region, date) {
+  const painted = await run(forDate(region.runs.painted, date));
+  for (const flare of painted ? flaresOf(painted) : []) {
+    const near = flare.near?.target;
+    if (!near || near.km === null || !flare.cell) continue;
+    const fly = flare.cell.target === "target";
+    if (fly) near.km = 0;
+    else if (near.inside) near.km = near.edgeKm ?? near.km;
+    near.inside = fly;
+  }
+  return painted;
+}
+
 /* ---------- how near the flares were ---------- */
 
 /**
@@ -240,7 +263,7 @@ function proximity(painted) {
 async function near({ region, seeded }) {
   const built = [];
   for (const record of seeded) {
-    const painted = await run(forDate(region.runs.painted, record.date));
+    const painted = await paintedOn(region, record.date);
     if (painted) built.push({ date: record.date, painted });
   }
   if (!built.length) return null;
@@ -288,7 +311,7 @@ async function near({ region, seeded }) {
 async function storms({ region, seeded }) {
   const built = [];
   for (const record of seeded) {
-    const painted = await run(forDate(region.runs.painted, record.date));
+    const painted = await paintedOn(region, record.date);
     if (painted) built.push({ date: record.date, painted });
   }
   if (!built.length) return null;
@@ -477,7 +500,7 @@ const server = createServer(async (req, res) => {
 
       const painted = rest.match(/^\/day\/(\d{4}-\d{2}-\d{2})\/painted$/);
       if (painted) {
-        const found = await run(forDate(region.runs.painted, painted[1]));
+        const found = await paintedOn(region, painted[1]);
         if (!found) {
           return send(404, {
             error:

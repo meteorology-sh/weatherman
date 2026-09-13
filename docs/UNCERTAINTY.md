@@ -17,9 +17,9 @@ prints the margin for every program.
 | Seeding opportunity      | All of the above                        | 3 km       | radar every 2 minutes, model hourly |
 
 A fill marks cells, not a coastline: its edge is where a cell stopped
-qualifying, so the edge is known to one cell. The evaluation and a click both
-read the cells themselves. Zoomed out past about 3 km to the screen pixel, the
-map draws blocks of 4×4 cells, 12 km across (`WEATHERMAN.md`).
+qualifying, so the edge is known to one cell. A click reads the cell, and so
+does the evaluation's seeding opportunity; the other layers are scored against
+their drawn outlines. How an outline is drawn from the cells is `GEOMETRY.md`.
 
 ## Reports
 

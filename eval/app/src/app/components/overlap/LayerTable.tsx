@@ -14,9 +14,10 @@ type PropsT = {
 /**
  * How many of the season's releases sat inside each layer Weatherman draws.
  *
- * Inside is inside the contour after storm-motion drift to that layer's own
- * scan. A layer that could not be built for an hour is dropped from that row
- * only, so a gap in one field never silently shrinks another's denominator.
+ * Inside is inside the contour at that layer's own scan, except SEEDING
+ * OPPORTUNITY, which `server.mjs` scores on the FLY cell a click answers. A
+ * layer that could not be built for an hour is dropped from that row only, so
+ * a gap in one field never silently shrinks another's denominator.
  *
  * The rows run in `RESULT_ORDER`, so SEEDING OPPORTUNITY is the last of them
  * here for the same reason it is the last column on the day page: the fills

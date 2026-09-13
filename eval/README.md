@@ -371,8 +371,11 @@ Fills `paint.mjs` stores, all `fine=1`:
 | `cloudBase`  | `/candidate/cloudbase`         | `cloudBaseFt`  | 3 km |
 | `liquid`     | `/forecast/liquid`             | `slwPath`      | 3 km |
 
-Inside is inside the contour after storm-motion drift. A missing frame
-for an hour drops that flare from that column's denominator.
+Inside is inside the contour, measured at the clock that places its edge.
+The seeding opportunity is the exception: a release is inside it when
+`cell.target` is FLY, and `score-season.mjs` and `server.mjs` both score
+it that way (`docs/GEOMETRY.md`). A missing frame for an hour drops that
+flare from that column's denominator.
 
 ## How the eval app drives
 

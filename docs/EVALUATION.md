@@ -1,22 +1,48 @@
 # Evaluation — the 2025 Texas season
 
-116 flying days and 1,353 located flares across five programs. Every located
-flare is in every denominator. How to run the job is `eval/README.md`.
+116 flying days across five programs. How to run the job is `eval/README.md`.
+
+## The season at a glance
+
+The reports print 1,362 flare rows. 9 have no usable position (the last table in
+this section), which leaves 1,353 located flares. Every located flare is in
+every denominator below.
+
+| Season                          |   Flares |
+| ------------------------------- | -------: |
+| Rows in the reports             |     1362 |
+| No usable position              |        9 |
+| **Located**                     | **1353** |
+| In the seeding opportunity: FLY |     1172 |
+| Outside it: DON'T FLY           |      181 |
+
+A flare is in the seeding opportunity when a click on the 3 km cell it landed in
+says FLY. How a position finds its cell, and why the drawn outline can disagree
+with the cells along its edge, is `docs/GEOMETRY.md`.
+
+Rows with no usable position stay in the flight record and out of every
+denominator.
+
+| Program     | Releases not placed | Why                                                                                               |
+| ----------- | ------------------: | ------------------------------------------------------------------------------------------------- |
+| West Texas  |                   2 | 21 August: 2 rows print no position                                                               |
+| Trans Pecos |                   7 | 27 March: 6 rows print no position; 30 June: 31.0996 / -1033.7377 is outside the program's window |
 
 ## Flare overlap with each layer
 
 The share of flares that landed inside each layer at the minute of release.
-Ground painted is the seeding-opportunity fill's median hourly area, and its
-share of the program's window.
+Seeding opportunity is the FLY cell a click answers; the other layers are their
+drawn outlines. Ground painted is the seeding-opportunity fill's median hourly
+area, and its share of the program's window.
 
 | Program        | Releases |   Seeding opportunity |         Ground painted |   Radar reflectivity |   Echo past freezing |           Cloud base | Supercooled liquid water |
 | -------------- | -------: | --------------------: | ---------------------: | -------------------: | -------------------: | -------------------: | -----------------------: |
-| West Texas     |      497 |       427/497 (85.9%) |      54,344 km² (6.1%) |      312/497 (62.8%) |      335/497 (67.4%) |      334/497 (67.2%) |            32/497 (6.4%) |
-| Trans Pecos    |      465 |       428/465 (92.0%) |      18,230 km² (9.2%) |      323/465 (69.5%) |      355/465 (76.3%) |      345/465 (74.2%) |            27/465 (5.8%) |
+| West Texas     |      497 |       424/497 (85.3%) |      54,344 km² (6.1%) |      312/497 (62.8%) |      335/497 (67.4%) |      334/497 (67.2%) |            32/497 (6.4%) |
+| Trans Pecos    |      465 |       427/465 (91.8%) |      18,230 km² (9.2%) |      323/465 (69.5%) |      355/465 (76.3%) |      345/465 (74.2%) |            27/465 (5.8%) |
 | Panhandle      |      255 |       232/255 (91.0%) |      8,269 km² (16.1%) |      196/255 (76.9%) |      221/255 (86.7%) |      209/255 (82.0%) |           29/255 (11.4%) |
-| South Texas    |       83 |         57/83 (68.7%) |     15,114 km² (19.3%) |        22/83 (26.5%) |        25/83 (30.1%) |        27/83 (32.5%) |              5/83 (6.0%) |
-| Rolling Plains |       53 |         37/53 (69.8%) |      9,503 km² (14.5%) |        24/53 (45.3%) |        27/53 (50.9%) |        25/53 (47.2%) |             6/53 (11.3%) |
-| **Season**     | **1353** | **1181/1353 (87.3%)** | **105,460 km² (8.2%)** | **877/1353 (64.8%)** | **963/1353 (71.2%)** | **940/1353 (69.5%)** |       **99/1353 (7.3%)** |
+| South Texas    |       83 |         54/83 (65.1%) |     15,114 km² (19.3%) |        22/83 (26.5%) |        25/83 (30.1%) |        27/83 (32.5%) |              5/83 (6.0%) |
+| Rolling Plains |       53 |         35/53 (66.0%) |      9,503 km² (14.5%) |        24/53 (45.3%) |        27/53 (50.9%) |        25/53 (47.2%) |             6/53 (11.3%) |
+| **Season**     | **1353** | **1172/1353 (86.6%)** | **105,460 km² (8.2%)** | **877/1353 (64.8%)** | **963/1353 (71.2%)** | **940/1353 (69.5%)** |       **99/1353 (7.3%)** |
 
 ## FLY or DON'T FLY at each release
 
@@ -53,16 +79,16 @@ the flare's position.
 
 | Program        | Releases | Seeding opportunity | Within the margin |                  Share |
 | -------------- | -------: | ------------------: | ----------------: | ---------------------: |
-| West Texas     |      497 |                 427 |         +28 / −85 |     85.9% +5.6 / −17.1 |
-| Trans Pecos    |      465 |                 428 |         +21 / −55 |     92.0% +4.5 / −11.8 |
+| West Texas     |      497 |                 424 |         +31 / −82 |     85.3% +6.2 / −16.5 |
+| Trans Pecos    |      465 |                 427 |         +21 / −55 |     91.8% +4.5 / −11.8 |
 | Panhandle      |      255 |                 232 |         +19 / −62 |     91.0% +7.5 / −24.3 |
-| South Texas    |       83 |                  57 |         +17 / −26 |    68.7% +20.5 / −31.3 |
-| Rolling Plains |       53 |                  37 |          +6 / −19 |    69.8% +11.3 / −35.8 |
-| **Season**     | **1353** |            **1181** |    **+91 / −247** | **87.3% +6.7 / −18.3** |
+| South Texas    |       83 |                  54 |         +20 / −23 |    65.1% +24.1 / −27.7 |
+| Rolling Plains |       53 |                  35 |          +8 / −17 |    66.0% +15.1 / −32.1 |
+| **Season**     | **1353** |            **1172** |    **+99 / −239** | **86.6% +7.3 / −17.7** |
 
-Within the margin counts the flares outside the seeding opportunity but within
-the margin of its edge (+), and the flares inside it but within the margin (−).
-Share is each count over releases.
+Within the margin counts the DON'T FLY flares within the margin of the seeding
+opportunity's drawn edge (+), and the FLY flares within it (−). Share is each
+count over releases.
 
 | Program        | Position printed as |     Rounding | Margin | Lands in the county its row names |
 | -------------- | ------------------- | -----------: | -----: | --------------------------------: |
@@ -78,19 +104,6 @@ measured from, and whether a Rolling Plains coordinate is minutes. Where either
 is wrong, the flare tends to miss the county its own row names, which is what
 the last column shows.
 
-The seeding-opportunity fill's outline cuts the corners of the cells a click
-reads, so 19 flares at its edge get a different answer from each: 14 inside the
-fill in a DON'T FLY cell, 5 outside it in a FLY cell. That is why
-seeding-opportunity overlap counts 1,181 and FLY counts 1,172.
-
-Rows with no usable position stay in the flight record and out of every
-denominator.
-
-| Program     | Releases not placed | Why                                                                                               |
-| ----------- | ------------------: | ------------------------------------------------------------------------------------------------- |
-| West Texas  |                   2 | 21 August: 2 rows print no position                                                               |
-| Trans Pecos |                   7 | 27 March: 6 rows print no position; 30 June: 31.0996 / -1033.7377 is outside the program's window |
-
 ## Report data that needs adjusting
 
 **Transformed.** Two programs print a bearing from magnetic north and a range,
@@ -98,8 +111,8 @@ from an origin their reports never name. Before reads the bearing as true north.
 
 | Program     | What the report prints               | Transformation                                                          |          Before |               After |
 | ----------- | ------------------------------------ | ----------------------------------------------------------------------- | --------------: | ------------------: |
-| Panhandle   | Bearing and range, all 255 releases  | Projected from the radar at Amarillo; bearing + 8°E variation of record | 186/255 (72.9%) | **232/255 (91.0%)** |
-| South Texas | Bearing and range, 78 of 83 releases | Projected from Pleasanton; bearing + 6°E variation of record            |   48/83 (57.8%) |   **57/83 (68.7%)** |
+| Panhandle   | Bearing and range, all 255 releases  | Projected from the radar at Amarillo; bearing + 8°E variation of record | 191/255 (74.9%) | **232/255 (91.0%)** |
+| South Texas | Bearing and range, 78 of 83 releases | Projected from Pleasanton; bearing + 6°E variation of record            |   49/83 (59.0%) |   **54/83 (65.1%)** |
 
 **Not adjusted.** Rolling Plains coordinates are sometimes decimal degrees and
 sometimes minutes. They are read as decimal degrees: 31 of 53 land in the county
