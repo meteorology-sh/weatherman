@@ -32,17 +32,20 @@ denominator.
 
 The share of flares that landed inside each layer at the minute of release.
 Seeding opportunity is the FLY cell a click answers; the other layers are their
-drawn outlines. Ground painted is the seeding-opportunity fill's median hourly
-area, and its share of the program's window.
+drawn outlines. Counties flown is every county a program's releases name, and
+its area. Seedable, typical flying day is the share of those counties inside the
+seeding opportunity: each flying day is read at its median flown hour, and the
+column is the median day. The season row is the median of every program's flying
+days, over the counties any program flew.
 
-| Program        | Releases |   Seeding opportunity |         Ground painted |   Radar reflectivity |   Echo past freezing |           Cloud base | Supercooled liquid water |
-| -------------- | -------: | --------------------: | ---------------------: | -------------------: | -------------------: | -------------------: | -----------------------: |
-| West Texas     |      497 |       424/497 (85.3%) |      54,344 km² (6.1%) |      312/497 (62.8%) |      335/497 (67.4%) |      334/497 (67.2%) |            32/497 (6.4%) |
-| Trans Pecos    |      466 |       428/466 (91.8%) |      18,230 km² (9.2%) |      323/466 (69.3%) |      356/466 (76.4%) |      346/466 (74.2%) |            27/466 (5.8%) |
-| Panhandle      |      255 |       232/255 (91.0%) |      8,269 km² (16.1%) |      196/255 (76.9%) |      221/255 (86.7%) |      209/255 (82.0%) |           29/255 (11.4%) |
-| South Texas    |       83 |         54/83 (65.1%) |     15,114 km² (19.3%) |        22/83 (26.5%) |        25/83 (30.1%) |        27/83 (32.5%) |              5/83 (6.0%) |
-| Rolling Plains |       53 |         35/53 (66.0%) |      9,503 km² (14.5%) |        24/53 (45.3%) |        27/53 (50.9%) |        25/53 (47.2%) |             6/53 (11.3%) |
-| **Season**     | **1354** | **1173/1354 (86.6%)** | **105,460 km² (8.2%)** | **877/1354 (64.8%)** | **964/1354 (71.2%)** | **941/1354 (69.5%)** |       **99/1354 (7.3%)** |
+| Program        | Releases |   Seeding opportunity |       Counties flown | Seedable, typical flying day |   Radar reflectivity |   Echo past freezing |           Cloud base | Supercooled liquid water |
+| -------------- | -------: | --------------------: | -------------------: | ---------------------------: | -------------------: | -------------------: | -------------------: | -----------------------: |
+| West Texas     |      497 |       424/497 (85.3%) |      13 · 54,887 km² |                         8.6% |      312/497 (62.8%) |      335/497 (67.4%) |      334/497 (67.2%) |            32/497 (6.4%) |
+| Trans Pecos    |      466 |       428/466 (91.8%) |      11 · 73,593 km² |                        10.2% |      323/466 (69.3%) |      356/466 (76.4%) |      346/466 (74.2%) |            27/466 (5.8%) |
+| Panhandle      |      255 |       232/255 (91.0%) |       8 · 18,999 km² |                        15.6% |      196/255 (76.9%) |      221/255 (86.7%) |      209/255 (82.0%) |           29/255 (11.4%) |
+| South Texas    |       83 |         54/83 (65.1%) |       9 · 26,230 km² |                        21.0% |        22/83 (26.5%) |        25/83 (30.1%) |        27/83 (32.5%) |              5/83 (6.0%) |
+| Rolling Plains |       53 |         35/53 (66.0%) |       8 · 18,765 km² |                        21.2% |        24/53 (45.3%) |        27/53 (50.9%) |        25/53 (47.2%) |             6/53 (11.3%) |
+| **Season**     | **1354** | **1173/1354 (86.6%)** | **46 · 166,653 km²** |                    **10.7%** | **877/1354 (64.8%)** | **964/1354 (71.2%)** | **941/1354 (69.5%)** |       **99/1354 (7.3%)** |
 
 ## FLY or DON'T FLY at each release
 

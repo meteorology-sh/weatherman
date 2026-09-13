@@ -6,10 +6,10 @@
  * distance from a point to the nearest edge of a painted region, because that
  * is the whole measurement this evaluation makes.
  *
- * Clipping contour polygons to county boundaries properly would want a real
- * geometry library, and it is the wrong shape of answer anyway: the seeding
- * opportunity is a decision per 3 km cell, and a clipped polygon area would
- * report the smoothed edge of a band rather than the cells it was traced from.
+ * And the ground a painted region shares with the counties a program flies,
+ * read along latitude rows rather than by clipping one polygon to another,
+ * which would want a real geometry library. It measures the drawn outline, not
+ * the 3 km cells the outline was traced from (`docs/GEOMETRY.md`).
  */
 
 const KM_PER_NM = 1.852;
@@ -233,4 +233,107 @@ export function boxAreaKm2({ west, east, south, north }) {
     [west, north],
     [west, south],
   ]);
+}
+
+/**
+ * Latitude rows to measure ground along, `step` degrees apart.
+ *
+ * At 0.01° a row is about 1.1 km tall, under half a 3 km cell.
+ */
+export function rowGrid(polygons, step = 0.01) {
+  let south = Infinity;
+  let north = -Infinity;
+  for (const rings of polygons) {
+    for (const [, lat] of rings[0] ?? []) {
+      south = Math.min(south, lat);
+      north = Math.max(north, lat);
+    }
+  }
+  if (south > north) return { south: 0, step, count: 0 };
+  return { south, step, count: Math.ceil((north - south) / step) };
+}
+
+/**
+ * Where a set of polygons covers each row, as merged longitude spans.
+ *
+ * Each row is read along its centre line. Within one polygon the crossings of
+ * all its rings pair off in order, so a hole is left out. The polygons are then
+ * unioned, so ground two of them cover counts once.
+ */
+export function spansByRow(polygons, grid) {
+  const { south, step, count } = grid;
+  const rows = Array.from({ length: count }, () => []);
+  for (const rings of polygons) {
+    const crossings = new Map();
+    for (const ring of rings) {
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [xi, yi] = ring[i];
+        const [xj, yj] = ring[j];
+        if (yi === yj) continue;
+        const low = Math.min(yi, yj);
+        const high = Math.max(yi, yj);
+        const first = Math.max(0, Math.ceil((low - south) / step - 0.5));
+        const last = Math.min(
+          count - 1,
+          Math.ceil((high - south) / step - 0.5) - 1
+        );
+        for (let row = first; row <= last; row++) {
+          const lat = south + (row + 0.5) * step;
+          if (lat < low || lat >= high) continue;
+          const lon = xi + ((lat - yi) * (xj - xi)) / (yj - yi);
+          if (!crossings.has(row)) crossings.set(row, []);
+          crossings.get(row).push(lon);
+        }
+      }
+    }
+    for (const [row, lons] of crossings) {
+      lons.sort((a, b) => a - b);
+      for (let k = 0; k + 1 < lons.length; k += 2) {
+        rows[row].push([lons[k], lons[k + 1]]);
+      }
+    }
+  }
+  return rows.map(merged);
+}
+
+/** Overlapping spans joined into one. */
+function merged(spans) {
+  spans.sort((a, b) => a[0] - b[0]);
+  const out = [];
+  for (const [from, to] of spans) {
+    const last = out[out.length - 1];
+    if (last && from <= last[1]) last[1] = Math.max(last[1], to);
+    else out.push([from, to]);
+  }
+  return out;
+}
+
+/**
+ * The ground two sets of rows share, km².
+ *
+ * Each row stands for a strip `step` degrees tall, so a stretch both cover
+ * counts its length times that height, with a degree of longitude narrowed by
+ * the row's latitude.
+ */
+export function sharedAreaKm2(a, b, grid) {
+  const { south, step } = grid;
+  // The sphere `polygonsAreaKm2` measures on, so the two agree on a county.
+  const kmPerDegree = (EARTH_KM * Math.PI) / 180;
+  let total = 0;
+  for (let row = 0; row < a.length; row++) {
+    const lat = south + (row + 0.5) * step;
+    const across = kmPerDegree * Math.cos((lat * Math.PI) / 180);
+    let i = 0;
+    let j = 0;
+    let degrees = 0;
+    while (i < a[row].length && j < b[row].length) {
+      const from = Math.max(a[row][i][0], b[row][j][0]);
+      const to = Math.min(a[row][i][1], b[row][j][1]);
+      if (to > from) degrees += to - from;
+      if (a[row][i][1] < b[row][j][1]) i++;
+      else j++;
+    }
+    total += degrees * across * step * kmPerDegree;
+  }
+  return total;
 }

@@ -99,3 +99,17 @@ The painted files store outlines, not cell edges, so the Uncertainty table in
 `EVALUATION.md` measures to the outline. A DON'T FLY flare within the margin of
 the outline counts as +, and a FLY flare within it counts as −. The margin is
 one layer cell plus the report's rounding (`UNCERTAINTY.md`).
+
+## How much ground is seedable
+
+A program's area is every county its releases name. The seedable share is the
+part of those counties inside the seeding opportunity's outline.
+
+It is measured along rows of latitude 0.01° apart, about 1.1 km. Each stretch of
+a row inside both a county and the outline counts, times the row's height. A
+county two programs fly counts once in the season.
+
+Each flying day is read at its median hour, over the hours a release was scored
+against. The typical flying day is the median of those days.
+
+Like the margin, this measures the outline, not the FLY cells.

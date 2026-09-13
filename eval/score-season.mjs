@@ -6,8 +6,8 @@
  * `docs/EVALUATION-<season>.md`. Tables are aligned and prose is wrapped here,
  * so what it prints is the document as committed.
  *
- * Layer overlap, the fly verdicts, tolerance and ground painted come from the
- * painted days in `out/<season>/`. The before column of a radial program comes
+ * Layer overlap, the fly verdicts, tolerance and seedable ground come from the
+ * painted days in `out/<season>/`, and the counties flown from the boundary file. The before column of a radial program comes
  * from the same days painted with its bearings read as true north, in
  * `out/<season>/as-printed/`. Releases the record cannot place come from the
  * flight records in `data/<season>/`. The radiosonde tables come from the
@@ -21,7 +21,7 @@ import { join } from "node:path";
 
 // Local
 import { bandOverlap, spread, summarizeOverlaps } from "./lib/band-score.mjs";
-import { boxAreaKm2, inFeature, polygonsAreaKm2 } from "./lib/geo.mjs";
+import { inFeature, rowGrid, sharedAreaKm2, spansByRow } from "./lib/geo.mjs";
 import { COUNTIES, regionsOf, seasonDirs, seasonOf } from "./lib/season.mjs";
 import { positionBoundKm, radialOf } from "./lib/tolerance.mjs";
 
@@ -136,6 +136,45 @@ function inNamedCounty(flare) {
   return inFeature(shape, flare.lon, flare.lat);
 }
 
+/**
+ * The ground of the counties a set of releases name, measured along rows.
+ *
+ * A program's area is every county one of its located releases names. The
+ * counties overlap between programs, and the rows union them, so a county two
+ * programs fly counts once in the season.
+ */
+function flownGround(flares) {
+  const names = new Set(
+    flares.map((flare) => flare.county).filter((name) => counties.has(name))
+  );
+  const polygons = [...names].flatMap((name) => {
+    const { type, coordinates } = counties.get(name).geometry;
+    return type === "Polygon" ? [coordinates] : coordinates;
+  });
+  const grid = rowGrid(polygons);
+  const rows = spansByRow(polygons, grid);
+  return {
+    counties: names.size,
+    grid,
+    rows,
+    km2: sharedAreaKm2(rows, rows, grid),
+  };
+}
+
+/**
+ * How much of that ground the seeding opportunity covered at one hour, km².
+ * Null where the frame failed.
+ */
+function seedableKm2(frame, ground) {
+  const levels = frame.target?.levels;
+  if (!levels) return null;
+  const outline = spansByRow(
+    levels.flatMap((level) => level.polygons ?? []),
+    ground.grid
+  );
+  return sharedAreaKm2(ground.rows, outline, ground.grid);
+}
+
 /* ---------- reading ---------- */
 
 /** Every painted day in a directory, by region. A missing directory is none. */
@@ -187,25 +226,20 @@ for (const region of evaluable) {
     cellKm: Object.fromEntries(LAYERS.map(([key]) => [key, []])),
     radial: 0,
     placed: 0,
-    windows: [],
-    painted: [],
+    ground: flownGround(flares),
+    // One share per flying day: the counties' seedable ground at the day's
+    // median flown hour.
+    seedableShares: [],
   };
   for (const day of days) {
-    const asked = day.window ? boxAreaKm2(day.window) : null;
     for (const [key] of LAYERS) {
       if (day.cellKm?.[key] != null) row.cellKm[key].push(day.cellKm[key]);
     }
-    for (const frame of Object.values(day.frames ?? {})) {
-      if (asked != null) row.windows.push(asked);
-      const levels = frame.target?.levels;
-      if (levels) {
-        row.painted.push(
-          levels.reduce(
-            (sum, level) => sum + polygonsAreaKm2(level.polygons ?? []),
-            0
-          )
-        );
-      }
+    const hourly = Object.values(day.frames ?? {})
+      .map((frame) => seedableKm2(frame, row.ground))
+      .filter((km2) => km2 !== null);
+    if (hourly.length && row.ground.km2) {
+      row.seedableShares.push(median(hourly) / row.ground.km2);
     }
     for (const flare of (day.analyses ?? []).flatMap((a) => a.flares)) {
       const positionKm = positionBoundKm(flare, region.origin);
@@ -410,38 +444,32 @@ heading("Flare overlap with each layer");
 say(
   "The share of flares that landed inside each layer at the minute of " +
     "release. Seeding opportunity is the FLY cell a click answers; the other " +
-    "layers are their drawn outlines. Ground painted is the " +
-    "seeding-opportunity fill's median hourly area, and its share of the " +
-    "program's window."
+    "layers are their drawn outlines. Counties flown is every county a " +
+    "program's releases name, and its area. Seedable, typical flying day is " +
+    "the share of those counties inside the seeding opportunity: each flying " +
+    "day is read at its median flown hour, and the column is the median day. " +
+    "The season row is the median of every program's flying days, over the " +
+    "counties any program flew."
 );
 
 const km2 = (n) => `${thousands(Math.round(n))} km²`;
 const layerCount = (flares, key) =>
   flares.filter((flare) => inLayer(flare, key)).length;
 
-const groundOf = (row) => {
-  const area = median(row.painted);
-  const asked = median(row.windows);
-  return area == null ? null : { area, asked };
+const seasonGround = flownGround(seasonFlares);
+const countiesCell = (ground) => `${ground.counties} · ${km2(ground.km2)}`;
+const seedableCell = (shares) => {
+  const typical = median(shares);
+  return typical == null ? "—" : `${(100 * typical).toFixed(1)}%`;
 };
-const groundCell = (ground) =>
-  ground ? `${km2(ground.area)} (${pct(ground.area, ground.asked)})` : "—";
-const seasonGround = rows.reduce(
-  (sum, row) => {
-    const ground = groundOf(row);
-    return ground
-      ? { area: sum.area + ground.area, asked: sum.asked + ground.asked }
-      : sum;
-  },
-  { area: 0, asked: 0 }
-);
 
 table(
   [
     ["Program", L],
     ["Releases", R],
     [LAYERS[0][1], R],
-    ["Ground painted", R],
+    ["Counties flown", R],
+    ["Seedable, typical flying day", R],
     ...LAYERS.slice(1).map(([, label]) => [label, R]),
   ],
   [
@@ -449,7 +477,8 @@ table(
       row.region.short,
       String(row.flares.length),
       share(row.layers.target.inside, row.flares.length),
-      groundCell(groundOf(row)),
+      countiesCell(row.ground),
+      seedableCell(row.seedableShares),
       ...LAYERS.slice(1).map(([key]) =>
         share(row.layers[key].inside, row.flares.length)
       ),
@@ -458,7 +487,8 @@ table(
       bold("Season"),
       bold(seasonFlares.length),
       bold(share(layerCount(seasonFlares, "target"), seasonFlares.length)),
-      bold(groundCell(seasonGround)),
+      bold(countiesCell(seasonGround)),
+      bold(seedableCell(rows.flatMap((row) => row.seedableShares))),
       ...LAYERS.slice(1).map(([key]) =>
         bold(share(layerCount(seasonFlares, key), seasonFlares.length))
       ),
