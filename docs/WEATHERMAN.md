@@ -713,23 +713,43 @@ arrive continuously with no publication cycle to key off, so both use a 5-minute
 TTL and each frame carries its own valid time — the sidebar reports the scene's
 age rather than implying it is live.
 
-**A source with something wrong with it says so.** When a live request fails or
-its data looks wrong, the service puts that source on the notice board, and the
-candidate panel says "Something is wrong with" it at the top until the source
-answers well again. Closing a notice hides that problem only.
+**Every live feed falls back to a copy, and says so.** Each service asks its
+live feed first on every rebuild. When the request fails or the data looks
+wrong, it draws the copy below and puts the source on the notice board with how
+many minutes the copy trails live: the live answer's time when there is one,
+otherwise now, and for HRRR the run NOMADS named or the previous hour's run.
+The notice clears, and the map returns to live, as soon as the live feed
+answers well.
 
-Looking wrong is a basic check, not a quality score: an MRMS mosaic with a
-quarter of the country uncovered, since no quarter is without a radar. HRRR, the
-GOES cloud top and the GOES phase report a failed request only. The MRMS echo
-top also draws NOAA's archived copy of the same product from `noaa-mrms-pds`
-when the live file fails either way, and its notice says how many minutes behind
-live that copy is.
+| Source                | Live                 | Copy                                      |
+| --------------------- | -------------------- | ----------------------------------------- |
+| MRMS reflectivity     | `mrms.ncep.noaa.gov` | nearest scene in `noaa-mrms-pds`          |
+| MRMS echo top         | `mrms.ncep.noaa.gov` | nearest scene in `noaa-mrms-pds`          |
+| HRRR                  | NOMADS               | newest run in `noaa-hrrr-bdp-pds`         |
+| GOES cloud top, phase | `noaa-goes19` on AWS | newest sweep in `gcp-public-data-goes-19` |
+| GOES lightning        | `noaa-goes19` on AWS | same window in `gcp-public-data-goes-19`  |
+
+Looking wrong is a basic check, not a quality score. An MRMS mosaic with a
+quarter of the country uncovered is wrong, since no quarter is without a radar.
+A lightning window with no granules, or one that will not read, is wrong, since
+GLM files a granule every 20 seconds whether or not anything flashed. HRRR and
+the ABI scenes are checked for a failed request only. A NOMADS failure, at
+finding the run or at reading it, passes NOMADS over for five minutes. The GOES
+scenes fall back on their own; the HRRR profile they are painted with follows
+HRRR's feed.
+
+When the copy fails or looks wrong too, the live answer is kept if there is one,
+the request fails if there is not, and the notice carries no delay.
+
+Notices stack at the top of the candidate panel, one per source. The top one is
+read and closed, and the next takes its place. Closing a notice hides that
+problem only.
 
 ```
-watch, EchoTopService → Notices              [services/shared/notices.ts]
-                      → GET /status/notices  [routers/status.ts]
-                      → NoticeProvider, each minute [app/src/lib/context]
-                      → SourceNotices, top of the candidate panel
+liveOrArchive, LiveCycles → Notices              [services/shared/notices.ts]
+                          → GET /status/notices  [routers/status.ts]
+                          → NoticeProvider, each minute [app/src/lib/context]
+                          → SourceNotices, top of the candidate panel
 ```
 
 ## Color
