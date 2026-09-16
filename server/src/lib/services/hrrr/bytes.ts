@@ -15,6 +15,8 @@
 // Services
 import { eachMessage } from "../shared/grib";
 import { POINTS } from "../shared/grid";
+import { minutesBehind, Notices, REQUEST_FAILED } from "../shared/notices";
+import type { NoticeBoard } from "../shared/notices";
 
 const HRRR = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod";
 
@@ -165,9 +167,24 @@ export function pick(
   return [row.start, row.end];
 }
 
-/** Most recent cycle whose f00 index is published. Re-checked every 5 min. */
+/**
+ * The cycle the live feed should be serving at `now`.
+ *
+ * HRRR posts ~50 min after the hour and discovery starts an hour back, so the
+ * newest cycle it can find is the one initialized in the previous hour.
+ */
+export function expectedRun(now: Date): Date {
+  return new Date(floorHour(now).getTime() - 3_600_000);
+}
+
+/**
+ * Most recent cycle whose f00 index is published at `origin`. Re-checked every
+ * 5 min.
+ */
 export class RunDiscovery {
   private cache: { run: Date; checkedAt: number } | null = null;
+
+  constructor(private readonly origin: Origin = "nomads") {}
 
   async latest(): Promise<Date> {
     if (this.cache && Date.now() - this.cache.checkedAt < RUN_TTL_MS) {
@@ -185,15 +202,93 @@ export class RunDiscovery {
           now.getUTCHours() - back
         )
       );
-      const res = await fetch(idxUrl({ run, origin: "nomads" }, 0, "wrfsfc"), {
-        method: "HEAD",
-      });
+      const res = await fetch(
+        idxUrl({ run, origin: this.origin }, 0, "wrfsfc"),
+        { method: "HEAD" }
+      );
       if (res.ok) {
         this.cache = { run, checkedAt: Date.now() };
         return run;
       }
     }
-    throw new Error("No published HRRR run found in the last 6 cycles");
+    throw new Error(
+      `No published HRRR run found in the last 6 cycles on ${this.origin}`
+    );
+  }
+}
+
+/** How the notice board names this feed. */
+export const SOURCE = "NOAA HRRR";
+
+/**
+ * How long NOMADS is passed over after it fails.
+ *
+ * One run-discovery period, so a live build does not wait on a dead server on
+ * every request, and NOMADS is asked again within five minutes of recovering.
+ */
+const NOMADS_REST_MS = RUN_TTL_MS;
+
+/**
+ * The live cycles: NOMADS while it answers, NOAA's archived copy on AWS when it
+ * does not.
+ *
+ * NOMADS can fail at either step, finding the newest run or reading its
+ * bytes, and a failure at either rests it and reads the same build again from
+ * the archive's newest run. The notice says how many minutes that run trails
+ * the one NOMADS named, or the one it should be serving when it named none.
+ */
+export class LiveCycles {
+  private restUntil = 0;
+
+  constructor(
+    private readonly board: NoticeBoard = Notices,
+    readonly nomads = new RunDiscovery("nomads"),
+    private readonly archive = new RunDiscovery("archive")
+  ) {}
+
+  /** Read `get` from the live cycle, falling back to the archive's. */
+  async read<T>(get: (cycle: Cycle) => Promise<T>): Promise<T> {
+    const live = await this.nomadsCycle();
+    let failure: unknown = null;
+    if (live) {
+      try {
+        const answer = await get(live);
+        this.board.clear(SOURCE);
+        return answer;
+      } catch (error) {
+        this.rest();
+        failure = error;
+      }
+    }
+
+    const want = live?.run ?? expectedRun(new Date());
+    try {
+      const run = await this.archive.latest();
+      const answer = await get({ run, origin: "archive" });
+      this.board.report(SOURCE, {
+        detail: `${REQUEST_FAILED} Showing NOAA's archived copy.`,
+        delayMinutes: minutesBehind(want, run.toISOString()),
+      });
+      return answer;
+    } catch (error) {
+      this.board.report(SOURCE, { detail: REQUEST_FAILED, delayMinutes: null });
+      throw failure ?? error;
+    }
+  }
+
+  /** NOMADS' newest cycle, or null while it is resting or when it fails. */
+  private async nomadsCycle(): Promise<Cycle | null> {
+    if (Date.now() < this.restUntil) return null;
+    try {
+      return { run: await this.nomads.latest(), origin: "nomads" };
+    } catch {
+      this.rest();
+      return null;
+    }
+  }
+
+  private rest() {
+    this.restUntil = Date.now() + NOMADS_REST_MS;
   }
 }
 

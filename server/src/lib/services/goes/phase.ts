@@ -28,7 +28,17 @@
 // Services
 import { Hrrr } from "../hrrr/forecast";
 import { pixelAt } from "./abi";
-import { download, gridOf, readScene, sceneTime, scalar, text } from "./scene";
+import { liveOrArchive, Notices } from "../shared/notices";
+import type { NoticeBoard } from "../shared/notices";
+import {
+  download,
+  gridOf,
+  MIRROR,
+  readScene,
+  sceneTime,
+  scalar,
+  text,
+} from "./scene";
 import { PHASE_PRODUCT, latestPairedKey, pairedKeyAt } from "./sweep";
 
 // Types
@@ -112,11 +122,19 @@ const PUBLISHED: Record<string, CloudPhase> = {
 
 type Scene = { cells: Grid; validTime: string };
 
+/** How the notice board names this feed. */
+const SOURCE = "GOES-East cloud phase";
+
 export class CloudPhaseService {
   private cache: { scene: Scene; fetchedAt: number } | null = null;
   private inflight: Promise<Scene> | null = null;
   private archive = new Map<string, Scene>();
   private archiveInflight = new Map<string, Promise<Scene>>();
+  private readonly notices: NoticeBoard;
+
+  constructor(notices: NoticeBoard = Notices) {
+    this.notices = notices;
+  }
 
   /**
    * Observed cloud-top phase on the 3 km grid, as the codes above.
@@ -179,23 +197,38 @@ export class CloudPhaseService {
   }
 
   private async build(key?: string, at?: Date): Promise<Scene> {
-    const sceneKey = key ?? (await latestPairedKey(PRODUCT));
-
     // The profile grid is only wanted for its geometry — this product carries
     // no temperature and needs none. It is the same build the cloud-top layer
     // and the join already wait on, so asking for it here costs nothing.
-    const [buffer, column] = await Promise.all([
-      download(sceneKey),
+    const [{ key: sceneKey, grid, phase }, column] = await Promise.all([
+      key ? this.read(key) : this.readLive(),
       Hrrr.column(ANALYSIS_HOUR, at),
     ]);
-
-    const { grid, phase } = await this.decode(buffer);
     const values = resample(grid, phase, column.geo);
 
     return {
       cells: { nx: column.geo.nx, ny: column.geo.ny, values },
       validTime: sceneTime(sceneKey),
     };
+  }
+
+  /**
+   * The newest sweep on AWS, or Google Cloud's copy of it when the AWS read
+   * fails. Only the scene falls back: the HRRR profile has its own feed.
+   */
+  private readLive() {
+    return liveOrArchive({
+      source: SOURCE,
+      copy: "Google Cloud's copy",
+      live: async () => this.read(await latestPairedKey(PRODUCT)),
+      archive: async () => this.read(await latestPairedKey(PRODUCT, MIRROR)),
+      validTime: (scene) => sceneTime(scene.key),
+      board: this.notices,
+    });
+  }
+
+  private async read(key: string) {
+    return { key, ...(await this.decode(await download(key))) };
   }
 
   /**

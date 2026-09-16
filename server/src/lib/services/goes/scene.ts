@@ -22,6 +22,13 @@ import type { AbiGrid } from "./abi";
 export const BUCKET = "https://noaa-goes19.s3.amazonaws.com";
 
 /**
+ * Google Cloud's copy of the GOES-19 bucket: the same keys under the same
+ * prefixes, filed apart from AWS, and answering the same S3 listing. The live
+ * services read it when the AWS bucket fails.
+ */
+export const MIRROR = "https://storage.googleapis.com/gcp-public-data-goes-19";
+
+/**
  * GOES-16, which was GOES-East until GOES-19 took the slot in April 2025.
  *
  * GOES-19's archive of these products starts in early April 2025, so an hour
@@ -155,7 +162,10 @@ async function list(bucket: string, prefix: string): Promise<string[]> {
   return Array.from(xml.matchAll(/<Key>([^<]+)<\/Key>/g)).map((m) => m[1]);
 }
 
-/** A GOES-19 key is bucket-relative; a GOES-16 key is already a full URL. */
+/**
+ * A GOES-19 key on AWS is bucket-relative; a GOES-16 key or a mirror key is
+ * already a full URL.
+ */
 export async function download(key: string): Promise<Buffer> {
   const url = key.startsWith("https://") ? key : `${BUCKET}/${key}`;
   const res = await fetch(url);
@@ -178,12 +188,23 @@ function prefix(product: string, t: Date): string {
  * The listing prefix is hour-resolved, so an hour is the smallest thing that
  * can be asked for and every walk over the archive is a walk over hours.
  *
+ * `bucket` is AWS unless a live service is reading the mirror. Keys from any
+ * bucket but AWS's GOES-19 come back as full URLs.
+ *
  * This is the only way into the listing, and it hands back an hour rather than
  * a chosen scene on purpose: **which** scan gets read is `sweep.ts`'s decision,
  * because it is a decision about both products at once and no single product
  * can make it alone.
  */
-export async function keysInHour(product: string, t: Date): Promise<string[]> {
+export async function keysInHour(
+  product: string,
+  t: Date,
+  bucket: string = BUCKET
+): Promise<string[]> {
+  if (bucket !== BUCKET) {
+    const keys = await list(bucket, prefix(product, t));
+    return keys.map((key) => `${bucket}/${key}`);
+  }
   const keys = await list(BUCKET, prefix(product, t));
   if (keys.length) return keys;
   const previous = await list(PREVIOUS_EAST, prefix(product, t));

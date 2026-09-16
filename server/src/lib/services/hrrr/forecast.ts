@@ -27,7 +27,7 @@ import {
 } from "../shared/contour";
 import { eachMessage } from "../shared/grib";
 import {
-  RunDiscovery,
+  LiveCycles,
   assertAt,
   eachHrrrMessage,
   fetchRanges,
@@ -37,6 +37,7 @@ import {
   pick,
 } from "./bytes";
 import { SEEDING, buildSlw } from "./slw";
+import { Notices } from "../shared/notices";
 import {
   MISSING,
   POINTS,
@@ -94,6 +95,7 @@ import type {
   ContourFeature,
 } from "../shared/contour";
 import type { Cycle } from "./bytes";
+import type { NoticeBoard } from "../shared/notices";
 import type { Slw, SlwStats } from "./slw";
 import type { ProfileGrid, SoundingLevel } from "./profile";
 import type {
@@ -324,7 +326,7 @@ export class ForecastService {
   private geo: Geo | null = null;
   /** The grid never changes between runs, so its edge is built once. */
   private domainFrame: DomainFrame | null = null;
-  private runs = new RunDiscovery();
+  private readonly cycles: LiveCycles;
   /**
    * Keyed `${runIso}:${field}:${hour}`. The **grid**, not the contours — a
    * given run+field+hour never changes, and the map crops a window of it per
@@ -339,27 +341,36 @@ export class ForecastService {
   private profileInflight = new Map<string, Promise<Profile>>();
   private surfaceInflight = new Map<string, Promise<Surface>>();
 
-  /** Most recent cycle whose f00 index is published. */
+  constructor(notices: NoticeBoard = Notices) {
+    this.cycles = new LiveCycles(notices);
+  }
+
+  /** Most recent cycle whose f00 index is published on NOMADS. */
   latestRun(): Promise<Date> {
-    return this.runs.latest();
+    return this.cycles.nomads.latest();
   }
 
   /**
-   * Resolve which cycle to read, and from where.
+   * Read `get` from the cycle a request names.
    *
    * `at` names the **run**, not the valid time: a replayed request asks for the
-   * cycle initialized at that hour, and `hour` still selects f00–f18 within it,
-   * exactly as the live map does. Absent `at` is the live path and behaves
-   * identically to before this existed.
+   * archived cycle initialized at that hour, and `hour` still selects f00–f18
+   * within it, exactly as the live map does. Absent `at` is the live path,
+   * which reads NOMADS and falls back to the archive's newest cycle when
+   * NOMADS fails. `get` is the whole read, cache lookup included, so a cycle
+   * that fails partway is read again from the archive under its own run.
    */
-  private async cycle(at?: Date): Promise<Cycle> {
-    if (!at) return { run: await this.latestRun(), origin: "nomads" };
+  private async withCycle<T>(
+    at: Date | undefined,
+    get: (cycle: Cycle) => Promise<T>
+  ): Promise<T> {
+    if (!at) return this.cycles.read(get);
     assertAt(at);
-    return { run: floorHour(at), origin: "archive" };
+    return get({ run: floorHour(at), origin: "archive" });
   }
 
   async meta(at?: Date): Promise<ForecastMeta> {
-    const { run } = await this.cycle(at);
+    const run = await this.withCycle(at, async (cycle) => cycle.run);
     return {
       run: run.toISOString(),
       hours: Array.from({ length: FORECAST_HOURS + 1 }, (_, i) => i),
@@ -456,9 +467,10 @@ export class ForecastService {
     box: LonLatBox = DRAWN,
     fine = false
   ): Promise<ContourFrame> {
-    const built = await this.surface(hour, at);
-    const cycle = await this.cycle(at);
-    const surfaceFt = await this.terrain(cycle, hour);
+    const { built, surfaceFt } = await this.withCycle(at, async (cycle) => ({
+      built: await this.surfaceFor(cycle, hour),
+      surfaceFt: await this.terrain(cycle, hour),
+    }));
     const values = windowValues(built.base.grid.values, surfaceFt);
     return frame(
       built.run,
@@ -782,8 +794,10 @@ export class ForecastService {
   /** The domain-wide profile grid every click on this hour is answered from. */
   private async profile(hour: number, at?: Date): Promise<Profile> {
     this.assertHour(hour);
+    return this.withCycle(at, (cycle) => this.profileFor(cycle, hour));
+  }
 
-    const cycle = await this.cycle(at);
+  private async profileFor(cycle: Cycle, hour: number): Promise<Profile> {
     const key = `${cycle.run.toISOString()}:profile:${hour}`;
 
     const cached = this.profiles.get(key);
@@ -810,8 +824,10 @@ export class ForecastService {
   /** The hour's 2D diagnostics, and the cloud-base layer built from them. */
   private async surface(hour: number, at?: Date): Promise<Surface> {
     this.assertHour(hour);
+    return this.withCycle(at, (cycle) => this.surfaceFor(cycle, hour));
+  }
 
-    const cycle = await this.cycle(at);
+  private async surfaceFor(cycle: Cycle, hour: number): Promise<Surface> {
     const key = `${cycle.run.toISOString()}:surface:${hour}`;
 
     const cached = this.surfaces.get(key);
@@ -987,8 +1003,18 @@ export class ForecastService {
     fine = false
   ): Promise<ContourFrame> {
     this.assertHour(hour);
+    return this.withCycle(at, (cycle) =>
+      this.contoursFor(cycle, field, hour, box, fine)
+    );
+  }
 
-    const cycle = await this.cycle(at);
+  private async contoursFor(
+    cycle: Cycle,
+    field: FieldId,
+    hour: number,
+    box: LonLatBox,
+    fine: boolean
+  ): Promise<ContourFrame> {
     const spec = FIELDS[field];
 
     // The model does not diagnose this field yet (see FIELDS.precip.firstHour).
@@ -1030,8 +1056,10 @@ export class ForecastService {
 
   private async seeding(hour: number, at?: Date): Promise<Slw> {
     this.assertHour(hour);
+    return this.withCycle(at, (cycle) => this.seedingFor(cycle, hour));
+  }
 
-    const cycle = await this.cycle(at);
+  private async seedingFor(cycle: Cycle, hour: number): Promise<Slw> {
     const key = `${cycle.run.toISOString()}:slw:${hour}`;
 
     const cached = this.slw.get(key);

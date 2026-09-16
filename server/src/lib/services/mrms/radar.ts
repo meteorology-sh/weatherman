@@ -8,6 +8,9 @@ import type { RingStyle } from "../shared/contour";
 import { eachMessage } from "../shared/grib";
 import { BLOCK as DRAW_BLOCK, crop, DRAWN } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
+import { liveOrArchive, Notices } from "../shared/notices";
+import type { NoticeBoard } from "../shared/notices";
+import { hasEmptyQuarter, reflectivityCovered } from "./coverage";
 import {
   coresFrame,
   drawnStorms,
@@ -129,6 +132,9 @@ export const RAIN_DBZ = REFLECTIVITY.levels[0];
  */
 const CACHE_TTL_MS = 5 * 60_000;
 
+/** How the notice board names this feed. */
+const SOURCE = "MRMS reflectivity";
+
 export type RadarFrame = {
   type: "FeatureCollection";
   /** Time of the scene itself, ISO 8601 — not the time we fetched it. */
@@ -171,6 +177,11 @@ export class RadarService {
   /** Live objects from the previous mosaic, so an id can last across scans. */
   private tracks: { validTime: string; objects: StormObject[] } | null = null;
   private nextStormId = 1;
+  private readonly notices: NoticeBoard;
+
+  constructor(notices: NoticeBoard = Notices) {
+    this.notices = notices;
+  }
 
   async reflectivity(
     at?: Date,
@@ -559,7 +570,7 @@ export class RadarService {
     // map asks for the frame and the stats at the same moment.
     if (this.inflight) return this.inflight;
 
-    const work = this.build()
+    const work = this.live()
       .then((scene) => {
         this.cache = { scene, fetchedAt: Date.now() };
         return scene;
@@ -570,6 +581,22 @@ export class RadarService {
 
     this.inflight = work;
     return work;
+  }
+
+  /**
+   * The live mosaic, or NOAA's archived copy of it when the live request fails
+   * or a quarter of the country has no coverage.
+   */
+  private live(): Promise<Scene> {
+    return liveOrArchive({
+      source: SOURCE,
+      copy: "NOAA's archived copy",
+      live: () => this.build(),
+      archive: (want) => this.replay(want),
+      validTime: (scene) => scene.frame.validTime,
+      looksWrong: (scene) => hasEmptyQuarter(scene.grid, reflectivityCovered),
+      board: this.notices,
+    });
   }
 
   /**

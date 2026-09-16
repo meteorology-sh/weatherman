@@ -20,7 +20,16 @@ import { Hrrr } from "../hrrr/forecast";
 import { cellAt, crop, DRAWN, inBox, prepareDraw } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
 import { latLonAt, pixelAt, pixelWindow } from "./abi";
-import { download, gridOf, readScene, scalar, sceneTime } from "./scene";
+import { liveOrArchive, Notices } from "../shared/notices";
+import type { NoticeBoard } from "../shared/notices";
+import {
+  download,
+  gridOf,
+  MIRROR,
+  readScene,
+  scalar,
+  sceneTime,
+} from "./scene";
 import { CLOUD_TOP_PRODUCT, latestPairedKey, pairedKeyAt } from "./sweep";
 
 // Types
@@ -56,6 +65,9 @@ const SCENE_TOLERANCE_MS = 30 * 60_000;
 
 /** Replayed scenes never change, so a handful are kept keyed by their S3 key. */
 const ARCHIVE_CACHE = 8;
+
+/** How the notice board names this feed. */
+const SOURCE = "GOES-East cloud top";
 
 /**
  * The analysis hour. The candidate map is "right now", and `CandidateLiquidLayer`
@@ -179,6 +191,11 @@ export class CloudTopService {
   /** Replayed scenes, keyed by the S3 key they were built from. */
   private archive = new Map<string, Scene>();
   private archiveInflight = new Map<string, Promise<Scene>>();
+  private readonly notices: NoticeBoard;
+
+  constructor(notices: NoticeBoard = Notices) {
+    this.notices = notices;
+  }
 
   async temperature(
     at?: Date,
@@ -288,19 +305,17 @@ export class CloudTopService {
   }
 
   private async build(key?: string, at?: Date): Promise<Scene> {
-    const sceneKey = key ?? (await latestPairedKey(PRODUCT));
     // The profile is the slow half on a cold run, and it does not depend on the
     // scene, so the two go together rather than in sequence.
     //
     // `at` travels with it: a replayed scene has to be given the temperatures
     // from *that* day's run, or the geometry would be historical and the
     // temperatures painted onto it would be today's.
-    const [buffer, column] = await Promise.all([
-      download(sceneKey),
+    const [{ key: sceneKey, grid, pressure }, column] = await Promise.all([
+      key ? this.read(key) : this.readLive(),
       Hrrr.column(ANALYSIS_HOUR, at),
     ]);
 
-    const { grid, pressure } = await this.decode(buffer);
     const values = this.resample(grid, pressure, column);
 
     const cells: Grid = {
@@ -327,6 +342,25 @@ export class CloudTopService {
       pressure,
       column,
     };
+  }
+
+  /**
+   * The newest sweep on AWS, or Google Cloud's copy of it when the AWS read
+   * fails. Only the scene falls back: the HRRR profile has its own feed.
+   */
+  private readLive() {
+    return liveOrArchive({
+      source: SOURCE,
+      copy: "Google Cloud's copy",
+      live: async () => this.read(await latestPairedKey(PRODUCT)),
+      archive: async () => this.read(await latestPairedKey(PRODUCT, MIRROR)),
+      validTime: (scene) => sceneTime(scene.key),
+      board: this.notices,
+    });
+  }
+
+  private async read(key: string) {
+    return { key, ...(await this.decode(await download(key))) };
   }
 
   /**

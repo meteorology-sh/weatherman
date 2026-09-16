@@ -13,7 +13,16 @@
 // Services
 import { cellAt, inBox, DRAWN } from "../shared/grid";
 import type { LonLatBox } from "../shared/grid";
-import { download, keysInHour, readScene, sceneTime } from "./scene";
+import { liveOrArchive, Notices } from "../shared/notices";
+import type { NoticeBoard } from "../shared/notices";
+import {
+  BUCKET,
+  download,
+  keysInHour,
+  MIRROR,
+  readScene,
+  sceneTime,
+} from "./scene";
 import type { H5File } from "./scene";
 import type { StormObject } from "../mrms/objects";
 import type { Geo } from "../shared/contour";
@@ -24,6 +33,9 @@ const PRODUCT = "GLM-L2-LCFA";
 const WINDOW_MS = 5 * 60_000;
 
 const CACHE_TTL_MS = 5 * 60_000;
+
+/** How the notice board names this feed. */
+const SOURCE = "GOES-East lightning";
 
 export type Flash = { lat: number; lon: number };
 
@@ -98,12 +110,28 @@ export function flashFrame(
   };
 }
 
-type Bundle = { validTime: string; flashes: Flash[] };
+/**
+ * `granules` is how many files the window held and `unread` how many of them
+ * could not be read. GLM files a granule every 20 seconds whether or not
+ * anything flashed, so a live window with none, or with one unread, is data
+ * that did not arrive rather than quiet weather.
+ */
+type Bundle = {
+  validTime: string;
+  flashes: Flash[];
+  granules: number;
+  unread: number;
+};
 
 export class LightningService {
   private cache: { bundle: Bundle; fetchedAt: number } | null = null;
   private inflight: Promise<Bundle> | null = null;
   private archive = new Map<string, Bundle>();
+  private readonly notices: NoticeBoard;
+
+  constructor(notices: NoticeBoard = Notices) {
+    this.notices = notices;
+  }
 
   async flashes(at?: Date, box: LonLatBox = DRAWN): Promise<LightningFrame> {
     const bundle = await this.bundle(at);
@@ -137,7 +165,7 @@ export class LightningService {
       return this.cache.bundle;
     }
     if (this.inflight) return this.inflight;
-    const work = this.build()
+    const work = this.live()
       .then((bundle) => {
         this.cache = { bundle, fetchedAt: Date.now() };
         return bundle;
@@ -149,34 +177,61 @@ export class LightningService {
     return work;
   }
 
-  private async build(at?: Date): Promise<Bundle> {
+  /**
+   * The last five minutes from AWS, or Google Cloud's copy of them when the
+   * AWS read fails or comes back missing granules.
+   */
+  private live(): Promise<Bundle> {
+    return liveOrArchive({
+      source: SOURCE,
+      copy: "Google Cloud's copy",
+      live: () => this.build(),
+      archive: () => this.build(undefined, MIRROR),
+      validTime: (bundle) => bundle.validTime,
+      looksWrong: (bundle) => bundle.granules === 0 || bundle.unread > 0,
+      board: this.notices,
+    });
+  }
+
+  private async build(at?: Date, bucket: string = BUCKET): Promise<Bundle> {
     const end = at ?? new Date();
     const start = new Date(end.getTime() - WINDOW_MS);
-    const keys = await this.keysInWindow(start, end);
+    const keys = await this.keysInWindow(start, end, bucket);
     if (keys.length === 0) {
-      return { validTime: end.toISOString(), flashes: [] };
+      return {
+        validTime: end.toISOString(),
+        flashes: [],
+        granules: 0,
+        unread: 0,
+      };
     }
     const parts = await Promise.all(
       keys.map(async (key) => {
         try {
           return await readScene(await download(key), readFlashes);
         } catch {
-          return [] as Flash[];
+          return null;
         }
       })
     );
     return {
       validTime: sceneTime(keys[keys.length - 1]),
-      flashes: parts.flat(),
+      flashes: parts.flatMap((part) => part ?? []),
+      granules: keys.length,
+      unread: parts.filter((part) => part === null).length,
     };
   }
 
-  private async keysInWindow(start: Date, end: Date): Promise<string[]> {
+  private async keysInWindow(
+    start: Date,
+    end: Date,
+    bucket: string
+  ): Promise<string[]> {
     const hours = [start, end];
     const seen = new Set<string>();
     const keys: string[] = [];
     for (const hour of hours) {
-      for (const key of await keysInHour(PRODUCT, hour)) {
+      for (const key of await keysInHour(PRODUCT, hour, bucket)) {
         if (seen.has(key)) continue;
         seen.add(key);
         const t = Date.parse(sceneTime(key));

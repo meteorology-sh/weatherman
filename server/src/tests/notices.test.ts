@@ -16,7 +16,8 @@ import {
   NoticeBoard,
   Notices,
   REQUEST_FAILED,
-  watch,
+  liveOrArchive,
+  minutesBehind,
 } from "../lib/services/shared/notices";
 
 const SOURCE = "MRMS echo top";
@@ -73,39 +74,121 @@ describe("NoticeBoard", () => {
   });
 });
 
-describe("watch", () => {
-  it("reports a failed request and still fails", async () => {
+type Answer = { validTime: string; ok: boolean };
+
+const LIVE: Answer = { validTime: "2026-09-11T01:20:00.000Z", ok: true };
+const COPY: Answer = { validTime: "2026-09-11T01:16:00.000Z", ok: true };
+
+/** A feed whose live read and archived copy answer as given. */
+function feed(
+  board: NoticeBoard,
+  live: () => Promise<Answer>,
+  archive: () => Promise<Answer>
+) {
+  return liveOrArchive({
+    source: SOURCE,
+    copy: "NOAA's archived copy",
+    live,
+    archive,
+    validTime: (answer) => answer.validTime,
+    looksWrong: (answer) => !answer.ok,
+    board,
+  });
+}
+
+const fail = () => Promise.reject(new Error("503"));
+
+describe("liveOrArchive", () => {
+  it("returns the live answer and takes the source off", async () => {
+    const board = new NoticeBoard();
+    board.report(SOURCE, wrong);
+
+    const answer = await feed(
+      board,
+      async () => LIVE,
+      async () => COPY
+    );
+
+    assert.equal(answer, LIVE);
+    assert.deepEqual(board.list(), []);
+  });
+
+  it("draws the copy nearest the live time when the live data looks wrong", async () => {
+    const board = new NoticeBoard();
+    let wanted: Date | null = null;
+
+    const answer = await liveOrArchive({
+      source: SOURCE,
+      copy: "NOAA's archived copy",
+      live: async () => ({ ...LIVE, ok: false }),
+      archive: async (want) => {
+        wanted = want;
+        return COPY;
+      },
+      validTime: (a) => a.validTime,
+      looksWrong: (a) => !a.ok,
+      board,
+    });
+
+    assert.equal(answer, COPY);
+    assert.equal(wanted!.toISOString(), LIVE.validTime);
+    const [notice] = board.list();
+    assert.equal(notice.detail, `${LOOKS_WRONG} Showing NOAA's archived copy.`);
+    assert.equal(notice.delayMinutes, 4);
+  });
+
+  it("draws the copy when the live request fails, timed against now", async (t) => {
+    t.mock.timers.enable({
+      apis: ["Date"],
+      now: Date.parse("2026-09-11T01:25:00.000Z"),
+    });
+    const board = new NoticeBoard();
+
+    const answer = await feed(board, fail, async () => COPY);
+
+    assert.equal(answer, COPY);
+    const [notice] = board.list();
+    assert.equal(
+      notice.detail,
+      `${REQUEST_FAILED} Showing NOAA's archived copy.`
+    );
+    assert.equal(notice.delayMinutes, 9);
+  });
+
+  it("keeps the live answer when the copy looks wrong too", async () => {
+    const board = new NoticeBoard();
+    const bad = { ...LIVE, ok: false };
+
+    const answer = await feed(
+      board,
+      async () => bad,
+      async () => ({ ...COPY, ok: false })
+    );
+
+    assert.equal(answer, bad);
+    assert.deepEqual(
+      [board.list()[0].detail, board.list()[0].delayMinutes],
+      [LOOKS_WRONG, null]
+    );
+  });
+
+  it("throws the live failure when neither can be read", async () => {
     const board = new NoticeBoard();
 
     await assert.rejects(
-      watch(SOURCE, Promise.reject(new Error("503")), undefined, board),
+      feed(board, fail, () => Promise.reject(new Error("archive down"))),
       /503/
     );
 
     assert.equal(board.list()[0].detail, REQUEST_FAILED);
+    assert.equal(board.list()[0].delayMinutes, null);
   });
 
-  it("reports an answer that looks wrong and still returns it", async () => {
-    const board = new NoticeBoard();
-
-    const answer = await watch(
-      SOURCE,
-      Promise.resolve([]),
-      (cells) => cells.length === 0,
-      board
+  it("never reports a copy as ahead of live", () => {
+    assert.equal(
+      minutesBehind(new Date("2026-09-11T01:00:00.000Z"), COPY.validTime),
+      0
     );
-
-    assert.deepEqual(answer, []);
-    assert.equal(board.list()[0].detail, LOOKS_WRONG);
-  });
-
-  it("takes the source off when the answer is good", async () => {
-    const board = new NoticeBoard();
-    board.report(SOURCE, wrong);
-
-    await watch(SOURCE, Promise.resolve([1]), (cells) => !cells.length, board);
-
-    assert.deepEqual(board.list(), []);
   });
 });
 

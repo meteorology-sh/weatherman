@@ -23,7 +23,7 @@
  */
 
 // Services
-import { keysInHour, sceneTime } from "./scene";
+import { BUCKET, keysInHour, sceneTime } from "./scene";
 
 /**
  * `ABI-L2-ACHP2KMC` is cloud-top **pressure**, CONUS sector, 2 km — 4.1 MB a
@@ -64,8 +64,9 @@ const ARCHIVE_CACHE = 8;
 /** One sweep, as the key each product filed it under. */
 type Sweep = Record<string, string>;
 
-let cache: { sweep: Sweep; resolvedAt: number } | null = null;
-let inflight: Promise<Sweep> | null = null;
+/** The live sweep per bucket, so the mirror's never stands in for AWS's. */
+const cache = new Map<string, { sweep: Sweep; resolvedAt: number }>();
+const inflight = new Map<string, Promise<Sweep>>();
 const archive = new Map<string, Sweep>();
 const archiveInflight = new Map<string, Promise<Sweep>>();
 
@@ -73,10 +74,14 @@ const archiveInflight = new Map<string, Promise<Sweep>>();
  * The newest scan both products have published, as this product's key.
  *
  * Callers name their own product and get their own file; the sweep behind it is
- * the same one the other product is being handed.
+ * the same one the other product is being handed. `bucket` is AWS unless the
+ * service is reading the mirror.
  */
-export async function latestPairedKey(product: string): Promise<string> {
-  return keyIn(await latestSweep(), product);
+export async function latestPairedKey(
+  product: string,
+  bucket: string = BUCKET
+): Promise<string> {
+  return keyIn(await latestSweep(bucket), product);
 }
 
 /**
@@ -128,20 +133,22 @@ function keyIn(sweep: Sweep, product: string): string {
 }
 
 /** The live sweep, resolved once and shared until it ages out. */
-async function latestSweep(): Promise<Sweep> {
-  if (cache && Date.now() - cache.resolvedAt < CACHE_TTL_MS) return cache.sweep;
-  if (inflight) return inflight;
+async function latestSweep(bucket: string): Promise<Sweep> {
+  const cached = cache.get(bucket);
+  if (cached && Date.now() - cached.resolvedAt < CACHE_TTL_MS) {
+    return cached.sweep;
+  }
+  const running = inflight.get(bucket);
+  if (running) return running;
 
-  const work = resolveLatest()
+  const work = resolveLatest(bucket)
     .then((sweep) => {
-      cache = { sweep, resolvedAt: Date.now() };
+      cache.set(bucket, { sweep, resolvedAt: Date.now() });
       return sweep;
     })
-    .finally(() => {
-      inflight = null;
-    });
+    .finally(() => inflight.delete(bucket));
 
-  inflight = work;
+  inflight.set(bucket, work);
   return work;
 }
 
@@ -153,7 +160,7 @@ async function latestSweep(): Promise<Sweep> {
  * accumulates across hours because the newest *shared* scan can be in an
  * earlier hour than the newest scan of either product alone.
  */
-async function resolveLatest(): Promise<Sweep> {
+async function resolveLatest(bucket: string): Promise<Sweep> {
   const now = Date.now();
   const filed: Record<string, Map<number, string>> = {
     [CLOUD_TOP_PRODUCT]: new Map(),
@@ -164,7 +171,7 @@ async function resolveLatest(): Promise<Sweep> {
     const hour = new Date(now - back * 3_600_000);
     await Promise.all(
       PAIR.map(async (product) => {
-        for (const key of await keysInHour(product, hour)) {
+        for (const key of await keysInHour(product, hour, bucket)) {
           const t = Date.parse(sceneTime(key));
           if (!Number.isNaN(t)) filed[product].set(t, key);
         }
@@ -244,8 +251,8 @@ function sweepAt(
 
 /** Drop every resolved sweep. Exported for the tests, which share a module. */
 export function forget(): void {
-  cache = null;
-  inflight = null;
+  cache.clear();
+  inflight.clear();
   archive.clear();
   archiveInflight.clear();
 }
