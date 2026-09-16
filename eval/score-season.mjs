@@ -38,6 +38,15 @@ const LAYERS = [
 ];
 
 /**
+ * How near the seeding opportunity's edge a release is counted at, km.
+ *
+ * The margin table asks whether one chosen tolerance covers a release. These
+ * ask how far the edge actually is, so a reader can pick a tolerance instead
+ * of being handed one.
+ */
+const EDGE_KM = [1, 2, 3];
+
+/**
  * A program whose report data needs a transformation nobody has made, and
  * what the record does instead. The share of its releases landing in the
  * county their own row names is printed beside it, against the largest program
@@ -222,6 +231,15 @@ for (const region of evaluable) {
     layers: Object.fromEntries(
       LAYERS.map(([key]) => [key, { inside: 0, within: 0, atEdge: 0 }])
     ),
+    // Releases within each EDGE_KM of the seeding opportunity's drawn edge,
+    // measured from whichever side of it the release sits on, and split by
+    // the verdict each one currently has.
+    edge: {
+      near: EDGE_KM.map(() => 0),
+      fly: EDGE_KM.map(() => 0),
+      refused: EDGE_KM.map(() => 0),
+      unmeasured: 0,
+    },
     positionKm: [],
     cellKm: Object.fromEntries(LAYERS.map(([key]) => [key, []])),
     radial: 0,
@@ -257,6 +275,19 @@ for (const region of evaluable) {
         } else if (nearEdge) {
           row.layers[key].within += 1;
         }
+      }
+      const targetEdgeKm = answered(flare, "target")
+        ? outlineEdgeKm(flare.near?.target, "target")
+        : null;
+      if (targetEdgeKm === null) {
+        row.edge.unmeasured += 1;
+      } else {
+        EDGE_KM.forEach((limit, i) => {
+          if (targetEdgeKm > limit) return;
+          row.edge.near[i] += 1;
+          if (flies(flare)) row.edge.fly[i] += 1;
+          else row.edge.refused[i] += 1;
+        });
       }
     }
   }
@@ -573,10 +604,7 @@ say(
     "the report prints the flare's position."
 );
 
-const signed = ({ within, atEdge }) => `+${within} / −${atEdge}`;
-const points = (n, d) => ((100 * n) / d).toFixed(1);
-const plusMinus = ({ inside, within, atEdge }, n) =>
-  `${pct(inside, n)} +${points(within, n)} / −${points(atEdge, n)}`;
+const marginTotal = ({ within, atEdge }) => within + atEdge;
 const seasonTarget = rows.reduce(
   (sum, row) => ({
     inside: sum.inside + row.layers.target.inside,
@@ -591,29 +619,120 @@ table(
     ["Releases", R],
     ["Seeding opportunity", R],
     ["Within the margin", R],
-    ["Share", R],
   ],
   [
     ...rows.map((row) => [
       row.region.short,
       String(row.flares.length),
-      String(row.layers.target.inside),
-      signed(row.layers.target),
-      plusMinus(row.layers.target, row.flares.length),
+      share(row.layers.target.inside, row.flares.length),
+      share(marginTotal(row.layers.target), row.flares.length),
     ]),
     [
       bold("Season"),
       bold(seasonFlares.length),
-      bold(seasonTarget.inside),
-      bold(signed(seasonTarget)),
-      bold(plusMinus(seasonTarget, seasonFlares.length)),
+      bold(share(seasonTarget.inside, seasonFlares.length)),
+      bold(share(marginTotal(seasonTarget), seasonFlares.length)),
     ],
   ]
 );
 say(
-  "Within the margin counts the DON'T FLY flares within the margin of the " +
-    "seeding opportunity's drawn edge (+), and the FLY flares within it (−). " +
-    "Share is each count over releases."
+  "Within the margin counts every release close enough to the drawn edge to " +
+    "sit on either side of it, whichever side it sits on now. It is not an " +
+    "error bar on the seeding opportunity, because the releases in it do not " +
+    "all move the same way: some are FLY and a tighter edge would lose them, " +
+    "and some are DON'T FLY and a wider edge would gain them."
+);
+
+table(
+  [
+    ["Lowest", R],
+    ["As drawn", R],
+    ["Highest", R],
+    ["Spread", R],
+  ],
+  [
+    [
+      share(seasonTarget.inside - seasonTarget.atEdge, seasonFlares.length),
+      share(seasonTarget.inside, seasonFlares.length),
+      share(seasonTarget.inside + seasonTarget.within, seasonFlares.length),
+      String(marginTotal(seasonTarget)),
+    ],
+  ]
+);
+
+say(
+  "The season at both ends of the margin: lowest loses every FLY release " +
+    "inside it, highest gains every DON'T FLY release inside it, and the " +
+    "spread between the two is the margin count above. Neither end is " +
+    "likely. They are what the grid and the reports together cannot rule out."
+);
+
+say(
+  "Where that uncertainty sits, by program. Seeding opportunity is the " +
+    "releases the fill accepts as it is drawn; each column after it adds the " +
+    "DON'T FLY releases whose own distance to the fill's edge is under that " +
+    "much, and which an edge drawn that much wider would accept."
+);
+
+const seasonEdge = rows.reduce(
+  (sum, row) => ({
+    near: sum.near.map((n, i) => n + row.edge.near[i]),
+    fly: sum.fly.map((n, i) => n + row.edge.fly[i]),
+    refused: sum.refused.map((n, i) => n + row.edge.refused[i]),
+    unmeasured: sum.unmeasured + row.edge.unmeasured,
+  }),
+  {
+    near: EDGE_KM.map(() => 0),
+    fly: EDGE_KM.map(() => 0),
+    refused: EDGE_KM.map(() => 0),
+    unmeasured: 0,
+  }
+);
+const edgeRow = (label, edge, inside, flares, mark = (text) => text) => [
+  mark(label),
+  mark(String(flares)),
+  mark(String(inside)),
+  ...edge.refused.map((n) => mark(String(inside + n))),
+];
+table(
+  [
+    ["Program", L],
+    ["Releases", R],
+    ["Seeding opportunity", R],
+    ...EDGE_KM.map((km) => [`Within ${km} km`, R]),
+  ],
+  [
+    ...rows.map((row) =>
+      edgeRow(
+        row.region.short,
+        row.edge,
+        row.layers.target.inside,
+        row.flares.length
+      )
+    ),
+    edgeRow(
+      "Season",
+      seasonEdge,
+      seasonTarget.inside,
+      seasonFlares.length,
+      bold
+    ),
+  ]
+);
+
+const refusedSeason = seasonFlares.length - seasonTarget.inside;
+say(
+  "Refusals sit near the edge far more often than acceptances do: " +
+    `${share(seasonEdge.refused.at(-1), refusedSeason)} of the DON'T FLY ` +
+    `releases are within ${EDGE_KM.at(-1)} km of it, against ` +
+    `${share(seasonEdge.fly.at(-1), seasonTarget.inside)} of the FLY ones. ` +
+    "Most of what the fill refuses is a near miss at its boundary rather " +
+    "than a column it rules out cleanly." +
+    (seasonEdge.unmeasured
+      ? ` A further ${counted(seasonEdge.unmeasured)} ` +
+        `${seasonEdge.unmeasured === 1 ? "release is" : "releases are"}` +
+        " outside this table, with no measured distance to the edge."
+      : "")
 );
 
 const targetCellKm = median(rows.flatMap((row) => row.cellKm.target));

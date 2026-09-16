@@ -80,18 +80,49 @@ A flare within the margin of the seeding opportunity's edge could be on either
 side of it. The margin is one 3 km grid cell plus how coarsely the report prints
 the flare's position.
 
-| Program        | Releases | Seeding opportunity | Within the margin |                  Share |
-| -------------- | -------: | ------------------: | ----------------: | ---------------------: |
-| West Texas     |      497 |                 424 |         +31 / −82 |     85.3% +6.2 / −16.5 |
-| Trans Pecos    |      466 |                 428 |         +21 / −55 |     91.8% +4.5 / −11.8 |
-| Panhandle      |      255 |                 232 |         +19 / −62 |     91.0% +7.5 / −24.3 |
-| South Texas    |       83 |                  54 |         +20 / −23 |    65.1% +24.1 / −27.7 |
-| Rolling Plains |       53 |                  35 |          +8 / −17 |    66.0% +15.1 / −32.1 |
-| **Season**     | **1354** |            **1173** |    **+99 / −239** | **86.6% +7.3 / −17.7** |
+| Program        | Releases |   Seeding opportunity |    Within the margin |
+| -------------- | -------: | --------------------: | -------------------: |
+| West Texas     |      497 |       424/497 (85.3%) |      113/497 (22.7%) |
+| Trans Pecos    |      466 |       428/466 (91.8%) |       76/466 (16.3%) |
+| Panhandle      |      255 |       232/255 (91.0%) |       81/255 (31.8%) |
+| South Texas    |       83 |         54/83 (65.1%) |        43/83 (51.8%) |
+| Rolling Plains |       53 |         35/53 (66.0%) |        25/53 (47.2%) |
+| **Season**     | **1354** | **1173/1354 (86.6%)** | **338/1354 (25.0%)** |
 
-Within the margin counts the DON'T FLY flares within the margin of the seeding
-opportunity's drawn edge (+), and the FLY flares within it (−). Share is each
-count over releases.
+Within the margin counts every release close enough to the drawn edge to sit on
+either side of it, whichever side it sits on now. It is not an error bar on the
+seeding opportunity, because the releases in it do not all move the same way:
+some are FLY and a tighter edge would lose them, and some are DON'T FLY and a
+wider edge would gain them.
+
+|           Lowest |          As drawn |           Highest | Spread |
+| ---------------: | ----------------: | ----------------: | -----: |
+| 934/1354 (69.0%) | 1173/1354 (86.6%) | 1272/1354 (93.9%) |    338 |
+
+The season at both ends of the margin: lowest loses every FLY release inside it,
+highest gains every DON'T FLY release inside it, and the spread between the two
+is the margin count above. Neither end is likely. They are what the grid and the
+reports together cannot rule out.
+
+Where that uncertainty sits, by program. Seeding opportunity is the releases the
+fill accepts as it is drawn; each column after it adds the DON'T FLY releases
+whose own distance to the fill's edge is under that much, and which an edge
+drawn that much wider would accept.
+
+| Program        | Releases | Seeding opportunity | Within 1 km | Within 2 km | Within 3 km |
+| -------------- | -------: | ------------------: | ----------: | ----------: | ----------: |
+| West Texas     |      497 |                 424 |         436 |         446 |         455 |
+| Trans Pecos    |      466 |                 428 |         437 |         444 |         449 |
+| Panhandle      |      255 |                 232 |         245 |         248 |         251 |
+| South Texas    |       83 |                  54 |          61 |          65 |          72 |
+| Rolling Plains |       53 |                  35 |          40 |          42 |          43 |
+| **Season**     | **1354** |            **1173** |    **1219** |    **1245** |    **1270** |
+
+Refusals sit near the edge far more often than acceptances do: 97/181 (53.6%) of
+the DON'T FLY releases are within 3 km of it, against 208/1173 (17.7%) of the
+FLY ones. Most of what the fill refuses is a near miss at its boundary rather
+than a column it rules out cleanly. A further three releases are outside this
+table, with no measured distance to the edge.
 
 | Program        | Position printed as |     Rounding | Margin | Lands in the county its row names |
 | -------------- | ------------------- | -----------: | -----: | --------------------------------: |

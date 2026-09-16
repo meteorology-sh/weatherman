@@ -1,15 +1,15 @@
 # Review — what the 2025 season settles about the radar gate
 
-The seeding-opportunity fill scores 87.3% of the season's located flares and
-scores two programs far lower than the other three: South Texas 68.7% and
-Rolling Plains 69.8%, against Trans-Pecos 92.0%, the Panhandle 91.0% and West
-Texas 85.9%. Two explanations fit that spread. Either the low programs print
+The seeding-opportunity fill scores 86.6% of the season's located flares and
+scores two programs far lower than the other three: South Texas 65.1% and
+Rolling Plains 66.0%, against Trans-Pecos 91.8%, the Panhandle 91.0% and West
+Texas 85.3%. Two explanations fit that spread. Either the low programs print
 positions the record cannot place, or the fill asks for something their crews
 do not fly. This separates them, and then asks what relaxing the criterion
 would cost.
 
 Every number here is measured from the painted season in `eval/out/2025/` — 116
-days, 253 analysis hours, 1,353 located flares — and from
+days, 253 analysis hours, 1,354 located flares — and from
 `eval/data/counties-tx.geojson`. The Panhandle and South Texas print a bearing
 from magnetic north and a range; their releases are placed with the FAA
 variation of record at each program's origin, as `UNCERTAINTY.md`
@@ -25,13 +25,13 @@ disagrees with from a program we cannot locate.
 
 | Program        | Pooled | In its named county | Somewhere else |
 | -------------- | -----: | ------------------: | -------------: |
-| Trans Pecos    |  92.0% | 413/447 (**92.4%**) |  14/18 (77.8%) |
+| Trans Pecos    |  91.8% | 414/448 (**92.4%**) |  14/18 (77.8%) |
 | Panhandle      |  91.0% | 202/220 (**91.8%**) |  30/35 (85.7%) |
-| West Texas     |  85.9% | 400/466 (**85.8%**) |  24/31 (77.4%) |
-| Rolling Plains |  69.8% |   25/31 (**80.6%**) |  10/22 (45.5%) |
-| South Texas    |  68.7% |   49/75 (**65.3%**) |    5/8 (62.5%) |
+| West Texas     |  85.3% | 400/466 (**85.8%**) |  24/31 (77.4%) |
+| Rolling Plains |  66.0% |   25/31 (**80.6%**) |  10/22 (45.5%) |
+| South Texas    |  65.1% |   49/75 (**65.3%**) |    5/8 (62.5%) |
 
-**Rolling Plains is a record problem.** It rises from 69.8% to 80.6% once the
+**Rolling Plains is a record problem.** It rises from 66.0% to 80.6% once the
 rows that miss their own county are set aside, and the rows that miss score
 45.5%. Its reports write a fraction that is sometimes a decimal degree and
 sometimes minutes; `UNCERTAINTY.md` is where that is described.
@@ -49,7 +49,7 @@ programs that print coordinates, and it is about the criteria.
 
 ## 2. What the fill rejects is the rain test, and the rejections are real
 
-Of the 1,239 releases that land in their named county, 121 fail for no
+Of the 1,240 releases that land in their named county, 121 fail for no
 measured 20 dBZ in the cell or the eight around it. For South Texas that is 26
 of its 75 placed releases against **none** rejected for cloud base; for the
 Panhandle, 10 of 220.
@@ -86,14 +86,14 @@ every release is already near one:
 
 | A 20 dBZ object within |   Placed releases |
 | ---------------------- | ----------------: |
-| 0 km (inside it)       |  806/1239 (65.1%) |
-| 4.2 km                 | 1152/1239 (93.0%) |
-| 7.1 km                 | 1193/1239 (96.3%) |
-| 12 km                  | 1213/1239 (97.9%) |
-| 40 km                  | 1223/1239 (98.7%) |
+| 0 km (inside it)       |  806/1240 (65.0%) |
+| 4.2 km                 | 1153/1240 (93.0%) |
+| 7.1 km                 | 1194/1240 (96.3%) |
+| 12 km                  | 1214/1240 (97.9%) |
+| 40 km                  | 1224/1240 (98.7%) |
 
 A gate that passes a release with an object within 7.1 km passes 96.3% of
-them. The fly rate it would produce — West Texas 91.4%, Trans-Pecos 95.7%, the
+them. The fly rate it would produce — West Texas 91.4%, Trans-Pecos 95.8%, the
 Panhandle 95.9%, South Texas 93.3%, Rolling Plains 93.5% — is mostly the test
 declining to answer.
 
@@ -127,7 +127,7 @@ are large and ragged, and a flank band around a 1,000 km² storm is a great deal
 of ground.
 
 Making the band one-sided would roughly halve it, and that is the version that
-cannot work: the upwind test scores 43.0% at the flare over the season, for the
+cannot work: the upwind test scores 46.7% at the flare over the season, for the
 reason `PROXY.md` gives — storm motion from the previous mosaic is not the
 updraft, which the pilot measures as climb rate. A gate on it would refuse most
 real releases.
