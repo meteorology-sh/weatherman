@@ -13,6 +13,7 @@ import {
   GetLiquidStats,
   GetRadarStats,
   GetTargetStats,
+  GetWarningStats,
 } from "@/lib/client";
 
 /**
@@ -51,7 +52,7 @@ export function ReplayProvider({ children }: { children: React.ReactNode }) {
         dispatch(replayActions.setLoading(true));
         dispatch(replayActions.setError(null));
 
-        const [cloudBase, cloudTop, liquid, radar, field, target] =
+        const [cloudBase, cloudTop, liquid, radar, field, target, warnings] =
           await Promise.all([
             // Hour 0 throughout — the analysis of the cycle being replayed,
             // matching the candidate map's reading of "the sky at this moment".
@@ -64,13 +65,25 @@ export function ReplayProvider({ children }: { children: React.ReactNode }) {
             // would draw its inputs and wait on the answer.
             GetCandidateStats(hour),
             GetTargetStats(hour),
+            // An overlay on the hour rather than an input to it, so an
+            // unreadable archive is reported in the panel and does not hold
+            // back the map.
+            GetWarningStats(hour).catch(() => null),
           ]);
 
         if (!current) return;
         dispatch(
           replayActions.setReady({
             at: hour,
-            stats: { cloudBase, cloudTop, liquid, radar, field, target },
+            stats: {
+              cloudBase,
+              cloudTop,
+              liquid,
+              radar,
+              field,
+              target,
+              warnings,
+            },
           })
         );
       } catch (error) {

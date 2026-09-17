@@ -4,6 +4,7 @@ import { cloudBaseActions } from "@/lib/store/features/cloudbase";
 import { radarActions } from "@/lib/store/features/radar";
 import { seedabilityActions } from "@/lib/store/features/seedability";
 import { candidateActions } from "@/lib/store/features/candidate";
+import { warningsActions } from "@/lib/store/features/warnings";
 
 // ArcGIS
 import {
@@ -28,6 +29,7 @@ import {
 // Components
 import { LayerToggle, SubToggle } from "@/app/components/panel/LayerToggle";
 import { Ramp } from "@/app/components/panel/Ramp";
+import { WarningToggle } from "@/app/components/panel/WarningToggle";
 
 export const CandidateLayers = () => {
   const dispatch = useAppDispatch();
@@ -38,9 +40,17 @@ export const CandidateLayers = () => {
   const echoFreeze = useAppSelector((state) => state.radar.echoFreeze);
   const field = useAppSelector((state) => state.seedability.visible);
   const liquid = useAppSelector((state) => state.candidate.liquid);
+  const warnings = useAppSelector((state) => state.warnings);
 
   return (
     <div className="flex flex-col gap-4">
+      <WarningToggle
+        stats={warnings.stats}
+        error={warnings.error}
+        checked={warnings.visible}
+        onChange={(on) => dispatch(warningsActions.setVisible(on))}
+      />
+
       <LayerToggle
         legend={CandidateLegend}
         checked={field}

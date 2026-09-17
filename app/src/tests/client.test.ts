@@ -19,6 +19,9 @@ import {
   ForecastCloudsUrl,
   ForecastPrecipUrl,
   ForecastLiquidUrl,
+  GetWarningStats,
+  ReplayWarningsUrl,
+  WarningsUrl,
 } from "@/lib/client";
 import { INITIAL_BOX } from "@/lib/bbox";
 
@@ -456,6 +459,40 @@ describe("naming a candidate build", () => {
   it("names a build with no phase scan", () => {
     expect(CandidateBuild({ ...build, phaseTime: null })).not.toBe(
       CandidateBuild(build)
+    );
+  });
+});
+
+describe("severe weather warnings", () => {
+  it("asks for the live count with no parameters", async () => {
+    await GetWarningStats();
+    expect(fetch).toHaveBeenCalledWith("/warnings/severe/stats");
+  });
+
+  it("asks for a replayed minute", async () => {
+    await GetWarningStats("2025-04-26T22:44:00.000Z");
+    expect(fetch).toHaveBeenCalledWith(
+      "/warnings/severe/stats?at=2025-04-26T22%3A44%3A00.000Z"
+    );
+  });
+
+  it("throws on a non-OK response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 502, json: async () => ({}) }))
+    );
+    await expect(GetWarningStats()).rejects.toThrow(
+      "Failed to fetch severe weather warnings: 502"
+    );
+  });
+
+  it("builds the polygon urls with the window", () => {
+    const box = { west: -104, east: -102, south: 30, north: 32 };
+    expect(WarningsUrl(box)).toBe(
+      "/warnings/severe?west=-104&east=-102&south=30&north=32"
+    );
+    expect(ReplayWarningsUrl("2025-04-26T22:44:00.000Z", box)).toBe(
+      "/warnings/severe?at=2025-04-26T22%3A44%3A00.000Z&west=-104&east=-102&south=30&north=32"
     );
   });
 });

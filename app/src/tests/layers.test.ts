@@ -12,6 +12,8 @@ import {
   CandidateStormCoreLayer,
   CandidateStormMotionLayer,
   CandidateLightningLayer,
+  CandidateWarningLayer,
+  ReplayWarningLayer,
   CandidateEchoFreezeLayer,
   ReplayStormCoreLayer,
   ReplayStormMotionLayer,
@@ -268,5 +270,53 @@ describe("ReplayFieldLayer", () => {
     expect(ReplayFieldLayer.fields.map((f) => f.name)).toEqual(
       CandidateFieldLayer.fields.map((f) => f.name)
     );
+  });
+});
+
+describe("warning layers", () => {
+  it("reads the live warnings from our own server", () => {
+    expect(CandidateWarningLayer.url).toBe("/warnings/severe");
+    expect(CandidateWarningLayer.geometryType).toBe("polygon");
+  });
+
+  // The replay instance is pointed at an hour when one is ready, never at now.
+  it("gives the replay instance no url of its own", () => {
+    expect(ReplayWarningLayer.url).toBeFalsy();
+  });
+
+  // A thin hatch in the warning red, with a thin outline and no fill, so the
+  // layers under a warning stay readable between the lines.
+  it("draws a thin dark-red hatch with a thin outline", () => {
+    for (const layer of [CandidateWarningLayer, ReplayWarningLayer]) {
+      const symbol = (
+        layer.renderer as unknown as {
+          symbol: {
+            style: string;
+            color: { r: number; g: number; b: number };
+            outline: {
+              width: number;
+              color: { r: number; g: number; b: number };
+            };
+          };
+        }
+      ).symbol;
+      expect(symbol.style).toBe("forward-diagonal");
+      expect([symbol.color.r, symbol.color.g, symbol.color.b]).toEqual([
+        115, 14, 9,
+      ]);
+      expect([
+        symbol.outline.color.r,
+        symbol.outline.color.g,
+        symbol.outline.color.b,
+      ]).toEqual([115, 14, 9]);
+      expect(symbol.outline.width).toBeLessThanOrEqual(1);
+    }
+  });
+
+  // Every other layer is halved; a hatch has no fill to halve, and halving
+  // its lines would lose them on the dark basemap.
+  it("is drawn at full opacity", () => {
+    expect(CandidateWarningLayer.opacity).toBe(1);
+    expect(ReplayWarningLayer.opacity).toBe(1);
   });
 });

@@ -8,6 +8,7 @@ import type {
   RadarStats,
   SlwStats,
   TargetStats,
+  WarningStats,
 } from "@/lib/types";
 
 /** The summaries for one replayed hour, or nothing yet. */
@@ -18,6 +19,8 @@ type ReplayStats = {
   radar: RadarStats;
   field: CandidateStats;
   target: TargetStats;
+  /** Null when the warning archive could not be read for this hour. */
+  warnings: WarningStats | null;
 };
 
 type ReplayState = {
@@ -58,6 +61,8 @@ type ReplayState = {
   heading: boolean;
   echoFreeze: boolean;
   field: boolean;
+  /** The warning polygons. Only offered when any are in force. */
+  warnings: boolean;
 };
 
 const initialState: ReplayState = {
@@ -73,6 +78,7 @@ const initialState: ReplayState = {
   heading: false,
   echoFreeze: false,
   field: true,
+  warnings: true,
 };
 
 const replaySlice = createSlice({
@@ -121,6 +127,9 @@ const replaySlice = createSlice({
     },
     setField(state, action: PayloadAction<boolean>) {
       state.field = action.payload;
+    },
+    setWarnings(state, action: PayloadAction<boolean>) {
+      state.warnings = action.payload;
     },
   },
 });

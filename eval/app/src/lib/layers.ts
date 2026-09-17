@@ -10,7 +10,8 @@
  * **The list is the product's list, and nothing else.** Weatherman's panel has
  * four switches: the Texas fly fill it names SEEDING OPPORTUNITY, radar with
  * three gates under it, cloud base, and supercooled liquid water. This page
- * carries the same four. A layer this page drew that the product does not draw
+ * carries the same four. The fifth, severe weather warnings, is a stored mark
+ * rather than a painted fill, and `LayerPanel` carries its switch. A layer this page drew that the product does not draw
  * would be a claim about a map nobody flies, so a fill the product does not
  * draw is neither painted nor read.
  *

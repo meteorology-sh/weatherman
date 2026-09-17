@@ -13,6 +13,7 @@ import type {
   Sounding,
   SourceNotice,
   StormNear,
+  WarningStats,
 } from "@/lib/types";
 import { boxParams, INITIAL_BOX } from "@/lib/bbox";
 import type { MapBox } from "@/lib/bbox";
@@ -432,6 +433,32 @@ export async function GetRadarStats(at?: string): Promise<RadarStats> {
     throw new Error(`Failed to fetch radar mosaic: ${res.status}`);
   }
   const stats: RadarStats = await res.json();
+  return stats;
+}
+
+/** Severe thunderstorm and tornado warnings in force now, as polygons. */
+export function WarningsUrl(box: MapBox = INITIAL_BOX): string {
+  return `/warnings/severe?${new URLSearchParams(boxParams(box))}`;
+}
+
+export function ReplayWarningsUrl(
+  at: string,
+  box: MapBox = INITIAL_BOX
+): string {
+  return `/warnings/severe?${new URLSearchParams({ at, ...boxParams(box) })}`;
+}
+
+/** How many warnings are in force. The map offers the layer only when any are. */
+export async function GetWarningStats(at?: string): Promise<WarningStats> {
+  const res = await fetch(
+    at
+      ? `/warnings/severe/stats?${new URLSearchParams({ at })}`
+      : "/warnings/severe/stats"
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to fetch severe weather warnings: ${res.status}`);
+  }
+  const stats: WarningStats = await res.json();
   return stats;
 }
 

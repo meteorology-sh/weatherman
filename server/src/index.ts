@@ -11,6 +11,7 @@ import { cloudtop } from "./routers/cloudtop";
 import { forecast } from "./routers/forecast";
 import { radar } from "./routers/radar";
 import { status } from "./routers/status";
+import { warnings } from "./routers/warnings";
 
 // Types
 import { Express } from "express";
@@ -27,6 +28,7 @@ app.use("/cloudtop", cloudtop);
 app.use("/forecast", forecast);
 app.use("/radar", radar);
 app.use("/status", status);
+app.use("/warnings", warnings);
 
 app.get("/healthcheck", (_req: Request, res: Response) => {
   res.send("Hello, world!");

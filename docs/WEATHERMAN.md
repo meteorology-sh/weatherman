@@ -57,11 +57,12 @@ here. This map is entirely model output.
 
 The fills on this map, bottom to top:
 
-| Layer               | Claim    | Source                |
-| ------------------- | -------- | --------------------- |
-| Cloud base          | modeled  | HRRR `wrfsfc` + MRMS  |
-| Radar               | measured | MRMS mosaic, GOES GLM |
-| Seeding opportunity | join     | HRRR + MRMS           |
+| Layer                  | Claim    | Source                |
+| ---------------------- | -------- | --------------------- |
+| Cloud base             | modeled  | HRRR `wrfsfc` + MRMS  |
+| Radar                  | measured | MRMS mosaic, GOES GLM |
+| Seeding opportunity    | join     | HRRR + MRMS           |
+| Severe weather warning | issued   | NWS                   |
 
 The radar mosaic is the measurement on this map. Supercooled liquid, freezing
 level, −15 °C, CAPE, CIN, LCL, and warm-cloud depth are numbers on a click.
@@ -81,6 +82,12 @@ where the measured 18 dBZ top sits at or above the modeled freezing
 level. Lightning is a switch under this layer: yellow markers are
 GOES-East GLM flashes in the last five minutes, drawn where they were,
 and only while radar is on. Lightning is too sparse to contour.
+
+**Severe weather warnings** sit on top of every other layer, and their switch
+exists only while an NWS Severe Thunderstorm, Tornado or Flash Flood Warning is
+in force over the map. With none in force there is no switch and nothing is drawn. The
+panel says so when the warnings could not be read, because a missing switch
+reads as "no warnings".
 
 A click says whether you are inside the rain, on the upwind side nearer the
 edge than the heaviest rain, or outside; how far you are from the dot;
@@ -561,6 +568,30 @@ cloud has already converted its liquid, so seeding has no headroom. **Radar tell
 you which candidates to cross off, not where to go.** Quiet air over a cloud is
 no evidence about what is inside it.
 
+### Severe weather warnings — NWS
+
+Each Texas program files an operating plan with NOAA (Form 17-4, under 15 CFR 908) that names the NWS warnings its operations are suspended under. The lists
+differ by program: every filed plan names flood and tornado warnings, and some
+also name severe thunderstorm warnings. **The layer draws all three — Severe
+Thunderstorm, Tornado and Flash Flood Warnings** — and the warning is the
+forecast office's decision (NWS Instruction 10-511). No reflectivity, VIL or echo
+top threshold stands in for it, and no seeding test reads it.
+
+Each warning in force is drawn as the polygon of its latest statement, in a thin
+dark-red diagonal hatch with a thin outline and no fill, at full opacity, so the
+layers under it show between the lines. The polygon is the forecast office's: it
+covers the warned storm and the ground ahead of it, and other cells inside it are
+not themselves warned. **The layer gates nothing** — the seeding opportunity
+under a warning is drawn and clicked as it would be without one. The eval map
+draws the same polygons at each painted analysis and scores nothing against
+them.
+
+The live map reads the NWS alerts API (`api.weather.gov`). A replayed minute
+reads the Iowa Environmental Mesonet's storm-based warning archive at that
+minute. Both give each warning once, at its current size, and a cancelled
+warning is not drawn. River flood warnings and areal flood warnings are not
+drawn: they cover a river's reach or a region for days, not a storm.
+
 ## Historical replay — the `at` parameter
 
 Every data route takes an optional `at` (ISO 8601). **Absent means live**, and a
@@ -728,11 +759,14 @@ answers well.
 | HRRR                  | NOMADS               | newest run in `noaa-hrrr-bdp-pds`         |
 | GOES cloud top, phase | `noaa-goes19` on AWS | newest sweep in `gcp-public-data-goes-19` |
 | GOES lightning        | `noaa-goes19` on AWS | same window in `gcp-public-data-goes-19`  |
+| NWS warnings          | `api.weather.gov`    | same minute in the IEM warning archive    |
 
 Looking wrong is a basic check, not a quality score. An MRMS mosaic with a
 quarter of the country uncovered is wrong, since no quarter is without a radar.
 A lightning window with no granules, or one that will not read, is wrong, since
-GLM files a granule every 20 seconds whether or not anything flashed. HRRR and
+GLM files a granule every 20 seconds whether or not anything flashed. No warnings
+in force is the usual answer, so the warning feed is checked for a failed
+request only. HRRR and
 the ABI scenes are checked for a failed request only. A NOMADS failure, at
 finding the run or at reading it, passes NOMADS over for five minutes. The GOES
 scenes fall back on their own; the HRRR profile they are painted with follows
@@ -763,6 +797,7 @@ One hue per claim, and they cannot be swapped without the map lying:
 | Amber   | modeled liquid water      |
 | Cyan    | rain, modeled or measured |
 | Emerald | seeding opportunity       |
+| Oxblood | severe weather warning    |
 
 Cyan is the same on both maps deliberately: it is the same quantity, and the two
 never share a map. On `/map/forecast` it is what the model says will fall; on

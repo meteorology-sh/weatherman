@@ -23,6 +23,7 @@ import {
   PRECIP_BANDS,
   RADAR_BANDS,
   SLW_BANDS,
+  WARNING_WIDTH,
 } from "./bands";
 
 // Types
@@ -142,5 +143,18 @@ export const lightningRenderer = new SimpleRenderer({
     color: [...COLORS.lightning, 0.95],
     size: 5,
     outline: { color: [0, 0, 0, 0], width: 0 },
+  }),
+});
+
+/**
+ * A severe weather warning: a thin diagonal hatch and a thin outline, no fill.
+ * The hatch is the whole symbol so the layers under the polygon show between
+ * its lines.
+ */
+export const warningRenderer = new SimpleRenderer({
+  symbol: new SimpleFillSymbol({
+    style: "forward-diagonal",
+    color: [...COLORS.warning, 1],
+    outline: { color: [...COLORS.warning, 1], width: WARNING_WIDTH },
   }),
 });

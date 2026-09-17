@@ -15,7 +15,12 @@ import {
 } from "~/lib/layers";
 
 // ArcGIS
-import { COLORS, LAYER_OPACITY, soloColor } from "@/lib/arcgis/bands";
+import {
+  COLORS,
+  LAYER_OPACITY,
+  WARNING_WIDTH,
+  soloColor,
+} from "@/lib/arcgis/bands";
 
 // Layout
 import type { Fitted } from "./fit";
@@ -84,6 +89,7 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
     drift,
     heading,
     lightning,
+    warnings,
     counties: showCounties,
   } = useAppSelector((state) => state.map);
   const showDrift = drift && HOURLY.some((key) => visible[key]);
@@ -202,6 +208,27 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
             >
               <path d="M0 0 L10 5 L0 10 z" fill="white" />
             </marker>
+            {/*
+             * The product's warning symbol: a thin forward-diagonal hatch in
+             * the warning red with no fill, so what is under it shows between
+             * the lines.
+             */}
+            <pattern
+              id="warning-hatch"
+              width="8"
+              height="8"
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(45)"
+            >
+              <line
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="8"
+                stroke={soloColor(COLORS.warning, 1)}
+                strokeWidth={WARNING_WIDTH}
+              />
+            </pattern>
           </defs>
 
           {showCounties &&
@@ -303,6 +330,26 @@ export const PaintedMap = ({ painted, analysis, fitted, counties }: PropsT) => {
 
           {/* The fly fill, over the marks, as the operator's map draws it. */}
           {aboveMarks.map(fillsOf)}
+
+          {/*
+           * NWS warnings in force, over every layer as the product draws them,
+           * at full opacity. Under the releases, which are this page's own
+           * marks and have to stay readable.
+           */}
+          {warnings &&
+            (painted.marks?.[analysis.at]?.warnings?.warnings ?? []).map(
+              (warning) => (
+                <path
+                  key={`warning-${warning.office}-${warning.phenomenon}-${warning.eventId}`}
+                  d={warning.rings.map(draw).join(" ")}
+                  fillRule="evenodd"
+                  fill="url(#warning-hatch)"
+                  stroke={soloColor(COLORS.warning, 1)}
+                  strokeWidth={WARNING_WIDTH}
+                  pointerEvents="none"
+                />
+              )
+            )}
 
           {/*
            * From where the flare was dropped to where that air is at the moment

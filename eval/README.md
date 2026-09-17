@@ -56,10 +56,12 @@ reads `out/` on every request.
 
 **The app draws the product's layers and nothing else.** Weatherman's own
 panel has four switches: the fly fill, radar with three gates under it,
-cloud base, and supercooled liquid water. This page carries the same four.
+cloud base, and supercooled liquid water — and a fifth, severe weather
+warnings, only while a warning is in force. This page carries the same.
 A layer this page drew that the product does not draw would be a claim
 about a map nobody flies, so `paint.mjs` paints those five fills and
-`score-season.mjs` scores those five, and nothing else.
+`score-season.mjs` scores those five, and nothing else. The warnings are
+stored with the marks and drawn, and nothing is scored against them.
 
 The Panhandle has no balloon file. It briefs on a NAM column, not a sonde.
 
@@ -164,6 +166,11 @@ does not hide it. Wait for `GET /healthcheck` on every port before the
 first painter starts.
 
 Copy `out/` back; the evaluation map stays local.
+
+A day painted before warnings were stored has no `marks[hour].warnings`;
+`node eval/warnings.mjs --season=$SEASON` adds them to every painted file in
+place against any running API, since it is one archive request per analysis
+and no model build.
 
 Do not add a scoring script this file does not name. Do not run a second
 pipeline for the band after paint: overlap is calculated from the balloon
@@ -321,13 +328,13 @@ A season is a directory, and adding one changes no code.
 One file per program per flying day. Compact JSON. The eval app and
 `score-season.mjs` read these fields:
 
-| Key                                  | What it is                                            |
-| ------------------------------------ | ----------------------------------------------------- |
-| `date`, `region`, `window`, `cellKm` | which day, which program, the box, native km per fill |
-| `layers[]`                           | key, name, property, unit, cellKm for each fill       |
-| `frames[hour][key]`                  | contour levels at that analysis, native stairs        |
-| `marks[hour]`                        | cores, heading ticks, lightning at that hour          |
-| `analyses[].flares[]`                | each located flare                                    |
+| Key                                  | What it is                                             |
+| ------------------------------------ | ------------------------------------------------------ |
+| `date`, `region`, `window`, `cellKm` | which day, which program, the box, native km per fill  |
+| `layers[]`                           | key, name, property, unit, cellKm for each fill        |
+| `frames[hour][key]`                  | contour levels at that analysis, native stairs         |
+| `marks[hour]`                        | cores, heading ticks, lightning, warnings at that hour |
+| `analyses[].flares[]`                | each located flare                                     |
 
 On each flare:
 
@@ -394,7 +401,9 @@ stops drawing comes out of that file.
 county box. Flare positions as points. Layer geometry from
 `frames[hour]` in the painted file — the same polygons `paint.mjs`
 stored, native stairs. Radar marks (cores, heading, lightning) from
-`marks`. Opening set: the fly fill alone, which is what `replay.ts` opens
+`marks`, and the NWS warnings in force from `marks[hour].warnings`, hatched
+over every layer and under the releases, with the product's switch — shown only
+when the hours on screen had a warning. Opening set: the fly fill alone, which is what `replay.ts` opens
 with. Heading and lightning wait on their own switches under radar, as they
 do there. Every fill and mark is drawn at `LAYER_OPACITY` from `bands.ts`,
 the opacity the product sets on each layer.
@@ -455,6 +464,7 @@ on the storm they flew.
 | `counties.mjs`     | Pull county polygons from TIGERweb into `data/counties-tx.geojson`.                                                             |
 | `positions.mjs`    | Share of releases that land in the county their own row names, and which way a radial program's misses lean.                    |
 | `score-season.mjs` | Print the season's evaluation document from `out/<season>/`. No network.                                                        |
+| `warnings.mjs`     | Add the NWS warnings in force to days already painted, as `marks[hour].warnings`. `paint.mjs` writes the same field itself.     |
 | `verify.mjs`       | Is this tree a complete season? No network. Exit 1 if not.                                                                      |
 | `pack.mjs`         | After `verify.mjs` passes, pack `data/`, `cache/`, `out/` to `eval/eval-snapshot.tar.gz`.                                       |
 
@@ -473,7 +483,9 @@ Not run on their own, except the tests.
 | `band-score.mjs`       | Layer overlap from one balloon row. The eval app and `score-season.mjs` both call this.   |
 | `tolerance.mjs`        | How far a printed position can move a release. `score-season.mjs` adds one layer cell.    |
 | `season.mjs`           | Which season a script works on, and its `data/`, `cache/` and `out/` directories.         |
+| `warnings.mjs`         | The NWS warnings in force at an analysis, as a painted file stores them.                  |
 | `docx.mjs`             | The body text of a Word report, dependency-free, for programs that publish `.docx`.       |
 | `storm-score.test.mjs` | Tests for the turret-feature rules.                                                       |
 | `band-score.test.mjs`  | Tests for the overlap arithmetic.                                                         |
 | `tolerance.test.mjs`   | Tests for the position rounding bounds.                                                   |
+| `warnings.test.mjs`    | Tests for the stored warning shape.                                                       |

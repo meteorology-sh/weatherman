@@ -35,6 +35,7 @@ export const COLORS = {
   echoFreeze: [56, 189, 248],
   lightning: [250, 204, 21],
   motion: [255, 255, 255],
+  warning: [115, 14, 9],
 } as const;
 
 /**
@@ -51,6 +52,12 @@ export const LAYER_OPACITY = 0.5;
 /** The single-fill layers, which have no band table to carry an alpha. */
 export const FLY_ALPHA = 0.45;
 export const ECHO_FREEZE_ALPHA = 0.28;
+
+/**
+ * Outline width around a severe weather warning, screen points. Thin, like the
+ * hatch inside it, so the layers underneath stay readable through both.
+ */
+export const WARNING_WIDTH = 0.75;
 
 /** Outline width around confirmed ground, screen points. */
 export const CONFIRMED_WIDTH = 1.5;

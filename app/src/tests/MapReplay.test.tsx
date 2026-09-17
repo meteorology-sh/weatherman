@@ -43,6 +43,7 @@ import {
   replayStormMotionLayer,
   replayLightningLayer,
   replayEchoFreezeLayer,
+  replayWarningLayer,
 } from "./arcgis-fakes";
 
 // Components
@@ -348,6 +349,54 @@ describe("ArcGIS in replay mode", () => {
     expect(replayStormMotionLayer.url).toBe(
       `/radar/objects/motion?at=${at}&shape=line&${box}`
     );
+  });
+
+  it("points the warning layer at the hour that is ready", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(ready(AT));
+    });
+
+    const at = encodeURIComponent(AT);
+    const box = "west=-107&east=-93&south=25.5&north=37";
+    expect(replayWarningLayer.url).toBe(`/warnings/severe?at=${at}&${box}`);
+  });
+
+  it("draws the hour's warnings on top only when any were in force", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="replay" />, store);
+    act(() => {
+      store.dispatch(ready(AT));
+    });
+    expect(replayWarningLayer.visible).toBe(false);
+
+    act(() => {
+      store.dispatch(
+        replayActions.setReady({
+          at: AT,
+          stats: {
+            ...replayStats,
+            warnings: {
+              validTime: "2025-04-26T22:44:00.000Z",
+              fetchedAt: "2026-09-16T22:30:00.000Z",
+              count: 4,
+              severe: 4,
+              tornado: 0,
+              flood: 0,
+            },
+          },
+        })
+      );
+    });
+    expect(replayWarningLayer.visible).toBe(true);
+    const layers = map().layers ?? [];
+    expect(layers[layers.length - 1]).toBe(replayWarningLayer);
+
+    act(() => {
+      store.dispatch(replayActions.setWarnings(false));
+    });
+    expect(replayWarningLayer.visible).toBe(false);
   });
 
   it("points lightning at the hour when the switch is on", () => {

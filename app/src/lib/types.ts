@@ -378,6 +378,19 @@ export interface SourceNotice {
   since: string;
 }
 
+/** Mirrors WarningStats in server/src/lib/services/nws/warnings.ts */
+export interface WarningStats {
+  /** The minute the warnings are in force at, ISO 8601. */
+  validTime: string;
+  /** When the server read the archive, ISO 8601. */
+  fetchedAt: string;
+  /** Warnings in force over the drawn domain, of the three kinds drawn. */
+  count: number;
+  severe: number;
+  tornado: number;
+  flood: number;
+}
+
 /** Mirrors RadarStats in server/src/lib/services/mrms/radar.ts */
 export interface RadarStats {
   /** When the server last built the scene, ISO 8601. */

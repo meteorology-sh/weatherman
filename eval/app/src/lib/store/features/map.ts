@@ -29,6 +29,11 @@ type MapState = {
   heading: boolean;
   /** GLM flashes. Only drawn while radar is on. */
   lightning: boolean;
+  /**
+   * NWS warnings in force. On, like the product's own switch, which exists
+   * only while a warning is in force.
+   */
+  warnings: boolean;
   counties: boolean;
 };
 
@@ -40,6 +45,7 @@ const initialState: MapState = {
   // draws the rain, and the storm marks wait on their own switch under it.
   heading: false,
   lightning: false,
+  warnings: true,
   counties: true,
 };
 
@@ -64,6 +70,9 @@ const mapSlice = createSlice({
     },
     setLightning(state, action: PayloadAction<boolean>) {
       state.lightning = action.payload;
+    },
+    setWarnings(state, action: PayloadAction<boolean>) {
+      state.warnings = action.payload;
     },
     setCounties(state, action: PayloadAction<boolean>) {
       state.counties = action.payload;

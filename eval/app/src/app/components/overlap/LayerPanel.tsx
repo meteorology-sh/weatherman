@@ -13,9 +13,12 @@ import { HeadingLegend, LightningLegend } from "@/lib/arcgis/legends";
 // Components
 import { LayerToggle, SubToggle } from "@/app/components/panel/LayerToggle";
 import { Ramp } from "@/app/components/panel/Ramp";
+import { WarningToggle } from "@/app/components/panel/WarningToggle";
 
 // Types
 import type { EvalLayer } from "~/lib/layers";
+import type { WarningStats } from "@/lib/types";
+import type { Painted } from "~/lib/types";
 
 /**
  * The map's controls — the same switches the product's own panel uses.
@@ -50,11 +53,56 @@ const ramp = (layer: EvalLayer) => {
   );
 };
 
+/**
+ * The warnings in force at the hours on screen, counted the way the product's
+ * switch counts them. Undefined when the day was painted before warnings were
+ * stored, which renders no switch — the same as an hour with none in force.
+ */
+export function warningStatsOf(
+  painted: Painted | null | undefined,
+  hours: readonly string[]
+): WarningStats | null | undefined {
+  const marks = hours.map((hour) => painted?.marks?.[hour]?.warnings);
+  if (!marks.some(Boolean)) return undefined;
+  if (marks.some((mark) => mark?.error)) return null;
+  const seen = new Map<string, string>();
+  for (const mark of marks) {
+    for (const warning of mark?.warnings ?? []) {
+      seen.set(
+        `${warning.office}.${warning.phenomenon}.${warning.eventId}`,
+        warning.phenomenon
+      );
+    }
+  }
+  const kinds = [...seen.values()];
+  const of = (phenomenon: string) =>
+    kinds.filter((kind) => kind === phenomenon).length;
+  const last = hours.at(-1) ?? "";
+  return {
+    validTime: last,
+    fetchedAt: last,
+    count: kinds.length,
+    severe: of("SV"),
+    tornado: of("TO"),
+    flood: of("FF"),
+  };
+}
+
 export const LayerPanel = () => {
-  const { visible, selectedHour, drift, heading, lightning, counties } =
-    useAppSelector((state) => state.map);
-  const hours = useAppSelector(
-    (state) => state.day.painted?.analyses.map((entry) => entry.at) ?? []
+  const {
+    visible,
+    selectedHour,
+    drift,
+    heading,
+    lightning,
+    warnings,
+    counties,
+  } = useAppSelector((state) => state.map);
+  const painted = useAppSelector((state) => state.day.painted);
+  const hours = painted?.analyses.map((entry) => entry.at) ?? [];
+  const warningStats = warningStatsOf(
+    painted,
+    selectedHour === null ? hours : [selectedHour]
   );
   const dispatch = useAppDispatch();
   const hourlyOn = HOURLY.some((key) => visible[key]);
@@ -126,6 +174,11 @@ export const LayerPanel = () => {
 
       <div className="flex flex-col gap-4 border-t border-base-300 pt-4">
         <div className="text-xs tracking-widest">LAYERS</div>
+        <WarningToggle
+          stats={warningStats}
+          checked={warnings}
+          onChange={(on) => dispatch(mapActions.setWarnings(on))}
+        />
         {PANEL.map(({ layer, gates }) => (
           <LayerToggle
             key={layer.key}

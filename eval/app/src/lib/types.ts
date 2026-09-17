@@ -300,11 +300,29 @@ export type RingMarks = {
   error?: string;
 };
 
-/** Cores, heading darts, and lightning at one analysis. */
+/** One NWS warning in force: its kind and its polygon's rings. */
+export type WarningMark = {
+  /** VTEC phenomenon: SV severe thunderstorm, TO tornado, FF flash flood. */
+  phenomenon: "SV" | "TO" | "FF";
+  event: string;
+  office: string;
+  eventId: number;
+  rings: [number, number][][];
+};
+
+export type WarningMarks = {
+  validTime: string;
+  warnings: WarningMark[];
+  error?: string;
+};
+
+/** Cores, heading darts, lightning, and the warnings in force at one analysis. */
 export type HourMarks = {
   cores: PointMarks;
   heading: RingMarks;
   lightning: PointMarks;
+  /** Absent from a day painted before warnings were stored. */
+  warnings?: WarningMarks;
 };
 
 export type Flare = {

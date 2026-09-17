@@ -103,6 +103,42 @@ describe("ReplayProvider", () => {
     expect(store.getState().replay.stats!.cloudBase.run).toBe(AT);
   });
 
+  it("asks for the hour's severe weather warnings", async () => {
+    const fetchMock = mockStats();
+    vi.stubGlobal("fetch", fetchMock);
+    const store = createTestStore();
+
+    renderWithStore(<ReplayProvider>{null}</ReplayProvider>, store);
+    store.dispatch(replayActions.setAt(AT));
+
+    await waitFor(() => expect(store.getState().replay.ready).toBe(AT));
+    const asked = fetchMock.mock.calls.map((call) => call[0] as string);
+    expect(asked).toContain(
+      `/warnings/severe/stats?at=${encodeURIComponent(AT)}`
+    );
+  });
+
+  // The warnings sit over the hour; they are not an input to it.
+  it("readies the hour when only the warning archive fails", async () => {
+    const stats = mockStats();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url.startsWith("/warnings")
+          ? ({ ok: false, status: 502 } as Response)
+          : stats(url)
+      )
+    );
+    const store = createTestStore();
+
+    renderWithStore(<ReplayProvider>{null}</ReplayProvider>, store);
+    store.dispatch(replayActions.setAt(AT));
+
+    await waitFor(() => expect(store.getState().replay.ready).toBe(AT));
+    expect(store.getState().replay.stats!.warnings).toBe(null);
+    expect(store.getState().replay.error).toBe(null);
+  });
+
   it("reports a failure instead of leaving the spinner running", async () => {
     vi.stubGlobal(
       "fetch",

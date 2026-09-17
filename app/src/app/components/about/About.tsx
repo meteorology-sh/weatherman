@@ -21,6 +21,10 @@ const SOURCES: readonly { name: string; text: string }[] = [
     name: "GOES-East",
     text: `A NOAA weather satellite in geostationary orbit over the Americas. It images cloud tops every few minutes, and its Geostationary Lightning Mapper (GLM) records lightning flashes as they occur.`,
   },
+  {
+    name: "NWS",
+    text: `The National Weather Service. Its forecast offices issue severe thunderstorm, tornado and flash flood warnings as polygons drawn around the threat. The live map reads the warnings in force from the NWS alerts service; a replayed hour reads the warnings in force at that minute from the Iowa Environmental Mesonet's archive at Iowa State University. Every warning is a forecaster's decision rather than a measurement.`,
+  },
 ];
 
 /**

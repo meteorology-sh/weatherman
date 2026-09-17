@@ -70,6 +70,7 @@ export const lightningLayer = layer("lightning-layer");
 export const echoFreezeLayer = layer("echo-freeze-layer");
 export const fieldLayer = layer("candidate-field-layer");
 export const confirmedLayer = layer("candidate-confirmed-layer");
+export const warningLayer = layer("candidate-warning-layer");
 
 // The replay map's own instances. Separate objects here for the same reason
 // they are separate in lib/arcgis/layers.ts: pointing the candidate layers at
@@ -89,6 +90,7 @@ export const replayLightningLayer = layer("replay-lightning-layer");
 export const replayEchoFreezeLayer = layer("replay-echo-freeze-layer");
 export const replayFieldLayer = layer("replay-field-layer");
 export const replayConfirmedLayer = layer("replay-confirmed-layer");
+export const replayWarningLayer = layer("replay-warning-layer");
 
 /** The mocked module: every layer `Map.tsx` imports, under its real name. */
 export const layers = {
@@ -110,6 +112,7 @@ export const layers = {
   CandidateEchoFreezeLayer: echoFreezeLayer,
   CandidateFieldLayer: fieldLayer,
   CandidateConfirmedLayer: confirmedLayer,
+  CandidateWarningLayer: warningLayer,
   ReplayCloudBaseLayer: replayCloudBaseLayer,
   ReplayCapeLayer: replayCapeLayer,
   ReplayCinLayer: replayCinLayer,
@@ -125,6 +128,7 @@ export const layers = {
   ReplayEchoFreezeLayer: replayEchoFreezeLayer,
   ReplayFieldLayer: replayFieldLayer,
   ReplayConfirmedLayer: replayConfirmedLayer,
+  ReplayWarningLayer: replayWarningLayer,
 };
 
 /**

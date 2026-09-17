@@ -39,6 +39,18 @@ describe("About", () => {
     expect(screen.getAllByText(/model/i).length).toBeGreaterThan(0);
   });
 
+  // The warning layer's badge is a source like any other, so it needs an
+  // entry that says where the polygons come from and that they are decided.
+  it("describes the NWS warnings as a source", () => {
+    render(<About />);
+
+    expect(screen.getByText(/flash flood warnings as polygons/)).toBeTruthy();
+    expect(screen.getByText(/Iowa Environmental Mesonet/)).toBeTruthy();
+    expect(
+      screen.getByText(/Texas seeding programs suspend operations/)
+    ).toBeTruthy();
+  });
+
   it("says the radar is measured", () => {
     render(<About />);
 

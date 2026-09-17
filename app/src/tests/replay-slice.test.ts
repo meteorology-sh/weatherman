@@ -28,6 +28,14 @@ describe("replay slice", () => {
     expect(initial.cloudBase).toBe(false);
   });
 
+  // The switch only appears while a warning is in force, and then it is on.
+  it("draws warnings by default and can switch them off", () => {
+    expect(initial.warnings).toBe(true);
+    expect(reducer(initial, replayActions.setWarnings(false)).warnings).toBe(
+      false
+    );
+  });
+
   it("stores the chosen hour as an ISO string", () => {
     const state = reducer(
       initial,

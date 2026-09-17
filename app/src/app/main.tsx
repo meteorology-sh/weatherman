@@ -27,6 +27,7 @@ import { DomainProvider } from "@/lib/context/DomainProvider.tsx";
 import { SoundingProvider } from "@/lib/context/SoundingProvider.tsx";
 import { ReplayProvider } from "@/lib/context/ReplayProvider.tsx";
 import { NoticeProvider } from "@/lib/context/NoticeProvider.tsx";
+import { WarningProvider } from "@/lib/context/WarningProvider.tsx";
 
 const router = createBrowserRouter([
   {
@@ -70,7 +71,9 @@ const router = createBrowserRouter([
                       <StormProvider>
                         <DomainProvider>
                           <NoticeProvider>
-                            <Candidate />
+                            <WarningProvider>
+                              <Candidate />
+                            </WarningProvider>
                           </NoticeProvider>
                         </DomainProvider>
                       </StormProvider>

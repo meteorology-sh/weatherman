@@ -575,6 +575,7 @@ server/src/
       goes/                #   cloudtop.ts     -> Goes
                            #   abi.ts          fixed-grid geolocation
       mrms/                #   radar.ts        -> Mrms
+      nws/                 #   warnings.ts     -> Warnings
       candidate/           #   field.ts        -> Seedability
                            #   join.ts         the join and its summary
       shared/              # No source of its own:

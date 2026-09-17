@@ -25,6 +25,7 @@ import {
 // Components
 import { LayerToggle, SubToggle } from "@/app/components/panel/LayerToggle";
 import { Ramp } from "@/app/components/panel/Ramp";
+import { WarningToggle } from "@/app/components/panel/WarningToggle";
 
 /**
  * The replay map's switches. The same layers as the candidate map and the same
@@ -39,9 +40,17 @@ export const ReplayLayers = () => {
   const echoFreeze = useAppSelector((state) => state.replay.echoFreeze);
   const field = useAppSelector((state) => state.replay.field);
   const liquid = useAppSelector((state) => state.replay.liquid);
+  const warnings = useAppSelector((state) => state.replay.warnings);
+  const warningStats = useAppSelector((state) => state.replay.stats?.warnings);
 
   return (
     <div className="flex flex-col gap-4">
+      <WarningToggle
+        stats={warningStats}
+        checked={warnings}
+        onChange={(on) => dispatch(replayActions.setWarnings(on))}
+      />
+
       <LayerToggle
         legend={CandidateLegend}
         checked={field}

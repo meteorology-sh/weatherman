@@ -92,6 +92,19 @@ export const LightningLegend: LayerLegend = {
   detail: [`Each point is one flash detected in the last five minutes.`],
 };
 
+export const WarningLegend: LayerLegend = {
+  name: "SEVERE WEATHER WARNINGS",
+  source: "NWS",
+  summary:
+    "Severe thunderstorm, tornado and flash flood warnings in force. Texas seeding programs suspend operations under these warnings.",
+  detail: [
+    `Each hatched polygon is a Severe Thunderstorm, Tornado or Flash Flood Warning the National Weather Service has in force at this minute, drawn as its latest statement drew it. A forecast office issues a Severe Thunderstorm Warning for wind gusts of 58 mph or more or hail one inch across or larger, and a Tornado Warning for a tornado indicated by radar or reported.`,
+    `Each Texas program's operating plan, filed with NOAA, names the warnings it suspends seeding under, and the lists differ: every program names flood and tornado warnings, and some also name severe thunderstorm warnings. The layer draws all three.`,
+    `The polygon is the forecast office's, not the storm's: it covers the warned storm and the ground ahead of it, and other cells inside it are not themselves warned. No seeding test reads this layer. It is drawn over every other layer and changes no other layer's answer.`,
+    `The switch appears only while a warning is in force over the map.`,
+  ],
+};
+
 export const CandidateLegend: LayerLegend = {
   name: "SEEDING OPPORTUNITY",
   source: "HRRR + MRMS",
@@ -137,6 +150,7 @@ export const ALL_LEGENDS: readonly LayerLegend[] = [
   CloudBaseLegend,
   LiquidLegend,
   CandidateLegend,
+  WarningLegend,
   CloudCoverLegend,
   PrecipLegend,
 ];

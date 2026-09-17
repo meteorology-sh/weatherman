@@ -31,6 +31,8 @@ import {
   ReplayRadarStormMotionUrl,
   ReplayRadarEchoFreezeUrl,
   ReplayLightningUrl,
+  ReplayWarningsUrl,
+  WarningsUrl,
 } from "@/lib/client";
 
 // ArcGIS
@@ -60,6 +62,8 @@ import {
   ReplayStormCoreLayer,
   ReplayStormMotionLayer,
   ReplayLightningLayer,
+  CandidateWarningLayer,
+  ReplayWarningLayer,
 } from "@/lib/arcgis/layers";
 import { PRECIP_FIRST_HOUR } from "@/lib/arcgis/bands";
 import { INITIAL_BOX, heldBox, tracesNative } from "@/lib/bbox";
@@ -108,6 +112,14 @@ export const ArcGIS = ({ mode }: PropsT) => {
   const replayHeading = useAppSelector((state) => state.replay.heading);
   const replayEchoFreeze = useAppSelector((state) => state.replay.echoFreeze);
   const replayField = useAppSelector((state) => state.replay.field);
+  const warnings = useAppSelector((state) => state.warnings.visible);
+  const warningCount = useAppSelector(
+    (state) => state.warnings.stats?.count ?? 0
+  );
+  const replayWarnings = useAppSelector((state) => state.replay.warnings);
+  const replayWarningCount = useAppSelector(
+    (state) => state.replay.stats?.warnings?.count ?? 0
+  );
   const forecasting = mode === "forecast";
   const replaying = mode === "replay";
   const raining = forecasting && hour >= PRECIP_FIRST_HOUR;
@@ -137,6 +149,9 @@ export const ArcGIS = ({ mode }: PropsT) => {
       //
       // Either map's supercooled liquid sits inside the cloud it is drawn
       // from, so it goes over the cloud and under what falls out of it.
+      //
+      // Severe weather warnings go over everything: they are the one layer
+      // that says an operator may not work a storm at all.
       layers: [
         CandidateCloudBaseLayer,
         ForecastCloudsLayer,
@@ -150,6 +165,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
         CandidateStormCoreLayer,
         CandidateFieldLayer,
         CandidateConfirmedLayer,
+        CandidateWarningLayer,
       ],
     });
 
@@ -244,6 +260,10 @@ export const ArcGIS = ({ mode }: PropsT) => {
     // not this layer.
     CandidateFieldLayer.visible = candidating && field;
     CandidateConfirmedLayer.visible = false;
+    // The switch only exists while a warning is in force, so the count gates
+    // the layer as well: a switch left on from an earlier storm must not
+    // draw polygons nobody is offered a way to turn off.
+    CandidateWarningLayer.visible = candidating && warnings && warningCount > 0;
     // Gated on `ready`, not on the hour that was asked for. `setAt` clears
     // `ready`, so picking a date blanks the map immediately and it stays blank
     // until every source has answered — they take 10 s to 40 s and finish
@@ -258,6 +278,8 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayStormCoreLayer.visible = drawable && replayRadar && replayHeading;
     ReplayFieldLayer.visible = drawable && replayField;
     ReplayConfirmedLayer.visible = false;
+    ReplayWarningLayer.visible =
+      drawable && replayWarnings && replayWarningCount > 0;
   }, [
     forecasting,
     candidating,
@@ -280,6 +302,10 @@ export const ArcGIS = ({ mode }: PropsT) => {
     replayHeading,
     replayEchoFreeze,
     replayField,
+    warnings,
+    warningCount,
+    replayWarnings,
+    replayWarningCount,
   ]);
 
   // Point each forecast contour layer at the selected hour. Repointing the url
@@ -366,6 +392,8 @@ export const ArcGIS = ({ mode }: PropsT) => {
     CandidateConfirmedLayer.refresh();
     CandidateEchoFreezeLayer.url = RadarEchoFreezeUrl(viewBox);
     CandidateEchoFreezeLayer.refresh();
+    CandidateWarningLayer.url = WarningsUrl(viewBox);
+    CandidateWarningLayer.refresh();
   }, [boxKey, viewBox, fine]);
 
   // Zoom crossed the resolution the native cells become visible at, without
@@ -446,6 +474,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayLightningLayer.url = ReplayLightningUrl(at, viewBox);
     ReplayConfirmedLayer.url = ReplayConfirmedUrl(at, viewBox);
     ReplayEchoFreezeLayer.url = ReplayRadarEchoFreezeUrl(at, viewBox);
+    ReplayWarningLayer.url = ReplayWarningsUrl(at, viewBox);
 
     if (joining) {
       // Draw order matches the candidate map: cloud base underneath, the
@@ -461,6 +490,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
         ReplayStormCoreLayer,
         ReplayFieldLayer,
         ReplayConfirmedLayer,
+        ReplayWarningLayer,
       ]);
       return; // A layer added with a url fetches on load; refreshing would double it.
     }
@@ -473,6 +503,7 @@ export const ArcGIS = ({ mode }: PropsT) => {
     ReplayLightningLayer.refresh();
     ReplayConfirmedLayer.refresh();
     ReplayEchoFreezeLayer.refresh();
+    ReplayWarningLayer.refresh();
   }, [ready, boxKey, viewBox, fine]);
 
   // Surface "still drawing" so the slider can say so rather than looking stuck.

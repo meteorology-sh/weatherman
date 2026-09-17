@@ -34,6 +34,7 @@ import { domainActions } from "@/lib/store/features/domain";
 import { radarActions } from "@/lib/store/features/radar";
 import { seedabilityActions } from "@/lib/store/features/seedability";
 import { soundingActions } from "@/lib/store/features/sounding";
+import { warningsActions } from "@/lib/store/features/warnings";
 
 // Fakes
 import {
@@ -50,6 +51,7 @@ import {
   stormMotionLayer,
   lightningLayer,
   echoFreezeLayer,
+  warningLayer,
   view,
 } from "./arcgis-fakes";
 
@@ -114,7 +116,7 @@ describe("ArcGIS", () => {
     renderWithStore(<ArcGIS mode="candidate" />, store);
 
     expect(arcgis.views).toHaveLength(2);
-    expect(map().layers).toHaveLength(12);
+    expect(map().layers).toHaveLength(13);
     expect(view().destroy).not.toHaveBeenCalled();
   });
 
@@ -136,7 +138,7 @@ describe("ArcGIS", () => {
     const live = arcgis.views.filter((v) => !v.destroy.mock.calls.length);
     expect(live).toHaveLength(1);
     expect(live[0]).toBe(view());
-    expect(map().layers).toHaveLength(12);
+    expect(map().layers).toHaveLength(13);
     expect(fieldLayer.refresh).toHaveBeenCalledTimes(1);
   });
 
@@ -156,6 +158,7 @@ describe("ArcGIS", () => {
       stormCoreLayer,
       fieldLayer,
       confirmedLayer,
+      warningLayer,
     ]);
   });
 
@@ -308,6 +311,80 @@ describe("ArcGIS in candidate mode", () => {
       store.dispatch(radarActions.setVisible(false));
     });
     expect(echoFreezeLayer.visible).toBe(false);
+  });
+
+  it("points the warning layer at the live warnings for the window", () => {
+    renderWithStore(<ArcGIS mode="candidate" />, createTestStore());
+
+    expect(warningLayer.url).toBe(
+      "/warnings/severe?west=-107&east=-93&south=25.5&north=37"
+    );
+  });
+
+  // The switch exists only while a warning is in force, so the layer is
+  // gated on the count too: nothing may be drawn that has no switch.
+  it("draws warnings only while any are in force and the switch is on", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="candidate" />, store);
+
+    expect(warningLayer.visible).toBe(false);
+
+    act(() => {
+      store.dispatch(
+        warningsActions.setStats({
+          validTime: "2025-04-26T22:44:00.000Z",
+          fetchedAt: "2026-09-16T22:30:00.000Z",
+          count: 4,
+          severe: 4,
+          tornado: 0,
+          flood: 0,
+        })
+      );
+    });
+    expect(warningLayer.visible).toBe(true);
+
+    act(() => {
+      store.dispatch(warningsActions.setVisible(false));
+    });
+    expect(warningLayer.visible).toBe(false);
+
+    act(() => {
+      store.dispatch(warningsActions.setVisible(true));
+      store.dispatch(
+        warningsActions.setStats({
+          ...{
+            validTime: "2025-04-26T22:44:00.000Z",
+            fetchedAt: "2026-09-16T22:30:00.000Z",
+            count: 4,
+            severe: 4,
+            tornado: 0,
+            flood: 0,
+          },
+          count: 0,
+          severe: 0,
+        })
+      );
+    });
+    expect(warningLayer.visible).toBe(false);
+  });
+
+  it("keeps live warnings off the forecast map", () => {
+    const store = createTestStore();
+    renderWithStore(<ArcGIS mode="forecast" />, store);
+    act(() => {
+      store.dispatch(
+        warningsActions.setStats({
+          validTime: "2025-04-26T22:44:00.000Z",
+          fetchedAt: "2026-09-16T22:30:00.000Z",
+          count: 4,
+          severe: 4,
+          tornado: 0,
+          flood: 0,
+        })
+      );
+    });
+
+    expect(warningLayer.visible).toBe(false);
   });
 
   it("shows lightning only while radar is on and the switch is on", () => {

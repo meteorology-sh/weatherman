@@ -12,6 +12,7 @@ import {
   lightningRenderer,
   stormCoreRenderer,
   stormMotionRenderer,
+  warningRenderer,
 } from "./renderers";
 import { LAYER_OPACITY } from "./bands";
 
@@ -28,6 +29,7 @@ import {
   RadarStormMotionUrl,
   RadarEchoFreezeUrl,
   LightningUrl,
+  WarningsUrl,
 } from "@/lib/client";
 
 /**
@@ -469,5 +471,44 @@ export const CandidateEchoFreezeLayer = new GeoJSONLayer({
     { name: "OBJECTID", type: "oid" },
     { name: "pastFreezing", type: "double" },
   ],
+  visible: false,
+});
+
+const warningFields = [
+  { name: "OBJECTID", type: "oid" as const },
+  { name: "phenomenon", type: "string" as const },
+  { name: "event", type: "string" as const },
+  { name: "office", type: "string" as const },
+  { name: "eventId", type: "integer" as const },
+  { name: "begins", type: "string" as const },
+  { name: "ends", type: "string" as const },
+];
+
+/**
+ * NWS severe thunderstorm and tornado warnings in force, drawn over every
+ * other layer.
+ *
+ * Full opacity rather than LAYER_OPACITY: the symbol is a thin hatch with no
+ * fill, so the ground under it already shows, and halving a dark red over a
+ * dark basemap would lose the lines.
+ */
+export const CandidateWarningLayer = new GeoJSONLayer({
+  title: "NWS severe storm warnings",
+  url: WarningsUrl(),
+  copyright: "NOAA / National Weather Service via Iowa Environmental Mesonet",
+  renderer: warningRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: warningFields,
+  visible: false,
+});
+
+export const ReplayWarningLayer = new GeoJSONLayer({
+  title: "NWS severe storm warnings (replay)",
+  copyright: "NOAA / National Weather Service via Iowa Environmental Mesonet",
+  renderer: warningRenderer,
+  geometryType: "polygon",
+  objectIdField: "OBJECTID",
+  fields: warningFields,
   visible: false,
 });

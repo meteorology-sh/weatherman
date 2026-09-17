@@ -12,7 +12,8 @@
  * carrying the same property — so a band drawn here is the band Weatherman
  * draws. `target` is the seeding opportunity at `/candidate/target`. Cores, heading
  * ticks, and lightning are the same marks the candidate map draws under
- * radar, stored beside the fills.
+ * radar, stored beside the fills, and so are the NWS warnings in force, which
+ * the map draws over everything and nothing is scored against.
  *
  * **The question is how near, not whether inside.** Asking whether a flare
  * landed in the paint gives one bit and throws away how badly it missed, and a
@@ -61,6 +62,7 @@ import { distanceToPolygonsKm, project } from "./lib/geo.mjs";
 import { regionsOf, seasonDirs, seasonOf } from "./lib/season.mjs";
 import { stormFromReading } from "./lib/storm-score.mjs";
 import { radialOf } from "./lib/tolerance.mjs";
+import { warningsOf, warningsPath } from "./lib/warnings.mjs";
 
 const TIMEOUT_MS = Number(process.env.WEATHERMAN_TIMEOUT_MS ?? 240_000);
 
@@ -397,7 +399,11 @@ async function marksAt(at) {
   const lightning = await ask(
     withBox(`/cloudtop/lightning?at=${encodeURIComponent(at)}`)
   ).then(pointsOf, (failure) => ({ ...emptyPoints, error: failure.message }));
-  return { cores, heading, lightning };
+  const warnings = await ask(warningsPath(at, WINDOW)).then(
+    warningsOf,
+    (failure) => ({ validTime: at, warnings: [], error: failure.message })
+  );
+  return { cores, heading, lightning, warnings };
 }
 
 /* ---------- the clock ---------- */
@@ -738,7 +744,7 @@ for (const hour of hours) {
   }
   const started = Date.now();
   marks[hour] = await marksAt(hour);
-  const failed = ["cores", "heading", "lightning"]
+  const failed = ["cores", "heading", "lightning", "warnings"]
     .filter((key) => marks[hour][key].error)
     .map((key) => `${key}: ${marks[hour][key].error}`);
   if (failed.length) {
@@ -748,6 +754,7 @@ for (const hour of hours) {
       `    cores      ${String(marks[hour].cores.points.length).padStart(2)} dots   ` +
         `heading ${marks[hour].heading.rings.length}  ` +
         `lightning ${marks[hour].lightning.points.length}  ` +
+        `warnings ${marks[hour].warnings.warnings.length}  ` +
         `${((Date.now() - started) / 1000).toFixed(0)}s`
     );
   }

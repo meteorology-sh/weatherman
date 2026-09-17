@@ -63,6 +63,11 @@ export default defineConfig({
         timeout: 120_000,
         proxyTimeout: 120_000,
       },
+      // One small request to the Iowa Environmental Mesonet per minute asked.
+      "/warnings": {
+        target: process.env.SERVER_ORIGIN || "http://localhost:3000",
+        changeOrigin: true,
+      },
       // Answered from memory, so no build to wait on.
       "/status": {
         target: process.env.SERVER_ORIGIN || "http://localhost:3000",
