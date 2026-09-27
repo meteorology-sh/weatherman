@@ -76,6 +76,7 @@ weatherman/
   eval/                      # Evaluation harness
   docs/                      # What the app is, the physics, the evaluation
   docker-compose.yaml        # Runs both services with bind mounts + HMR
+  docker-compose.eval.yaml   # Adds the eval API and the eval map to that stack
   AGENTS.md                  # This file — how the code is written
 ```
 
@@ -89,9 +90,17 @@ not name. How the harness is run lives in that README.
 docker-compose up            # both services, source bind-mounted
 cd app && yarn dev           # or individually
 cd server && yarn dev
+
+# The evaluation API (3100) and the evaluation map (5174), which replay a
+# painted season and need neither service above:
+docker compose -f docker-compose.eval.yaml up
 ```
 
-Compose service names: `weatherman-app-service`, `weatherman-server-service`.
+Compose service names: `weatherman-app-service`, `weatherman-server-service`,
+and, in `docker-compose.eval.yaml`, `weatherman-eval-service` and
+`weatherman-eval-app-service`. The painting scripts run in the eval service and
+read the Weatherman server over HTTP, so a season run brings both files up; the
+eval map reads `out/` through the eval API and runs on the eval file alone.
 Each has its own `Dockerfiles/Dockerfile.local` (plain `node` image + `yarn`).
 The server's in-container script is `yarn docker` (`nodemon -L`, for polling
 across bind mounts) and it exposes `GET /healthcheck`.
