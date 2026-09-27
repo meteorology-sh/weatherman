@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/**
+ * The product's components are part of this app's source.
+ *
+ * Tailwind generates only the classes it finds, and it scans outward from this
+ * file — which reaches this app and stops. The panel switches, ramps and
+ * definitions are imported from `/app`, so every class used *only* there was
+ * silently absent from the bundle: `collapse`, `collapse-arrow`,
+ * `collapse-title` and `collapse-content` among them, which is why the
+ * definitions block rendered as a bare checkbox with the styling stripped off.
+ * Classes that happened to be used on both sides, like `toggle` and `badge`,
+ * came through and hid the problem.
+ *
+ * Reusing a component across package boundaries means telling the scanner about
+ * the boundary. Anything imported from `@/` has to be listed here.
+ */
+@source "../../../../app/src";
+
+@plugin "daisyui/index.js" {
+  themes: dark --default;
+}
+@plugin "@tailwindcss/typography";
+
+/**
+ * Same pin as the product, and load-bearing for the same reason: the chrome
+ * hardcodes black, so a fallback to DaisyUI's light default would resolve
+ * `text-base-content` to dark text on it.
+ */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Panel text is undimmed — the classes that dim themselves are undimmed once
+   here rather than fought per component. */
+.stat-title,
+.stat-desc,
+.prose {
+  opacity: 1;
+}

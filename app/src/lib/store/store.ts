@@ -1,16 +1,35 @@
 import { configureStore } from "@reduxjs/toolkit";
-import mapsReducer from "./features/arcgis";
-import interactionsReducer from "./features/interactions";
+import candidateReducer from "./features/candidate";
+import cloudBaseReducer from "./features/cloudbase";
+import cloudTopReducer from "./features/cloudtop";
+import domainReducer from "./features/domain";
+import forecastReducer from "./features/forecast";
+import radarReducer from "./features/radar";
+import seedabilityReducer from "./features/seedability";
+import stormsReducer from "./features/storms";
+import replayReducer from "./features/replay";
+import soundingReducer from "./features/sounding";
+import noticesReducer from "./features/notices";
+import warningsReducer from "./features/warnings";
 
+// ArcGIS layer instances are module-scope singletons in lib/arcgis/, never
+// store state: putting one here forces serializableCheck off. The store holds
+// only plain data, so the check stays on.
 export const store = configureStore({
   reducer: {
-    maps: mapsReducer,
-    interactions: interactionsReducer,
+    candidate: candidateReducer,
+    cloudbase: cloudBaseReducer,
+    cloudtop: cloudTopReducer,
+    domain: domainReducer,
+    forecast: forecastReducer,
+    radar: radarReducer,
+    seedability: seedabilityReducer,
+    storms: stormsReducer,
+    replay: replayReducer,
+    sounding: soundingReducer,
+    notices: noticesReducer,
+    warnings: warningsReducer,
   },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: false,
-    }),
 });
 
 // Get the type of our store variable

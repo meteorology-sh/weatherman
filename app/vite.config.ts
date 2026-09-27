@@ -1,5 +1,5 @@
 // Vite
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 
 // Meta
 import path from "path";
@@ -28,9 +28,58 @@ export default defineConfig({
       port: 5173,
     },
     cors: true,
-    proxy: {},
+    proxy: {
+      "/candidate": {
+        target: process.env.SERVER_ORIGIN || "http://localhost:3000",
+        changeOrigin: true,
+        // The join waits on all five sources. Each is cached independently, so
+        // a warm map answers instantly, but a cold build pays the slowest of
+        // them plus the profile grid the satellite half needs.
+        timeout: 180_000,
+        proxyTimeout: 180_000,
+      },
+      "/cloudtop": {
+        target: process.env.SERVER_ORIGIN || "http://localhost:3000",
+        changeOrigin: true,
+        // The satellite scene is only 4 MB, but a cold build waits on the same
+        // HRRR profile grid the sounding uses (~35 s) to turn cloud-top
+        // pressure into a temperature.
+        timeout: 120_000,
+        proxyTimeout: 120_000,
+      },
+      "/forecast": {
+        target: process.env.SERVER_ORIGIN || "http://localhost:3000",
+        changeOrigin: true,
+        // The seeding-band build is a ~30 s cold read of ~34 GRIB records.
+        // Node's default socket timeout would cut it off mid-build.
+        timeout: 120_000,
+        proxyTimeout: 120_000,
+      },
+      "/radar": {
+        target: process.env.SERVER_ORIGIN || "http://localhost:3000",
+        changeOrigin: true,
+        // A cold mosaic is a ~9 s decode of a 24.5M-point grid. The
+        // working-area request also waits on the previous mosaic.
+        timeout: 120_000,
+        proxyTimeout: 120_000,
+      },
+      // One small request to the Iowa Environmental Mesonet per minute asked.
+      "/warnings": {
+        target: process.env.SERVER_ORIGIN || "http://localhost:3000",
+        changeOrigin: true,
+      },
+      // Answered from memory, so no build to wait on.
+      "/status": {
+        target: process.env.SERVER_ORIGIN || "http://localhost:3000",
+        changeOrigin: true,
+      },
+    },
     watch: {
       usePolling: true,
     },
+  },
+  test: {
+    environment: "jsdom",
+    globals: true,
   },
 });

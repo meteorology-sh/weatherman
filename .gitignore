@@ -1,0 +1,10 @@
+# VS Code
+.vscode
+
+# MCP
+.mcp.json
+
+# Agents
+.playwright-cli
+.claude
+.agents

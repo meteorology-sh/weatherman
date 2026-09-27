@@ -1,4 +1,4 @@
-import { Drawer } from "../components/Drawer";
+import { Drawer } from "./Drawer";
 
 export const Navigation = () => {
   return (

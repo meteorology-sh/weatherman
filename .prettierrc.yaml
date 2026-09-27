@@ -1,0 +1,18 @@
+# Formatting, for both packages.
+#
+# At the repo root and **dotted**, which is the whole point: Prettier only
+# auto-discovers a config whose name it knows, so the previous `prettierrc.yaml`
+# in app/ was never found unless a --config flag named it by hand. Editors
+# formatting on save, and the format hook, both rely on discovery.
+#
+# One file rather than one per package: /app and /server split their module
+# system and their test runner on purpose, but formatting is not a place they
+# have any reason to differ.
+"printWidth": 80
+"tabWidth": 2
+"useTabs": false
+"semi": true
+"singleQuote": false
+"bracketSpacing": true
+"arrowParens": "always"
+"trailingComma": "es5"

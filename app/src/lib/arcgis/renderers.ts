@@ -1,45 +1,160 @@
-import SimpleRenderer from "@arcgis/core/renderers/SimpleRenderer";
+/**
+ * The ArcGIS symbols each layer is drawn with.
+ *
+ * One renderer per layer, built from the band tables in `bands.ts` — this file
+ * decides nothing about which levels exist or what color they are, so a layer
+ * cannot be painted one way on the map and another in the legend.
+ */
+
+// ArcGIS
 import UniqueValueRenderer from "@arcgis/core/renderers/UniqueValueRenderer";
+import SimpleRenderer from "@arcgis/core/renderers/SimpleRenderer";
+import SimpleFillSymbol from "@arcgis/core/symbols/SimpleFillSymbol";
 import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol";
 import SimpleLineSymbol from "@arcgis/core/symbols/SimpleLineSymbol";
+import {
+  CLOUD_BANDS,
+  CLOUD_BASE_BANDS,
+  COLORS,
+  CONFIRMED_WIDTH,
+  ECHO_FREEZE_ALPHA,
+  FLY_ALPHA,
+  MOTION_WIDTH,
+  PRECIP_BANDS,
+  RADAR_BANDS,
+  SLW_BANDS,
+  WARNING_WIDTH,
+} from "./bands";
 
-const outline = new SimpleLineSymbol({ color: [50, 50, 50, 0.6], width: 0.5 });
+// Types
+import type { Band } from "./bands";
 
-function marker(color: number[]): SimpleMarkerSymbol {
-  return new SimpleMarkerSymbol({
-    style: "circle",
-    color,
-    size: 5,
-    outline,
-  });
-}
+const fills = (bands: readonly Band[], rgb: readonly number[]) =>
+  bands.map(({ value, alpha }) => ({
+    value,
+    symbol: new SimpleFillSymbol({
+      color: [...rgb, alpha],
+      outline: { width: 0 },
+    }),
+  }));
 
-export const CompanyRenderer = new UniqueValueRenderer({
-  field: "category",
-  defaultSymbol: marker([120, 120, 120, 0.7]),
-  defaultLabel: "Other",
-  uniqueValueInfos: [
-    { value: "Manufacturing", symbol: marker([30, 100, 200, 0.7]), label: "Manufacturing" },
-    { value: "CNC Machining", symbol: marker([0, 150, 80, 0.7]), label: "CNC Machining" },
-    { value: "Electronics", symbol: marker([180, 60, 200, 0.7]), label: "Electronics" },
-    { value: "Metal Manufacturing", symbol: marker([200, 120, 30, 0.7]), label: "Metal Manufacturing" },
-    { value: "Foundry / Casting", symbol: marker([160, 80, 20, 0.7]), label: "Foundry / Casting" },
-    { value: "Injection Molding", symbol: marker([0, 180, 180, 0.7]), label: "Injection Molding" },
-    { value: "Semiconductor Fab", symbol: marker([220, 40, 40, 0.7]), label: "Semiconductor Fab" },
-    { value: "Tool and Die Manufacturing", symbol: marker([100, 60, 160, 0.7]), label: "Tool and Die" },
-    { value: "Welding / Brazing", symbol: marker([200, 160, 0, 0.7]), label: "Welding / Brazing" },
-    { value: "Textiles", symbol: marker([230, 100, 150, 0.7]), label: "Textiles" },
-    { value: "Manufacturing Automation", symbol: marker([60, 60, 200, 0.7]), label: "Manufacturing Automation" },
-    { value: "Manufacturing Software", symbol: marker([100, 180, 220, 0.7]), label: "Manufacturing Software" },
-    { value: "Freight / Shipping", symbol: marker([140, 140, 60, 0.7]), label: "Freight / Shipping" },
-  ],
+export const forecastCloudRenderer = new UniqueValueRenderer({
+  field: "cloudCover",
+  uniqueValueInfos: fills(CLOUD_BANDS, COLORS.cloud),
 });
 
-export const ClusterRenderer = new SimpleRenderer({
+export const forecastPrecipRenderer = new UniqueValueRenderer({
+  field: "precipRate",
+  uniqueValueInfos: fills(PRECIP_BANDS, COLORS.rain),
+});
+
+export const candidateLiquidRenderer = new UniqueValueRenderer({
+  field: "slwPath",
+  uniqueValueInfos: fills(SLW_BANDS, COLORS.liquid),
+});
+
+export const candidateRadarRenderer = new UniqueValueRenderer({
+  field: "reflectivity",
+  uniqueValueInfos: fills(RADAR_BANDS, COLORS.rain),
+});
+
+/**
+ * Cloud base. The bands are disjoint, so each fill is exactly the swatch the
+ * legend shows.
+ */
+export const candidateCloudBaseRenderer = new UniqueValueRenderer({
+  field: "cloudBaseFt",
+  uniqueValueInfos: fills(CLOUD_BASE_BANDS, COLORS.cloudBase),
+});
+
+/**
+ * Texas fly: one fill. The same cells FLY names on a click.
+ */
+export const candidateFieldRenderer = new SimpleRenderer({
+  symbol: new SimpleFillSymbol({
+    color: [...COLORS.fly, FLY_ALPHA],
+    outline: { width: 0 },
+  }),
+});
+
+/**
+ * The observed-phase outline: one symbol for every polygon, because every
+ * polygon means the same thing.
+ *
+ * A `SimpleRenderer` rather than a banded one on purpose — this geometry
+ * carries no magnitude to band. The field underneath already says how much
+ * liquid is there; this says only which of that ground the satellite still sees
+ * liquid at the top of. Hollow, so the fills it encloses are read unchanged.
+ */
+export const candidateConfirmedRenderer = new SimpleRenderer({
+  symbol: new SimpleFillSymbol({
+    color: [0, 0, 0, 0],
+    outline: { color: [...COLORS.confirmed, 0.9], width: CONFIRMED_WIDTH },
+  }),
+});
+
+/**
+ * Storm outline: the same cyan as the 20 dBZ radar band, so the line is
+ * visibly the edge of that rain, not a second variable.
+ */
+/** The heaviest rain in the storm — one point at the strongest 1 km cell. */
+export const stormCoreRenderer = new SimpleRenderer({
   symbol: new SimpleMarkerSymbol({
-    style: "circle",
-    color: [30, 100, 200, 0.6],
-    size: 12,
-    outline: new SimpleLineSymbol({ color: [255, 255, 255, 0.8], width: 1 }),
+    color: [...COLORS.rain, 0.95],
+    size: 3,
+    outline: { color: [0, 0, 0, 0], width: 0 },
+  }),
+});
+
+/**
+ * Heading of the storm, from the heaviest-rain cell. Not a nowcast.
+ *
+ * A line from the core along the heading, with the arrowhead the line
+ * symbol draws at its end. Its length is kilometers of ground and follows
+ * the speed; its width is screen points and follows nothing, so zooming in
+ * on a single cell lengthens the tick without fattening it.
+ */
+export const stormMotionRenderer = new SimpleRenderer({
+  symbol: new SimpleLineSymbol({
+    color: [...COLORS.motion, 0.95],
+    width: MOTION_WIDTH,
+    cap: "butt",
+    marker: {
+      color: [...COLORS.motion, 0.95],
+      placement: "end",
+      style: "arrow",
+    },
+  }),
+});
+
+/**
+ * 18 dBZ top at or above freezing. One fill, no ramp.
+ */
+export const echoFreezeRenderer = new SimpleRenderer({
+  symbol: new SimpleFillSymbol({
+    color: [...COLORS.echoFreeze, ECHO_FREEZE_ALPHA],
+    outline: { width: 0 },
+  }),
+});
+
+/** One GLM flash. Points only — lightning is not a surface. */
+export const lightningRenderer = new SimpleRenderer({
+  symbol: new SimpleMarkerSymbol({
+    color: [...COLORS.lightning, 0.95],
+    size: 5,
+    outline: { color: [0, 0, 0, 0], width: 0 },
+  }),
+});
+
+/**
+ * A severe weather warning: a thin diagonal hatch and a thin outline, no fill.
+ * The hatch is the whole symbol so the layers under the polygon show between
+ * its lines.
+ */
+export const warningRenderer = new SimpleRenderer({
+  symbol: new SimpleFillSymbol({
+    style: "forward-diagonal",
+    color: [...COLORS.warning, 1],
+    outline: { color: [...COLORS.warning, 1], width: WARNING_WIDTH },
   }),
 });

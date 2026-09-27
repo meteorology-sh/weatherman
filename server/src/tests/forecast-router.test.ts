@@ -1,0 +1,539 @@
+// Node
+import { describe, it, before, after } from "node:test";
+import assert from "node:assert/strict";
+import type { Server } from "node:http";
+import type { AddressInfo } from "node:net";
+
+// Express
+import express from "express";
+
+// Routers
+import { forecast } from "../routers/forecast";
+
+// Services
+import {
+  Hrrr,
+  ContourFrame,
+  ForecastMeta,
+  SlwStats,
+  Sounding,
+} from "../lib/services/hrrr/forecast";
+import { CloudBaseStats } from "../lib/services/hrrr/diagnostics";
+import { OutsideDomain } from "../lib/services/shared/grid";
+
+const meta: ForecastMeta = {
+  run: "2026-07-17T00:00:00.000Z",
+  hours: [0, 1, 2],
+};
+
+const ring: [number, number][] = [
+  [-100, 40],
+  [-99, 40],
+  [-99, 41],
+  [-100, 40],
+];
+
+const frameOf = (property: string, level: number): ContourFrame => ({
+  type: "FeatureCollection",
+  run: "2026-07-17T00:00:00.000Z",
+  hour: 6,
+  validTime: "2026-07-17T06:00:00.000Z",
+  features: [
+    {
+      type: "Feature",
+      properties: { [property]: level },
+      geometry: { type: "MultiPolygon", coordinates: [[ring]] },
+    },
+  ],
+});
+
+const frame = frameOf("cloudCover", 30);
+const rain = frameOf("precipRate", 2.5);
+const water = frameOf("slwPath", 50);
+const base = frameOf("cloudBaseFt", 4000);
+
+const baseStats: CloudBaseStats = {
+  run: "2026-07-17T00:00:00.000Z",
+  hour: 0,
+  validTime: "2026-07-17T00:00:00.000Z",
+  basePct: 55.88,
+  reachablePct: 17.14,
+  reachableKm2: 2925792,
+  medianFt: 3719,
+};
+
+const stats: SlwStats = {
+  run: "2026-07-17T00:00:00.000Z",
+  hour: 0,
+  validTime: "2026-07-17T00:00:00.000Z",
+  coveragePct: 1.99,
+  seedableKm2: 338832,
+  peak: 964,
+  bandTopMb: 425,
+  bandBaseMb: 700,
+};
+
+describe("forecast router", () => {
+  let server: Server;
+  let origin: string;
+
+  before(async () => {
+    const app = express();
+    app.use("/forecast", forecast);
+    await new Promise<void>((resolve, reject) => {
+      server = app.listen(0, "127.0.0.1", (error) =>
+        error ? reject(error) : resolve()
+      );
+    });
+    const { port } = server.address() as AddressInfo;
+    origin = `http://127.0.0.1:${port}`;
+  });
+
+  after(async () => {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  });
+
+  it("responds with the run metadata as JSON", async (t) => {
+    t.mock.method(Hrrr, "meta", async () => meta);
+
+    const res = await fetch(`${origin}/forecast/meta`);
+
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get("content-type") ?? "", /application\/json/);
+    assert.deepEqual(await res.json(), meta);
+  });
+
+  it("responds 500 when the metadata lookup fails", async (t) => {
+    t.mock.method(Hrrr, "meta", async () => {
+      throw new Error("No published HRRR run found in the last 6 cycles");
+    });
+
+    const res = await fetch(`${origin}/forecast/meta`);
+
+    assert.equal(res.status, 500);
+    assert.deepEqual(await res.json(), {
+      error: "No published HRRR run found in the last 6 cycles",
+    });
+  });
+
+  it("responds with the requested frame as GeoJSON", async (t) => {
+    t.mock.method(Hrrr, "clouds", async () => frame);
+
+    const res = await fetch(`${origin}/forecast/clouds?hour=6`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), frame);
+  });
+
+  it("passes the requested hour through to the service", async (t) => {
+    const seen: number[] = [];
+    t.mock.method(Hrrr, "clouds", async (hour: number) => {
+      seen.push(hour);
+      return frame;
+    });
+
+    await fetch(`${origin}/forecast/clouds?hour=12`);
+
+    assert.deepEqual(seen, [12]);
+  });
+
+  it("defaults to the analysis hour when none is given", async (t) => {
+    const seen: number[] = [];
+    t.mock.method(Hrrr, "clouds", async (hour: number) => {
+      seen.push(hour);
+      return frame;
+    });
+
+    await fetch(`${origin}/forecast/clouds`);
+
+    assert.deepEqual(seen, [0]);
+  });
+
+  it("responds 500 with the message when the hour is out of range", async () => {
+    const res = await fetch(`${origin}/forecast/clouds?hour=99`);
+
+    assert.equal(res.status, 500);
+    assert.deepEqual(await res.json(), {
+      error: "Forecast hour must be an integer 0-18",
+    });
+  });
+
+  it("responds with the requested precipitation frame as GeoJSON", async (t) => {
+    t.mock.method(Hrrr, "precip", async () => rain);
+
+    const res = await fetch(`${origin}/forecast/precip?hour=6`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), rain);
+  });
+
+  it("passes the requested hour through to the precipitation service", async (t) => {
+    const seen: number[] = [];
+    t.mock.method(Hrrr, "precip", async (hour: number) => {
+      seen.push(hour);
+      return rain;
+    });
+
+    await fetch(`${origin}/forecast/precip?hour=12`);
+
+    assert.deepEqual(seen, [12]);
+  });
+
+  it("serves precipitation from a different field than clouds", async (t) => {
+    t.mock.method(Hrrr, "clouds", async () => frame);
+    t.mock.method(Hrrr, "precip", async () => rain);
+
+    const [clouds, precip] = await Promise.all([
+      fetch(`${origin}/forecast/clouds?hour=6`).then((r) => r.json()),
+      fetch(`${origin}/forecast/precip?hour=6`).then((r) => r.json()),
+    ]);
+
+    assert.ok("cloudCover" in clouds.features[0].properties);
+    assert.ok("precipRate" in precip.features[0].properties);
+  });
+
+  it("responds 500 with the message when the precipitation hour is out of range", async () => {
+    const res = await fetch(`${origin}/forecast/precip?hour=99`);
+
+    assert.equal(res.status, 500);
+    assert.deepEqual(await res.json(), {
+      error: "Forecast hour must be an integer 0-18",
+    });
+  });
+
+  it("responds with the liquid water frame as GeoJSON", async (t) => {
+    t.mock.method(Hrrr, "liquid", async () => water);
+
+    const res = await fetch(`${origin}/forecast/liquid?hour=0`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), water);
+  });
+
+  it("responds with the liquid water stats as JSON", async (t) => {
+    t.mock.method(Hrrr, "liquidStats", async () => stats);
+
+    const res = await fetch(`${origin}/forecast/liquid/stats?hour=0`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), stats);
+  });
+
+  // The stats route is more specific than the frame route; Express must not let
+  // /liquid swallow /liquid/stats.
+  it("keeps the stats route distinct from the frame route", async (t) => {
+    t.mock.method(Hrrr, "liquid", async () => water);
+    t.mock.method(Hrrr, "liquidStats", async () => stats);
+
+    const [geo, summary] = await Promise.all([
+      fetch(`${origin}/forecast/liquid?hour=0`).then((r) => r.json()),
+      fetch(`${origin}/forecast/liquid/stats?hour=0`).then((r) => r.json()),
+    ]);
+
+    assert.equal(geo.type, "FeatureCollection");
+    assert.equal(summary.peak, 964);
+  });
+
+  it("passes the requested hour through to the liquid service", async (t) => {
+    const seen: number[] = [];
+    t.mock.method(Hrrr, "liquid", async (hour: number) => {
+      seen.push(hour);
+      return water;
+    });
+
+    await fetch(`${origin}/forecast/liquid?hour=3`);
+
+    assert.deepEqual(seen, [3]);
+  });
+
+  it("defaults the stats to the analysis hour, which is what the map shows", async (t) => {
+    const seen: number[] = [];
+    t.mock.method(Hrrr, "liquidStats", async (hour: number) => {
+      seen.push(hour);
+      return stats;
+    });
+
+    await fetch(`${origin}/forecast/liquid/stats`);
+
+    assert.deepEqual(seen, [0]);
+  });
+
+  it("responds 500 with the message when the liquid build fails", async (t) => {
+    t.mock.method(Hrrr, "liquid", async () => {
+      throw new Error("spawn grib_filter ENOENT");
+    });
+
+    const res = await fetch(`${origin}/forecast/liquid?hour=0`);
+
+    assert.equal(res.status, 500);
+    assert.deepEqual(await res.json(), { error: "spawn grib_filter ENOENT" });
+  });
+
+  it("responds 500 with the message when the stats build fails", async (t) => {
+    t.mock.method(Hrrr, "liquidStats", async () => {
+      throw new Error("HRRR index unavailable: 404");
+    });
+
+    const res = await fetch(`${origin}/forecast/liquid/stats?hour=0`);
+
+    assert.equal(res.status, 500);
+    assert.deepEqual(await res.json(), {
+      error: "HRRR index unavailable: 404",
+    });
+  });
+
+  it("responds with the cloud base frame as GeoJSON", async (t) => {
+    t.mock.method(Hrrr, "cloudBase", async () => base);
+
+    const res = await fetch(`${origin}/forecast/cloudbase?hour=0`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), base);
+  });
+
+  it("responds with the cloud base stats as JSON", async (t) => {
+    t.mock.method(Hrrr, "cloudBaseStats", async () => baseStats);
+
+    const res = await fetch(`${origin}/forecast/cloudbase/stats?hour=0`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), baseStats);
+  });
+
+  // Same trap as /liquid: the frame route must not swallow the stats route.
+  it("keeps the cloud base stats route distinct from the frame route", async (t) => {
+    t.mock.method(Hrrr, "cloudBase", async () => base);
+    t.mock.method(Hrrr, "cloudBaseStats", async () => baseStats);
+
+    const [geo, summary] = await Promise.all([
+      fetch(`${origin}/forecast/cloudbase?hour=0`).then((r) => r.json()),
+      fetch(`${origin}/forecast/cloudbase/stats?hour=0`).then((r) => r.json()),
+    ]);
+
+    assert.equal(geo.type, "FeatureCollection");
+    assert.equal(summary.reachablePct, 17.14);
+  });
+
+  it("responds with a briefing field as GeoJSON", async (t) => {
+    const cape = frameOf("mixedCapeJKg", 1000);
+    t.mock.method(Hrrr, "briefing", async () => cape);
+
+    const res = await fetch(`${origin}/forecast/briefing/cape?hour=0`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), cape);
+  });
+
+  it("rejects a briefing field the table does not print", async () => {
+    const res = await fetch(`${origin}/forecast/briefing/cloudbase?hour=0`);
+
+    assert.equal(res.status, 404);
+  });
+
+  it("passes the briefing field name through to the service", async (t) => {
+    const seen: string[] = [];
+    t.mock.method(
+      Hrrr,
+      "briefing",
+      async (field: string) => {
+        seen.push(field);
+        return frameOf("warmCloudDepthFt", 0);
+      }
+    );
+
+    const res = await fetch(`${origin}/forecast/briefing/warm-depth?hour=0`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(seen, ["warm-depth"]);
+  });
+
+  it("responds with the AGL window as GeoJSON", async (t) => {
+    const window = frameOf("inWindow", 1);
+    t.mock.method(Hrrr, "cloudBaseWindow", async () => window);
+
+    const res = await fetch(`${origin}/forecast/cloudbase/window?hour=0`);
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), window);
+  });
+
+  it("keeps the window route distinct from the height ramp", async (t) => {
+    const window = frameOf("inWindow", 1);
+    t.mock.method(Hrrr, "cloudBase", async () => base);
+    t.mock.method(Hrrr, "cloudBaseWindow", async () => window);
+
+    const [ramp, filter] = await Promise.all([
+      fetch(`${origin}/forecast/cloudbase?hour=0`).then((r) => r.json()),
+      fetch(`${origin}/forecast/cloudbase/window?hour=0`).then((r) => r.json()),
+    ]);
+
+    assert.equal(ramp.features[0].properties.cloudBaseFt, 4000);
+    assert.equal(filter.features[0].properties.inWindow, 1);
+  });
+
+  it("passes the requested hour through to the cloud base service", async (t) => {
+    const seen: number[] = [];
+    t.mock.method(Hrrr, "cloudBase", async (hour: number) => {
+      seen.push(hour);
+      return base;
+    });
+
+    await fetch(`${origin}/forecast/cloudbase?hour=9`);
+
+    assert.deepEqual(seen, [9]);
+  });
+
+  it("defaults the cloud base to the analysis hour, which is what the map shows", async (t) => {
+    const seen: number[] = [];
+    t.mock.method(Hrrr, "cloudBaseStats", async (hour: number) => {
+      seen.push(hour);
+      return baseStats;
+    });
+
+    await fetch(`${origin}/forecast/cloudbase/stats`);
+
+    assert.deepEqual(seen, [0]);
+  });
+
+  it("responds 500 with the message when the cloud base build fails", async (t) => {
+    t.mock.method(Hrrr, "cloudBase", async () => {
+      throw new Error("HRRR carried no HGT at cloud base");
+    });
+
+    const res = await fetch(`${origin}/forecast/cloudbase?hour=0`);
+
+    assert.equal(res.status, 500);
+    assert.deepEqual(await res.json(), {
+      error: "HRRR carried no HGT at cloud base",
+    });
+  });
+});
+
+const sounding: Sounding = {
+  run: "2026-08-12T04:00:00.000Z",
+  hour: 0,
+  validTime: "2026-08-12T04:00:00.000Z",
+  lat: 39.8,
+  lon: -98.54,
+  surfaceFt: 1830,
+  cclFt: 5400,
+  freezingFt: 16433,
+  bandBaseFt: 18685,
+  bandTopFt: 22066,
+  baseC: 35.6,
+  topC: -32.4,
+  levels: [
+    { mb: 600, tempC: 4.37, heightFt: 14665 },
+    { mb: 550, tempC: -1.32, heightFt: 16966 },
+  ],
+  diagnostics: {
+    cloudBaseFt: 3456,
+    cloudBaseAglFt: 1626,
+    cloudTopFt: 39562,
+    depthFt: 36106,
+    bandInCloud: true,
+    capeJKg: 2499,
+    mixedCapeJKg: 2339,
+    cinJKg: 45,
+    lclFt: 4200,
+    stormMotionKt: 35,
+    stormMotionTowardDeg: 13,
+    lightning: 2,
+    vilKgM2: 24.9,
+    echoTopFt: 34498,
+  },
+};
+
+describe("forecast router sounding", () => {
+  let server: Server;
+  let origin: string;
+
+  before(async () => {
+    const app = express();
+    app.use("/forecast", forecast);
+    await new Promise<void>((resolve, reject) => {
+      server = app.listen(0, "127.0.0.1", (error) =>
+        error ? reject(error) : resolve()
+      );
+    });
+    const { port } = server.address() as AddressInfo;
+    origin = `http://127.0.0.1:${port}`;
+  });
+
+  after(async () => {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  });
+
+  it("responds with the profile as JSON", async (t) => {
+    t.mock.method(Hrrr, "sounding", async () => sounding);
+
+    const res = await fetch(
+      `${origin}/forecast/sounding?lat=39.83&lon=-98.58&hour=0`
+    );
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), sounding);
+  });
+
+  it("passes the point through to the service", async (t) => {
+    const seen: number[][] = [];
+    t.mock.method(
+      Hrrr,
+      "sounding",
+      async (lat: number, lon: number, hour: number) => {
+        seen.push([lat, lon, hour]);
+        return sounding;
+      }
+    );
+
+    await fetch(`${origin}/forecast/sounding?lat=39.83&lon=-98.58&hour=2`);
+
+    assert.deepEqual(seen, [[39.83, -98.58, 2]]);
+  });
+
+  it("defaults to the analysis hour", async (t) => {
+    const seen: number[] = [];
+    t.mock.method(
+      Hrrr,
+      "sounding",
+      async (_lat: number, _lon: number, hour: number) => {
+        seen.push(hour);
+        return sounding;
+      }
+    );
+
+    await fetch(`${origin}/forecast/sounding?lat=39.83&lon=-98.58`);
+
+    assert.deepEqual(seen, [0]);
+  });
+
+  // Outside CONUS there is no HRRR column, and the service says so rather than
+  // handing back the nearest edge cell. A 404, like the candidate point: the
+  // question is fair and the answer is "not here".
+  it("responds 404 for a point off the domain", async (t) => {
+    t.mock.method(Hrrr, "sounding", async () => {
+      throw new OutsideDomain(21, -158);
+    });
+
+    const res = await fetch(`${origin}/forecast/sounding?lat=21&lon=-158`);
+
+    assert.equal(res.status, 404);
+    assert.deepEqual(await res.json(), {
+      error: "No HRRR data at 21, -158 — the domain is CONUS",
+    });
+  });
+
+  it("still responds 500 when the sounding fails for any other reason", async (t) => {
+    t.mock.method(Hrrr, "sounding", async () => {
+      throw new Error("the HRRR bucket is unreachable");
+    });
+
+    const res = await fetch(`${origin}/forecast/sounding?lat=39&lon=-98`);
+
+    assert.equal(res.status, 500);
+  });
+});

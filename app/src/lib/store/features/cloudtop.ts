@@ -1,0 +1,36 @@
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+
+// Types
+import type { CloudTopStats } from "@/lib/types";
+
+type CloudTopState = {
+  /** Summary of the scene. The bands themselves never enter the store. */
+  stats: CloudTopStats | undefined;
+  loading: boolean;
+  error: string | null;
+};
+
+const initialState: CloudTopState = {
+  stats: undefined,
+  loading: false,
+  error: null,
+};
+
+const cloudTopSlice = createSlice({
+  name: "cloudtop",
+  initialState,
+  reducers: {
+    setStats(state, action: PayloadAction<CloudTopStats>) {
+      state.stats = action.payload;
+    },
+    setLoading(state, action: PayloadAction<boolean>) {
+      state.loading = action.payload;
+    },
+    setError(state, action: PayloadAction<string | null>) {
+      state.error = action.payload;
+    },
+  },
+});
+
+export const cloudTopActions = cloudTopSlice.actions;
+export default cloudTopSlice.reducer;

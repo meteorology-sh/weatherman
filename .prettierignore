@@ -1,0 +1,9 @@
+# Build output and installed packages — nothing here is ours to format.
+node_modules
+dist
+build
+coverage
+
+# Lockfiles are generated, and reformatting one produces a spurious diff.
+yarn.lock
+package-lock.json

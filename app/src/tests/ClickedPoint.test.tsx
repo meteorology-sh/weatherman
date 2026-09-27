@@ -1,0 +1,127 @@
+// Testing
+import { act, screen } from "@testing-library/react";
+import { createTestStore, noDiagnostics, renderWithStore } from "./utils";
+
+// Store
+import { seedabilityActions } from "@/lib/store/features/seedability";
+import { soundingActions } from "@/lib/store/features/sounding";
+import { stormsActions } from "@/lib/store/features/storms";
+
+// Components
+import { ClickedPoint } from "@/app/components/candidate/ClickedPoint";
+
+// Types
+import type { CandidatePoint, Sounding as SoundingT } from "@/lib/types";
+
+/** Kansas, 12 Aug 2026 04Z, from the live route — clear air, dashes for most
+ * of it, which is exactly what must not appear before a click. */
+const sounding: SoundingT = {
+  run: "2026-08-12T04:00:00.000Z",
+  hour: 0,
+  validTime: "2026-08-12T04:00:00.000Z",
+  lat: 39.8,
+  lon: -98.54,
+  surfaceFt: 1830,
+  cclFt: null,
+  freezingFt: 16390,
+  bandBaseFt: 19237,
+  bandTopFt: 26618,
+  baseC: 34.9,
+  topC: -18.1,
+  levels: [{ mb: 550, tempC: -1.32, heightFt: 16966 }],
+  diagnostics: noDiagnostics,
+};
+
+/** The join over the same cell. */
+const here: CandidatePoint = {
+  run: "2026-08-12T04:00:00.000Z",
+  validTime: "2026-08-12T04:00:00.000Z",
+  sceneTime: "2026-08-12T04:01:17.900Z",
+  radarTime: "2026-08-12T04:00:39.000Z",
+  phaseTime: "2026-08-12T04:01:17.900Z",
+  lat: 32.05,
+  lon: -101.42,
+  verdict: "candidate",
+  target: "target",
+  cloudBaseAglFt: 4000,
+  freezingFt: 16000,
+  echoTopFt: 18000,
+  slwGM2: 140,
+  cloudBaseFt: 5800,
+  topPhase: "supercooled",
+  cloudTopC: -14,
+  dbz: null,
+  radarCovered: true,
+  cloudBaseMslFt: 5800,
+  baseSource: "model",
+  baseDrawn: true,
+  payload: "both",
+  warmCloudDepthFt: 10200,
+  cclFt: null,
+};
+
+describe("ClickedPoint", () => {
+  // The column is read over the default point to warm the profile grid, and
+  // that read used to draw itself: a heading, a panel of dashes and "no answer
+  // for this point" about a cell nobody had picked.
+  it("renders nothing before the map is clicked, warm profile or not", () => {
+    const store = createTestStore();
+    const { container } = renderWithStore(<ClickedPoint />, store);
+
+    act(() => {
+      store.dispatch(soundingActions.setData(sounding));
+    });
+
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("draws fly or don't fly once a cell is picked", () => {
+    const store = createTestStore();
+    renderWithStore(<ClickedPoint />, store);
+
+    act(() => {
+      store.dispatch(soundingActions.setPoint([-101.42, 32.05]));
+      store.dispatch(soundingActions.setData(sounding));
+      store.dispatch(seedabilityActions.setHere(here));
+    });
+
+    expect(screen.getByText("FLY")).toBeTruthy();
+    expect(screen.getByText("Cloud")).toBeTruthy();
+    expect(screen.getByText("Environment")).toBeTruthy();
+  });
+
+  it("orders the verdict, radar, cloud, and environment", () => {
+    const store = createTestStore();
+    const { container } = renderWithStore(<ClickedPoint />, store);
+
+    act(() => {
+      store.dispatch(soundingActions.setPoint([-101.42, 32.05]));
+      store.dispatch(soundingActions.setData(sounding));
+      store.dispatch(seedabilityActions.setHere(here));
+      store.dispatch(stormsActions.setHere(null));
+    });
+
+    const headings = Array.from(container.querySelectorAll("h3")).map(
+      (h) => h.textContent
+    );
+    expect(headings.slice(1)).toEqual(["Radar", "Cloud", "Environment"]);
+    expect(headings[0]).toContain("FLY");
+  });
+
+  // The panel rules its sections off with a border on each of them, so the
+  // four have to sit in that column themselves. Wrapping them in a div would
+  // rule the group off as one section and lose the lines between them.
+  it("puts the four readouts in the panel's own column", () => {
+    const store = createTestStore();
+    const { container } = renderWithStore(<ClickedPoint />, store);
+
+    act(() => {
+      store.dispatch(soundingActions.setPoint([-101.42, 32.05]));
+      store.dispatch(soundingActions.setData(sounding));
+      store.dispatch(seedabilityActions.setHere(here));
+      store.dispatch(stormsActions.setHere(null));
+    });
+
+    expect(container.children.length).toBe(4);
+  });
+});

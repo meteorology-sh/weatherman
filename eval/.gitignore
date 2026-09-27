@@ -1,0 +1,12 @@
+# Reports, parsed records, and scored days. Not code.
+cache/
+data/
+out/
+
+# Packed snapshot — not committed.
+eval-snapshot.tar.gz
+
+# The evaluation app's install and build output.
+app/node_modules/
+app/dist/
+app/tsconfig.tsbuildinfo
