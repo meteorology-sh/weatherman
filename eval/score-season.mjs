@@ -305,7 +305,16 @@ const doc = [];
 const WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven"];
 const counted = (n) => WORDS[n] ?? String(n);
 const thousands = (n) => n.toLocaleString("en-US");
-const pct = (n, d) => (d ? `${((100 * n) / d).toFixed(1)}%` : "—");
+/*
+ * Percentages print at one decimal, truncated: the tenth shown is one the
+ * count actually reached. Rounding would print a tenth the data does not
+ * reach, so 232/255 would read 91.0% at 90.98%. The epsilon keeps a share
+ * that is exact in decimal from falling a tenth on binary error alone.
+ */
+const tenths = (fraction) => Math.floor(fraction * 1000 + 1e-9);
+const fromTenths = (t) => `${(t / 10).toFixed(1)}%`;
+const percent = (fraction) => fromTenths(tenths(fraction));
+const pct = (n, d) => (d ? percent(n / d) : "—");
 const share = (n, d) => (d ? `${n}/${d} (${pct(n, d)})` : "—");
 const bold = (text) => `**${text}**`;
 
@@ -491,7 +500,7 @@ const seasonGround = flownGround(seasonFlares);
 const countiesCell = (ground) => `${ground.counties} · ${km2(ground.km2)}`;
 const seedableCell = (shares) => {
   const typical = median(shares);
-  return typical == null ? "—" : `${(100 * typical).toFixed(1)}%`;
+  return typical == null ? "—" : percent(typical);
 };
 
 table(
@@ -613,6 +622,11 @@ const seasonTarget = rows.reduce(
   }),
   { inside: 0, within: 0, atEdge: 0 }
 );
+
+/* The two ends of the margin, and the count between them. */
+const seasonLowest = seasonTarget.inside - seasonTarget.atEdge;
+const seasonHighest = seasonTarget.inside + seasonTarget.within;
+
 table(
   [
     ["Program", L],
@@ -652,10 +666,10 @@ table(
   ],
   [
     [
-      share(seasonTarget.inside - seasonTarget.atEdge, seasonFlares.length),
+      share(seasonLowest, seasonFlares.length),
       share(seasonTarget.inside, seasonFlares.length),
-      share(seasonTarget.inside + seasonTarget.within, seasonFlares.length),
-      String(marginTotal(seasonTarget)),
+      share(seasonHighest, seasonFlares.length),
+      share(marginTotal(seasonTarget), seasonFlares.length),
     ],
   ]
 );
@@ -663,8 +677,10 @@ table(
 say(
   "The season at both ends of the margin: lowest loses every FLY release " +
     "inside it, highest gains every DON'T FLY release inside it, and the " +
-    "spread between the two is the margin count above. Neither end is " +
-    "likely. They are what the grid and the reports together cannot rule out."
+    "spread between the two is the margin count above. Each share is " +
+    "truncated on its own, so the ends do not subtract to the spread's " +
+    "share at this precision. Neither end is likely. They are what the " +
+    "grid and the reports together cannot rule out."
 );
 
 say(
@@ -879,6 +895,36 @@ function bandRow(balloonRows) {
   };
 }
 
+/*
+ * Two launch sites serve four programs, so the same 12Z ascent reaches several
+ * reports, and they do not always agree about it: Rolling Plains prints its
+ * −15 °C heights to the nearest 100 m where West Texas prints metres. The
+ * season reads each site-morning once, from whichever report prints it finest,
+ * so the row answers to the data rather than to the order the programs are
+ * read in.
+ *
+ * Trailing zeros are all a printed height says about its own precision, so a
+ * height measured finely that lands on a round number reads as coarse. That
+ * costs nothing here: it only ever prefers the copy showing more detail.
+ */
+const step = (v) => {
+  if (!Number.isFinite(v) || v === 0) return Infinity;
+  let unit = 1;
+  while (Math.abs(v) % (unit * 10) === 0) unit *= 10;
+  return unit;
+};
+
+/** A report's coarseness for one ascent: the band edges first, then the CCL. */
+const coarseness = (ascent) => {
+  const c = ascent.compared ?? {};
+  return [
+    Math.max(step(c.freezingLevel?.reported), step(c.minus15Height?.reported)),
+    step(c.ccl?.reported),
+  ];
+};
+
+const finer = (a, b) => (a[0] !== b[0] ? a[0] < b[0] : a[1] < b[1]);
+
 /** How far our height sits from the balloon's on average, then the typical miss. */
 function edge(s) {
   if (!s) return "—";
@@ -903,7 +949,10 @@ for (const row of rows) {
   sonde.push([row.region.short, bandRow(data.rows ?? [])]);
   for (const ascent of data.rows ?? []) {
     const key = `${ascent.date} ${ascent.site}`;
-    if (!byMorning.has(key)) byMorning.set(key, ascent);
+    const held = byMorning.get(key);
+    if (!held || finer(coarseness(ascent), coarseness(held))) {
+      byMorning.set(key, ascent);
+    }
   }
 }
 const seasonSonde = bandRow([...byMorning.values()]);
@@ -917,11 +966,26 @@ const noSonde = rows
   );
 say(
   "Each 12Z ascent a report prints, against the HRRR column at that hour and " +
-    "site: the average offset, then the typical miss. The season row counts " +
-    `each site-morning once. ${noSonde.join(" ")}`
+    "site: the average offset, then the typical miss. Two sites serve four " +
+    "programs, so the season row reads each site-morning once, from " +
+    "whichever report prints it finest. Its layer overlap is the mean of " +
+    `the program figures, one vote each. ${noSonde.join(" ")}`
 );
 
-const overlap = (s) => (s ? `${(s.mean * 100).toFixed(1)}%` : "—");
+const overlap = (s) => (s ? percent(s.mean) : "—");
+
+/*
+ * The season's layer overlap is the mean of the program figures, one vote
+ * each, so a program is read against the rest whatever its ascent count.
+ * The columns beside it stay per-ascent, and Ascents is the site-mornings
+ * they are taken over, so this cell alone does not answer to that count.
+ */
+const programMeans = sonde
+  .map(([, band]) => band.summary?.mean)
+  .filter((mean) => mean != null);
+const seasonOverlap = programMeans.length
+  ? programMeans.reduce((sum, mean) => sum + mean, 0) / programMeans.length
+  : null;
 const over90 = (s) => (s ? `${s.over90} of ${s.n}` : "—");
 doc.push("**Freezing level to −15 °C**", "");
 table(
@@ -947,7 +1011,7 @@ table(
       bold(seasonSonde.summary?.n ?? 0),
       bold(edge(seasonSonde.freeze)),
       bold(edge(seasonSonde.top)),
-      bold(overlap(seasonSonde.summary)),
+      bold(seasonOverlap == null ? "—" : percent(seasonOverlap)),
       bold(over90(seasonSonde.summary)),
     ],
   ]
